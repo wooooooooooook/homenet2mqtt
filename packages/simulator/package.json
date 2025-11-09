@@ -12,7 +12,7 @@
     "test": "vitest run --runTestsByPath packages/simulator/test/simulator.test.ts"
   },
   "dependencies": {
-    "node-pty-prebuilt-multiarch": "0.10.1-pre.5"
+    "@homebridge/node-pty-prebuilt-multiarch": "^0.13.1"
   },
   "devDependencies": {
     "typescript": "^5.3.3"

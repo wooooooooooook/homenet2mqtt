@@ -1,8 +1,8 @@
 import { spawnSync } from 'node:child_process';
 import { setInterval as createInterval, clearInterval } from 'node:timers';
 import { pathToFileURL } from 'node:url';
-import type { IPty } from 'node-pty-prebuilt-multiarch';
-import * as pty from 'node-pty-prebuilt-multiarch';
+import type { IPty } from '@homebridge/node-pty-prebuilt-multiarch';
+import * as pty from '@homebridge/node-pty-prebuilt-multiarch';
 
 const DEFAULT_INTERVAL_MS = 1000;
 
