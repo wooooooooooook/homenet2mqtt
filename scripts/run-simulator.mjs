@@ -1,0 +1,54 @@
+import { mkdir, rm, symlink, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+import process from 'node:process';
+
+const DEFAULT_LINK_PATH = '/simshare/rs485-sim-tty';
+
+const ensureNumber = (value, fallback) => {
+  if (value === undefined) {
+    return fallback;
+  }
+
+  const parsed = Number.parseInt(value, 10);
+  if (Number.isNaN(parsed) || parsed <= 0) {
+    throw new Error(`유효하지 않은 숫자 값: ${value}`);
+  }
+
+  return parsed;
+};
+
+const exposePty = async (ptyPath, linkPath) => {
+  await mkdir(path.dirname(linkPath), { recursive: true });
+  await rm(linkPath, { force: true });
+  await symlink(ptyPath, linkPath);
+  await writeFile(`${linkPath}.meta`, JSON.stringify({ ptyPath }, null, 2));
+};
+
+async function main() {
+  const { createSimulator } = await import('../packages/simulator/dist/index.js');
+  const intervalMs = ensureNumber(process.env.SIMULATOR_INTERVAL_MS, 1000);
+  const linkPath = process.env.SIMULATOR_LINK_PATH ?? DEFAULT_LINK_PATH;
+
+  const simulator = createSimulator({ intervalMs });
+  await exposePty(simulator.ptyPath, linkPath);
+
+  console.log(
+    `[simulator] PTY 노출: 실제=${simulator.ptyPath}, 링크=${linkPath} (interval=${intervalMs}ms)`
+  );
+
+  simulator.start();
+
+  const shutdown = (signal) => {
+    console.log(`[simulator] ${signal} 신호를 수신했습니다. 종료 절차를 진행합니다.`);
+    simulator.dispose();
+    process.exit(0);
+  };
+
+  process.on('SIGINT', () => shutdown('SIGINT'));
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+}
+
+main().catch((err) => {
+  console.error('[simulator] 실행 중 오류가 발생했습니다:', err);
+  process.exit(1);
+});

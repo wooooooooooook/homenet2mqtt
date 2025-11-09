@@ -1,0 +1,81 @@
+version: '3.9'
+
+services:
+  simulator:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/simulator.Dockerfile
+    container_name: rs485-simulator
+    environment:
+      SIMULATOR_LINK_PATH: /simshare/rs485-sim-tty
+      SIMULATOR_INTERVAL_MS: '1000'
+    volumes:
+      - simshare:/simshare
+    restart: unless-stopped
+
+  core:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/core.Dockerfile
+    container_name: rs485-core
+    environment:
+      SERIAL_PORT: /simshare/rs485-sim-tty
+      BAUD_RATE: '9600'
+      MQTT_URL: mqtt://mq:1883
+    volumes:
+      - simshare:/simshare
+    depends_on:
+      simulator:
+        condition: service_started
+      mq:
+        condition: service_started
+    restart: unless-stopped
+
+  mq:
+    image: eclipse-mosquitto:2
+    container_name: rs485-mqtt
+    ports:
+      - '1883:1883'
+    volumes:
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_log:/mosquitto/log
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    restart: unless-stopped
+
+  homeassistant:
+    image: ghcr.io/home-assistant/home-assistant:stable
+    container_name: home-assistant
+    ports:
+      - '8123:8123'
+    volumes:
+      - homeassistant_config:/config
+    environment:
+      - TZ=UTC
+    depends_on:
+      mq:
+        condition: service_started
+    restart: unless-stopped
+
+  ui:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/service.Dockerfile
+    container_name: rs485-ui
+    environment:
+      PORT: '3000'
+    ports:
+      - '3000:3000'
+    volumes:
+      - simshare:/simshare
+    depends_on:
+      core:
+        condition: service_started
+      mq:
+        condition: service_started
+    restart: unless-stopped
+
+volumes:
+  mosquitto_data:
+  mosquitto_log:
+  homeassistant_config:
+  simshare:

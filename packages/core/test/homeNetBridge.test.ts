@@ -9,6 +9,10 @@ class FakeSerialPort extends EventEmitter {
     this.options = options;
     serialPortInstances.push(this);
   }
+
+  open(callback?: (error?: Error | null) => void) {
+    callback?.(null);
+  }
 }
 
 const serialPortInstances: FakeSerialPort[] = [];
@@ -16,6 +20,7 @@ const publishMock = vi.fn();
 const mqttConnectMock = vi.fn(() => ({
   publish: publishMock,
 }));
+const accessMock = vi.fn().mockResolvedValue(undefined);
 
 vi.mock('serialport', () => ({
   SerialPort: FakeSerialPort,
@@ -34,11 +39,16 @@ vi.mock('dotenv', () => ({
   config: vi.fn(),
 }));
 
+vi.mock('node:fs/promises', () => ({
+  access: accessMock,
+}));
+
 describe('HomeNetBridge', () => {
   beforeEach(() => {
     serialPortInstances.length = 0;
     publishMock.mockClear();
     mqttConnectMock.mockClear();
+    accessMock.mockClear();
     vi.resetModules();
   });
 
@@ -51,7 +61,7 @@ describe('HomeNetBridge', () => {
       mqttUrl: 'mqtt://localhost',
     });
 
-    bridge.start();
+    await bridge.start();
 
     expect(mqttConnectMock).toHaveBeenCalledWith('mqtt://localhost');
     expect(serialPortInstances).toHaveLength(1);
@@ -71,12 +81,14 @@ describe('HomeNetBridge', () => {
       mqttUrl: 'mqtt://example',
     };
 
-    createBridge(options);
+    const bridge = createBridge(options);
+    await bridge.start();
 
     expect(serialPortInstances).toHaveLength(1);
     expect(serialPortInstances[0].options).toMatchObject({
       path: options.serialPath,
       baudRate: options.baudRate,
+      autoOpen: false,
     });
   });
 });

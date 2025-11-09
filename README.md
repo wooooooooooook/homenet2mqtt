@@ -50,8 +50,27 @@ Hum: homeassistant/sensor/rs485_<id>_hum/config
 
 ✅ Dev Commands
 
-docker compose -f deploy/docker/docker-compose.yml up --build
 socat -d -d pty,raw,echo=0 pty,raw,echo=0
+pnpm service:build (Svelte UI 빌드 및 정적 자산 동기화 포함)
+
+✅ Docker Compose Stack
+
+`deploy/docker/docker-compose.yml`에는 다음 컨테이너가 포함됩니다.
+
+- **simulator**: `@rs485-homenet/simulator`가 생성한 PTY를 `/simshare/rs485-sim-tty` 심볼릭 링크로 노출
+- **core**: `SERIAL_PORT=/simshare/rs485-sim-tty`를 통해 시뮬레이터에 연결하고 MQTT 브릿지 실행
+- **mq**: Eclipse Mosquitto 브로커 (1883 노출)
+- **homeassistant**: Home Assistant 안정 채널 (8123 노출)
+- **ui**: Express 서비스(`packages/service`)가 빌드된 Svelte UI와 API 프록시 제공 (3000 노출)
+
+실행:
+
+```
+cd deploy/docker
+docker compose up --build
+```
+
+실제 RS485 디바이스를 연결하려면 `core` 서비스 환경변수(`SERIAL_PORT`, `BAUD_RATE`)와 `devices` 매핑을 오버라이드하고, 필요 시 `simulator` 서비스를 scale down 하세요.
 
 ✅ Bridge Logic Outline
 
