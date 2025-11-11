@@ -1,11 +1,9 @@
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte';
 
-  type PacketEvent = {
+  type MqttMessageEvent = {
     topic: string;
     payload: string;
-    payloadHex: string;
-    payloadLength: number;
     receivedAt: string;
   };
 
@@ -33,7 +31,8 @@
   let bridgeInfo: BridgeInfo | null = null;
   let infoLoading = false;
   let infoError = '';
-  let packets: PacketEvent[] = [];
+  let rawPackets: MqttMessageEvent[] = [];
+  let deviceStates = new Map<string, string>();
   let eventSource: EventSource | null = null;
   let connectionStatus: 'idle' | 'connecting' | 'connected' | 'error' = 'idle';
   let statusMessage = '';
@@ -76,7 +75,6 @@
         const errorData = await response.json();
         throw new Error(errorData.error || '설정 변경에 실패했습니다.');
       }
-      // Give a moment for the backend to restart, then reload info.
       setTimeout(() => loadBridgeInfo(true), 1000);
     } catch (err) {
       infoError = err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.';
@@ -86,9 +84,7 @@
   }
 
   async function loadBridgeInfo(force = false) {
-    if (infoLoading && !force) {
-      return;
-    }
+    if (infoLoading && !force) return;
 
     infoLoading = true;
     infoError = '';
@@ -103,8 +99,9 @@
       const data = (await response.json()) as BridgeInfo;
       bridgeInfo = data;
       selectedConfigFile = data.configFile;
-      packets = [];
-      startPacketStream();
+      rawPackets = [];
+      deviceStates.clear();
+      startMqttStream();
     } catch (err) {
       bridgeInfo = null;
       closeStream();
@@ -114,15 +111,13 @@
     }
   }
 
-  function startPacketStream() {
-    if (typeof window === 'undefined' || !bridgeInfo) {
-      return;
-    }
+  function startMqttStream() {
+    if (typeof window === 'undefined' || !bridgeInfo) return;
 
     closeStream();
 
     connectionStatus = 'connecting';
-    statusMessage = 'RS485 패킷 스트림을 연결하는 중입니다...';
+    statusMessage = 'MQTT 스트림을 연결하는 중입니다...';
 
     const url = new URL('/api/packets/stream', window.location.origin);
     if (bridgeInfo.mqttUrl.trim().length > 0) {
@@ -138,28 +133,34 @@
       const state = data.state;
       if (state === 'connected') {
         connectionStatus = 'connected';
-        statusMessage = '패킷 스트림 연결 완료';
+        statusMessage = 'MQTT 스트림 연결 완료';
       } else if (state === 'subscribed') {
         connectionStatus = 'connected';
-        statusMessage = `'${data.topic}' 패킷 수신 중`;
+        statusMessage = `'${data.topic}' 토픽 구독 중`;
       } else if (state === 'error') {
         connectionStatus = 'error';
         statusMessage =
-          typeof data.message === 'string' ? data.message : '패킷 스트림 오류가 발생했습니다.';
+          typeof data.message === 'string' ? data.message : 'MQTT 스트림 오류가 발생했습니다.';
       } else if (state === 'connecting') {
         connectionStatus = 'connecting';
-        statusMessage = '패킷 스트림을 다시 연결하는 중입니다...';
+        statusMessage = 'MQTT 스트림을 다시 연결하는 중입니다...';
       }
     };
 
-    const handlePacket = (event: MessageEvent<string>) => {
-      const data = safeParse<PacketEvent>(event.data);
+    const handleMqttMessage = (event: MessageEvent<string>) => {
+      const data = safeParse<MqttMessageEvent>(event.data);
       if (!data) return;
-      packets = [...packets, data].slice(-MAX_PACKETS);
+
+      if (data.topic === 'homenet/raw') {
+        rawPackets = [...rawPackets, data].slice(-MAX_PACKETS);
+      } else {
+        deviceStates.set(data.topic, data.payload);
+        deviceStates = deviceStates; // Trigger Svelte reactivity
+      }
     };
 
     eventSource.addEventListener('status', handleStatus);
-    eventSource.addEventListener('packet', handlePacket);
+    eventSource.addEventListener('mqtt-message', handleMqttMessage);
     eventSource.onerror = () => {
       connectionStatus = 'error';
       statusMessage = '스트림 연결이 끊어졌습니다. 잠시 후 다시 시도하세요.';
@@ -255,7 +256,7 @@
         </div>
         <div class="status" data-state={connectionStatus}>
           <span class="dot" />
-          <span>{statusMessage || 'RS485 패킷을 기다리는 중입니다.'}</span>
+          <span>{statusMessage || 'MQTT 스트림을 기다리는 중입니다.'}</span>
         </div>
       </div>
     </header>
@@ -290,32 +291,33 @@
         <p class="error subtle">브리지 오류: {bridgeInfo.error}</p>
       {/if}
 
-      <div class="packet-list">
-        {#if packets.length === 0}
-          <p class="empty">아직 수신된 패킷이 없습니다.</p>
+      <div class="state-cards">
+        {#if deviceStates.size === 0}
+          <p class="empty">아직 수신된 장치 상태가 없습니다.</p>
         {:else}
-          {#each [...packets].reverse() as packet (packet.receivedAt + packet.payloadHex)}
+          {#each Array.from(deviceStates.entries()) as [topic, payload] (topic)}
+            <article class="state-card" data-state={payload}>
+              <span class="topic">{topic.replace('homenet/', '')}</span>
+              <strong class="payload">{payload}</strong>
+            </article>
+          {/each}
+        {/if}
+      </div>
+
+      <h2 class="raw-title">Raw 패킷 로그</h2>
+      <div class="packet-list">
+        {#if rawPackets.length === 0}
+          <p class="empty">아직 수신된 Raw 패킷이 없습니다.</p>
+        {:else}
+          {#each [...rawPackets].reverse() as packet (packet.receivedAt + packet.topic)}
             <article class="packet">
               <header>
                 <span class="time">{new Date(packet.receivedAt).toLocaleTimeString()}</span>
                 <span class="topic">{packet.topic}</span>
-                <span class="length">{packet.payloadLength} bytes</span>
               </header>
               <div class="payload">
                 <span>ASCII</span>
                 <code>{toPrintableAscii(packet.payload)}</code>
-              </div>
-              <div class="payload">
-                <span>HEX</span>
-                <code>{packet.payloadHex.toUpperCase()}</code>
-              </div>
-              <div class="payload bytes">
-                <span>RS485 Bytes</span>
-                <div class="byte-grid">
-                  {#each toHexPairs(packet.payloadHex) as byte, index}
-                    <span class="byte" title={`byte ${index}`}>{byte}</span>
-                  {/each}
-                </div>
               </div>
             </article>
           {/each}
@@ -528,6 +530,50 @@
     color: rgba(226, 232, 240, 0.6);
   }
 
+  .state-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+
+  .state-card {
+    background: rgba(30, 41, 59, 0.8);
+    border: 1px solid rgba(148, 163, 184, 0.3);
+    border-radius: 0.75rem;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .state-card .topic {
+    font-family: 'Fira Code', 'SFMono-Regular', Consolas, monospace;
+    font-size: 0.85rem;
+    color: rgba(226, 232, 240, 0.7);
+  }
+
+  .state-card .payload {
+    font-size: 1.5rem;
+    font-weight: 600;
+  }
+
+  .state-card[data-state='ON'] .payload {
+    color: #a7f3d0;
+  }
+
+  .state-card[data-state='OFF'] .payload {
+    color: #9ca3af;
+  }
+
+  .raw-title {
+    font-size: 1rem;
+    margin: 2rem 0 0.5rem;
+    color: rgba(226, 232, 240, 0.8);
+    border-bottom: 1px solid rgba(148, 163, 184, 0.3);
+    padding-bottom: 0.5rem;
+  }
+
   .packet-list {
     display: flex;
     flex-direction: column;
@@ -577,23 +623,6 @@
     border-radius: 0.5rem;
     display: block;
     overflow-x: auto;
-  }
-
-  .payload.bytes .byte-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(48px, 1fr));
-    gap: 0.35rem;
-  }
-
-  .byte {
-    display: inline-flex;
-    justify-content: center;
-    align-items: center;
-    padding: 0.3rem;
-    background: rgba(148, 163, 184, 0.1);
-    border-radius: 0.4rem;
-    font-size: 0.8rem;
-    font-family: 'Fira Code', 'SFMono-Regular', Consolas, monospace;
   }
 
   .empty {

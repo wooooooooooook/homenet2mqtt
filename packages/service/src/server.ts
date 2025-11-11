@@ -107,12 +107,12 @@ app.get('/api/packets/stream', (req, res) => {
 
   client.on('connect', () => {
     sendStatus('connected', { mqttUrl: streamMqttUrl });
-    client.subscribe('homenet/raw', (err) => {
+    client.subscribe('homenet/#', (err) => {
       if (err) {
         sendStatus('error', { message: err.message });
         return;
       }
-      sendStatus('subscribed', { topic: 'homenet/raw' });
+      sendStatus('subscribed', { topic: 'homenet/#' });
     });
   });
 
@@ -121,11 +121,9 @@ app.get('/api/packets/stream', (req, res) => {
   client.on('close', () => sendStatus('error', { message: 'MQTT connection closed.' }));
 
   client.on('message', (topic, payload) => {
-    sendEvent('packet', {
+    sendEvent('mqtt-message', {
       topic,
       payload: payload.toString('utf8'),
-      payloadHex: payload.toString('hex'),
-      payloadLength: payload.length,
       receivedAt: new Date().toISOString(),
     });
   });
