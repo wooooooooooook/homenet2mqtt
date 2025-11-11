@@ -13,8 +13,10 @@
   },
   "dependencies": {
     "@rs485-homenet/core": "workspace:*",
+    "@types/js-yaml": "^4.0.9",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
+    "js-yaml": "^4.1.0",
     "mqtt": "^5.3.4"
   },
   "devDependencies": {

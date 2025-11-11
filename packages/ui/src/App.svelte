@@ -9,9 +9,10 @@
     receivedAt: string;
   };
 
-  type BridgeStatus = 'idle' | 'starting' | 'started' | 'error';
+  type BridgeStatus = 'idle' | 'starting' | 'started' | 'stopped' | 'error';
 
   type BridgeInfo = {
+    configFile: string;
     serialPath: string;
     baudRate: number;
     mqttUrl: string;
@@ -23,8 +24,9 @@
   const MAX_PACKETS = 100;
   const bridgeStatusLabels: Record<BridgeStatus, string> = {
     idle: '브리지를 준비하는 중입니다.',
-    starting: '시리얼 장치를 찾는 중입니다.',
+    starting: '브리지를 시작하는 중입니다...',
     started: '브리지가 실행 중입니다.',
+    stopped: '브리지가 중지되었습니다.',
     error: '브리지 오류가 발생했습니다.',
   };
 
@@ -36,9 +38,52 @@
   let connectionStatus: 'idle' | 'connecting' | 'connected' | 'error' = 'idle';
   let statusMessage = '';
 
+  let configFiles: string[] = [];
+  let selectedConfigFile: string | null = null;
+  let isSwitchingConfig = false;
+
   onMount(() => {
     loadBridgeInfo(true);
+    loadConfigFiles();
   });
+
+  async function loadConfigFiles() {
+    try {
+      const response = await fetch('/api/configs');
+      if (!response.ok) {
+        throw new Error('설정 파일 목록을 불러오지 못했습니다.');
+      }
+      configFiles = await response.json();
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  async function handleConfigChange(event: Event) {
+    const target = event.target as HTMLSelectElement;
+    const file = target.value;
+    if (!file || isSwitchingConfig) return;
+
+    isSwitchingConfig = true;
+    infoError = '';
+    try {
+      const response = await fetch('/api/configs/select', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ file }),
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || '설정 변경에 실패했습니다.');
+      }
+      // Give a moment for the backend to restart, then reload info.
+      setTimeout(() => loadBridgeInfo(true), 1000);
+    } catch (err) {
+      infoError = err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.';
+    } finally {
+      isSwitchingConfig = false;
+    }
+  }
 
   async function loadBridgeInfo(force = false) {
     if (infoLoading && !force) {
@@ -57,6 +102,7 @@
 
       const data = (await response.json()) as BridgeInfo;
       bridgeInfo = data;
+      selectedConfigFile = data.configFile;
       packets = [];
       startPacketStream();
     } catch (err) {
@@ -87,9 +133,7 @@
 
     const handleStatus = (event: MessageEvent<string>) => {
       const data = safeParse<Record<string, unknown>>(event.data);
-      if (!data) {
-        return;
-      }
+      if (!data) return;
 
       const state = data.state;
       if (state === 'connected') {
@@ -110,10 +154,7 @@
 
     const handlePacket = (event: MessageEvent<string>) => {
       const data = safeParse<PacketEvent>(event.data);
-      if (!data) {
-        return;
-      }
-
+      if (!data) return;
       packets = [...packets, data].slice(-MAX_PACKETS);
     };
 
@@ -130,7 +171,6 @@
       eventSource.close();
       eventSource = null;
     }
-
     connectionStatus = 'idle';
     statusMessage = '';
   }
@@ -150,47 +190,24 @@
       .split('')
       .map((char) => {
         const code = char.charCodeAt(0);
-        if (code >= 32 && code <= 126) {
-          return char;
-        }
-
-        if (char === '\n') {
-          return '⏎';
-        }
-
-        if (char === '\r') {
-          return '↵';
-        }
-
-        if (char === '\t') {
-          return '⇥';
-        }
-
+        if (code >= 32 && code <= 126) return char;
+        if (char === '\n') return '⏎';
+        if (char === '\r') return '↵';
+        if (char === '\t') return '⇥';
         return '·';
       })
       .join('');
 
   const currentBridgeStatusLabel = () => {
-    if (infoLoading) {
-      return '브리지 정보를 불러오는 중입니다...';
-    }
-
-    if (infoError) {
-      return infoError;
-    }
-
-    if (!bridgeInfo) {
-      return '브리지 정보가 없습니다.';
-    }
-
+    if (isSwitchingConfig) return '설정을 변경하는 중입니다...';
+    if (infoLoading) return '브리지 정보를 불러오는 중입니다...';
+    if (infoError) return infoError;
+    if (!bridgeInfo) return '브리지 정보가 없습니다.';
     return bridgeStatusLabels[bridgeInfo.status];
   };
 
   const bridgeStatusState = () => {
-    if (infoError) {
-      return 'error';
-    }
-
+    if (infoError || isSwitchingConfig) return 'error';
     return bridgeInfo?.status ?? 'idle';
   };
 
@@ -204,6 +221,33 @@
         <p class="eyebrow">RS485 HomeNet Bridge</p>
         <h1>실시간 상태</h1>
       </div>
+      <div class="controls">
+        <div class="control-group">
+          <label for="config-selector">설정 파일</label>
+          <select
+            id="config-selector"
+            bind:value={selectedConfigFile}
+            on:change={handleConfigChange}
+            disabled={isSwitchingConfig || configFiles.length === 0}
+          >
+            {#if configFiles.length > 0}
+              {#each configFiles as file (file)}
+                <option value={file}>{file}</option>
+              {/each}
+            {:else}
+              <option disabled>불러오는 중...</option>
+            {/if}
+          </select>
+        </div>
+        <button
+          class="ghost"
+          type="button"
+          on:click={() => loadBridgeInfo(true)}
+          disabled={infoLoading || isSwitchingConfig}
+        >
+          {infoLoading ? '갱신 중...' : '정보 새로고침'}
+        </button>
+      </div>
       <div class="status-column">
         <div class="status" data-state={bridgeStatusState()}>
           <span class="dot" />
@@ -214,14 +258,6 @@
           <span>{statusMessage || 'RS485 패킷을 기다리는 중입니다.'}</span>
         </div>
       </div>
-      <button
-        class="ghost"
-        type="button"
-        on:click={() => loadBridgeInfo(true)}
-        disabled={infoLoading}
-      >
-        {infoLoading ? '정보 새로고침 중...' : '정보 새로고침'}
-      </button>
     </header>
 
     {#if infoLoading && !bridgeInfo && !infoError}
@@ -232,6 +268,10 @@
       <p class="empty">브리지 정보가 없습니다.</p>
     {:else}
       <div class="viewer-meta">
+        <div>
+          <span class="label">Config File</span>
+          <strong>{bridgeInfo.configFile || 'N/A'}</strong>
+        </div>
         <div>
           <span class="label">Serial Path</span>
           <strong>{bridgeInfo.serialPath || '입력되지 않음'}</strong>
@@ -349,6 +389,20 @@
     box-shadow: none;
   }
 
+  select {
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(148, 163, 184, 0.4);
+    color: #e2e8f0;
+    border-radius: 0.5rem;
+    padding: 0.35rem 0.9rem;
+    font-size: 0.9rem;
+  }
+
+  select:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
   .viewer {
     display: flex;
     flex-direction: column;
@@ -357,14 +411,41 @@
 
   .viewer-header {
     display: grid;
-    grid-template-columns: 1fr auto auto;
-    align-items: center;
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      'title controls'
+      'status status';
+    align-items: start;
     gap: 1rem;
   }
 
-  .status-column {
+  .viewer-header > div:first-child {
+    grid-area: title;
+  }
+
+  .controls {
+    grid-area: controls;
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+  }
+
+  .control-group {
     display: flex;
     flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .control-group label {
+    font-size: 0.75rem;
+    color: rgba(226, 232, 240, 0.7);
+    padding-left: 0.5rem;
+  }
+
+  .status-column {
+    grid-area: status;
+    display: flex;
+    flex-wrap: wrap;
     gap: 0.5rem;
   }
 
@@ -394,7 +475,8 @@
     background: #cbd5f5;
   }
 
-  .status[data-state='connected'] .dot {
+  .status[data-state='connected'] .dot,
+  .status[data-state='started'] .dot {
     background: #34d399;
   }
 
@@ -407,7 +489,8 @@
     background: #f87171;
   }
 
-  .status[data-state='idle'] .dot {
+  .status[data-state='idle'] .dot,
+  .status[data-state='stopped'] .dot {
     background: #94a3b8;
   }
 
@@ -430,7 +513,7 @@
 
   .viewer-meta {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 1rem;
     padding: 1rem;
     border: 1px solid rgba(148, 163, 184, 0.3);
@@ -522,14 +605,10 @@
   @media (max-width: 720px) {
     .viewer-header {
       grid-template-columns: 1fr;
-    }
-
-    .status-column {
-      flex-direction: column;
-    }
-
-    button {
-      justify-self: start;
+      grid-template-areas:
+        'title'
+        'controls'
+        'status';
     }
   }
 </style>

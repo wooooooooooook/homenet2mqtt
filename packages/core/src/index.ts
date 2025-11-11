@@ -66,6 +66,7 @@ export interface BridgeOptions {
   serialPath: string;
   baudRate: number;
   mqttUrl: string;
+  devices: any[];
 }
 
 export class HomeNetBridge {
@@ -85,6 +86,23 @@ export class HomeNetBridge {
     }
 
     return this.startPromise;
+  }
+
+  async stop() {
+    if (this.startPromise) {
+      // Ensure initialization is complete before stopping
+      await this.startPromise.catch(() => {});
+    }
+
+    this.client.end();
+
+    if (this.port) {
+      this.port.removeAllListeners();
+      this.port.destroy();
+      this.port = undefined;
+    }
+
+    this.startPromise = null;
   }
 
   private async initialize() {

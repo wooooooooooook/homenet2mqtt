@@ -1,43 +1,91 @@
 import express from 'express';
 import path from 'node:path';
+import fs from 'node:fs/promises';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'node:url';
 import mqtt from 'mqtt';
-import { createBridge } from '@rs485-homenet/core';
+import yaml from 'js-yaml';
+import { createBridge, HomeNetBridge, BridgeOptions } from '@rs485-homenet/core';
 
 dotenv.config();
 
+// --- Constants ---
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const CONFIG_DIR = path.resolve(__dirname, '../../core/config');
 
+// --- Application State ---
 const app = express();
 const port = process.env.PORT ? Number(process.env.PORT) : 3000;
-const defaultMqttUrl = resolveDefaultMqttUrl(process.env.MQTT_URL);
-const bridgeOptions = resolveBridgeOptions();
-const bridge = createBridge(bridgeOptions);
-let bridgeStatus: 'idle' | 'starting' | 'started' | 'error' = 'idle';
+
+let bridge: HomeNetBridge | null = null;
+let bridgeOptions: BridgeOptions | null = null;
+let currentConfigFile: string | null = null;
+let currentConfigContent: any | null = null;
+let bridgeStatus: 'idle' | 'starting' | 'started' | 'stopped' | 'error' = 'idle';
 let bridgeError: string | null = null;
 let bridgeStartPromise: Promise<void> | null = null;
 
+// --- Express Middleware & Setup ---
 app.use(express.json());
+app.use(express.static(path.resolve(__dirname, '../static')));
 
+// --- API Endpoints ---
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
 
 app.get('/api/bridge/info', (_req, res) => {
+  if (!bridgeOptions) {
+    return res.status(404).json({ error: 'Bridge not configured' });
+  }
   res.json({
+    configFile: currentConfigFile,
     serialPath: bridgeOptions.serialPath,
     baudRate: bridgeOptions.baudRate,
     mqttUrl: bridgeOptions.mqttUrl,
     status: bridgeStatus,
     error: bridgeError,
-    topic: 'homenet/raw',
+    topic: 'homenet/raw', // This might become dynamic later
   });
 });
 
+app.get('/api/configs', async (_req, res, next) => {
+  try {
+    const files = await fs.readdir(CONFIG_DIR);
+    const yamlFiles = files.filter((file) => /\.ya?ml$/.test(file));
+    res.json(yamlFiles);
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.get('/api/configs/current', (_req, res) => {
+  if (!currentConfigFile) {
+    return res.status(404).json({ error: 'No config loaded' });
+  }
+  res.json({
+    file: currentConfigFile,
+    content: currentConfigContent,
+  });
+});
+
+app.post('/api/configs/select', async (req, res, next) => {
+  const { file } = req.body;
+  if (typeof file !== 'string') {
+    return res.status(400).json({ error: 'Invalid file name' });
+  }
+
+  try {
+    await loadAndStartBridge(file);
+    res.json({ success: true, message: `Configuration '${file}' loaded.` });
+  } catch (err) {
+    next(err);
+  }
+});
+
 app.get('/api/packets/stream', (req, res) => {
-  const streamMqttUrl = resolveMqttUrl(req.query.mqttUrl);
+  const streamMqttUrl = resolveMqttUrl(req.query.mqttUrl, bridgeOptions?.mqttUrl);
 
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
@@ -64,140 +112,122 @@ app.get('/api/packets/stream', (req, res) => {
         sendStatus('error', { message: err.message });
         return;
       }
-
       sendStatus('subscribed', { topic: 'homenet/raw' });
     });
   });
 
-  client.on('reconnect', () => {
-    sendStatus('connecting', { mqttUrl: streamMqttUrl });
-  });
+  client.on('reconnect', () => sendStatus('connecting', { mqttUrl: streamMqttUrl }));
+  client.on('error', (err) => sendStatus('error', { message: err.message }));
+  client.on('close', () => sendStatus('error', { message: 'MQTT connection closed.' }));
 
   client.on('message', (topic, payload) => {
-    const packet = {
+    sendEvent('packet', {
       topic,
       payload: payload.toString('utf8'),
       payloadHex: payload.toString('hex'),
       payloadLength: payload.length,
       receivedAt: new Date().toISOString(),
-    };
-
-    sendEvent('packet', packet);
+    });
   });
 
-  client.on('error', (err) => {
-    sendStatus('error', { message: err.message });
-  });
-
-  client.on('close', () => {
-    sendStatus('error', { message: 'MQTT 연결이 종료되었습니다.' });
-  });
-
-  const heartbeat = setInterval(() => {
-    res.write(': keep-alive\n\n');
-  }, 15000);
-
+  const heartbeat = setInterval(() => res.write(': keep-alive\n\n'), 15000);
   req.on('close', () => {
     clearInterval(heartbeat);
     client.end(true);
   });
 });
 
-const staticDir = path.resolve(__dirname, '../static');
-app.use(express.static(staticDir));
-
+// --- Static Serving & Error Handling ---
 app.get('*', (_req, res, next) => {
-  const indexPath = path.join(staticDir, 'index.html');
-  res.sendFile(indexPath, (err) => {
-    if (err) {
-      next();
-    }
-  });
+  res.sendFile(path.resolve(__dirname, '../static', 'index.html'), (err) => err && next());
 });
 
-app.use(
-  (err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-    console.error('[service] 요청 처리 중 오류:', err);
-    if (res.headersSent) {
-      return;
-    }
-
-    const message = err instanceof Error ? err.message : 'Internal Server Error';
-    res.status(500).json({ error: message });
-  },
-);
-
-app.listen(port, () => {
-  console.log(`Service listening on port ${port}`);
+app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  console.error('[service] Request error:', err);
+  if (res.headersSent) return;
+  const message = err instanceof Error ? err.message : 'Internal Server Error';
+  res.status(500).json({ error: message });
 });
 
-startBridge().catch((err) => {
-  console.error('[service] 브리지 시작 실패:', err);
-});
-
-function startBridge() {
+// --- Bridge Management ---
+async function loadAndStartBridge(filename: string) {
   if (bridgeStartPromise) {
-    return bridgeStartPromise;
+    await bridgeStartPromise.catch(() => {}); // Wait for any ongoing start/stop to finish
+  }
+  if (bridge) {
+    console.log(`[service] Stopping existing bridge...`);
+    bridgeStatus = 'stopped';
+    await bridge.stop();
+    bridge = null;
+    console.log(`[service] Bridge stopped.`);
   }
 
+  console.log(`[service] Loading configuration from '${filename}'...`);
   bridgeStatus = 'starting';
   bridgeError = null;
 
-  bridgeStartPromise = bridge
-    .start()
-    .then(() => {
-      bridgeStatus = 'started';
-      bridgeError = null;
-    })
-    .catch((err) => {
-      bridgeStatus = 'error';
-      bridgeError = err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.';
-      bridgeStartPromise = null;
-      throw err;
-    });
+  try {
+    const configPath = path.join(CONFIG_DIR, filename);
+    const fileContent = await fs.readFile(configPath, 'utf8');
+    const config = yaml.load(fileContent) as any;
 
-  return bridgeStartPromise;
-}
+    if (!config || !config.serial) {
+      throw new Error('Invalid configuration file format.');
+    }
 
-function resolveBridgeOptions() {
-  return {
-    serialPath: resolveSerialPath(),
-    baudRate: resolveBaudRate(),
-    mqttUrl: defaultMqttUrl,
-  };
-}
+    currentConfigFile = filename;
+    currentConfigContent = config;
 
-function resolveSerialPath() {
-  const value = process.env.SERIAL_PORT?.trim();
-  if (value && value.length > 0) {
-    return value;
+    const serialPath = process.env.SERIAL_PORT?.trim();
+    if (!serialPath) {
+      throw new Error('SERIAL_PORT 환경 변수가 설정되지 않았습니다.');
+    }
+
+    bridgeOptions = {
+      serialPath,
+      baudRate: config.serial.baud_rate || 9600,
+      mqttUrl: process.env.MQTT_URL?.trim() || 'mqtt://mq:1883',
+      devices: config.devices || [],
+    };
+
+    bridge = createBridge(bridgeOptions);
+
+    bridgeStartPromise = bridge.start();
+    await bridgeStartPromise;
+
+    bridgeStatus = 'started';
+    console.log(`[service] Bridge started successfully with '${filename}'.`);
+  } catch (err) {
+    bridgeStatus = 'error';
+    bridgeError = err instanceof Error ? err.message : 'Unknown error during bridge start.';
+    console.error(`[service] Failed to start bridge with '${filename}':`, err);
+    // Don't re-throw, let the caller handle the status
+  } finally {
+    bridgeStartPromise = null;
   }
-
-  return '/simshare/rs485-sim-tty';
 }
 
-function resolveBaudRate() {
-  const raw = process.env.BAUD_RATE ?? '';
-  const parsed = Number.parseInt(raw, 10);
-  if (Number.isNaN(parsed) || parsed <= 0) {
-    return 9600;
+function resolveMqttUrl(queryValue: unknown, defaultValue?: string) {
+  const url = queryValue || defaultValue || 'mqtt://mq:1883';
+  return url.toString().trim();
+}
+
+// --- Server Initialization ---
+app.listen(port, async () => {
+  console.log(`Service listening on port ${port}`);
+  try {
+    console.log('[service] Initializing bridge on startup...');
+    const files = await fs.readdir(CONFIG_DIR);
+    const defaultConfigFile = files.find((file) => /\.ya?ml$/.test(file));
+
+    if (defaultConfigFile) {
+      await loadAndStartBridge(defaultConfigFile);
+    } else {
+      throw new Error('No configuration files found in config directory.');
+    }
+  } catch (err) {
+    console.error('[service] Initial bridge start failed:', err);
+    bridgeStatus = 'error';
+    bridgeError = err instanceof Error ? err.message : 'Initial start failed.';
   }
-
-  return parsed;
-}
-
-function resolveMqttUrl(value: unknown) {
-  if (typeof value === 'string' && value.trim().length > 0) {
-    return value.trim();
-  }
-
-  return defaultMqttUrl;
-}
-
-function resolveDefaultMqttUrl(value: unknown) {
-  if (typeof value === 'string' && value.trim().length > 0) {
-    return value.trim();
-  }
-
-  return 'mqtt://mq:1883';
-}
+});

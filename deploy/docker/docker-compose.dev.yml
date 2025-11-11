@@ -1,5 +1,3 @@
-version: '3.9'
-
 x-dev-base: &dev-base
   image: node:20-slim
   working_dir: /workspace
@@ -68,7 +66,6 @@ services:
     environment:
       SERIAL_PORT: 192.168.0.83:8888
       # SERIAL_PORT: /simshare/rs485-sim-tty
-      BAUD_RATE: '9600'
       MQTT_URL: mqtt://mq:1883
       SERIAL_PATH_WAIT_TIMEOUT_MS: '60000'
       PORT: '3000'

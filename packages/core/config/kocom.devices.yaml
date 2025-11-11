@@ -1,0 +1,82 @@
+# Kocom 월패드 장치 설정
+serial:
+  baud_rate: 9600
+  data_bits: 8
+  parity: none
+  stop_bits: 1
+
+devices:
+  - name: "Kocom Wallpad"
+    packets:
+      # --- 조명 상태 패킷 ---
+      - header: [0xAA, 0x55, 0x0B, 0x01]
+        length: 11
+        items:
+          - type: light
+            id: "light_1"
+            name: "조명 1"
+            state: { offset: 4, mask: 0x01 }
+          - type: light
+            id: "light_2"
+            name: "조명 2"
+            state: { offset: 4, mask: 0x02 }
+          # ... (light 3, 4, 5 생략) ...
+
+      # --- 조명 제어 패킷 ---
+      - header: [0xAA, 0x55, 0x08, 0x02]
+        length: 8
+        items:
+          - type: light
+            id: "light_all"
+            name: "모든 조명"
+            command:
+              topic_suffix: "set"
+              on:  { data: [0xAA, 0x55, 0x08, 0x02, 0x01, 0x0F, 0x00, 0xCC] }
+              off: { data: [0xAA, 0x55, 0x08, 0x02, 0x01, 0x0F, 0x01, 0xCD] }
+          # 개별 조명 제어는 data의 5번째 바이트(mask)와 6번째 바이트(on/off)를 조합해야 하므로,
+          # 어플리케이션 레벨에서 추가적인 처리가 필요할 수 있음.
+          # 예: light_1 on -> data: [0xAA, 0x55, 0x08, 0x02, 0x01, 0x01, 0x00, 0xBC]
+
+      # --- 난방 상태 패킷 ---
+      - header: [0xAA, 0x55, 0x1D, 0x01]
+        length: 29
+        items:
+          - type: climate
+            id: "heater_1"
+            name: "난방 1"
+            state:
+              power: { offset: 4, mask: 0x01 }
+              current_temp: { offset: 5 }
+              target_temp: { offset: 6 }
+          # ... (heater 2, 3, 4 생략) ...
+
+      # --- 난방 제어 패킷 ---
+      - header: [0xAA, 0x55, 0x0A, 0x02]
+        length: 10
+        items:
+          - type: climate
+            id: "heater_1"
+            name: "난방 1"
+            command:
+              power:
+                topic_suffix: "set_power"
+                # value의 offset을 활용하여 5번째 바이트에 방 번호(0x01)를 지정
+                on:  { data: [0xAA, 0x55, 0x0A, 0x02, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00], value: { offset: 4, const: 0x01 } }
+                off: { data: [0xAA, 0x55, 0x0A, 0x02, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00], value: { offset: 4, const: 0x01 } }
+              set_temperature:
+                topic_suffix: "set_temp"
+                data: [0xAA, 0x55, 0x0A, 0x02, 0x02, 0x01, 0x00, 0x00, 0x00, 0x00] # 7번째 바이트에 온도 값
+                value:
+                  - { offset: 5, const: 0x01 } # 방 번호
+                  - { offset: 6, from: "payload" } # MQTT payload 값
+
+      # --- 엘리베이터 ---
+      - header: [0xAA, 0x55, 0x06, 0x41]
+        length: 6
+        items:
+          - type: button
+            id: "elevator_call"
+            name: "엘리베이터 호출"
+            command:
+              topic_suffix: "press"
+              on: { data: [0xAA, 0x55, 0x06, 0x41, 0x01, 0x0C] }

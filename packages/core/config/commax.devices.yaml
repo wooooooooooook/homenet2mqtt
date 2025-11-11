@@ -1,0 +1,96 @@
+# Commax 월패드 장치 설정
+serial:
+  baud_rate: 9600
+  data_bits: 8
+  parity: none
+  stop_bits: 1
+
+devices:
+  - name: "Commax Wallpad"
+    packets:
+      - header: [0xAA, 0x55]
+        length: 8
+        items:
+          # --- 조명 ---
+          - type: light
+            id: "light_breaker"
+            name: "조명 차단기"
+            state: { offset: 3, mask: 0x10 }
+            command:
+              topic_suffix: "set"
+              on:  { data: [0xAA, 0x55, 0x01, 0x01, 0x05, 0x01, 0x00, 0xB7] }
+              off: { data: [0xAA, 0x55, 0x01, 0x01, 0x05, 0x02, 0x00, 0xB8] }
+          - type: light
+            id: "light_1"
+            name: "조명 1"
+            state: { offset: 3, mask: 0x01 }
+            command:
+              topic_suffix: "set"
+              on:  { data: [0xAA, 0x55, 0x01, 0x01, 0x01, 0x01, 0x00, 0xB3] }
+              off: { data: [0xAA, 0x55, 0x01, 0x01, 0x01, 0x02, 0x00, 0xB4] }
+          - type: light
+            id: "light_2"
+            name: "조명 2"
+            state: { offset: 3, mask: 0x02 }
+            command:
+              topic_suffix: "set"
+              on:  { data: [0xAA, 0x55, 0x01, 0x01, 0x02, 0x01, 0x00, 0xB4] }
+              off: { data: [0xAA, 0x55, 0x01, 0x01, 0x02, 0x02, 0x00, 0xB5] }
+          # ... (light 3, 4 생략) ...
+
+          # --- 난방 ---
+          - type: climate
+            id: "heater_1"
+            name: "난방 1"
+            state:
+              power: { offset: 4, mask: 0x01 }
+              current_temp: { offset: 5, transform: "bcd_decode" }
+              target_temp: { offset: 4, transform: "bcd_decode" }
+            command:
+              power:
+                topic_suffix: "set_power"
+                on:  { data: [0xAA, 0x55, 0x02, 0x01, 0x01, 0x01, 0x00, 0xBF] }
+                off: { data: [0xAA, 0x55, 0x02, 0x01, 0x01, 0x02, 0x00, 0xC0] }
+              set_temperature:
+                topic_suffix: "set_temp"
+                data: [0xAA, 0x55, 0x02, 0x01, 0x01, 0x03, 0x00, 0x00] # 7번째 바이트에 값, 8번째에 체크섬
+                value: { offset: 6, transform: "bcd_encode" }
+          # ... (heater 2, 3, 4 생략) ...
+
+          # --- 팬 ---
+          - type: fan
+            id: "fan_1"
+            name: "환풍기 1"
+            state:
+              power: { offset: 6, mask: 0x01 }
+              speed: { offset: 7 } # 0, 1, 2, 3
+            command:
+              power:
+                topic_suffix: "set_power"
+                on:  { data: [0xAA, 0x55, 0x03, 0x01, 0x01, 0x01, 0x00, 0xC1] }
+                off: { data: [0xAA, 0x55, 0x03, 0x01, 0x01, 0x02, 0x00, 0xC2] }
+              set_speed:
+                topic_suffix: "set_speed"
+                data: [0xAA, 0x55, 0x03, 0x01, 0x01, 0x03, 0x00, 0x00] # 7번째 바이트에 값
+                value: { offset: 6 }
+
+          # --- 가스밸브 ---
+          - type: valve
+            id: "gas_valve"
+            name: "가스 밸브"
+            state: { offset: 2, mask: 0x01 }
+            command:
+              topic_suffix: "set"
+              off: { data: [0xAA, 0x55, 0x04, 0x01, 0x01, 0x01, 0x00, 0xC3] }
+
+          # --- 엘리베이터 ---
+          - type: sensor
+            id: "elevator_floor"
+            name: "엘리베이터 층수"
+            state: { offset: 1 }
+          - type: button
+            id: "elevator_call"
+            name: "엘리베이터 호출"
+            command:
+              topic_suffix: "press"
+              on: { data: [0xAA, 0x55, 0x07, 0x01, 0x01, 0x01, 0x00, 0xC6] }
