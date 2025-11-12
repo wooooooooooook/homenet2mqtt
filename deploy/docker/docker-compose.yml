@@ -11,10 +11,10 @@ services:
       - simshare:/simshare
     restart: unless-stopped
 
-  core:
+  app:
     build:
       context: ../..
-      dockerfile: deploy/docker/core.Dockerfile
+      dockerfile: deploy/docker/app.Dockerfile
     container_name: rs485-core
     environment:
       SERIAL_PORT: 192.168.0.83:8888

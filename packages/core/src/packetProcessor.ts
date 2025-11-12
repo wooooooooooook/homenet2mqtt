@@ -18,7 +18,7 @@ import {
   FanEntity,
   SwitchEntity,
   BinarySensorEntity
-} from './config';
+} from './config.js';
 
 export class PacketProcessor {
   private config: HomenetBridgeConfig;

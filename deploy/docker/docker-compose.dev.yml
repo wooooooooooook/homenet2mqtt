@@ -59,21 +59,22 @@ services:
         condition: service_started
     restart: unless-stopped
 
-  core:
+  app:
     <<: *dev-base
-    container_name: rs485-core-dev
+    container_name: rs485-app-dev
     # network_mode: host
     environment:
       SERIAL_PORT: 192.168.0.83:8888
       # SERIAL_PORT: /simshare/rs485-sim-tty
       MQTT_URL: mqtt://mq:1883
-      SERIAL_PATH_WAIT_TIMEOUT_MS: '60000'
+      SERIAL_PATH_WAIT_TIMEOUT_MS: '6000'
       PORT: '3000'
-      CONFIG_FILE: packages/core/config/commax.devices.yaml
+      CONFIG_FILE: packages/core/config/commax.homenet_bridge.yaml
+      LOG_LEVEL: debug
     volumes:
       - ../../:/workspace
       - pnpm-store:/root/.local/share/pnpm
-      - core_node_modules:/workspace/node_modules
+      - app_node_modules:/workspace/node_modules
       - simshare:/simshare
       - /dev/pts:/dev/pts
     ports:
@@ -83,9 +84,8 @@ services:
         set -euo pipefail
         corepack enable
         pnpm install --filter @rs485-homenet/service... --filter @rs485-homenet/core... --filter @rs485-homenet/ui... --no-frozen-lockfile
-        pnpm core:build
         pnpm service:build
-        node scripts/run-core.mjs
+        pnpm --filter @rs485-homenet/service start | pnpm pino-pretty
       "
     depends_on:
       simulator:
@@ -101,4 +101,4 @@ volumes:
   simshare:
   pnpm-store:
   simulator_node_modules:
-  core_node_modules:
+  app_node_modules:

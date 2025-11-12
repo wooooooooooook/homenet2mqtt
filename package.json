@@ -12,10 +12,10 @@
     "core:build": "pnpm --filter @rs485-homenet/core build",
     "service:build": "pnpm --filter @rs485-homenet/service build",
     "ui:build": "pnpm --filter @rs485-homenet/ui build",
-    "dev:up": "docker compose -f deploy/docker/docker-compose.dev.yml up -d core mq",
+    "dev:up": "docker compose -f deploy/docker/docker-compose.dev.yml up -d app mq",
     "dev:down": "docker compose -f deploy/docker/docker-compose.dev.yml down",
     "dev:logs": "docker compose -f deploy/docker/docker-compose.dev.yml logs -f",
-    "dev:restart:core": "docker compose -f deploy/docker/docker-compose.dev.yml restart core",
+    "dev:restart:app": "docker compose -f deploy/docker/docker-compose.dev.yml restart app",
     "lint": "pnpm -r lint",
     "build": "pnpm -r build",
     "format": "pnpm -r --if-present format",
@@ -26,6 +26,10 @@
     "@types/node": "^20.12.7",
     "prettier": "^3.2.5",
     "prettier-plugin-svelte": "^3.1.2",
-    "vitest": "^1.5.0"
+    "vitest": "^1.5.0",
+    "pino-pretty": "^13.1.2"
+  },
+  "dependencies": {
+    "js-yaml": "^4.1.0"
   }
 }

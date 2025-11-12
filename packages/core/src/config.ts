@@ -13,6 +13,7 @@ export interface SerialConfig {
 }
 
 export interface PacketDefaults {
+  rx_length?: number;
   rx_timeout?: string; // e.g., "10ms"
   tx_delay?: string;   // e.g., "50ms"
   tx_timeout?: string; // e.g., "500ms"

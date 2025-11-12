@@ -609,12 +609,6 @@
     margin-bottom: 0.5rem;
   }
 
-  .payload span {
-    font-size: 0.75rem;
-    letter-spacing: 0.12em;
-    color: rgba(226, 232, 240, 0.7);
-  }
-
   code {
     font-family: 'Fira Code', 'SFMono-Regular', Consolas, monospace;
     background: rgba(15, 23, 42, 0.9);

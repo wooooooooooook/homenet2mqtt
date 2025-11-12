@@ -7,7 +7,7 @@ import mqtt from 'mqtt';
 import yaml from 'js-yaml';
 // Import only createBridge and HomeNetBridge, BridgeOptions is now defined in core
 import { createBridge, HomeNetBridge } from '@rs485-homenet/core';
-import { HomenetBridgeConfig } from '@rs485-homenet/core/dist/config'; // Import HomenetBridgeConfig for type checking
+import { HomenetBridgeConfig } from '@rs485-homenet/core/dist/config.js'; // Import HomenetBridgeConfig for type checking
 
 dotenv.config();
 
@@ -43,7 +43,7 @@ app.get('/api/bridge/info', (_req, res) => {
   }
   res.json({
     configFile: currentConfigFile,
-    serialPath: process.env.SERIAL_PORT || '/dev/ttyUSB0', // Serial path is now from env or default
+    serialPath: process.env.SERIAL_PORT || '/simshare/rs485-sim-tty', // Serial path is now from env or default
     baudRate: currentConfigContent.serial.baud_rate, // From new config structure
     mqttUrl: process.env.MQTT_URL?.trim() || 'mqtt://mq:1883',
     status: bridgeStatus,
