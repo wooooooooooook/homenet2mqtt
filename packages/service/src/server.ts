@@ -5,7 +5,9 @@ import dotenv from 'dotenv';
 import { fileURLToPath } from 'node:url';
 import mqtt from 'mqtt';
 import yaml from 'js-yaml';
-import { createBridge, HomeNetBridge, BridgeOptions } from '@rs485-homenet/core';
+// Import only createBridge and HomeNetBridge, BridgeOptions is now defined in core
+import { createBridge, HomeNetBridge } from '@rs485-homenet/core';
+import { HomenetBridgeConfig } from '@rs485-homenet/core/dist/config'; // Import HomenetBridgeConfig for type checking
 
 dotenv.config();
 
@@ -19,9 +21,9 @@ const app = express();
 const port = process.env.PORT ? Number(process.env.PORT) : 3000;
 
 let bridge: HomeNetBridge | null = null;
-let bridgeOptions: BridgeOptions | null = null;
+// bridgeOptions will now be derived from the loaded HomenetBridgeConfig
 let currentConfigFile: string | null = null;
-let currentConfigContent: any | null = null;
+let currentConfigContent: HomenetBridgeConfig | null = null; // Type changed to HomenetBridgeConfig
 let bridgeStatus: 'idle' | 'starting' | 'started' | 'stopped' | 'error' = 'idle';
 let bridgeError: string | null = null;
 let bridgeStartPromise: Promise<void> | null = null;
@@ -36,14 +38,14 @@ app.get('/api/health', (_req, res) => {
 });
 
 app.get('/api/bridge/info', (_req, res) => {
-  if (!bridgeOptions) {
+  if (!currentConfigContent) {
     return res.status(404).json({ error: 'Bridge not configured' });
   }
   res.json({
     configFile: currentConfigFile,
-    serialPath: bridgeOptions.serialPath,
-    baudRate: bridgeOptions.baudRate,
-    mqttUrl: bridgeOptions.mqttUrl,
+    serialPath: process.env.SERIAL_PORT || '/dev/ttyUSB0', // Serial path is now from env or default
+    baudRate: currentConfigContent.serial.baud_rate, // From new config structure
+    mqttUrl: process.env.MQTT_URL?.trim() || 'mqtt://mq:1883',
     status: bridgeStatus,
     error: bridgeError,
     topic: 'homenet/raw', // This might become dynamic later
@@ -53,7 +55,8 @@ app.get('/api/bridge/info', (_req, res) => {
 app.get('/api/configs', async (_req, res, next) => {
   try {
     const files = await fs.readdir(CONFIG_DIR);
-    const yamlFiles = files.filter((file) => /\.ya?ml$/.test(file));
+    // Filter for homenet_bridge.yaml files
+    const yamlFiles = files.filter((file) => /\.homenet_bridge\.ya?ml$/.test(file));
     res.json(yamlFiles);
   } catch (err) {
     next(err);
@@ -85,7 +88,7 @@ app.post('/api/configs/select', async (req, res, next) => {
 });
 
 app.get('/api/packets/stream', (req, res) => {
-  const streamMqttUrl = resolveMqttUrl(req.query.mqttUrl, bridgeOptions?.mqttUrl);
+  const streamMqttUrl = resolveMqttUrl(req.query.mqttUrl, process.env.MQTT_URL?.trim() || 'mqtt://mq:1883');
 
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
@@ -167,31 +170,19 @@ async function loadAndStartBridge(filename: string) {
   try {
     const configPath = path.join(CONFIG_DIR, filename);
     const fileContent = await fs.readFile(configPath, 'utf8');
-    const config = yaml.load(fileContent) as any;
+    const loadedYaml = yaml.load(fileContent) as { homenet_bridge: HomenetBridgeConfig };
 
-    if (!config || !config.serial) {
-      throw new Error('Invalid configuration file format.');
+    if (!loadedYaml || !loadedYaml.homenet_bridge) {
+      throw new Error('Invalid configuration file format. Missing "homenet_bridge" top-level key.');
     }
 
     currentConfigFile = filename;
-    currentConfigContent = config;
+    currentConfigContent = loadedYaml.homenet_bridge; // Store the actual homenet_bridge config
 
-    const serialPath = process.env.SERIAL_PORT?.trim();
-    if (!serialPath) {
-      throw new Error('SERIAL_PORT 환경 변수가 설정되지 않았습니다.');
-    }
+    const mqttUrl = process.env.MQTT_URL?.trim() || 'mqtt://mq:1883';
 
-    bridgeOptions = {
-      serialPath,
-      baudRate: config.serial.baud_rate || 9600,
-      mqttUrl: process.env.MQTT_URL?.trim() || 'mqtt://mq:1883',
-      devices: config.devices || [],
-    };
-
-    bridge = createBridge(bridgeOptions);
-
-    bridgeStartPromise = bridge.start();
-    await bridgeStartPromise;
+    // createBridge now expects configPath and mqttUrl directly
+    bridge = await createBridge(configPath, mqttUrl); // Await createBridge as it now starts the bridge internally
 
     bridgeStatus = 'started';
     console.log(`[service] Bridge started successfully with '${filename}'.`);
@@ -216,12 +207,13 @@ app.listen(port, async () => {
   try {
     console.log('[service] Initializing bridge on startup...');
     const files = await fs.readdir(CONFIG_DIR);
-    const defaultConfigFile = files.find((file) => /\.ya?ml$/.test(file));
+    // Filter for homenet_bridge.yaml files
+    const defaultConfigFile = files.find((file) => /\.homenet_bridge\.ya?ml$/.test(file));
 
     if (defaultConfigFile) {
       await loadAndStartBridge(defaultConfigFile);
     } else {
-      throw new Error('No configuration files found in config directory.');
+      throw new Error('No homenet_bridge configuration files found in config directory.');
     }
   } catch (err) {
     console.error('[service] Initial bridge start failed:', err);

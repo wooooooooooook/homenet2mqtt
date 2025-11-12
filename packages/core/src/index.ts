@@ -1,10 +1,30 @@
+// packages/core/src/index.ts
+
 import { Duplex } from 'stream';
 import net from 'net';
 import dotenv from 'dotenv';
 import { SerialPort } from 'serialport';
 import mqtt from 'mqtt';
-import { access } from 'node:fs/promises';
+import { access, readFile } from 'node:fs/promises';
 import { setTimeout as delay } from 'node:timers/promises';
+import yaml from 'js-yaml'; // Import js-yaml
+
+// Import new configuration interfaces and PacketProcessor
+import {
+  HomenetBridgeConfig,
+  DeviceConfig,
+  EntityConfig,
+  LightEntity,
+  ClimateEntity,
+  ValveEntity,
+  ButtonEntity,
+  SensorEntity,
+  FanEntity,
+  SwitchEntity,
+  BinarySensorEntity,
+  CommandSchema
+} from './config';
+import { PacketProcessor } from './packetProcessor';
 
 dotenv.config();
 
@@ -62,11 +82,10 @@ const openSerialPort = (port: SerialPort) =>
     });
   });
 
+// Redefine BridgeOptions to use the new HomenetBridgeConfig
 export interface BridgeOptions {
-  serialPath: string;
-  baudRate: number;
+  configPath: string; // Path to the homenet_bridge.yaml configuration file
   mqttUrl: string;
-  devices: any[];
 }
 
 export class HomeNetBridge {
@@ -78,12 +97,15 @@ export class HomeNetBridge {
   private receiveBuffer = Buffer.alloc(0);
   private stateCache = new Map<string, any>();
 
+  private config?: HomenetBridgeConfig; // Loaded configuration
+  private packetProcessor?: PacketProcessor; // The new packet processor
+
   constructor(options: BridgeOptions) {
     this.options = options;
     this.client = mqtt.connect(options.mqttUrl);
   }
 
-  start() {
+  async start() {
     if (!this.startPromise) {
       this.startPromise = this.initialize();
     }
@@ -106,29 +128,65 @@ export class HomeNetBridge {
   }
 
   private async initialize() {
-    const { serialPath, baudRate } = this.options;
+    // 1. Load configuration
+    console.log(`[core] Loading configuration from: ${this.options.configPath}`);
+    const configFileContent = await readFile(this.options.configPath, 'utf8');
+    const loadedYaml = yaml.load(configFileContent);
+
+    if (!loadedYaml || !(loadedYaml as any).homenet_bridge) {
+      throw new Error('Invalid configuration file structure. Missing "homenet_bridge" top-level key.');
+    }
+    
+    this.config = (loadedYaml as any).homenet_bridge as HomenetBridgeConfig;
+    this.packetProcessor = new PacketProcessor(this.config);
+
+
+    const { serial: serialConfig } = this.config;
 
     this.client.on('connect', () => {
       console.log(`[core] MQTT에 연결되었습니다: ${this.options.mqttUrl}`);
+      // Subscribe to command topics for all entities
+      this.config?.devices.forEach(device => {
+        device.entities.forEach(entity => {
+          const baseTopic = `homenet/${entity.id}`;
+          this.client.subscribe(`${baseTopic}/set/#`, (err) => { // Example: homenet/light_1/set/on, homenet/climate_1/set/temperature
+            if (err) console.error(`[core] Failed to subscribe to ${baseTopic}/set/#:`, err);
+            else console.log(`[core] Subscribed to ${baseTopic}/set/#`);
+          });
+        });
+      });
     });
+
+    this.client.on('message', (topic, message) => this.handleMqttMessage(topic, message));
 
     this.client.on('error', (err) => {
       console.error('[core] MQTT 연결 오류:', err);
     });
+    
+    // Open serial port
+    const serialPath = process.env.SERIAL_PATH || '/dev/ttyUSB0'; // Use environment variable for serial path, or fallback
+    const baudRate = serialConfig.baud_rate; // Get baud rate from config
 
     if (isTcpConnection(serialPath)) {
       const [host, port] = serialPath.split(':');
       this.port = net.createConnection({ host, port: Number(port) });
     } else {
       await waitForSerialDevice(serialPath);
-      const serialPort = new SerialPort({ path: serialPath, baudRate, autoOpen: false });
+      const serialPort = new SerialPort({
+        path: serialPath,
+        baudRate,
+        dataBits: serialConfig.data_bits,
+        parity: serialConfig.parity,
+        stopBits: serialConfig.stop_bits,
+        autoOpen: false
+      });
       this.port = serialPort;
       await openSerialPort(serialPort);
     }
 
     this.port.on('data', (data) => this.handleData(data));
     this.port.on('error', (err) => {
-      console.error(`[core] 시리얼 포트 오류(${this.options.serialPath}):`, err);
+      console.error(`[core] 시리얼 포트 오류(${serialPath}):`, err);
     });
   }
 
@@ -136,88 +194,83 @@ export class HomeNetBridge {
     console.log(`[core] Raw data received: ${chunk.toString('hex')}`);
     this.receiveBuffer = Buffer.concat([this.receiveBuffer, chunk]);
 
-    while (this.receiveBuffer.length > 0) {
-      const packetDef = this.findPacketDefinition(this.receiveBuffer);
+    if (!this.config || !this.packetProcessor) {
+      console.error("[core] Configuration or PacketProcessor not initialized.");
+      return;
+    }
 
-      if (!packetDef) {
-        // No matching packet definition found, discard one byte and retry
-        // This is a simple recovery mechanism for misaligned streams
+    const allEntities: EntityConfig[] = this.config.devices.flatMap(device => device.entities);
+    
+    const parsedStates = this.packetProcessor.parseIncomingPacket(this.receiveBuffer.toJSON().data, allEntities);
+
+    if (parsedStates.length > 0) {
+        parsedStates.forEach(parsed => {
+            const entity = allEntities.find(e => e.id === parsed.entityId);
+            if (entity) {
+                const topic = `homenet/${entity.id}/state`;
+                const payload = JSON.stringify(parsed.state);
+                if (this.stateCache.get(topic) !== payload) {
+                    this.stateCache.set(topic, payload);
+                    this.client.publish(topic, payload, { retain: true });
+                    console.log(`[core] MQTT 발행: ${topic} -> ${payload}`);
+                }
+            }
+        });
+        this.receiveBuffer = Buffer.alloc(0);
+    } else {
         this.receiveBuffer = this.receiveBuffer.slice(1);
-        continue;
-      }
-
-      if (this.receiveBuffer.length < packetDef.length) {
-        // Buffer does not contain a full packet yet
-        break;
-      }
-
-      const packetData = this.receiveBuffer.slice(0, packetDef.length);
-      this.client.publish('homenet/raw', packetData); // Publish raw packet
-      this.processPacket(packetData, packetDef);
-
-      this.receiveBuffer = this.receiveBuffer.slice(packetDef.length);
     }
   }
 
-  private findPacketDefinition(buffer: Buffer) {
-    for (const device of this.options.devices) {
-      for (const packetDef of device.packets) {
-        const header = Buffer.from(packetDef.header);
-        if (buffer.length >= header.length && buffer.compare(header, 0, header.length, 0, header.length) === 0) {
-          return packetDef;
-        }
-      }
+  private handleMqttMessage(topic: string, message: Buffer) {
+    if (!this.config || !this.packetProcessor || !this.port) {
+      console.error("[core] Configuration, PacketProcessor or Serial Port not initialized.");
+      return;
     }
-    return null;
-  }
 
-  private processPacket(packetData: Buffer, packetDef: any) {
-    for (const item of packetDef.items) {
-      if (!item.state) continue;
+    console.log(`[core] MQTT 메시지 수신: ${topic} -> ${message.toString()}`);
 
-      // Normalize state definitions
-      const states = Array.isArray(item.state) ? item.state : [item.state];
+    const parts = topic.split('/');
+    if (parts.length < 4 || parts[0] !== 'homenet' || parts[2] !== 'set') {
+      console.warn(`[core] Unhandled MQTT topic format: ${topic}`);
+      return;
+    }
 
-      for (const stateDef of states) {
-        const { offset, mask, transform, name: stateName } = stateDef;
-        if (offset === undefined) continue;
+    const entityId = parts[1];
+    const commandName = `command_${parts[3]}`;
 
-        const rawValue = packetData.readUInt8(offset);
-        let value: any;
+    const payload = message.toString();
+    let commandValue: number | string | undefined = undefined;
 
-        if (mask) {
-          value = (rawValue & mask) !== 0; // Treat masked values as boolean
+    if (['command_temperature', 'command_speed'].includes(commandName)) {
+        const num = parseFloat(payload);
+        if (!isNaN(num)) {
+            commandValue = num;
         } else {
-          value = rawValue;
+            commandValue = payload;
         }
-
-        if (transform === 'bcd_decode') {
-          value = this.bcdDecode(value);
-        }
-
-        // For climate-like devices with multiple state values
-        const subId = stateName || item.id;
-        const cacheKey = `${item.id}/${subId}`;
-        const topic = `homenet/${item.id}/${stateName || 'state'}`;
-        let payload = String(value);
-
-        if (item.type === 'light' || item.type === 'switch' || item.type === 'valve') {
-          payload = value ? 'ON' : 'OFF';
-        }
-
-        if (this.stateCache.get(cacheKey) !== payload) {
-          this.stateCache.set(cacheKey, payload);
-          this.client.publish(topic, payload, { retain: true });
-          console.log(`[core] MQTT 발행: ${topic} -> ${payload}`);
-        }
-      }
+    } else {
+        commandValue = payload;
     }
-  }
 
-  private bcdDecode(byte: number): number {
-    return (byte >> 4) * 10 + (byte & 0x0f);
+    const targetEntity = this.config.devices.flatMap(d => d.entities).find(e => e.id === entityId);
+
+    if (targetEntity) {
+      const commandPacket = this.packetProcessor.constructCommandPacket(targetEntity, commandName, commandValue);
+      if (commandPacket) {
+        console.log(`[core] Sending command packet for ${targetEntity.name} (${commandName}): ${Buffer.from(commandPacket).toString('hex')}`);
+        this.port.write(Buffer.from(commandPacket));
+      } else {
+        console.warn(`[core] Failed to construct command packet for ${targetEntity.name} (${commandName}).`);
+      }
+    } else {
+      console.warn(`[core] Entity with ID ${entityId} not found.`);
+    }
   }
 }
-export function createBridge(options: BridgeOptions) {
-  return new HomeNetBridge(options);
+
+export async function createBridge(configPath: string, mqttUrl: string) {
+  const bridge = new HomeNetBridge({ configPath, mqttUrl });
+  await bridge.start(); // Ensure initialization completes before returning
+  return bridge;
 }

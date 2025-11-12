@@ -1,4 +1,6 @@
 import process from 'node:process';
+import fs from 'node:fs';
+import yaml from 'js-yaml';
 
 const parseBaudRate = (value) => {
   const parsed = Number.parseInt(value ?? '', 10);
@@ -20,16 +22,27 @@ const getRequiredEnv = (key) => {
 
 async function main() {
   const { createBridge } = await import('../packages/core/dist/index.js');
-  const serialPath = getRequiredEnv('SERIAL_PORT');
-  const baudRate = parseBaudRate(process.env.BAUD_RATE ?? '9600');
+  // serialPath and baudRate are now read from the config file by the bridge itself
+  // const serialPath = getRequiredEnv('SERIAL_PORT');
+  // const baudRate = parseBaudRate(process.env.BAUD_RATE ?? '9600');
   const mqttUrl = process.env.MQTT_URL ?? 'mqtt://mqtt:1883';
+  const configFilePath = getRequiredEnv('CONFIG_FILE');
+
+  // Load and parse the YAML configuration file
+  const configFileContent = fs.readFileSync(configFilePath, 'utf8');
+  const config = yaml.load(configFileContent); // Removed 'as any'
+
+  if (!config || !config.homenet_bridge) { // Check for homenet_bridge top-level key
+    throw new Error(`유효하지 않은 설정 파일: ${configFilePath}. 'homenet_bridge' 속성이 필요합니다.`);
+  }
 
   console.log(
-    `[core] 브리지를 시작합니다. serialPath=${serialPath}, baudRate=${baudRate}, mqttUrl=${mqttUrl}`
+    `[core] 브리지를 시작합니다. mqttUrl=${mqttUrl}, configFile=${configFilePath}`
   );
 
-  const bridge = createBridge({ serialPath, baudRate, mqttUrl });
-  await bridge.start();
+  // New createBridge signature: createBridge(configPath: string, mqttUrl: string)
+  const bridge = await createBridge(configFilePath, mqttUrl); // Await createBridge as it's now async and starts internally
+  // await bridge.start(); // createBridge now starts the bridge internally
   console.log('[core] 시리얼 포트가 준비되어 브리지를 시작했습니다.');
 
   const shutdown = (signal) => {

@@ -8,6 +8,9 @@ importers:
 
   .:
     devDependencies:
+      '@types/js-yaml':
+        specifier: ^4.0.9
+        version: 4.0.9
       '@types/node':
         specifier: ^20.12.7
         version: 20.19.24
@@ -26,6 +29,9 @@ importers:
       dotenv:
         specifier: ^16.4.5
         version: 16.6.1
+      js-yaml:
+        specifier: ^4.1.0
+        version: 4.1.0
       mqtt:
         specifier: ^5.3.4
         version: 5.14.1

@@ -69,6 +69,7 @@ services:
       MQTT_URL: mqtt://mq:1883
       SERIAL_PATH_WAIT_TIMEOUT_MS: '60000'
       PORT: '3000'
+      CONFIG_FILE: packages/core/config/commax.devices.yaml
     volumes:
       - ../../:/workspace
       - pnpm-store:/root/.local/share/pnpm
@@ -84,7 +85,7 @@ services:
         pnpm install --filter @rs485-homenet/service... --filter @rs485-homenet/core... --filter @rs485-homenet/ui... --no-frozen-lockfile
         pnpm core:build
         pnpm service:build
-        node packages/service/dist/server.js
+        node scripts/run-core.mjs
       "
     depends_on:
       simulator:
