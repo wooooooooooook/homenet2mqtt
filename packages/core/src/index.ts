@@ -130,60 +130,33 @@ export class HomeNetBridge implements EntityStateProvider {
       { mqttUrl: options.mqttUrl, connectTimeout: MQTT_CONNECT_TIMEOUT_MS },
       '[core] Initializing MQTT client with options',
     );
-    
-    // [수정 1] 재접속 및 상태 확인을 위한 로그 리스너 추가 (Promise 외부)
+
+    // [수정 1] protocolVersion 제거 (Auto negotiation 사용)
+    // 레거시 코드처럼 기본 동작에 맡깁니다.
     this.client = mqtt.connect(options.mqttUrl, {
       connectTimeout: MQTT_CONNECT_TIMEOUT_MS,
-      protocolVersion: 4,
-      reconnectPeriod: 1000, // 재접속 시도 간격 (1초)
+      // protocolVersion: 4, // <-- 이 줄 삭제 (호환성 확보)
     });
 
-    // 디버깅을 위해 모든 상태 변화 로그 출력
-    this.client.on('reconnect', () => logger.warn('[core] MQTT 재접속 시도 중... (Reconnecting)'));
-    this.client.on('offline', () => logger.warn('[core] MQTT 클라이언트 오프라인 (Offline)'));
-    this.client.on('close', () => logger.warn('[core] MQTT 연결 끊김 (Close)'));
-
+    // connectionPromise는 로깅 및 상태 추적용으로만 남겨둡니다.
     this.connectionPromise = new Promise<void>((resolve, reject) => {
-      // 타이머 변수
-      let connectionTimer: NodeJS.Timeout;
-
-      const cleanup = () => {
-        this.client.off('connect', connectHandler);
-        this.client.off('error', errorHandler);
-        clearTimeout(connectionTimer);
-      };
-
       const errorHandler = (err: Error) => {
-        logger.error({ err }, '[core] MQTT 연결 오류');
-        cleanup();
-        reject(err);
+        logger.error({ err }, '[core] MQTT 연결 오류 (백그라운드)');
+        // 여기서 reject를 해도 initialize에서 await를 안 하므로 멈추지 않음
+        // this.client.off('connect', connectHandler);
+        // reject(err);
       };
 
       const connectHandler = () => {
         logger.info(`[core] MQTT에 연결되었습니다: ${this.options.mqttUrl}`);
-        cleanup();
+        this.client.off('error', errorHandler); // 연결되면 초기 에러 핸들러 제거
         resolve();
       };
-
-      // [수정 2] 강제 타임아웃 로직 추가
-      // MQTT 라이브러리가 재접속만 계속 시도하고 에러를 안 뱉을 경우를 대비해
-      // 설정된 시간 내에 'connect'가 안 뜨면 강제로 실패 처리
-      connectionTimer = setTimeout(() => {
-        const timeoutErr = new Error(`MQTT 연결 시간 초과 (${MQTT_CONNECT_TIMEOUT_MS}ms) - 브로커 주소나 네트워크를 확인하세요.`);
-        logger.error('[core] MQTT Initial Connection Timeout');
-        
-        // 연결 실패 시 클라이언트 종료 (무한 재접속 방지)
-        this.client.end(); 
-        
-        cleanup();
-        reject(timeoutErr);
-      }, MQTT_CONNECT_TIMEOUT_MS + 500); // 설정 시간보다 0.5초 더 여유를 둠
 
       this.client.on('connect', connectHandler);
       this.client.on('error', errorHandler);
     });
   }
-
 
   // Implement EntityStateProvider methods
   getLightState(entityId: string): { isOn: boolean } | undefined {
@@ -263,16 +236,50 @@ export class HomeNetBridge implements EntityStateProvider {
       );
     }
 
-    this.config = loadedConfig;
-    this.packetProcessor = new PacketProcessor(this.config, this); // Pass 'this' as stateProvider
+    this.config = loadedConfig as HomenetBridgeConfig; // 타입 단언 필요할 수 있음
+    this.packetProcessor = new PacketProcessor(this.config, this);
     logger.debug('[core] PacketProcessor initialized.');
 
     const { serial: serialConfig } = this.config;
 
     this.client.on('message', (topic, message) => this.handleMqttMessage(topic, message));
 
-    logger.debug('[core] Waiting for MQTT client to connect...');
-    await this.connectionPromise;
+    // [수정 2] 구독(Subscribe) 로직 변경
+    // MQTT 연결을 기다리지(await) 않고, 연결 이벤트가 발생하면 구독하도록 등록합니다.
+    const setupSubscriptions = () => {
+      const allEntityTypes = [
+        'light',
+        'climate',
+        'valve',
+        'button',
+        'sensor',
+        'fan',
+        'switch',
+        'binary_sensor',
+      ];
+      for (const entityType of allEntityTypes) {
+        const entities = this.config![entityType as keyof HomenetBridgeConfig] as
+          | EntityConfig[]
+          | undefined;
+        if (entities) {
+          entities.forEach((entity) => {
+            const baseTopic = `homenet/${entity.id}`;
+            this.client.subscribe(`${baseTopic}/set/#`, (err) => {
+              if (err)
+                logger.error({ err, topic: `${baseTopic}/set/#` }, `[core] Failed to subscribe`);
+              else logger.info(`[core] Subscribed to ${baseTopic}/set/#`);
+            });
+          });
+        }
+      }
+    };
+
+    // 이미 연결되어 있다면 즉시 구독, 아니면 연결 시 구독
+    if (this.client.connected) {
+      setupSubscriptions();
+    } else {
+      this.client.on('connect', setupSubscriptions);
+    }
 
     // Subscribe to command topics for all entities
     const allEntityTypes = [
@@ -302,9 +309,13 @@ export class HomeNetBridge implements EntityStateProvider {
       }
     }
 
+    // [수정 3] 핵심 변경: await this.connectionPromise; 삭제
+    // MQTT 연결을 기다리지 않고 바로 시리얼 포트 개방으로 넘어갑니다.
+    logger.info('[core] MQTT 연결을 백그라운드에서 대기하며 시리얼 포트 연결을 진행합니다.');
+
     // Open serial port
-    const serialPath = process.env.SERIAL_PORT || '/simshare/rs485-sim-tty'; // Use environment variable for serial path, or fallback
-    const baudRate = serialConfig.baud_rate; // Get baud rate from config
+    const serialPath = process.env.SERIAL_PORT || '/simshare/rs485-sim-tty';
+    const baudRate = serialConfig.baud_rate;
 
     logger.info({ serialPath, baudRate }, '[core] 시리얼 포트 연결 시도');
 
