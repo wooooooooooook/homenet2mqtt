@@ -1,2 +1,9 @@
+// packages/core/src/domain/entities/button.entity.ts
+
 import { EntityConfig } from './base.entity.js';
-export interface ButtonEntity extends EntityConfig {}
+import { CommandSchema } from './base.entity.js';
+
+export interface ButtonEntity extends EntityConfig {
+  type: 'button';
+  command_press: CommandSchema;
+}

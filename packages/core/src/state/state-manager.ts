@@ -69,6 +69,8 @@ export class StateManager {
             if (stateCache.get(topic) !== payload) {
               stateCache.set(topic, payload);
               this.mqttPublisher.publish(topic, payload, { retain: false });
+              eventBus.emit('state:changed', { entityId: entity.id, state: parsed.state });
+              eventBus.emit(`device:${entity.id}:state:changed`, parsed.state);
               logger.info({ topic, payload }, '[core] MQTT 발행');
             }
           }
