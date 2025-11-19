@@ -1,5 +1,11 @@
-
-export type ChecksumType = 'add' | 'add_no_header' | 'xor' | 'xor_add' | 'samsung_rx' | 'samsung_tx' | 'none';
+export type ChecksumType =
+  | 'add'
+  | 'add_no_header'
+  | 'xor'
+  | 'xor_add'
+  | 'samsung_rx'
+  | 'samsung_tx'
+  | 'none';
 
 export function calculateChecksum(data: Buffer, type: ChecksumType): number {
   switch (type) {

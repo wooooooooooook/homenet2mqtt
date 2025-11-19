@@ -22,7 +22,7 @@ export function handleData(
   chunk: Buffer,
   config: HomenetBridgeConfig,
   packetProcessor: PacketProcessor,
-  client: mqtt.MqttClient
+  client: mqtt.MqttClient,
 ) {
   const rawDataHex = chunk.toString('hex');
   logger.debug({ data: rawDataHex }, '[core] Raw data received');
@@ -57,10 +57,7 @@ export function handleData(
     bufferWasProcessed = false;
 
     const packet = receiveBuffer.slice(0, packetLength);
-    const parsedStates = packetProcessor.parseIncomingPacket(
-      packet.toJSON().data,
-      allEntities
-    );
+    const parsedStates = packetProcessor.parseIncomingPacket(packet.toJSON().data, allEntities);
 
     if (parsedStates.length > 0) {
       parsedStates.forEach((parsed) => {

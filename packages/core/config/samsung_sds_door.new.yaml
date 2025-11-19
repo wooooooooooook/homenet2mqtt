@@ -7,7 +7,7 @@ homenet_bridge:
 
   device_config:
     name: 'samsung sds door'
-    
+
     rx_timeout: 10ms
     tx_delay: 0ms
     tx_timeout: 500ms
@@ -27,9 +27,9 @@ homenet_bridge:
       return crc;
 
   binary_sensor:
-    - name: "Bell Private"
-      icon: "mdi:bell-ring"
-      state: 
+    - name: 'Bell Private'
+      icon: 'mdi:bell-ring'
+      state:
         data: [0x30]
         mask: [0xF0]
       state_on:
@@ -38,9 +38,9 @@ homenet_bridge:
         data: [0x3E, 0x01]
         mask: [0xFF, 0x01]
 
-    - name: "Bell Public"
-      icon: "mdi:bell-ring"
-      state: 
+    - name: 'Bell Public'
+      icon: 'mdi:bell-ring'
+      state:
         data: [0x30]
         mask: [0xF0]
       state_on:
@@ -50,7 +50,7 @@ homenet_bridge:
         mask: [0xFF, 0x06]
 
   text_sensor:
-    - name: "Response"
+    - name: 'Response'
       internal: True
       lambda: |-
         if (data[0] == 0x5A) 
@@ -85,21 +85,21 @@ homenet_bridge:
         return to_hex_string(data, len);
 
   button:
-    - name: "Call Private"
-      icon: "mdi:phone"
+    - name: 'Call Private'
+      icon: 'mdi:phone'
 
-    - name: "Open Private"
-      icon: "mdi:door-sliding-open"
+    - name: 'Open Private'
+      icon: 'mdi:door-sliding-open'
 
-    - name: "Call Public"
-      icon: "mdi:phone"
+    - name: 'Call Public'
+      icon: 'mdi:phone'
 
-    - name: "Open Public"
-      icon: "mdi:door-sliding-open"
+    - name: 'Open Public'
+      icon: 'mdi:door-sliding-open'
 
   switch:
-    - name: "Auto Open Public"
-      icon: "mdi:door-open"
-        
-    - name: "Auto Open Private"
-      icon: "mdi:door-open"
+    - name: 'Auto Open Public'
+      icon: 'mdi:door-open'
+
+    - name: 'Auto Open Private'
+      icon: 'mdi:door-open'

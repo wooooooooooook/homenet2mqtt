@@ -7,7 +7,7 @@ homenet_bridge:
 
   device_config:
     name: 'samsung sds'
-    
+
     rx_timeout: 10ms
     tx_delay: 50ms
     tx_timeout: 500ms
@@ -27,15 +27,15 @@ homenet_bridge:
       return crc;
 
   button:
-    - name: "Gas Valve Close"
-      icon: "mdi:gas-burner"
-      command_on: 
+    - name: 'Gas Valve Close'
+      icon: 'mdi:gas-burner'
+      command_on:
         data: [0xAB, 0x78, 0x00]
         ack: [0x78]
 
   light:
-    - name: "Light 1"
-      state: 
+    - name: 'Light 1'
+      state:
         data: [0x79, 0x31]
       state_on:
         offset: 2
@@ -51,9 +51,9 @@ homenet_bridge:
       command_off:
         data: [0xAC, 0x7A, 0x01, 0x00]
         ack: [0x7A, 0x01, 0x00]
-        
-    - name: "Light 2"
-      state: 
+
+    - name: 'Light 2'
+      state:
         data: [0x79, 0x31]
       state_on:
         offset: 2
@@ -69,9 +69,9 @@ homenet_bridge:
       command_off:
         data: [0xAC, 0x7A, 0x02, 0x00]
         ack: [0x7A, 0x02, 0x00]
-        
-    - name: "Light 3"
-      state: 
+
+    - name: 'Light 3'
+      state:
         data: [0x79, 0x31]
       state_on:
         offset: 2
@@ -87,9 +87,9 @@ homenet_bridge:
       command_off:
         data: [0xAC, 0x7A, 0x03, 0x00]
         ack: [0x7A, 0x03, 0x00]
-        
-    - name: "Light 4"
-      state: 
+
+    - name: 'Light 4'
+      state:
         data: [0x79, 0x24]
       state_on:
         offset: 2
@@ -105,9 +105,9 @@ homenet_bridge:
       command_off:
         data: [0xAC, 0x7A, 0x04, 0x00]
         ack: [0x7A, 0x04, 0x00]
-        
-    - name: "Light 5"
-      state: 
+
+    - name: 'Light 5'
+      state:
         data: [0x79, 0x24]
       state_on:
         offset: 2
@@ -125,12 +125,12 @@ homenet_bridge:
         ack: [0x7A, 0x05, 0x00]
 
   climate:
-    - name: "Room 0 Heater"
+    - name: 'Room 0 Heater'
       visual:
         min_temperature: 5 °C
         max_temperature: 40 °C
         temperature_step: 1 °C
-      state: 
+      state:
         data: [0x7C, 0x01]
       state_temperature_current:
         offset: 4
@@ -156,12 +156,12 @@ homenet_bridge:
         uint8_t target = x;
         return {{0xAE, 0x7F, 0x01, target, 0x00, 0x00, 0x00},{0x7F, 0x01, target}};
 
-    - name: "Room 1 Heater"
+    - name: 'Room 1 Heater'
       visual:
         min_temperature: 5 °C
         max_temperature: 40 °C
         temperature_step: 1 °C
-      state: 
+      state:
         data: [0x7C, 0x02]
       state_temperature_current:
         offset: 4
@@ -187,12 +187,12 @@ homenet_bridge:
         uint8_t target = x;
         return {{0xAE, 0x7F, 0x02, target, 0x00, 0x00, 0x00},{0x7F, 0x02, target}};
 
-    - name: "Room 2 Heater"
+    - name: 'Room 2 Heater'
       visual:
         min_temperature: 5 °C
         max_temperature: 40 °C
         temperature_step: 1 °C
-      state: 
+      state:
         data: [0x7C, 0x03]
       state_temperature_current:
         offset: 4
@@ -218,12 +218,12 @@ homenet_bridge:
         uint8_t target = x;
         return {{0xAE, 0x7F, 0x03, target, 0x00, 0x00, 0x00},{0x7F, 0x03, target}};
 
-    - name: "Room 3 Heater"
+    - name: 'Room 3 Heater'
       visual:
         min_temperature: 5 °C
         max_temperature: 40 °C
         temperature_step: 1 °C
-      state: 
+      state:
         data: [0x7C, 0x04]
       state_temperature_current:
         offset: 4
@@ -250,8 +250,8 @@ homenet_bridge:
         return {{0xAE, 0x7F, 0x04, target, 0x00, 0x00, 0x00},{0x7F, 0x04, target}};
 
   fan:
-    - name: "Ventilator"
-      state: 
+    - name: 'Ventilator'
+      state:
         data: [0x4E]
       state_on:
         offset: 3

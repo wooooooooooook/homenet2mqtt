@@ -15,9 +15,9 @@ homenet_bridge:
     tx_footer: [0x0D, 0x0D]
 
   binary_sensor:
-    - name: "Bell"
-      icon: "mdi:bell-ring"
-      state: 
+    - name: 'Bell'
+      icon: 'mdi:bell-ring'
+      state:
         data: [0xAA, 0x55, 0x70, 0x90, 0x02, 0x02]
         mask: [0xFF, 0xFF, 0xF0, 0xF0, 0xFF, 0xFF]
       state_on:
@@ -27,9 +27,9 @@ homenet_bridge:
         offset: 15
         data: [0x02]
 
-    - name: "Bell Common"
-      icon: "mdi:bell-ring"
-      state: 
+    - name: 'Bell Common'
+      icon: 'mdi:bell-ring'
+      state:
         data: [0xAA, 0x55, 0x70, 0x90, 0x02, 0x08]
         mask: [0xFF, 0xFF, 0xF0, 0xF0, 0xFF, 0xFF]
       state_on:
@@ -40,33 +40,117 @@ homenet_bridge:
         data: [0x02]
 
   button:
-    - name: "Call Common"
-      icon: "mdi:phone"
-      command_on: 
-        data: [0xAA, 0x55, 0x79, 0xBC, 0x08, 0x02, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0x61, 0xFF, 0xFF, 0xFF, 0x03, 0x00, 0x26, 0x95]
+    - name: 'Call Common'
+      icon: 'mdi:phone'
+      command_on:
+        data:
+          [
+            0xAA,
+            0x55,
+            0x79,
+            0xBC,
+            0x08,
+            0x02,
+            0x00,
+            0xFF,
+            0xFF,
+            0xFF,
+            0xFF,
+            0x61,
+            0xFF,
+            0xFF,
+            0xFF,
+            0x03,
+            0x00,
+            0x26,
+            0x95,
+          ]
         ack: [0x0F, 0x03]
 
-    - name: "Open Common"
-      icon: "mdi:door-sliding-open"
-      command_on: 
-        data: [0xAA, 0x55, 0x79, 0xBC, 0x08, 0x02, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0x61, 0xFF, 0xFF, 0xFF, 0x24, 0x00, 0xB9, 0xE4]
+    - name: 'Open Common'
+      icon: 'mdi:door-sliding-open'
+      command_on:
+        data:
+          [
+            0xAA,
+            0x55,
+            0x79,
+            0xBC,
+            0x08,
+            0x02,
+            0x00,
+            0xFF,
+            0xFF,
+            0xFF,
+            0xFF,
+            0x61,
+            0xFF,
+            0xFF,
+            0xFF,
+            0x24,
+            0x00,
+            0xB9,
+            0xE4,
+          ]
         ack: [0x0F, 0x24]
 
-    - name: "Call"
-      icon: "mdi:phone"
-      command_on: 
-        data: [0xAA, 0x55, 0x79, 0xBC, 0x02, 0x02, 0x00, 0x31, 0xFF, 0xFF, 0xFF, 0x61, 0xFF, 0xFF, 0xFF, 0x03, 0x00, 0x08, 0xD3]
+    - name: 'Call'
+      icon: 'mdi:phone'
+      command_on:
+        data:
+          [
+            0xAA,
+            0x55,
+            0x79,
+            0xBC,
+            0x02,
+            0x02,
+            0x00,
+            0x31,
+            0xFF,
+            0xFF,
+            0xFF,
+            0x61,
+            0xFF,
+            0xFF,
+            0xFF,
+            0x03,
+            0x00,
+            0x08,
+            0xD3,
+          ]
         ack: [0x0F, 0x03]
 
-    - name: "Open"
-      icon: "mdi:door-sliding-open"
-      command_on: 
-        data: [0xAA, 0x55, 0x79, 0xBC, 0x02, 0x02, 0x00, 0x31, 0xFF, 0xFF, 0xFF, 0x61, 0xFF, 0xFF, 0xFF, 0x24, 0x00, 0x97, 0xA2]
+    - name: 'Open'
+      icon: 'mdi:door-sliding-open'
+      command_on:
+        data:
+          [
+            0xAA,
+            0x55,
+            0x79,
+            0xBC,
+            0x02,
+            0x02,
+            0x00,
+            0x31,
+            0xFF,
+            0xFF,
+            0xFF,
+            0x61,
+            0xFF,
+            0xFF,
+            0xFF,
+            0x24,
+            0x00,
+            0x97,
+            0xA2,
+          ]
         ack: [0x0F, 0x24]
 
   switch:
-    - name: "Auto Open Common"
-      icon: "mdi:door-open"
-        
-    - name: "Auto Open"
-      icon: "mdi:door-open"
+    - name: 'Auto Open Common'
+      icon: 'mdi:door-open'
+
+    - name: 'Auto Open'
+      icon: 'mdi:door-open'

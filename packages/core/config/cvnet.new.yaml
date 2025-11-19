@@ -19,8 +19,8 @@ homenet_bridge:
     tx_checksum: add_no_header
 
   light:
-    - name: "Room 0 Light 1"
-      state: 
+    - name: 'Room 0 Light 1'
+      state:
         data: [0x20, 0x01, 0x21]
       state_on:
         offset: 4
@@ -28,15 +28,15 @@ homenet_bridge:
       state_off:
         offset: 4
         data: [0x00]
-      command_on: 
+      command_on:
         data: [0x20, 0x21, 0x01, 0x11, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
         ack: [0x20, 0x01, 0x21, 0x9F]
       command_off:
         data: [0x20, 0x21, 0x01, 0x11, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
         ack: [0x20, 0x01, 0x21, 0x9F]
 
-    - name: "Room 0 Light 2"
-      state: 
+    - name: 'Room 0 Light 2'
+      state:
         data: [0x20, 0x01, 0x21]
       state_on:
         offset: 5
@@ -44,15 +44,15 @@ homenet_bridge:
       state_off:
         offset: 5
         data: [0x00]
-      command_on: 
+      command_on:
         data: [0x20, 0x21, 0x01, 0x12, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
         ack: [0x20, 0x01, 0x21, 0x9F]
       command_off:
         data: [0x20, 0x21, 0x01, 0x12, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
         ack: [0x20, 0x01, 0x21, 0x9F]
 
-    - name: "Room 0 Light 3"
-      state: 
+    - name: 'Room 0 Light 3'
+      state:
         data: [0x20, 0x01, 0x21]
       state_on:
         offset: 6
@@ -60,15 +60,15 @@ homenet_bridge:
       state_off:
         offset: 6
         data: [0x00]
-      command_on: 
+      command_on:
         data: [0x20, 0x21, 0x01, 0x13, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
         ack: [0x20, 0x01, 0x21, 0x9F]
       command_off:
         data: [0x20, 0x21, 0x01, 0x13, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
         ack: [0x20, 0x01, 0x21, 0x9F]
 
-    - name: "Room 1 Light 1"
-      state: 
+    - name: 'Room 1 Light 1'
+      state:
         data: [0x20, 0x01, 0x22]
       state_on:
         offset: 4
@@ -76,7 +76,7 @@ homenet_bridge:
       state_off:
         offset: 4
         data: [0x00]
-      command_on: 
+      command_on:
         data: [0x20, 0x22, 0x01, 0x11, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
         ack: [0x20, 0x01, 0x22, 0x9F]
       command_off:
@@ -84,7 +84,7 @@ homenet_bridge:
         ack: [0x20, 0x01, 0x22, 0x9F]
 
   fan:
-    - name: "Fan 1"
+    - name: 'Fan 1'
       state:
         data: [0x20, 0x01, 0x71]
       state_on:
@@ -116,7 +116,7 @@ homenet_bridge:
         signed: False
 
   valve:
-    - name: "Gas Valve"
+    - name: 'Gas Valve'
       device_class: gas
       state:
         data: [0x20, 0x01, 0x11]
@@ -131,14 +131,14 @@ homenet_bridge:
         ack: [0x20, 0x01, 0x11, 0x91]
 
   climate:
-    - name: "Heater 1"
+    - name: 'Heater 1'
       visual:
         min_temperature: 6 °C
         max_temperature: 30 °C
         temperature_step: 1 °C
       state:
         data: [0x20, 0x01, 0x4A]
-      state_temperature_current: 
+      state_temperature_current:
         offset: 5
       state_temperature_target: !homenet_logic
         type: state_lambda
@@ -195,14 +195,14 @@ homenet_bridge:
             signed: false
             endian: big
 
-    - name: "Heater 2"
+    - name: 'Heater 2'
       visual:
         min_temperature: 6 °C
         max_temperature: 30 °C
         temperature_step: 1 °C
       state:
         data: [0x20, 0x01, 0x4A]
-      state_temperature_current: 
+      state_temperature_current:
         offset: 7
       state_temperature_target: !homenet_logic
         type: state_lambda
@@ -259,14 +259,14 @@ homenet_bridge:
             signed: false
             endian: big
 
-    - name: "Heater 3"
+    - name: 'Heater 3'
       visual:
         min_temperature: 6 °C
         max_temperature: 30 °C
         temperature_step: 1 °C
       state:
         data: [0x20, 0x01, 0x4A]
-      state_temperature_current: 
+      state_temperature_current:
         offset: 9
       state_temperature_target: !homenet_logic
         type: state_lambda
@@ -323,14 +323,14 @@ homenet_bridge:
             signed: false
             endian: big
 
-    - name: "Heater 4"
+    - name: 'Heater 4'
       visual:
         min_temperature: 6 °C
         max_temperature: 30 °C
         temperature_step: 1 °C
       state:
         data: [0x20, 0x01, 0x4A]
-      state_temperature_current: 
+      state_temperature_current:
         offset: 11
       state_temperature_target: !homenet_logic
         type: state_lambda
@@ -388,15 +388,15 @@ homenet_bridge:
             endian: big
 
   sensor:
-    - name: "Elevator Floors"
-      icon: "mdi:elevator"
-      state: 
+    - name: 'Elevator Floors'
+      icon: 'mdi:elevator'
+      state:
         data: [0x20, 0x01, 0x22, 0x81]
       state_number:
         offset: 4
 
   button:
-    - name: "Elevator Call"
-      icon: "mdi:elevator"
-      command_on: 
+    - name: 'Elevator Call'
+      icon: 'mdi:elevator'
+      command_on:
         data: [0x20, 0x01, 0x81, 0x81, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]

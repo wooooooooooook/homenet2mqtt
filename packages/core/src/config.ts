@@ -3,7 +3,13 @@
 export type ChecksumType = 'add' | 'xor' | 'add_no_header' | 'xor_no_header' | 'custom' | 'none';
 export type ParityType = 'none' | 'even' | 'odd';
 export type EndianType = 'big' | 'little';
-export type DecodeEncodeType = 'none' | 'bcd' | 'ascii' | 'signed_byte_half_degree' | 'multiply' | 'add_0x80';
+export type DecodeEncodeType =
+  | 'none'
+  | 'bcd'
+  | 'ascii'
+  | 'signed_byte_half_degree'
+  | 'multiply'
+  | 'add_0x80';
 
 export interface SerialConfig {
   baud_rate: number;
@@ -15,15 +21,15 @@ export interface SerialConfig {
 export interface PacketDefaults {
   rx_length?: number;
   rx_timeout?: string; // e.g., "10ms"
-  tx_delay?: string;   // e.g., "50ms"
+  tx_delay?: string; // e.g., "50ms"
   tx_timeout?: string; // e.g., "500ms"
   tx_retry_cnt?: number;
   rx_header?: number[];
   rx_footer?: number[];
   tx_header?: number[];
   tx_footer?: number[];
-  rx_checksum?: ChecksumType | { type: 'custom', algorithm: string }; // algorithm would describe the custom logic
-  tx_checksum?: ChecksumType | { type: 'custom', algorithm: string }; // algorithm would describe the custom logic
+  rx_checksum?: ChecksumType | { type: 'custom'; algorithm: string }; // algorithm would describe the custom logic
+  tx_checksum?: ChecksumType | { type: 'custom'; algorithm: string }; // algorithm would describe the custom logic
 }
 
 export interface StateSchema {
@@ -94,7 +100,8 @@ export interface CommandLambdaConfig {
     conditions?: Condition[]; // Conditions for this specific packet template
     valueInsertions?: ValueInsertion[]; // Array of values to insert
   }[];
-  conditions?: { // Conditions for selecting a CommandLambdaConfig
+  conditions?: {
+    // Conditions for selecting a CommandLambdaConfig
     entityId: string;
     property: string; // e.g., 'is_on'
     value: any; // The value to compare against
@@ -105,7 +112,14 @@ export interface CommandLambdaConfig {
 
 export interface StateLambdaConfig {
   type: 'state_lambda'; // Discriminator for type checking
-  valueSource?: ValueSource & { offset?: number; length?: number; precision?: number; signed?: boolean; endian?: EndianType; decode?: DecodeEncodeType; }; // Added properties for packet valueSource
+  valueSource?: ValueSource & {
+    offset?: number;
+    length?: number;
+    precision?: number;
+    signed?: boolean;
+    endian?: EndianType;
+    decode?: DecodeEncodeType;
+  }; // Added properties for packet valueSource
   valueMappings?: ValueMapping[]; // For enum-like values
   conditions?: {
     extractor?: Extractor;
@@ -240,9 +254,15 @@ export interface BinarySensorEntity {
   command_update?: CommandSchema;
 }
 
-export type EntityConfig = LightEntity | ClimateEntity | ValveEntity | ButtonEntity | SensorEntity | FanEntity | SwitchEntity | BinarySensorEntity;
-
-
+export type EntityConfig =
+  | LightEntity
+  | ClimateEntity
+  | ValveEntity
+  | ButtonEntity
+  | SensorEntity
+  | FanEntity
+  | SwitchEntity
+  | BinarySensorEntity;
 
 export interface HomenetBridgeConfig {
   serial: SerialConfig;

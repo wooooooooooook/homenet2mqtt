@@ -16,7 +16,7 @@ const HOMENET_LOGIC_TYPE = new Type('!homenet_logic', {
     // data will be the parsed object under !homenet_logic
     // We can directly return it as it should conform to CommandLambdaConfig or StateLambdaConfig
     return data;
-  }
+  },
 });
 
 // Create a schema that includes the custom HOMENET_LOGIC_TYPE
@@ -87,7 +87,7 @@ const waitForSerialDevice = async (serialPath: string) => {
       const elapsed = Date.now() - startedAt;
       if (elapsed >= SERIAL_WAIT_TIMEOUT_MS) {
         throw new Error(
-          `시리얼 포트 경로(${serialPath})를 ${SERIAL_WAIT_TIMEOUT_MS}ms 내에 찾지 못했습니다.`
+          `시리얼 포트 경로(${serialPath})를 ${SERIAL_WAIT_TIMEOUT_MS}ms 내에 찾지 못했습니다.`,
         );
       }
 
@@ -119,17 +119,71 @@ export class HomeNetBridge implements EntityStateProvider {
   private readonly client: mqtt.MqttClient;
   private port?: Duplex;
   private startPromise: Promise<void> | null = null;
+  private connectionPromise: Promise<void>;
 
   private config?: HomenetBridgeConfig; // Loaded configuration
   private packetProcessor?: PacketProcessor; // The new packet processor
 
-      constructor(options: BridgeOptions) {
-      this.options = options;
-      logger.debug({ mqttUrl: options.mqttUrl, connectTimeout: MQTT_CONNECT_TIMEOUT_MS }, '[core] Initializing MQTT client with options');
-      this.client = mqtt.connect(options.mqttUrl, {
-        connectTimeout: MQTT_CONNECT_TIMEOUT_MS,
-        protocolVersion: 4, // Force MQTT v3.1.1
-      });  }
+  constructor(options: BridgeOptions) {
+    this.options = options;
+    logger.debug(
+      { mqttUrl: options.mqttUrl, connectTimeout: MQTT_CONNECT_TIMEOUT_MS },
+      '[core] Initializing MQTT client with options',
+    );
+    
+    // [수정 1] 재접속 및 상태 확인을 위한 로그 리스너 추가 (Promise 외부)
+    this.client = mqtt.connect(options.mqttUrl, {
+      connectTimeout: MQTT_CONNECT_TIMEOUT_MS,
+      protocolVersion: 4,
+      reconnectPeriod: 1000, // 재접속 시도 간격 (1초)
+    });
+
+    // 디버깅을 위해 모든 상태 변화 로그 출력
+    this.client.on('reconnect', () => logger.warn('[core] MQTT 재접속 시도 중... (Reconnecting)'));
+    this.client.on('offline', () => logger.warn('[core] MQTT 클라이언트 오프라인 (Offline)'));
+    this.client.on('close', () => logger.warn('[core] MQTT 연결 끊김 (Close)'));
+
+    this.connectionPromise = new Promise<void>((resolve, reject) => {
+      // 타이머 변수
+      let connectionTimer: NodeJS.Timeout;
+
+      const cleanup = () => {
+        this.client.off('connect', connectHandler);
+        this.client.off('error', errorHandler);
+        clearTimeout(connectionTimer);
+      };
+
+      const errorHandler = (err: Error) => {
+        logger.error({ err }, '[core] MQTT 연결 오류');
+        cleanup();
+        reject(err);
+      };
+
+      const connectHandler = () => {
+        logger.info(`[core] MQTT에 연결되었습니다: ${this.options.mqttUrl}`);
+        cleanup();
+        resolve();
+      };
+
+      // [수정 2] 강제 타임아웃 로직 추가
+      // MQTT 라이브러리가 재접속만 계속 시도하고 에러를 안 뱉을 경우를 대비해
+      // 설정된 시간 내에 'connect'가 안 뜨면 강제로 실패 처리
+      connectionTimer = setTimeout(() => {
+        const timeoutErr = new Error(`MQTT 연결 시간 초과 (${MQTT_CONNECT_TIMEOUT_MS}ms) - 브로커 주소나 네트워크를 확인하세요.`);
+        logger.error('[core] MQTT Initial Connection Timeout');
+        
+        // 연결 실패 시 클라이언트 종료 (무한 재접속 방지)
+        this.client.end(); 
+        
+        cleanup();
+        reject(timeoutErr);
+      }, MQTT_CONNECT_TIMEOUT_MS + 500); // 설정 시간보다 0.5초 더 여유를 둠
+
+      this.client.on('connect', connectHandler);
+      this.client.on('error', errorHandler);
+    });
+  }
+
 
   // Implement EntityStateProvider methods
   getLightState(entityId: string): { isOn: boolean } | undefined {
@@ -183,7 +237,9 @@ export class HomeNetBridge implements EntityStateProvider {
     const loadedYaml = yaml.load(configFileContent, { schema: HOMENET_BRIDGE_SCHEMA });
 
     if (!loadedYaml || !(loadedYaml as any).homenet_bridge) {
-      throw new Error('Invalid configuration file structure. Missing "homenet_bridge" top-level key.');
+      throw new Error(
+        'Invalid configuration file structure. Missing "homenet_bridge" top-level key.',
+      );
     }
 
     const loadedConfig = (loadedYaml as any).homenet_bridge as HomenetBridgeConfig;
@@ -198,11 +254,13 @@ export class HomeNetBridge implements EntityStateProvider {
       'binary_sensor',
     ];
     const hasEntities = entityTypes.some(
-      (type) => loadedConfig[type] && Array.isArray(loadedConfig[type])
+      (type) => loadedConfig[type] && Array.isArray(loadedConfig[type]),
     );
 
     if (!hasEntities) {
-      throw new Error('Configuration file must contain at least one entity (e.g., light, climate).');
+      throw new Error(
+        'Configuration file must contain at least one entity (e.g., light, climate).',
+      );
     }
 
     this.config = loadedConfig;
@@ -213,57 +271,36 @@ export class HomeNetBridge implements EntityStateProvider {
 
     this.client.on('message', (topic, message) => this.handleMqttMessage(topic, message));
 
-    this.client.on('error', (err) => {
-      logger.error({ err }, '[core] MQTT 연결 오류');
-    });
-
     logger.debug('[core] Waiting for MQTT client to connect...');
-    // Wait for MQTT client to connect with a timeout
-    await new Promise<void>((resolve, reject) => {
-              const connectHandler = () => {
-                logger.info(`[core] MQTT에 연결되었습니다: ${this.options.mqttUrl}`);
-                logger.debug('[core] MQTT connectHandler triggered, resolving connection promise.');
-                this.client.off('error', errorHandler); // Remove error listener once connected
-      
-                // Subscribe to command topics for all entities
-                const entityTypes = [
-                  'light',
-                  'climate',
-                  'valve',
-                  'button',
-                  'sensor',
-                  'fan',
-                  'switch',
-                  'binary_sensor',
-                ];
-                for (const entityType of entityTypes) {
-                  const entities = this.config![entityType as keyof HomenetBridgeConfig] as
-                    | EntityConfig[]
-                    | undefined;
-                  if (entities) {
-                    entities.forEach((entity) => {
-                      const baseTopic = `homenet/${entity.id}`;
-                      this.client.subscribe(`${baseTopic}/set/#`, (err) => {
-                        // Example: homenet/light_1/set/on, homenet/climate_1/set/temperature
-                        if (err)
-                          logger.error({ err, topic: `${baseTopic}/set/#` }, `[core] Failed to subscribe`);
-                        else logger.info(`[core] Subscribed to ${baseTopic}/set/#`);
-                      });
-                    });
-                  }
-                }
-                resolve();
-              };
-      const errorHandler = (err: Error) => {
-        logger.error({ err }, '[core] MQTT 연결 오류');
-        logger.debug({ err }, '[core] MQTT errorHandler triggered, rejecting connection promise.');
-        this.client.off('connect', connectHandler); // Remove connect listener on error
-        reject(err);
-      };
+    await this.connectionPromise;
 
-      this.client.on('connect', connectHandler);
-      this.client.on('error', errorHandler);
-    });
+    // Subscribe to command topics for all entities
+    const allEntityTypes = [
+      'light',
+      'climate',
+      'valve',
+      'button',
+      'sensor',
+      'fan',
+      'switch',
+      'binary_sensor',
+    ];
+    for (const entityType of allEntityTypes) {
+      const entities = this.config![entityType as keyof HomenetBridgeConfig] as
+        | EntityConfig[]
+        | undefined;
+      if (entities) {
+        entities.forEach((entity) => {
+          const baseTopic = `homenet/${entity.id}`;
+          this.client.subscribe(`${baseTopic}/set/#`, (err) => {
+            // Example: homenet/light_1/set/on, homenet/climate_1/set/temperature
+            if (err)
+              logger.error({ err, topic: `${baseTopic}/set/#` }, `[core] Failed to subscribe`);
+            else logger.info(`[core] Subscribed to ${baseTopic}/set/#`);
+          });
+        });
+      }
+    }
 
     // Open serial port
     const serialPath = process.env.SERIAL_PORT || '/simshare/rs485-sim-tty'; // Use environment variable for serial path, or fallback
@@ -349,7 +386,7 @@ export class HomeNetBridge implements EntityStateProvider {
       const commandPacket = this.packetProcessor.constructCommandPacket(
         targetEntity,
         commandName,
-        commandValue
+        commandValue,
       );
       if (commandPacket) {
         logger.info(
@@ -358,13 +395,13 @@ export class HomeNetBridge implements EntityStateProvider {
             command: commandName,
             packet: Buffer.from(commandPacket).toString('hex'),
           },
-          `[core] Sending command packet`
+          `[core] Sending command packet`,
         );
         this.port.write(Buffer.from(commandPacket));
       } else {
         logger.warn(
           { entity: targetEntity.name, command: commandName },
-          `[core] Failed to construct command packet`
+          `[core] Failed to construct command packet`,
         );
       }
     } else {

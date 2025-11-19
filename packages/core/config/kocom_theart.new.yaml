@@ -21,8 +21,8 @@ homenet_bridge:
     tx_checksum: add_no_header
 
   light:
-    - name: "Livingroom Light 1"
-      state: 
+    - name: 'Livingroom Light 1'
+      state:
         data: [0x30, 0xd0, 0x00, 0x0e, 0x00]
         mask: [0xff, 0xf0, 0xff, 0xff, 0xff]
       state_on:
@@ -41,13 +41,31 @@ homenet_bridge:
         uint8_t light2 = id(livingroom_light_2).current_values.is_on() ? 0xff : 0x00;
         uint8_t light3 = id(livingroom_light_3).current_values.is_on() ? 0xff : 0x00;
         return {{0x30, 0xbc, 0x00, 0x0e, 0x00, 0x01, 0x00, 0x00, light1, light2, light3, 0x00, 0x00, 0x00, 0x00, 0x00}, {0x30, 0xdc, 0x00, 0x0e, 0x00}};
-      command_update: 
-        data: [0x30, 0xbc, 0x00, 0x0e, 0x00, 0x01, 0x00, 0x3a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+      command_update:
+        data:
+          [
+            0x30,
+            0xbc,
+            0x00,
+            0x0e,
+            0x00,
+            0x01,
+            0x00,
+            0x3a,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+          ]
         ack: [0x30, 0xdc, 0x00, 0x0e, 0x00]
       update_interval: 2h
 
-    - name: "Livingroom Light 2"
-      state: 
+    - name: 'Livingroom Light 2'
+      state:
         data: [0x30, 0xd0, 0x00, 0x0e, 0x00]
         mask: [0xff, 0xf0, 0xff, 0xff, 0xff]
       state_on:
@@ -67,8 +85,8 @@ homenet_bridge:
         uint8_t light3 = id(livingroom_light_3).current_values.is_on() ? 0xff : 0x00;
         return {{0x30, 0xbc, 0x00, 0x0e, 0x00, 0x01, 0x00, 0x00, light1, light2, light3, 0x00, 0x00, 0x00, 0x00, 0x00}, {0x30, 0xdc, 0x00, 0x0e, 0x00}};
 
-    - name: "Livingroom Light 3"
-      state: 
+    - name: 'Livingroom Light 3'
+      state:
         data: [0x30, 0xd0, 0x00, 0x0e, 0x00]
         mask: [0xff, 0xf0, 0xff, 0xff, 0xff]
       state_on:
@@ -89,12 +107,12 @@ homenet_bridge:
         return {{0x30, 0xbc, 0x00, 0x0e, 0x00, 0x01, 0x00, 0x00, light1, light2, light3, 0x00, 0x00, 0x00, 0x00, 0x00}, {0x30, 0xdc, 0x00, 0x0e, 0x00}};
 
   climate:
-    - name: "Livingroom Heater"
+    - name: 'Livingroom Heater'
       visual:
         min_temperature: 5 °C
         max_temperature: 30 °C
         temperature_step: 1 °C
-      state: 
+      state:
         data: [0x30, 0xd0, 0x00, 0x36, 0x00]
         mask: [0xff, 0xf0, 0xff, 0xff, 0xff]
       state_temperature_current:
@@ -132,17 +150,35 @@ homenet_bridge:
         if (id(livingroom_heater).mode == climate::CLIMATE_MODE_OFF) return {};
         uint8_t target = x;
         return {{0x30, 0xbc, 0x00, 0x36, 0x00, 0x01, 0x00, 0x00, 0x11, 0x00, target, 0x00, 0x00, 0x00, 0x00, 0x00},{0x30, 0xdc, 0x00, 0x36, 0x00}};
-      command_update: 
-        data: [0x30, 0xbc, 0x00, 0x36, 0x00, 0x01, 0x00, 0x3a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+      command_update:
+        data:
+          [
+            0x30,
+            0xbc,
+            0x00,
+            0x36,
+            0x00,
+            0x01,
+            0x00,
+            0x3a,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+          ]
         ack: [0x30, 0xdc, 0x00, 0x36, 0x00]
       update_interval: 2h
 
-    - name: "Bedroom Heater"
+    - name: 'Bedroom Heater'
       visual:
         min_temperature: 5 °C
         max_temperature: 30 °C
         temperature_step: 1 °C
-      state: 
+      state:
         data: [0x30, 0xd0, 0x00, 0x36, 0x01]
         mask: [0xff, 0xf0, 0xff, 0xff, 0xff]
       state_temperature_current:
@@ -167,7 +203,7 @@ homenet_bridge:
       state_preset_none:
         offset: 9
         data: [0x00]
-      command_off: !lambda |- 
+      command_off: !lambda |-
         return {{0x30, 0xbc, 0x00, 0x36, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},{0x30, 0xdc, 0x00, 0x36, 0x01}};
       command_heat: !lambda |-
         uint8_t target = id(bedroom_heater).target_temperature;
@@ -184,17 +220,35 @@ homenet_bridge:
         if (id(bedroom_heater).mode == climate::CLIMATE_MODE_OFF) return {};
         uint8_t target = x;
         return {{0x30, 0xbc, 0x00, 0x36, 0x01, 0x01, 0x00, 0x00, 0x11, 0x00, target, 0x00, 0x00, 0x00, 0x00, 0x00},{0x30, 0xdc, 0x00, 0x36, 0x01}};
-      command_update: 
-        data: [0x30, 0xbc, 0x00, 0x36, 0x01, 0x01, 0x00, 0x3a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+      command_update:
+        data:
+          [
+            0x30,
+            0xbc,
+            0x00,
+            0x36,
+            0x01,
+            0x01,
+            0x00,
+            0x3a,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+          ]
         ack: [0x30, 0xdc, 0x00, 0x36, 0x01]
       update_interval: 2h
 
-    - name: "Room 1 Heater"
+    - name: 'Room 1 Heater'
       visual:
         min_temperature: 5 °C
         max_temperature: 30 °C
         temperature_step: 1 °C
-      state: 
+      state:
         data: [0x30, 0xd0, 0x00, 0x36, 0x02]
         mask: [0xff, 0xf0, 0xff, 0xff, 0xff]
       state_temperature_current:
@@ -232,17 +286,35 @@ homenet_bridge:
         if (id(room_1_heater).mode == climate::CLIMATE_MODE_OFF) return {};
         uint8_t target = x;
         return {{0x30, 0xbc, 0x00, 0x36, 0x02, 0x01, 0x00, 0x00, 0x11, 0x00, target, 0x00, 0x00, 0x00, 0x00, 0x00},{0x30, 0xdc, 0x00, 0x36, 0x02}};
-      command_update: 
-        data: [0x30, 0xbc, 0x00, 0x36, 0x02, 0x01, 0x00, 0x3a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+      command_update:
+        data:
+          [
+            0x30,
+            0xbc,
+            0x00,
+            0x36,
+            0x02,
+            0x01,
+            0x00,
+            0x3a,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+          ]
         ack: [0x30, 0xdc, 0x00, 0x36, 0x02]
       update_interval: 2h
 
-    - name: "Room 2 Heater"
+    - name: 'Room 2 Heater'
       visual:
         min_temperature: 5 °C
         max_temperature: 30 °C
         temperature_step: 1 °C
-      state: 
+      state:
         data: [0x30, 0xd0, 0x00, 0x36, 0x03]
         mask: [0xff, 0xf0, 0xff, 0xff, 0xff]
       state_temperature_current:
@@ -280,17 +352,35 @@ homenet_bridge:
         if (id(room_2_heater).mode == climate::CLIMATE_MODE_OFF) return {};
         uint8_t target = x;
         return {{0x30, 0xbc, 0x00, 0x36, 0x03, 0x01, 0x00, 0x00, 0x11, 0x00, target, 0x00, 0x00, 0x00, 0x00, 0x00},{0x30, 0xdc, 0x00, 0x36, 0x03}};
-      command_update: 
-        data: [0x30, 0xbc, 0x00, 0x36, 0x03, 0x01, 0x00, 0x3a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+      command_update:
+        data:
+          [
+            0x30,
+            0xbc,
+            0x00,
+            0x36,
+            0x03,
+            0x01,
+            0x00,
+            0x3a,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+          ]
         ack: [0x30, 0xdc, 0x00, 0x36, 0x03]
       update_interval: 2h
 
-    - name: "Livingroom 2 Heater"
+    - name: 'Livingroom 2 Heater'
       visual:
         min_temperature: 5 °C
         max_temperature: 30 °C
         temperature_step: 1 °C
-      state: 
+      state:
         data: [0x30, 0xd0, 0x00, 0x36, 0x04]
         mask: [0xff, 0xf0, 0xff, 0xff, 0xff]
       state_temperature_current:
@@ -328,67 +418,85 @@ homenet_bridge:
         if (id(livingroom_2_heater).mode == climate::CLIMATE_MODE_OFF) return {};
         uint8_t target = x;
         return {{0x30, 0xbc, 0x00, 0x36, 0x04, 0x01, 0x00, 0x00, 0x11, 0x00, target, 0x00, 0x00, 0x00, 0x00, 0x00},{0x30, 0xdc, 0x00, 0x36, 0x04}};
-      command_update: 
-        data: [0x30, 0xbc, 0x00, 0x36, 0x04, 0x01, 0x00, 0x3a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+      command_update:
+        data:
+          [
+            0x30,
+            0xbc,
+            0x00,
+            0x36,
+            0x04,
+            0x01,
+            0x00,
+            0x3a,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+          ]
         ack: [0x30, 0xdc, 0x00, 0x36, 0x04]
       update_interval: 2h
 
   sensor:
-    - name: "Livingroom Temperature"
-      state: 
+    - name: 'Livingroom Temperature'
+      state:
         data: [0x30, 0xd0, 0x00, 0x36, 0x00]
         mask: [0xff, 0xf0, 0xff, 0xff, 0xff]
-      unit_of_measurement: "°C"
-      icon: "mdi:thermometer"
-      device_class: "temperature"
-      state_class: "measurement"
+      unit_of_measurement: '°C'
+      icon: 'mdi:thermometer'
+      device_class: 'temperature'
+      state_class: 'measurement'
       state_number:
         offset: 12
-    - name: "Bedroom Temperature"
-      state: 
+    - name: 'Bedroom Temperature'
+      state:
         data: [0x30, 0xd0, 0x00, 0x36, 0x01]
         mask: [0xff, 0xf0, 0xff, 0xff, 0xff]
-      unit_of_measurement: "°C"
-      icon: "mdi:thermometer"
-      device_class: "temperature"
-      state_class: "measurement"
+      unit_of_measurement: '°C'
+      icon: 'mdi:thermometer'
+      device_class: 'temperature'
+      state_class: 'measurement'
       state_number:
         offset: 12
-    - name: "Room 1 Temperature"
-      state: 
+    - name: 'Room 1 Temperature'
+      state:
         data: [0x30, 0xd0, 0x00, 0x36, 0x02]
         mask: [0xff, 0xf0, 0xff, 0xff, 0xff]
-      unit_of_measurement: "°C"
-      icon: "mdi:thermometer"
-      device_class: "temperature"
-      state_class: "measurement"
+      unit_of_measurement: '°C'
+      icon: 'mdi:thermometer'
+      device_class: 'temperature'
+      state_class: 'measurement'
       state_number:
         offset: 12
-    - name: "Room 2 Temperature"
-      state: 
+    - name: 'Room 2 Temperature'
+      state:
         data: [0x30, 0xd0, 0x00, 0x36, 0x03]
         mask: [0xff, 0xf0, 0xff, 0xff, 0xff]
-      unit_of_measurement: "°C"
-      icon: "mdi:thermometer"
-      device_class: "temperature"
-      state_class: "measurement"
+      unit_of_measurement: '°C'
+      icon: 'mdi:thermometer'
+      device_class: 'temperature'
+      state_class: 'measurement'
       state_number:
         offset: 12
-    - name: "Livingroom 2 Temperature"
-      state: 
+    - name: 'Livingroom 2 Temperature'
+      state:
         data: [0x30, 0xd0, 0x00, 0x36, 0x04]
         mask: [0xff, 0xf0, 0xff, 0xff, 0xff]
-      unit_of_measurement: "°C"
-      icon: "mdi:thermometer"
-      device_class: "temperature"
-      state_class: "measurement"
+      unit_of_measurement: '°C'
+      icon: 'mdi:thermometer'
+      device_class: 'temperature'
+      state_class: 'measurement'
       state_number:
         offset: 12
 
   lock:
-    - name: "Gas Buner Lock"
+    - name: 'Gas Buner Lock'
       icon: mdi:gas-burner
-      state: 
+      state:
         data: [0x30, 0xd0, 0x00, 0x2c, 0x00]
         mask: [0xff, 0xf0, 0xff, 0xff, 0xff]
       state_unlocked:
@@ -398,17 +506,53 @@ homenet_bridge:
         offset: 7
         data: [0x02]
       command_lock:
-        data: [0x30, 0xbc, 0x00, 0x2c, 0x00, 0x01, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+        data:
+          [
+            0x30,
+            0xbc,
+            0x00,
+            0x2c,
+            0x00,
+            0x01,
+            0x00,
+            0x02,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+          ]
         ack: [0x30, 0xdc, 0x00, 0x2c, 0x00]
-      command_update: 
-        data: [0x30, 0xbc, 0x00, 0x2c, 0x00, 0x01, 0x00, 0x3a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+      command_update:
+        data:
+          [
+            0x30,
+            0xbc,
+            0x00,
+            0x2c,
+            0x00,
+            0x01,
+            0x00,
+            0x3a,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+          ]
         ack: [0x30, 0xdc, 0x00, 0x2c, 0x00]
       update_interval: 2h
 
   text_sensor:
-    - name: "Elevator"
-      icon: "mdi:elevator"
-      state: 
+    - name: 'Elevator'
+      icon: 'mdi:elevator'
+      state:
         data: [0x30, 0x00, 0x00, 0x01, 0x00, 0x44, 0x00]
         mask: [0xff, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff]
       lambda: |-
@@ -417,14 +561,32 @@ homenet_bridge:
         return "Unknown";
 
   switch:
-    - name: "Elevator Call"
-      icon: "mdi:elevator"
+    - name: 'Elevator Call'
+      icon: 'mdi:elevator'
       optimistic: true
       state_off:
         data: [0x30, 0x00, 0x00, 0x44]
         mask: [0xff, 0x00, 0xff, 0xff]
-      command_on: 
-        data: [0x30, 0xbc, 0x00, 0x01, 0x00, 0x44, 0x00, 0x01, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+      command_on:
+        data:
+          [
+            0x30,
+            0xbc,
+            0x00,
+            0x01,
+            0x00,
+            0x44,
+            0x00,
+            0x01,
+            0x03,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+          ]
         ack: [0x30, 0xdc]
       on_turn_on:
         - lambda: |-

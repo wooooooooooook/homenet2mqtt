@@ -116,7 +116,10 @@ app.post('/api/configs/select', async (req, res, next) => {
 });
 
 app.get('/api/packets/stream', (req, res) => {
-  const streamMqttUrl = resolveMqttUrl(req.query.mqttUrl, process.env.MQTT_URL?.trim() || 'mqtt://mq:1883');
+  const streamMqttUrl = resolveMqttUrl(
+    req.query.mqttUrl,
+    process.env.MQTT_URL?.trim() || 'mqtt://mq:1883',
+  );
 
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
@@ -163,7 +166,8 @@ app.get('/api/packets/stream', (req, res) => {
 
   client.on('message', (topic, payload) => {
     logger.debug({ topic }, '[service] MQTT message received');
-    const payloadString = topic === 'homenet/raw' ? payload.toString('hex') : payload.toString('utf8');
+    const payloadString =
+      topic === 'homenet/raw' ? payload.toString('hex') : payload.toString('utf8');
     sendEvent('mqtt-message', {
       topic,
       payload: payloadString,
@@ -184,12 +188,14 @@ app.get('*', (_req, res, next) => {
   res.sendFile(path.resolve(__dirname, '../static', 'index.html'), (err) => err && next());
 });
 
-app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  logger.error({ err }, '[service] Request error');
-  if (res.headersSent) return;
-  const message = err instanceof Error ? err.message : 'Internal Server Error';
-  res.status(500).json({ error: message });
-});
+app.use(
+  (err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+    logger.error({ err }, '[service] Request error');
+    if (res.headersSent) return;
+    const message = err instanceof Error ? err.message : 'Internal Server Error';
+    res.status(500).json({ error: message });
+  },
+);
 
 // --- Bridge Management ---
 async function loadAndStartBridge(filename: string) {
