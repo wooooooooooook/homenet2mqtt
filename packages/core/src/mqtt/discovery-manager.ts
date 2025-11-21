@@ -71,6 +71,11 @@ export class DiscoveryManager {
             ...(this.config.sensor || []).map((e) => ({ ...e, type: 'sensor' })),
             ...(this.config.fan || []).map((e) => ({ ...e, type: 'fan' })),
             ...(this.config.switch || []).map((e) => ({ ...e, type: 'switch' })),
+            ...(this.config.lock || []).map((e) => ({ ...e, type: 'lock' })),
+            ...(this.config.number || []).map((e) => ({ ...e, type: 'number' })),
+            ...(this.config.select || []).map((e) => ({ ...e, type: 'select' })),
+            ...(this.config.text_sensor || []).map((e) => ({ ...e, type: 'text_sensor' })),
+            ...(this.config.text || []).map((e) => ({ ...e, type: 'text' })),
             ...(this.config.binary_sensor || []).map((e) => ({ ...e, type: 'binary_sensor' })),
         ];
 
@@ -110,19 +115,110 @@ export class DiscoveryManager {
             ...rest,
         };
 
-        if (['light', 'switch', 'fan', 'button'].includes(type)) {
+        if (['light', 'switch', 'fan', 'button', 'lock', 'number', 'select'].includes(type)) {
             payload.command_topic = `homenet/${id}/set`;
         }
 
         // Entity specific configurations
         switch (type) {
             case 'switch':
-            case 'light':
                 // Extract state from JSON (devices publish 'state': 'ON'/'OFF')
                 payload.value_template = '{{ value_json.state }}';
                 // Command payloads
                 payload.payload_on = 'ON';
                 payload.payload_off = 'OFF';
+                break;
+
+            case 'light':
+                // Extract state from JSON
+                payload.value_template = '{{ value_json.state }}';
+                payload.payload_on = 'ON';
+                payload.payload_off = 'OFF';
+
+                // Brightness support
+                if (entity.state_brightness || entity.command_brightness) {
+                    payload.brightness_state_topic = `homenet/${id}/state`;
+                    payload.brightness_command_topic = `homenet/${id}/brightness/set`;
+                    payload.brightness_scale = 255;
+                    payload.brightness_value_template = '{{ value_json.brightness }}';
+                }
+
+                // RGB color support
+                if (entity.state_red || entity.state_green || entity.state_blue) {
+                    payload.rgb_state_topic = `homenet/${id}/state`;
+                    payload.rgb_command_topic = `homenet/${id}/rgb/set`;
+                    payload.rgb_value_template = '{{ value_json.red }},{{ value_json.green }},{{ value_json.blue }}';
+                }
+
+                // Color temperature support (mireds)
+                if (entity.state_color_temp || entity.command_color_temp) {
+                    payload.color_temp_state_topic = `homenet/${id}/state`;
+                    payload.color_temp_command_topic = `homenet/${id}/color_temp/set`;
+                    payload.color_temp_value_template = '{{ value_json.color_temp }}';
+
+                    if (entity.min_mireds !== undefined) {
+                        payload.min_mireds = entity.min_mireds;
+                    }
+                    if (entity.max_mireds !== undefined) {
+                        payload.max_mireds = entity.max_mireds;
+                    }
+                }
+
+                // Effect support
+                if (entity.effect_list && entity.effect_list.length > 0) {
+                    payload.effect_list = entity.effect_list;
+                    payload.effect_state_topic = `homenet/${id}/state`;
+                    payload.effect_command_topic = `homenet/${id}/effect/set`;
+                    payload.effect_value_template = '{{ value_json.effect }}';
+                }
+                break;
+
+            case 'lock':
+                // Lock state (LOCKED, UNLOCKED, LOCKING, UNLOCKING, JAMMED)
+                payload.state_locked = 'LOCKED';
+                payload.state_unlocked = 'UNLOCKED';
+                payload.state_locking = 'LOCKING';
+                payload.state_unlocking = 'UNLOCKING';
+                payload.state_jammed = 'JAMMED';
+                payload.payload_lock = 'LOCK';
+                payload.payload_unlock = 'UNLOCK';
+                payload.value_template = '{{ value_json.state }}';
+                break;
+
+            case 'number':
+                // Number entity configuration
+                payload.command_topic = `homenet/${id}/set`;
+                payload.state_topic = `homenet/${id}/state`;
+                payload.value_template = '{{ value_json.value }}';
+
+                // Set min, max, step from entity config
+                if (entity.min_value !== undefined) {
+                    payload.min = entity.min_value;
+                }
+                if (entity.max_value !== undefined) {
+                    payload.max = entity.max_value;
+                }
+                if (entity.step !== undefined) {
+                    payload.step = entity.step;
+                }
+
+                // Default mode is slider, can be 'box' or 'slider'
+                payload.mode = 'slider';
+                break;
+
+            case 'select':
+                // Select entity configuration
+                payload.command_topic = `homenet/${id}/set`;
+                payload.state_topic = `homenet/${id}/state`;
+                payload.value_template = '{{ value_json.option }}';
+
+                // Options list is required for select
+                if (entity.options && entity.options.length > 0) {
+                    payload.options = entity.options;
+                } else {
+                    logger.warn(`[DiscoveryManager] Select entity ${id} has no options defined`);
+                    payload.options = [];
+                }
                 break;
 
             case 'fan':
@@ -131,20 +227,67 @@ export class DiscoveryManager {
                 payload.payload_on = 'ON';
                 payload.payload_off = 'OFF';
 
+                // Percentage/Speed support (0-100)
+                if (entity.state_percentage || entity.state_speed) {
+                    payload.percentage_state_topic = `homenet/${id}/state`;
+                    payload.percentage_command_topic = `homenet/${id}/percentage/set`;
+                    payload.percentage_value_template = '{{ value_json.percentage | default(value_json.speed) }}';
+                    payload.speed_range_min = 0;
+                    payload.speed_range_max = 100;
+                }
+
                 // Preset modes support
                 if (entity.preset_modes && entity.preset_modes.length > 0) {
+                    payload.preset_modes = entity.preset_modes;
                     payload.preset_mode_command_topic = `homenet/${id}/preset/set`;
                     payload.preset_mode_state_topic = `homenet/${id}/state`;
                     payload.preset_mode_value_template = '{{ value_json.preset_mode }}';
                 }
 
-                // Speed support
-                if (entity.state_speed || entity.command_speed) {
-                    payload.percentage_command_topic = `homenet/${id}/speed/set`;
-                    payload.percentage_state_topic = `homenet/${id}/state`;
-                    payload.percentage_value_template = '{{ value_json.speed }}';
+                // Oscillation support
+                if (entity.state_oscillating || entity.command_oscillating) {
+                    payload.oscillation_state_topic = `homenet/${id}/state`;
+                    payload.oscillation_command_topic = `homenet/${id}/oscillation/set`;
+                    payload.oscillation_value_template = '{{ value_json.oscillating }}';
+                }
+
+                // Direction support
+                if (entity.state_direction || entity.command_direction) {
+                    payload.direction_state_topic = `homenet/${id}/state`;
+                    payload.direction_command_topic = `homenet/${id}/direction/set`;
+                    payload.direction_value_template = '{{ value_json.direction }}';
                 }
                 break;
+
+            case 'valve':
+                // Valve state
+                payload.value_template = '{{ value_json.state }}';
+                payload.command_topic = `homenet/${id}/set`;
+
+                // Basic commands
+                payload.payload_open = 'OPEN';
+                payload.payload_close = 'CLOSE';
+
+                // Stop command support
+                if (entity.command_stop) {
+                    payload.payload_stop = 'STOP';
+                }
+
+                // Position support (0-100%)
+                if (entity.state_position || entity.command_position) {
+                    payload.position_topic = `homenet/${id}/state`;
+                    payload.set_position_topic = `homenet/${id}/position/set`;
+                    payload.position_template = '{{ value_json.position }}';
+                    payload.position_open = 100;
+                    payload.position_closed = 0;
+                }
+
+                // Reports position flag
+                if (entity.reports_position !== undefined) {
+                    payload.reports_position = entity.reports_position;
+                }
+                break;
+
             case 'sensor':
                 // Sensors are read-only, no command_topic
                 // Extract value from JSON state
@@ -179,6 +322,30 @@ export class DiscoveryManager {
                 break;
             case 'button':
                 payload.payload_press = 'PRESS';
+                break;
+            case 'text_sensor':
+                // Text sensor is read-only
+                payload.value_template = '{{ value_json.text }}';
+                break;
+            case 'text':
+                // Text entity with input
+                payload.command_topic = `homenet/${id}/set`;
+                payload.state_topic = `homenet/${id}/state`;
+                payload.value_template = '{{ value_json.text }}';
+
+                // Set min, max length from entity config
+                if (entity.min_length !== undefined) {
+                    payload.min = entity.min_length;
+                }
+                if (entity.max_length !== undefined) {
+                    payload.max = entity.max_length;
+                }
+                if (entity.pattern !== undefined) {
+                    payload.pattern = entity.pattern;
+                }
+                if (entity.mode !== undefined) {
+                    payload.mode = entity.mode; // 'text' or 'password'
+                }
                 break;
         }
 

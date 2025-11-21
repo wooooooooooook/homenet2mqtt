@@ -21,7 +21,6 @@ services:
       - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
     restart: unless-stopped
 
-
   mqtt-explorer:
     image: smeagolworms4/mqtt-explorer
     container_name: rs485-mqtt-explorer-dev
@@ -51,8 +50,9 @@ services:
     container_name: rs485-simulator-dev
     environment:
       SIMULATOR_LINK_PATH: /simshare/rs485-sim-tty
-      SIMULATOR_INTERVAL_MS: '1000'
+      SIMULATOR_INTERVAL_MS: '500'
       SIMULATOR_PROTOCOL: 'tcp'
+      SIMULATOR_DEVICE: 'samsung_sds' # Options: commax, samsung_sds
     volumes:
       - ../../:/workspace
       - pnpm-store:/root/.local/share/pnpm

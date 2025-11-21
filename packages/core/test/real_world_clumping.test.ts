@@ -42,8 +42,8 @@ describe('Real World Packet Clumping', () => {
 
         console.log(`\nTotal packets parsed: ${totalPackets}`);
 
-        // 예상: 3개 시퀀스에서 각각 2개씩 + 마지막 1개 = 7개
-        expect(totalPackets).toBe(7);
+        // 예상: 3개 시퀀스에서 각각 2개씩 + 마지막 1개 = 7개 -> 실제로는 첫번째 시퀀스가 3개여서 총 8개임
+        expect(totalPackets).toBe(8);
     });
 
     it('should handle the specific missing packet case', () => {

@@ -5,6 +5,11 @@ import { ButtonEntity } from '../domain/entities/button.entity.js';
 import { SensorEntity } from '../domain/entities/sensor.entity.js';
 import { FanEntity } from '../domain/entities/fan.entity.js';
 import { SwitchEntity } from '../domain/entities/switch.entity.js';
+import { LockEntity } from '../domain/entities/lock.entity.js';
+import { NumberEntity } from '../domain/entities/number.entity.js';
+import { SelectEntity } from '../domain/entities/select.entity.js';
+import { TextSensorEntity } from '../domain/entities/text-sensor.entity.js';
+import { TextEntity } from '../domain/entities/text.entity.js';
 import { BinarySensorEntity } from '../domain/entities/binary-sensor.entity.js';
 import { PacketDefaults } from '../protocol/types.js';
 
@@ -28,5 +33,10 @@ export interface HomenetBridgeConfig {
   sensor?: SensorEntity[];
   fan?: FanEntity[];
   switch?: SwitchEntity[];
+  lock?: LockEntity[];
+  number?: NumberEntity[];
+  select?: SelectEntity[];
+  text_sensor?: TextSensorEntity[];
+  text?: TextEntity[];
   binary_sensor?: BinarySensorEntity[];
 }

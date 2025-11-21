@@ -22,6 +22,7 @@ const publishMock = vi.fn();
 const onMock = vi.fn();
 const mqttConnectMock = vi.fn(() => ({
   publish: publishMock,
+  subscribe: vi.fn(),
   on: onMock,
   end: vi.fn(),
 }));
@@ -63,10 +64,19 @@ vi.mock('dotenv', () => ({
   config: vi.fn(),
 }));
 
-vi.mock('node:fs/promises', () => ({
-  access: accessMock,
-  readFile: readFileMock,
-}));
+vi.mock('node:fs/promises', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:fs/promises')>();
+  return {
+    ...actual,
+    access: accessMock,
+    readFile: readFileMock,
+    default: {
+      ...actual, // or ...actual.default if it exists, but spreading actual usually works for fs promises as it mimics named exports
+      access: accessMock,
+      readFile: readFileMock,
+    },
+  };
+});
 
 describe('HomeNetBridge', () => {
   beforeEach(() => {

@@ -8,9 +8,29 @@ export interface FanEntity extends EntityConfig {
   state: StateSchema;
   state_on?: StateSchema;
   state_off?: StateSchema;
+
+  // Speed support (percentage 0-100)
   state_speed?: StateNumSchema;
+  command_speed?: CommandSchema;
+
+  // Preset modes
+  preset_modes?: string[];
+  state_preset_mode?: StateSchema;
+  command_preset_mode?: CommandSchema;
+
+  // Oscillation
+  state_oscillating?: StateSchema;
+  command_oscillating?: CommandSchema;
+
+  // Direction (forward/reverse)
+  state_direction?: StateSchema;
+  command_direction?: CommandSchema;
+
+  // Percentage control (alternative to speed)
+  state_percentage?: StateNumSchema;
+  command_percentage?: CommandSchema;
+
   command_on?: CommandSchema;
   command_off?: CommandSchema;
-  command_speed?: CommandSchema;
   command_update?: CommandSchema;
 }

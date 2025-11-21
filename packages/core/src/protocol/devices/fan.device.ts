@@ -1,5 +1,6 @@
 import { GenericDevice } from './generic.device.js';
 import { DeviceConfig, ProtocolConfig } from '../types.js';
+import { FanEntity } from '../../domain/entities/fan.entity.js';
 
 export class FanDevice extends GenericDevice {
     constructor(config: DeviceConfig, protocolConfig: ProtocolConfig) {
@@ -11,7 +12,7 @@ export class FanDevice extends GenericDevice {
             return null;
         }
         const updates = super.parseData(packet) || {};
-        const entityConfig = this.config as any;
+        const entityConfig = this.config as FanEntity;
 
         // Handle on/off if not lambda
         if (!updates.state) {
@@ -28,14 +29,52 @@ export class FanDevice extends GenericDevice {
             if (val !== null) updates.speed = val;
         }
 
+        // Handle percentage (alternative to speed)
+        if (!updates.percentage && entityConfig.state_percentage) {
+            const val = this.extractValue(packet, entityConfig.state_percentage);
+            if (val !== null) updates.percentage = val;
+        }
+
+        // Handle oscillation
+        if (!updates.oscillating && entityConfig.state_oscillating) {
+            if (this.matchesSchema(packet, entityConfig.state_oscillating)) {
+                updates.oscillating = true;
+            }
+        }
+
+        // Handle direction
+        if (!updates.direction && entityConfig.state_direction) {
+            if (this.matchesSchema(packet, entityConfig.state_direction)) {
+                // Assume data value indicates direction: 0=forward, 1=reverse
+                const offset = entityConfig.state_direction.offset || 0;
+                if (packet[offset] === 0) {
+                    updates.direction = 'forward';
+                } else {
+                    updates.direction = 'reverse';
+                }
+            }
+        }
+
         return Object.keys(updates).length > 0 ? updates : null;
     }
 
     private extractValue(packet: number[], schema: any): number | null {
         if (!schema) return null;
         const offset = schema.offset || 0;
-        if (packet.length < offset + 1) return null;
-        return packet[offset];
+        const length = schema.length || 1;
+
+        if (packet.length < offset + length) return null;
+
+        let value = 0;
+        for (let i = 0; i < length; i++) {
+            value = (value << 8) | packet[offset + i];
+        }
+
+        if (schema.precision !== undefined) {
+            value = value / Math.pow(10, schema.precision);
+        }
+
+        return value;
     }
 
     private matchesSchema(packet: number[], schema: any): boolean {
@@ -53,15 +92,66 @@ export class FanDevice extends GenericDevice {
     }
 
     public constructCommand(commandName: string, value?: any): number[] | null {
-        const cmd = super.constructCommand(commandName, value);
-        if (cmd) return cmd;
+        const entityConfig = this.config as FanEntity;
+        const commandConfig = (entityConfig as any)[`command_${commandName}`];
 
-        const entityConfig = this.config as any;
+        // If lambda, let GenericDevice handle it
+        if (commandConfig && commandConfig.type === 'lambda') {
+            return super.constructCommand(commandName, value);
+        }
+
         if (commandName === 'on' && entityConfig.command_on?.data) {
             return [...entityConfig.command_on.data];
         }
         if (commandName === 'off' && entityConfig.command_off?.data) {
             return [...entityConfig.command_off.data];
+        }
+
+        // Handle speed command
+        if (commandName === 'speed' && entityConfig.command_speed?.data && value !== undefined) {
+            const command = [...entityConfig.command_speed.data];
+            const valueOffset = (entityConfig.command_speed as any).value_offset;
+            if (valueOffset !== undefined) {
+                command[valueOffset] = Math.round(value);
+            }
+            return command;
+        }
+
+        // Handle percentage command
+        if (commandName === 'percentage' && entityConfig.command_percentage?.data && value !== undefined) {
+            const command = [...entityConfig.command_percentage.data];
+            const valueOffset = (entityConfig.command_percentage as any).value_offset;
+            if (valueOffset !== undefined) {
+                command[valueOffset] = Math.round(value);
+            }
+            return command;
+        }
+
+        // Handle preset mode command
+        if (commandName === 'preset_mode' && entityConfig.command_preset_mode?.data && value !== undefined) {
+            const command = [...entityConfig.command_preset_mode.data];
+            // Value would be preset name, needs mapping to byte value
+            return command;
+        }
+
+        // Handle oscillation command
+        if (commandName === 'oscillating' && entityConfig.command_oscillating?.data && value !== undefined) {
+            const command = [...entityConfig.command_oscillating.data];
+            const valueOffset = (entityConfig.command_oscillating as any).value_offset;
+            if (valueOffset !== undefined) {
+                command[valueOffset] = value ? 1 : 0;
+            }
+            return command;
+        }
+
+        // Handle direction command
+        if (commandName === 'direction' && entityConfig.command_direction?.data && value !== undefined) {
+            const command = [...entityConfig.command_direction.data];
+            const valueOffset = (entityConfig.command_direction as any).value_offset;
+            if (valueOffset !== undefined) {
+                command[valueOffset] = value === 'forward' ? 0 : 1;
+            }
+            return command;
         }
 
         return null;

@@ -38,21 +38,24 @@ async function main() {
   const checksumType = config.homenet_bridge.packet_defaults.tx_checksum;
 
   const simulatorProtocol = process.env.SIMULATOR_PROTOCOL || 'pty';
+  const device = process.env.SIMULATOR_DEVICE || 'commax';
 
   let simulator;
   if (simulatorProtocol === 'tcp') {
     const { createTcpSimulator } = await import('../packages/simulator/dist/index.js');
     simulator = createTcpSimulator({
       intervalMs,
-      packets: COMMAX_TEST_PACKETS,
+      packets: device === 'commax' ? COMMAX_TEST_PACKETS : undefined,
+      device,
       checksumType,
       port: 8888
     });
-    console.log(`[simulator] TCP Mode started on port 8888`);
+    console.log(`[simulator] TCP Mode started on port 8888 (device=${device})`);
   } else {
     simulator = createSimulator({
       intervalMs,
-      packets: COMMAX_TEST_PACKETS,
+      packets: device === 'commax' ? COMMAX_TEST_PACKETS : undefined,
+      device,
       checksumType,
     });
     await exposePty(simulator.ptyPath, linkPath);

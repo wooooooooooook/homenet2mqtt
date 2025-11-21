@@ -6,6 +6,7 @@ import type { IPty } from '@homebridge/node-pty-prebuilt-multiarch';
 import * as pty from '@homebridge/node-pty-prebuilt-multiarch';
 import { loadYamlConfig } from '../../core/dist/config/yaml-loader.js';
 import { calculateChecksum, ChecksumType } from './checksum.js';
+import { SAMSUNG_SDS_PACKETS } from './samsung_sds.js';
 
 const DEFAULT_INTERVAL_MS = 1000;
 
@@ -77,6 +78,8 @@ export interface SimulatorOptions {
   packets?: readonly (Buffer | Uint8Array | number[])[];
   /** 체크섬 유형. */
   checksumType?: ChecksumType;
+  /** 시뮬레이션할 장치 유형. */
+  device?: 'commax' | 'samsung_sds';
 }
 
 export interface Simulator {
@@ -122,7 +125,8 @@ export interface TcpSimulator extends Simulator {
 }
 
 export function createTcpSimulator(options: SimulatorOptions & { port?: number } = {}): TcpSimulator {
-  const { intervalMs = DEFAULT_INTERVAL_MS, packets = DEFAULT_PACKETS, checksumType, port = 8888 } = options;
+  const { intervalMs = DEFAULT_INTERVAL_MS, packets: userPackets, checksumType, port = 8888, device = 'commax' } = options;
+  const packets = userPackets ?? (device === 'samsung_sds' ? SAMSUNG_SDS_PACKETS : DEFAULT_PACKETS);
   const normalizedPackets = normalizePackets(packets, checksumType);
 
   const clients = new Set<any>();
@@ -200,7 +204,8 @@ export function createTcpSimulator(options: SimulatorOptions & { port?: number }
 }
 
 export function createSimulator(options: SimulatorOptions = {}): Simulator {
-  const { intervalMs = DEFAULT_INTERVAL_MS, packets = DEFAULT_PACKETS, checksumType } = options;
+  const { intervalMs = DEFAULT_INTERVAL_MS, packets: userPackets, checksumType, device = 'commax' } = options;
+  const packets = userPackets ?? (device === 'samsung_sds' ? SAMSUNG_SDS_PACKETS : DEFAULT_PACKETS);
   const normalizedPackets = normalizePackets(packets, checksumType);
   const { open: openPty } = pty as PtyModule;
   const terminal = openPty({ cols: 80, rows: 24, encoding: null });
@@ -277,9 +282,11 @@ async function main() {
     homenet_bridge: { packet_defaults: { tx_checksum: ChecksumType } };
   };
   const checksumType = config.homenet_bridge.packet_defaults.tx_checksum;
+  const device = (process.env.SIMULATOR_DEVICE as 'commax' | 'samsung_sds') || 'commax';
 
   const simulator = createSimulator({
-    packets: COMMAX_TEST_PACKETS,
+    packets: device === 'commax' ? COMMAX_TEST_PACKETS : undefined,
+    device,
     checksumType,
   });
   console.log(JSON.stringify({ ptyPath: simulator.ptyPath }));

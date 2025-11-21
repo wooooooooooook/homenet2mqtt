@@ -27,6 +27,7 @@ export class SensorDevice extends GenericDevice {
         if (!schema) return null;
         const offset = schema.offset || 0;
         const length = schema.length || 1;
+        const precision = schema.precision || 0;
 
         if (packet.length < offset + length) return null;
 
@@ -34,7 +35,15 @@ export class SensorDevice extends GenericDevice {
         if (length === 1) {
             value = packet[offset];
         } else {
-            value = packet[offset]; // TODO: Multi-byte
+            // Simple multi-byte support (big endian default)
+            for (let i = 0; i < length; i++) {
+                value = (value << 8) | packet[offset + i];
+            }
+        }
+
+        // Apply precision
+        if (precision > 0) {
+            value = value / Math.pow(10, precision);
         }
 
         return value;

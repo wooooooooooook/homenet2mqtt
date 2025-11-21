@@ -11,6 +11,11 @@ import { ValveDevice } from './devices/valve.device.js';
 import { ButtonDevice } from './devices/button.device.js';
 import { SensorDevice } from './devices/sensor.device.js';
 import { SwitchDevice } from './devices/switch.device.js';
+import { LockDevice } from './devices/lock.device.js';
+import { NumberDevice } from './devices/number.device.js';
+import { SelectDevice } from './devices/select.device.js';
+import { TextSensorDevice } from './devices/text-sensor.device.js';
+import { TextDevice } from './devices/text.device.js';
 import { ProtocolConfig } from './types.js';
 
 export interface EntityStateProvider {
@@ -38,6 +43,11 @@ export class PacketProcessor extends EventEmitter {
       button: ButtonDevice,
       sensor: SensorDevice,
       switch: SwitchDevice,
+      lock: LockDevice,
+      number: NumberDevice,
+      select: SelectDevice,
+      text_sensor: TextSensorDevice,
+      text: TextDevice,
       binary_sensor: SensorDevice, // Use SensorDevice for binary_sensor for now
     };
 
@@ -49,6 +59,11 @@ export class PacketProcessor extends EventEmitter {
       'sensor',
       'fan',
       'switch',
+      'lock',
+      'number',
+      'select',
+      'text_sensor',
+      'text',
       'binary_sensor',
     ];
 

@@ -3,6 +3,7 @@ import { StateLambdaConfig } from '../../protocol/types.js';
 export type { StateLambdaConfig };
 
 export interface CommandSchema {
+    data?: number[];
     cmd?: number[];
     value_offset?: number;
     value_encode?: DecodeEncodeType;

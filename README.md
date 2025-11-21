@@ -335,3 +335,252 @@ valve:
       data: [0x02, 0x03, 0x00]
       ack: [0x02, 0x13, 0x00]
 ```
+
+---
+
+## 새로운 엔티티 타입
+
+이 프로젝트는 uartex 기능을 TypeScript/MQTT 환경으로 포팅하여 다양한 엔티티 타입을 지원합니다.
+
+### Lock Entity
+
+도어락, 전자키 등 잠금장치를 제어합니다.
+
+```yaml
+lock:
+  - id: front_door
+    name: "현관 도어락"
+    state:
+      offset: 0
+      data: [0xA0]
+    state_locked:
+      offset: 1
+      data: [0x01]
+    state_unlocked:
+      offset: 1
+      data: [0x00]
+    state_locking:  # 선택사항
+      offset: 1
+      data: [0x02]
+    state_unlocking:  # 선택사항
+      offset: 1
+      data: [0x03]
+    state_jammed:  # 선택사항
+      offset: 1
+      data: [0xFF]
+    command_lock:
+      data: [0xA0, 0x01]
+    command_unlock:
+      data: [0xA0, 0x00]
+```
+
+**지원 상태**: LOCKED, UNLOCKED, LOCKING, UNLOCKING, JAMMED
+
+### Number Entity
+
+숫자 입력을 받는 엔티티입니다. 온도 설정, 타이머 등에 사용합니다.
+
+```yaml
+number:
+  - id: temp_setpoint
+    name: "온도 설정값"
+    state:
+      offset: 0
+      data: [0xB0]
+    state_number:
+      offset: 1
+      length: 1
+      precision: 1  # 소수점 한 자리 (235 -> 23.5)
+      endian: big  # 또는 little
+    min_value: 15
+    max_value: 30
+    step: 0.5
+    command_number:
+      data: [0xB0, 0x00]
+      value_offset: 1
+      length: 1
+```
+
+**기능**: min/max/step, precision, multi-byte 값, increment/decrement
+
+### Select Entity
+
+드롭다운 옵션을 선택하는 엔티티입니다.
+
+```yaml
+select:
+  - id: fan_mode
+    name: "팬 모드"
+    state:
+      offset: 0
+      data: [0xC0]
+    options:
+      - "자동"
+      - "약풍"
+      - "강풍"
+      - "절전"
+    initial_option: "자동"
+    command_select:
+      data: [0xC0, 0x00]
+```
+
+**기능**: 동적 옵션 리스트, 초기값 설정
+
+### Text Entity
+
+텍스트 입력이 가능한 엔티티입니다.
+
+```yaml
+text:
+  - id: device_name
+    name: "기기 이름"
+    state:
+      offset: 0
+      data: [0xE0]
+    state_text:
+      offset: 1
+      length: 16
+    min_length: 1
+    max_length: 16
+    mode: text  # 또는 password
+    pattern: "^[a-zA-Z0-9]+$"  # regex 검증
+    command_text:
+      data: [0xE0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+      value_offset: 1
+      length: 16
+```
+
+**기능**: min/max length, pattern 검증, password 모드
+
+### Text Sensor Entity (확장)
+
+읽기 전용 텍스트 값을 표시합니다.
+
+```yaml
+text_sensor:
+  - id: device_status
+    name: "기기 상태"
+    state:
+      offset: 0
+      data: [0xD0]
+    state_text:
+      offset: 1
+      length: 16  # ASCII 텍스트
+```
+
+**기능**: ASCII 텍스트 자동 추출, null-termination 지원
+
+---
+
+## 확장된 엔티티 기능
+
+기존 엔티티들에 새로운 기능이 추가되었습니다.
+
+### Climate Entity 확장
+
+**추가된 기능:**
+- **습도 제어**: current_humidity, target_humidity
+- **추가 모드**: fan_only, dry, auto
+- **스윙 모드**: off, vertical, horizontal, both
+- **팬 모드**: auto, low, medium, high, quiet
+- **프리셋**: eco, sleep, boost, comfort, home, away
+
+```yaml
+climate:
+  - id: living_ac
+    name: "거실 에어컨"
+    # ... 기본 설정 ...
+    state_humidity_current: { offset: 3, length: 1 }
+    state_humidity_target: { offset: 4, length: 1 }
+    state_fan_only: { offset: 1, data: [0x03] }
+    state_swing_vertical: { offset: 5, data: [0x01] }
+    state_preset_eco: { offset: 7, data: [0x01] }
+```
+
+### Light Entity 확장
+
+**추가된 기능:**
+- **Brightness**: 0-255
+- **Color Temperature**: mireds 단위
+- **RGB Color**: Red, Green, Blue
+- **Effects**: 효과 리스트
+
+```yaml
+light:
+  - id: rgb_light
+    name: "RGB 조명"
+    # ... 기본 설정 ...
+    state_brightness: { offset: 2, length: 1 }
+    state_red: { offset: 3, length: 1 }
+    state_green: { offset: 4, length: 1 }
+    state_blue: { offset: 5, length: 1 }
+    effect_list: ["Rainbow", "Fade", "Strobe"]
+```
+
+### Fan Entity 확장
+
+**추가된 기능:**
+- **Preset Modes**: 사용자 정의 프리셋
+- **Oscillation**: 회전 ON/OFF
+- **Direction**: Forward/Reverse
+- **Percentage**: 0-100% 속도
+
+```yaml
+fan:
+  - id: air_purifier
+    name: "공기청정기"
+    # ... 기본 설정 ...
+    preset_modes: ["자동", "절전", "터보"]
+    state_oscillating: { offset: 4, data: [0x01] }
+    state_direction: { offset: 5, data: [0x00] }
+```
+
+### Valve Entity 확장
+
+**추가된 기능:**
+- **Position Control**: 0-100% 위치
+- **Transitional States**: opening, closing
+- **Stop Command**: 동작 중지
+
+```yaml
+valve:
+  - id: blind
+    name: "블라인드"
+    # ... 기본 설정 ...
+    state_position: { offset: 1, length: 1 }
+    state_opening: { offset: 2, data: [0x01] }
+    state_closing: { offset: 2, data: [0x02] }
+    command_position:
+      data: [0x51, 0x00]
+      value_offset: 1
+    command_stop: { data: [0x51, 0xFF] }
+```
+
+---
+
+## 상세 예제 및 문서
+
+더 자세한 설정 예제와 사용법은 다음 문서를 참조하세요:
+
+- **[엔티티 설정 예제](docs/ENTITY_EXAMPLES.md)**: 모든 엔티티 타입의 상세한 예제
+- **[Home Assistant Discovery](HOMEASSISTANT_DISCOVERY.md)**: MQTT Discovery 설정
+- **[TODO](TODO.md)**: 프로젝트 진행 상황 및 남은 작업
+
+## 제외된 기능
+
+다음 uartex 기능들은 의도적으로 구현하지 않았습니다:
+
+- **GPIO 제어** (`tx_ctrl_pin`): 별도 UART 구현으로 불필요
+- **이벤트 핸들러** (`on_read`, `on_write`): TypeScript 환경에서 불필요
+- **Custom Lambda Checksum**: 기본 체크섬으로 충분
+- **Media Player Entity**: 사용 빈도 낮음
+
+---
+
+## Home Assistant 통합
+
+모든 엔티티는 MQTT Discovery를 통해 Home Assistant에 자동으로 등록됩니다. 별도의 설정 없이 Home Assistant에서 바로 사용할 수 있습니다.
+
+## 라이선스
+
+MIT License
