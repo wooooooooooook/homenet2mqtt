@@ -30,6 +30,26 @@ export class ClimateDevice extends GenericDevice {
                 updates.mode = 'off';
             } else if (this.matchesSchema(packet, entityConfig.state_heat)) {
                 updates.mode = 'heat';
+            } else if (this.matchesSchema(packet, entityConfig.state_cool)) {
+                updates.mode = 'cool';
+            }
+        }
+
+        // Handle action
+        // Priority: heating/cooling > idle > off (though off usually implies idle or off action)
+        if (!updates.action) {
+            if (this.matchesSchema(packet, entityConfig.state_action_heating)) {
+                updates.action = 'heating';
+            } else if (this.matchesSchema(packet, entityConfig.state_action_cooling)) {
+                updates.action = 'cooling';
+            } else if (this.matchesSchema(packet, entityConfig.state_action_drying)) {
+                updates.action = 'drying';
+            } else if (this.matchesSchema(packet, entityConfig.state_action_fan)) {
+                updates.action = 'fan';
+            } else if (this.matchesSchema(packet, entityConfig.state_action_idle)) {
+                updates.action = 'idle';
+            } else if (updates.mode === 'off') {
+                updates.action = 'off';
             }
         }
 

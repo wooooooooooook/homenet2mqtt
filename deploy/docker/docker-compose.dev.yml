@@ -14,10 +14,22 @@ services:
     container_name: rs485-mqtt-dev
     ports:
       - '1883:1883'
+      - '9001:9001'
     volumes:
       - mosquitto_data:/mosquitto/data
       - mosquitto_log:/mosquitto/log
       - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    restart: unless-stopped
+
+
+  mqtt-explorer:
+    image: smeagolworms4/mqtt-explorer
+    container_name: rs485-mqtt-explorer-dev
+    ports:
+      - '9000:4000'
+    depends_on:
+      mq:
+        condition: service_started
     restart: unless-stopped
 
   homeassistant:

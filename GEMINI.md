@@ -6,6 +6,8 @@ This document provides a comprehensive overview of the `RS485-HomeNet-to-MQTT-br
 
 This project is a TypeScript-based monorepo managed with pnpm. It serves as a bridge between RS485 devices and an MQTT broker. The primary goal is to read data from RS485 devices, publish it to MQTT topics, and enable automatic discovery of these devices in Home Assistant.
 
+For configuration details regarding Home Assistant Discovery, please see [HOMEASSISTANT_DISCOVERY.md](HOMEASSISTANT_DISCOVERY.md).
+
 The project is structured as a monorepo with the following key packages:
 
 -   `packages/core`: Handles the core logic of connecting to the RS485 device, communicating with the MQTT broker, and managing the polling loop.

@@ -11,6 +11,11 @@ export interface ClimateEntity extends EntityConfig {
   state_cool?: StateSchema;
   state_temperature_current?: StateNumSchema;
   state_temperature_target?: StateNumSchema;
+  state_action_idle?: StateSchema;
+  state_action_heating?: StateSchema;
+  state_action_cooling?: StateSchema;
+  state_action_drying?: StateSchema;
+  state_action_fan?: StateSchema;
   command_off?: CommandSchema;
   command_heat?: CommandSchema;
   command_cool?: CommandSchema;

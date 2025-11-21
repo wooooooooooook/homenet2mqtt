@@ -39,12 +39,18 @@ export class StateManager {
     this.packetProcessor.processChunk(chunk);
   }
 
+  private deviceStates = new Map<string, any>();
+
   private handleStateUpdate(event: { deviceId: string; state: any }) {
     const { deviceId, state } = event;
     logger.debug({ deviceId, state }, '[StateManager] Received state update event');
 
+    const currentState = this.deviceStates.get(deviceId) || {};
+    const newState = { ...currentState, ...state };
+    this.deviceStates.set(deviceId, newState);
+
     const topic = `homenet/${deviceId}/state`;
-    const payload = JSON.stringify(state);
+    const payload = JSON.stringify(newState);
 
     // const cachedPayload = stateCache.get(topic);
     // logger.debug({
@@ -58,8 +64,8 @@ export class StateManager {
       stateCache.set(topic, payload);
       logger.debug({ topic, payload }, '[StateManager] Publishing to MQTT');
       this.mqttPublisher.publish(topic, payload, { retain: true });
-      eventBus.emit('state:changed', { entityId: deviceId, state: state });
-      eventBus.emit(`device:${deviceId}:state:changed`, state);
+      eventBus.emit('state:changed', { entityId: deviceId, state: newState });
+      eventBus.emit(`device:${deviceId}:state:changed`, newState);
     } else {
       logger.debug({ topic }, '[StateManager] State unchanged, skipping MQTT publish');
     }

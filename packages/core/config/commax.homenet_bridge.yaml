@@ -171,6 +171,12 @@ homenet_bridge:
         data: [0x00]
         mask: [0x0F]
         inverted: True
+      state_action_idle:
+        offset: 1
+        data: [0x81]
+      state_action_heating:
+        offset: 1
+        data: [0x83]
       command_off:
         data: [0x04, 0x01, 0x04, 0x00, 0x00, 0x00, 0x00]
         ack: [0x84, 0x80, 0x01]
@@ -206,6 +212,12 @@ homenet_bridge:
         data: [0x00]
         mask: [0x0F]
         inverted: True
+      state_action_idle:
+        offset: 1
+        data: [0x81]
+      state_action_heating:
+        offset: 1
+        data: [0x83]
       command_off:
         data: [0x04, 0x02, 0x04, 0x00, 0x00, 0x00, 0x00]
         ack: [0x84, 0x80, 0x02]
@@ -241,6 +253,12 @@ homenet_bridge:
         data: [0x00]
         mask: [0x0F]
         inverted: True
+      state_action_idle:
+        offset: 1
+        data: [0x81]
+      state_action_heating:
+        offset: 1
+        data: [0x83]
       command_off:
         data: [0x04, 0x03, 0x04, 0x00, 0x00, 0x00, 0x00]
         ack: [0x84, 0x80, 0x03]
@@ -276,6 +294,12 @@ homenet_bridge:
         data: [0x00]
         mask: [0x0F]
         inverted: True
+      state_action_idle:
+        offset: 1
+        data: [0x81]
+      state_action_heating:
+        offset: 1
+        data: [0x83]
       command_off:
         data: [0x04, 0x04, 0x04, 0x00, 0x00, 0x00, 0x00]
         ack: [0x84, 0x80, 0x04]
