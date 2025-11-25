@@ -1,7 +1,5 @@
 // packages/core/src/protocol/utils/common.ts
 
-
-
 // Utility to convert hex string to byte array
 export function hexToBytes(hex: string): number[] {
   const bytes = [];

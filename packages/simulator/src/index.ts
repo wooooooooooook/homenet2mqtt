@@ -80,8 +80,16 @@ export interface TcpSimulator extends Simulator {
   readonly port: number;
 }
 
-export function createTcpSimulator(options: SimulatorOptions & { port?: number } = {}): TcpSimulator {
-  const { intervalMs = DEFAULT_INTERVAL_MS, packets: userPackets, checksumType, port = 8888, device = 'commax' } = options;
+export function createTcpSimulator(
+  options: SimulatorOptions & { port?: number } = {},
+): TcpSimulator {
+  const {
+    intervalMs = DEFAULT_INTERVAL_MS,
+    packets: userPackets,
+    checksumType,
+    port = 8888,
+    device = 'commax',
+  } = options;
   const packets = userPackets ?? (device === 'samsung_sds' ? SAMSUNG_SDS_PACKETS : DEFAULT_PACKETS);
   const normalizedPackets = normalizePackets(packets, checksumType);
 
@@ -150,7 +158,9 @@ export function createTcpSimulator(options: SimulatorOptions & { port?: number }
   };
 
   return {
-    get running() { return Boolean(timer); },
+    get running() {
+      return Boolean(timer);
+    },
     ptyPath: `tcp://0.0.0.0:${port}`, // Pseudo path for compatibility
     port,
     start,
@@ -160,7 +170,12 @@ export function createTcpSimulator(options: SimulatorOptions & { port?: number }
 }
 
 export function createSimulator(options: SimulatorOptions = {}): Simulator {
-  const { intervalMs = DEFAULT_INTERVAL_MS, packets: userPackets, checksumType, device = 'commax' } = options;
+  const {
+    intervalMs = DEFAULT_INTERVAL_MS,
+    packets: userPackets,
+    checksumType,
+    device = 'commax',
+  } = options;
   const packets = userPackets ?? (device === 'samsung_sds' ? SAMSUNG_SDS_PACKETS : DEFAULT_PACKETS);
   const normalizedPackets = normalizePackets(packets, checksumType);
   const { open: openPty } = pty as PtyModule;
@@ -232,8 +247,7 @@ export function createSimulator(options: SimulatorOptions = {}): Simulator {
 }
 
 async function main() {
-  const configPath =
-    process.env.CONFIG_PATH ?? 'packages/core/config/commax.homenet_bridge.yaml';
+  const configPath = process.env.CONFIG_PATH ?? 'packages/core/config/commax.homenet_bridge.yaml';
   const config = (await loadYamlConfig(configPath)) as {
     homenet_bridge: { packet_defaults: { tx_checksum: ChecksumType } };
   };

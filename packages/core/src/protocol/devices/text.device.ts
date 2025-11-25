@@ -3,83 +3,84 @@ import { DeviceConfig, ProtocolConfig } from '../types.js';
 import { TextEntity } from '../../domain/entities/text.entity.js';
 
 export class TextDevice extends GenericDevice {
-    constructor(config: TextEntity, protocolConfig: ProtocolConfig) {
-        super(config, protocolConfig);
+  constructor(config: TextEntity, protocolConfig: ProtocolConfig) {
+    super(config, protocolConfig);
+  }
+
+  public parseData(packet: number[]): Record<string, any> | null {
+    if (!this.matchesPacket(packet)) {
+      return null;
     }
 
-    public parseData(packet: number[]): Record<string, any> | null {
-        if (!this.matchesPacket(packet)) {
-            return null;
-        }
+    const updates = super.parseData(packet) || {};
+    const entityConfig = this.config as TextEntity;
 
-        const updates = super.parseData(packet) || {};
-        const entityConfig = this.config as TextEntity;
-
-        // Parse text value from state_text schema
-        if (!updates.text && entityConfig.state_text) {
-            const text = this.extractText(packet, entityConfig.state_text);
-            if (text !== null) {
-                updates.text = text;
-            }
-        }
-
-        return Object.keys(updates).length > 0 ? updates : null;
+    // Parse text value from state_text schema
+    if (!updates.text && entityConfig.state_text) {
+      const text = this.extractText(packet, entityConfig.state_text);
+      if (text !== null) {
+        updates.text = text;
+      }
     }
 
-    private extractText(packet: number[], schema: any): string | null {
-        if (!schema) return null;
+    return Object.keys(updates).length > 0 ? updates : null;
+  }
 
-        const offset = schema.offset || 0;
-        const length = schema.length || 1;
+  private extractText(packet: number[], schema: any): string | null {
+    if (!schema) return null;
 
-        if (packet.length < offset + length) return null;
+    const offset = schema.offset || 0;
+    const length = schema.length || 1;
 
-        // Extract ASCII text from packet
-        let text = '';
-        for (let i = 0; i < length; i++) {
-            const byte = packet[offset + i];
-            // Only include printable ASCII characters
-            if (byte >= 0x20 && byte <= 0x7E) {
-                text += String.fromCharCode(byte);
-            } else if (byte === 0x00) {
-                // Null terminator
-                break;
-            }
-        }
+    if (packet.length < offset + length) return null;
 
-        return text.length > 0 ? text : null;
+    // Extract ASCII text from packet
+    let text = '';
+    for (let i = 0; i < length; i++) {
+      const byte = packet[offset + i];
+      // Only include printable ASCII characters
+      if (byte >= 0x20 && byte <= 0x7e) {
+        text += String.fromCharCode(byte);
+      } else if (byte === 0x00) {
+        // Null terminator
+        break;
+      }
     }
 
-    public constructCommand(commandName: string, value?: any): number[] | null {
-        const cmd = super.constructCommand(commandName, value);
-        if (cmd) return cmd;
+    return text.length > 0 ? text : null;
+  }
 
-        const entityConfig = this.config as TextEntity;
+  public constructCommand(commandName: string, value?: any): number[] | null {
+    const cmd = super.constructCommand(commandName, value);
+    if (cmd) return cmd;
 
-        // Handle text command with string value
-        if (commandName === 'set' && entityConfig.command_text?.data && value !== undefined) {
-            const command = [...entityConfig.command_text.data];
+    const entityConfig = this.config as TextEntity;
 
-            // If there's a value offset, insert the text as ASCII bytes
-            const valueOffset = (entityConfig.command_text as any).value_offset;
-            if (valueOffset !== undefined) {
-                const maxLength = (entityConfig.command_text as any).length || entityConfig.max_length || 16;
-                const textStr = String(value);
+    // Handle text command with string value
+    if (commandName === 'set' && entityConfig.command_text?.data && value !== undefined) {
+      const command = [...entityConfig.command_text.data];
 
-                // Insert text bytes into command
-                for (let i = 0; i < Math.min(textStr.length, maxLength); i++) {
-                    command[valueOffset + i] = textStr.charCodeAt(i);
-                }
+      // If there's a value offset, insert the text as ASCII bytes
+      const valueOffset = (entityConfig.command_text as any).value_offset;
+      if (valueOffset !== undefined) {
+        const maxLength =
+          (entityConfig.command_text as any).length || entityConfig.max_length || 16;
+        const textStr = String(value);
 
-                // Pad with null bytes if needed
-                for (let i = textStr.length; i < maxLength; i++) {
-                    command[valueOffset + i] = 0x00;
-                }
-            }
-
-            return command;
+        // Insert text bytes into command
+        for (let i = 0; i < Math.min(textStr.length, maxLength); i++) {
+          command[valueOffset + i] = textStr.charCodeAt(i);
         }
 
-        return null;
+        // Pad with null bytes if needed
+        for (let i = textStr.length; i < maxLength; i++) {
+          command[valueOffset + i] = 0x00;
+        }
+      }
+
+      return command;
     }
+
+    return null;
+  }
 }

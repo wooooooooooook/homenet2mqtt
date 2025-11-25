@@ -1,8 +1,6 @@
 // packages/core/src/protocol/generators/command.generator.ts
 
-import {
-  HomenetBridgeConfig,
-} from '../../config/types.js';
+import { HomenetBridgeConfig } from '../../config/types.js';
 import {
   EntityConfig,
   CommandSchema,

@@ -1,10 +1,7 @@
 // packages/core/src/protocol/parsers/packet.parser.ts
 
 import { HomenetBridgeConfig } from '../../config/types.js';
-import {
-  EntityConfig,
-  StateLambdaConfig,
-} from '../../domain/entities/base.entity.js';
+import { EntityConfig, StateLambdaConfig } from '../../domain/entities/base.entity.js';
 import { LightEntity } from '../../domain/entities/light.entity.js';
 import { ClimateEntity } from '../../domain/entities/climate.entity.js';
 import { ValveEntity } from '../../domain/entities/valve.entity.js';
@@ -12,11 +9,7 @@ import { SensorEntity } from '../../domain/entities/sensor.entity.js';
 import { FanEntity } from '../../domain/entities/fan.entity.js';
 import { SwitchEntity } from '../../domain/entities/switch.entity.js';
 import { BinarySensorEntity } from '../../domain/entities/binary-sensor.entity.js';
-import {
-  StateSchema,
-  StateNumSchema,
-  ChecksumType,
-} from '../types.js';
+import { StateSchema, StateNumSchema, ChecksumType } from '../types.js';
 import { bytesToHex } from '../utils/common.js';
 import { calculateChecksum } from '../utils/checksum.js';
 import { EntityStateProvider } from '../packet-processor.js';
@@ -162,7 +155,9 @@ export class PacketParser {
     const parsedStates: { entityId: string; state: any }[] = [];
     let checksumValid = false;
 
-    console.log(`[PacketParser] Parsing packet: [${packet.map(b => '0x' + b.toString(16).padStart(2, '0')).join(', ')}]`);
+    console.log(
+      `[PacketParser] Parsing packet: [${packet.map((b) => '0x' + b.toString(16).padStart(2, '0')).join(', ')}]`,
+    );
 
     for (const entity of allEntities) {
       const packetDefaults = { ...this.config.packet_defaults, ...entity.packet_parameters };
@@ -191,16 +186,14 @@ export class PacketParser {
       // Validate checksum if required
       if (rxChecksum !== 'none') {
         const bytesToChecksum = [...rxHeader, ...dataWithoutHeaderAndFooter.slice(0, -1)];
-        const calculatedChecksum = calculateChecksum(
-          Buffer.from(bytesToChecksum),
-          rxChecksum,
-        );
+        const calculatedChecksum = calculateChecksum(Buffer.from(bytesToChecksum), rxChecksum);
 
         if (
-          calculatedChecksum !==
-          dataWithoutHeaderAndFooter[dataWithoutHeaderAndFooter.length - 1]
+          calculatedChecksum !== dataWithoutHeaderAndFooter[dataWithoutHeaderAndFooter.length - 1]
         ) {
-          console.log(`[PacketParser]   ✗ Checksum mismatch - expected: 0x${calculatedChecksum.toString(16).padStart(2, '0')}, got: 0x${dataWithoutHeaderAndFooter[dataWithoutHeaderAndFooter.length - 1].toString(16).padStart(2, '0')}`);
+          console.log(
+            `[PacketParser]   ✗ Checksum mismatch - expected: 0x${calculatedChecksum.toString(16).padStart(2, '0')}, got: 0x${dataWithoutHeaderAndFooter[dataWithoutHeaderAndFooter.length - 1].toString(16).padStart(2, '0')}`,
+          );
           continue;
         }
         console.log(`[PacketParser]   ✓ Checksum valid`);
@@ -212,7 +205,9 @@ export class PacketParser {
         checksumValid = true;
       }
 
-      console.log(`[PacketParser]   Data for matching: [${dataWithoutHeaderAndFooter.map((b: number) => '0x' + b.toString(16).padStart(2, '0')).join(', ')}]`);
+      console.log(
+        `[PacketParser]   Data for matching: [${dataWithoutHeaderAndFooter.map((b: number) => '0x' + b.toString(16).padStart(2, '0')).join(', ')}]`,
+      );
 
       // --- State Extraction Logic ---
       let currentState: { [key: string]: any } = {};

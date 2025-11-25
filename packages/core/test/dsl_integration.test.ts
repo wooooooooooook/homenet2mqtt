@@ -34,7 +34,9 @@ homenet_bridge:
 
     const config = await loadYamlConfig(tempConfigPath);
     const lightConfig = config.homenet_bridge.light[0];
-    const protocolConfig: ProtocolConfig = { packet_defaults: config.homenet_bridge.packet_defaults };
+    const protocolConfig: ProtocolConfig = {
+      packet_defaults: config.homenet_bridge.packet_defaults,
+    };
 
     const device = new GenericDevice(lightConfig as DeviceConfig, protocolConfig);
 

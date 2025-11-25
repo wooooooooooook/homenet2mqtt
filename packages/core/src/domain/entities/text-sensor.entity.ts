@@ -4,7 +4,7 @@ import { EntityConfig } from './base.entity.js';
 import { StateSchema } from '../../protocol/types.js';
 
 export interface TextSensorEntity extends EntityConfig {
-    type: 'text_sensor';
-    state?: StateSchema;
-    state_text?: StateSchema; // lambda for extracting text from packet
+  type: 'text_sensor';
+  state?: StateSchema;
+  state_text?: StateSchema; // lambda for extracting text from packet
 }

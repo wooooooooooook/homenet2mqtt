@@ -31,7 +31,7 @@ export class PacketProcessor extends EventEmitter {
     super();
     const protocolConfig: ProtocolConfig = {
       packet_defaults: config.packet_defaults,
-      rx_priority: 'data' // Default to data priority
+      rx_priority: 'data', // Default to data priority
     };
     this.protocolManager = new ProtocolManager(protocolConfig);
 

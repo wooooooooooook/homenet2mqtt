@@ -152,6 +152,12 @@ app.get('/api/packets/stream', (req, res) => {
   };
   eventBus.on('raw-data', handleRawData);
 
+  // Listen for command packets from the event bus
+  const handleCommandPacket = (data: unknown) => {
+    sendEvent('command-packet', data);
+  };
+  eventBus.on('command-packet', handleCommandPacket);
+
   client.on('connect', () => {
     sendStatus('connected', { mqttUrl: streamMqttUrl });
     client.subscribe('homenet/#', (err) => {
@@ -183,6 +189,7 @@ app.get('/api/packets/stream', (req, res) => {
     clearInterval(heartbeat);
     client.end(true);
     eventBus.off('raw-data', handleRawData); // Remove event bus listener
+    eventBus.off('command-packet', handleCommandPacket); // Remove command packet listener
   });
 });
 
@@ -203,7 +210,7 @@ app.use(
 // --- Bridge Management ---
 async function loadAndStartBridge(filename: string) {
   if (bridgeStartPromise) {
-    await bridgeStartPromise.catch(() => { }); // Wait for any ongoing start/stop to finish
+    await bridgeStartPromise.catch(() => {}); // Wait for any ongoing start/stop to finish
   }
   if (bridge) {
     logger.info('[service] Stopping existing bridge...');
@@ -259,7 +266,9 @@ app.listen(port, async () => {
   try {
     logger.info('[service] Initializing bridge on startup...');
     if (process.env.CONFIG_FILE) {
-      logger.info(`[service] Loading configuration from environment variable: ${process.env.CONFIG_FILE}`);
+      logger.info(
+        `[service] Loading configuration from environment variable: ${process.env.CONFIG_FILE}`,
+      );
       // Extract filename from path if needed, or just pass the path if loadAndStartBridge handles it.
       // loadAndStartBridge expects a filename relative to CONFIG_DIR.
       // If CONFIG_FILE is a full path like 'packages/core/config/samsung_sds.homenet_bridge.yaml',

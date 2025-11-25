@@ -17,7 +17,11 @@ export class StateManager {
   // Timestamp of the last received chunk (ms since epoch)
   private lastChunkTimestamp: number = 0;
 
-  constructor(config: HomenetBridgeConfig, packetProcessor: PacketProcessor, mqttPublisher: MqttPublisher) {
+  constructor(
+    config: HomenetBridgeConfig,
+    packetProcessor: PacketProcessor,
+    mqttPublisher: MqttPublisher,
+  ) {
     this.config = config;
     this.packetProcessor = packetProcessor;
     this.mqttPublisher = mqttPublisher;
@@ -43,7 +47,6 @@ export class StateManager {
 
   private handleStateUpdate(event: { deviceId: string; state: any }) {
     const { deviceId, state } = event;
-    logger.debug({ deviceId, state }, '[StateManager] Received state update event');
 
     const currentState = this.deviceStates.get(deviceId) || {};
     const newState = { ...currentState, ...state };
@@ -52,22 +55,16 @@ export class StateManager {
     const topic = `homenet/${deviceId}/state`;
     const payload = JSON.stringify(newState);
 
-    // const cachedPayload = stateCache.get(topic);
-    // logger.debug({
-    //   topic,
-    //   newPayload: payload,
-    //   cachedPayload,
-    //   isDifferent: cachedPayload !== payload
-    // }, '[StateManager] Comparing with cache');
-
     if (stateCache.get(topic) !== payload) {
       stateCache.set(topic, payload);
-      logger.debug({ topic, payload }, '[StateManager] Publishing to MQTT');
+      const stateStr = JSON.stringify(newState).replace(/["{}]/g, '').replace(/,/g, ', ');
+      logger.debug(`[StateManager] ${deviceId}: {${stateStr}} → ${topic} [published]`);
       this.mqttPublisher.publish(topic, payload, { retain: true });
       eventBus.emit('state:changed', { entityId: deviceId, state: newState });
       eventBus.emit(`device:${deviceId}:state:changed`, newState);
     } else {
-      logger.debug({ topic }, '[StateManager] State unchanged, skipping MQTT publish');
+      const stateStr = JSON.stringify(newState).replace(/["{}]/g, '').replace(/,/g, ', ');
+      logger.debug(`[StateManager] ${deviceId}: {${stateStr}} [unchanged]`);
     }
   }
 }

@@ -7,6 +7,14 @@
     receivedAt: string;
   };
 
+  type CommandPacket = {
+    entity: string;
+    command: string;
+    value: any;
+    packet: string;
+    timestamp: string;
+  };
+
   type BridgeStatus = 'idle' | 'starting' | 'started' | 'stopped' | 'error';
 
   type BridgeInfo = {
@@ -32,6 +40,7 @@
   let infoLoading = false;
   let infoError = '';
   let rawPackets: MqttMessageEvent[] = [];
+  let commandPackets: CommandPacket[] = [];
   let deviceStates = new Map<string, string>();
   let eventSource: EventSource | null = null;
   let connectionStatus: 'idle' | 'connecting' | 'connected' | 'error' = 'idle';
@@ -103,6 +112,7 @@
       bridgeInfo = data;
       selectedConfigFile = data.configFile;
       rawPackets = [];
+      commandPackets = [];
       deviceStates.clear();
       startMqttStream();
     } catch (err) {
@@ -166,10 +176,19 @@
       }
     };
 
+    const handleCommandPacket = (event: MessageEvent<string>) => {
+      const data = safeParse<CommandPacket>(event.data);
+      if (!data) return;
+
+      if (!isLogPaused) {
+        commandPackets = [...commandPackets, data].slice(-MAX_PACKETS);
+      }
+    };
+
     eventSource.addEventListener('status', handleStatus);
     eventSource.addEventListener('mqtt-message', handleMqttMessage);
     eventSource.addEventListener('raw-data', handleRawPacket);
-    eventSource.addEventListener('raw-data', handleRawPacket); // Add this listener
+    eventSource.addEventListener('command-packet', handleCommandPacket);
     eventSource.onerror = () => {
       connectionStatus = 'error';
       statusMessage = '스트림 연결이 끊어졌습니다. 잠시 후 다시 시도하세요.';
@@ -300,17 +319,41 @@
         <p class="error subtle">브리지 오류: {bridgeInfo.error}</p>
       {/if}
 
-      <div class="state-cards">
-        {#if deviceStates.size === 0}
-          <p class="empty">아직 수신된 장치 상태가 없습니다.</p>
-        {:else}
-          {#each Array.from(deviceStates.entries()) as [topic, payload] (topic)}
-            <article class="state-card" data-state={payload}>
-              <span class="topic">{topic.replace('homenet/', '')}</span>
-              <strong class="payload">{payload}</strong>
-            </article>
-          {/each}
-        {/if}
+      <div class="main-grid">
+        <div class="column left">
+          <h2>장치 상태</h2>
+          <div class="state-cards">
+            {#if deviceStates.size === 0}
+              <p class="empty">아직 수신된 장치 상태가 없습니다.</p>
+            {:else}
+              {#each Array.from(deviceStates.entries()) as [topic, payload] (topic)}
+                <article class="state-card" data-state={payload}>
+                  <span class="topic">{topic.replace('homenet/', '')}</span>
+                  <strong class="payload">{payload}</strong>
+                </article>
+              {/each}
+            {/if}
+          </div>
+        </div>
+
+        <div class="column right">
+          <h2>명령 로그</h2>
+          <div class="packet-list command-list">
+            {#if commandPackets.length === 0}
+              <p class="empty">아직 전송된 명령이 없습니다.</p>
+            {:else}
+              {#each [...commandPackets].reverse() as packet (packet.timestamp + packet.entity + packet.command)}
+                <div class="packet-line command-line">
+                  <span class="time">[{new Date(packet.timestamp).toLocaleTimeString()}]</span>
+                  <span class="entity">{packet.entity}</span>
+                  <span class="command">{packet.command}</span>
+                  <span class="value">{packet.value !== undefined ? `(${packet.value})` : ''}</span>
+                  <code class="payload">{toHexPairs(packet.packet).join(' ')}</code>
+                </div>
+              {/each}
+            {/if}
+          </div>
+        </div>
       </div>
 
       <div class="raw-title-container">
@@ -346,10 +389,6 @@
     justify-content: center;
     align-items: flex-start;
     padding: 2rem 1rem;
-  }
-
-  main {
-    width: min(960px, 100%);
   }
 
   .panel {
@@ -659,5 +698,51 @@
         'controls'
         'status';
     }
+  }
+
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+  }
+
+  @media (max-width: 900px) {
+    .main-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .column h2 {
+    font-size: 1.2rem;
+    margin: 0 0 1rem;
+    color: rgba(226, 232, 240, 0.9);
+    border-bottom: 1px solid rgba(148, 163, 184, 0.3);
+    padding-bottom: 0.5rem;
+  }
+
+  .command-list {
+    max-height: 500px;
+    overflow-y: auto;
+  }
+
+  .command-line {
+    display: grid;
+    grid-template-columns: auto auto auto auto 1fr;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .command-line .entity {
+    color: #60a5fa;
+    font-weight: 600;
+  }
+
+  .command-line .command {
+    color: #f472b6;
+  }
+
+  .command-line .value {
+    color: #fbbf24;
   }
 </style>

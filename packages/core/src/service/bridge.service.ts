@@ -84,7 +84,7 @@ export class HomeNetBridge implements EntityStateProvider {
 
   async stop() {
     if (this.startPromise) {
-      await this.startPromise.catch(() => { });
+      await this.startPromise.catch(() => {});
     }
     this._mqttClient.end();
     if (this.port) {
@@ -123,7 +123,6 @@ export class HomeNetBridge implements EntityStateProvider {
       this.port,
     );
 
-
     // Set up subscriptions
     if (this._mqttClient.isConnected) {
       this.mqttSubscriber.setupSubscriptions();
@@ -132,7 +131,11 @@ export class HomeNetBridge implements EntityStateProvider {
     }
 
     // Initialize DiscoveryManager
-    this.discoveryManager = new DiscoveryManager(this.config, this.mqttPublisher, this.mqttSubscriber);
+    this.discoveryManager = new DiscoveryManager(
+      this.config,
+      this.mqttPublisher,
+      this.mqttSubscriber,
+    );
     this.discoveryManager.setup();
 
     if (this._mqttClient.isConnected) {

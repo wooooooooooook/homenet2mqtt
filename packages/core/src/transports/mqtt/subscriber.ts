@@ -5,6 +5,7 @@ import { EntityConfig } from '../../domain/entities/base.entity.js';
 import { logger } from '../../utils/logger.js';
 import { PacketProcessor } from '../../protocol/packet-processor.js';
 import { Duplex } from 'stream'; // For this.port.write
+import { eventBus } from '../../service/event-bus.js';
 
 export class MqttSubscriber {
   private mqttClient: MqttClient;
@@ -47,10 +48,15 @@ export class MqttSubscriber {
       if (entities) {
         entities.forEach((entity) => {
           const baseTopic = `homenet/${entity.id}`;
-          this.mqttClient.client.subscribe(`${baseTopic}/set/#`, (err) => {
+          // Subscribe to all subtopics under the entity's base topic
+          // This matches /set, /mode/set, /temperature/set, /brightness/set, etc.
+          this.mqttClient.client.subscribe(`${baseTopic}/#`, (err) => {
             if (err)
-              logger.error({ err, topic: `${baseTopic}/set/#` }, `[mqtt-subscriber] Failed to subscribe`);
-            else logger.info(`[mqtt-subscriber] Subscribed to ${baseTopic}/set/#`);
+              logger.error(
+                { err, topic: `${baseTopic}/#` },
+                `[mqtt-subscriber] Failed to subscribe`,
+              );
+            else logger.info(`[mqtt-subscriber] Subscribed to ${baseTopic}/#`);
           });
         });
       }
@@ -70,7 +76,9 @@ export class MqttSubscriber {
 
   private handleMqttMessage(topic: string, message: Buffer) {
     if (!this.config || !this.packetProcessor || !this.serialPort) {
-      logger.error('[mqtt-subscriber] Configuration, PacketProcessor or Serial Port not initialized.');
+      logger.error(
+        '[mqtt-subscriber] Configuration, PacketProcessor or Serial Port not initialized.',
+      );
       return;
     }
 
@@ -82,26 +90,48 @@ export class MqttSubscriber {
     }
 
     const parts = topic.split('/');
-    if (parts.length < 4 || parts[0] !== 'homenet' || parts[2] !== 'set') {
-      logger.warn({ topic }, `[mqtt-subscriber] Unhandled MQTT topic format`);
+
+    // Validate topic format: homenet/{id}/.../set
+    if (parts.length < 3 || parts[0] !== 'homenet' || parts[parts.length - 1] !== 'set') {
+      // Only log warning if it looks like a homenet topic but invalid
+      if (parts[0] === 'homenet') {
+        logger.warn({ topic }, `[mqtt-subscriber] Unhandled MQTT topic format`);
+      }
       return;
     }
 
     const entityId = parts[1];
-    const commandName = `command_${parts[3]}`;
-
+    let commandName = '';
     const payload = message.toString();
     let commandValue: number | string | undefined = undefined;
 
-    if (['command_temperature', 'command_speed'].includes(commandName)) {
+    // Case 1: homenet/{id}/set (General command)
+    if (parts.length === 3) {
+      if (payload === 'ON') commandName = 'on';
+      else if (payload === 'OFF') commandName = 'off';
+      else if (payload === 'OPEN') commandName = 'open';
+      else if (payload === 'CLOSE') commandName = 'close';
+      else if (payload === 'STOP') commandName = 'stop';
+      else if (payload === 'LOCK') commandName = 'lock';
+      else if (payload === 'UNLOCK') commandName = 'unlock';
+      else if (payload === 'PRESS') commandName = 'press';
+      else {
+        // For values (numbers, strings), we need to know the entity type to determine the command name
+        // We'll defer this until we find the entity
+        commandValue = payload;
+      }
+    }
+    // Case 2: homenet/{id}/{attribute}/set (Specific attribute command)
+    else if (parts.length === 4) {
+      commandName = parts[2]; // e.g. temperature, mode, percentage, brightness, color_temp
+
+      // Parse value
       const num = parseFloat(payload);
       if (!isNaN(num)) {
         commandValue = num;
       } else {
         commandValue = payload;
       }
-    } else {
-      commandValue = payload;
     }
 
     const entityTypes: (keyof HomenetBridgeConfig)[] = [
@@ -113,29 +143,84 @@ export class MqttSubscriber {
       'fan',
       'switch',
       'binary_sensor',
+      'lock',
+      'number',
+      'select',
+      'text',
+      'text_sensor',
     ];
-    const targetEntity = entityTypes
-      .map((type) => this.config![type] as EntityConfig[] | undefined)
-      .filter((entities): entities is EntityConfig[] => !!entities)
-      .flat()
-      .find((e) => e.id === entityId);
+
+    let targetEntity: (EntityConfig & { type: string }) | undefined;
+
+    for (const type of entityTypes) {
+      const entities = this.config[type] as EntityConfig[] | undefined;
+      if (entities) {
+        const found = entities.find((e) => e.id === entityId);
+        if (found) {
+          targetEntity = { ...found, type };
+          break;
+        }
+      }
+    }
 
     if (targetEntity) {
+      // Refine commandName based on entity type and payload
+
+      // Button: PRESS -> on (Commonly mapped to command_on)
+      if (targetEntity.type === 'button' && commandName === 'press') {
+        commandName = 'on';
+      }
+
+      // Climate Mode: mode -> payload (e.g., off, heat, cool)
+      if (targetEntity.type === 'climate' && commandName === 'mode') {
+        commandName = String(commandValue).toLowerCase();
+      }
+
+      // Fan Percentage -> speed
+      if (targetEntity.type === 'fan' && commandName === 'percentage') {
+        commandName = 'speed';
+      }
+
+      // If commandName is still empty (generic set with value), deduce from entity type
+      if (!commandName) {
+        if (targetEntity.type === 'number') commandName = 'number';
+        else if (targetEntity.type === 'select') commandName = 'option';
+        else if (targetEntity.type === 'text') commandName = 'text';
+        else if (targetEntity.type === 'fan' && typeof commandValue === 'number')
+          commandName = 'speed'; // Changed to speed
+        else {
+          logger.warn(
+            { entityId, payload },
+            `[mqtt-subscriber] Could not deduce command name for generic set topic`,
+          );
+          return;
+        }
+      }
+
       const commandPacket = this.packetProcessor.constructCommandPacket(
         targetEntity,
         commandName,
         commandValue,
       );
+
       if (commandPacket) {
+        const hexPacket = Buffer.from(commandPacket).toString('hex');
         logger.info(
           {
             entity: targetEntity.name,
             command: commandName,
-            packet: Buffer.from(commandPacket).toString('hex'),
+            packet: hexPacket,
           },
           `[mqtt-subscriber] Sending command packet`,
         );
         this.serialPort.write(Buffer.from(commandPacket));
+        eventBus.emit('command-packet', {
+          entity: targetEntity.name || targetEntity.id,
+          command: commandName,
+          value: commandValue,
+          packet: hexPacket,
+          timestamp: new Date().toISOString(),
+        });
       } else {
         logger.warn(
           { entity: targetEntity.name, command: commandName },

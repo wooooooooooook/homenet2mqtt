@@ -12,9 +12,15 @@ export class MqttPublisher {
   public publish(topic: string, payload: string | Buffer, options?: { retain: boolean }): void {
     this.mqttClient.client.publish(topic, payload, options, (err) => {
       if (err) {
-        logger.error({ err, topic, payload: payload.toString() }, '[mqtt-publisher] Failed to publish MQTT message');
+        logger.error(
+          { err, topic, payload: payload.toString() },
+          '[mqtt-publisher] Failed to publish MQTT message',
+        );
       } else {
-        logger.debug({ topic, payload: payload.toString() }, '[mqtt-publisher] Published MQTT message');
+        logger.debug(
+          { topic, payload: payload.toString() },
+          '[mqtt-publisher] Published MQTT message',
+        );
       }
     });
   }
