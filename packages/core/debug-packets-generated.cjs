@@ -54,10 +54,6 @@ function calculateChecksum(data, type, headerLength = 0) {
             }
         case 'samsung_tx':
              {
-                // Simulator sending TX packets implies acting as device? 
-                // Usually samsung_tx is for bridge sending to device.
-                // If simulator simulates device, it sends RX packets (response).
-                // But here we just calculate checksum as requested.
                 const dataPart = data.slice(headerLength);
                 let crc = 0x00;
                 for (const byte of dataPart) {
@@ -71,6 +67,30 @@ function calculateChecksum(data, type, headerLength = 0) {
     }
 }
 
+function getMaxOffset(deviceConfig) {
+    let maxOffset = -1;
+    
+    // Helper to check an object for offset
+    const check = (obj) => {
+        if (obj && typeof obj === 'object') {
+            if (typeof obj.offset === 'number') {
+                // If 'data' is present, the used range is offset + data.length
+                const length = Array.isArray(obj.data) ? obj.data.length : 1;
+                const end = obj.offset + length - 1;
+                if (end > maxOffset) maxOffset = end;
+            }
+        }
+    };
+
+    Object.keys(deviceConfig).forEach(key => {
+        if (key.startsWith('state_')) {
+            check(deviceConfig[key]);
+        }
+    });
+
+    return maxOffset;
+}
+
 function generatePacketsForDevice(deviceType, deviceConfig, defaults) {
     const packets = [];
     const deviceName = deviceConfig.name || 'Unknown';
@@ -79,13 +99,22 @@ function generatePacketsForDevice(deviceType, deviceConfig, defaults) {
     let baseState = null;
     if (deviceConfig.state && Array.isArray(deviceConfig.state.data)) {
         baseState = [...deviceConfig.state.data];
-        packets.push({
-            name: `${deviceName} (Base State)`,
-            body: baseState
-        });
     }
 
     if (!baseState) return packets;
+
+    // Determine required length based on max offset
+    const maxOffset = getMaxOffset(deviceConfig);
+    if (maxOffset >= baseState.length) {
+        // Pad with zeros
+        const padding = new Array(maxOffset - baseState.length + 1).fill(0);
+        baseState = baseState.concat(padding);
+    }
+
+    packets.push({
+        name: `${deviceName} (Base State)`,
+        body: [...baseState]
+    });
 
     // Helper to apply modification
     const applyMod = (base, modConfig) => {
@@ -126,15 +155,45 @@ function generatePacketsForDevice(deviceType, deviceConfig, defaults) {
         }
     });
 
-    // Special handling for fan speeds if simple offsets
     // Special handling for thermostat temperatures (heuristic)
     if (deviceType === 'climate' && deviceConfig.state_temperature_current && deviceConfig.state_temperature_current.offset !== undefined) {
-        // Generate a few temperature examples
         const offset = deviceConfig.state_temperature_current.offset;
         if (offset < baseState.length) {
             const tempPacket = [...baseState];
-            tempPacket[offset] = 25; // 25 degrees (simplified, assumes 1 byte raw)
-            packets.push({ name: `${deviceName} (Current 25C)`, body: tempPacket });
+            // If mask is present for temperature (unlikely for current, but possible), we should respect it?
+            // Usually current temp is a raw byte.
+            // Let's set it to 25 (0x19).
+            // If it's BCD encoded (samsung), 25 is 0x25.
+            // Let's check 'decode' property.
+            const isBcd = deviceConfig.state_temperature_current.decode === 'bcd';
+            tempPacket[offset] = isBcd ? 0x25 : 25; 
+            
+            // Also set target temperature if possible to make it realistic
+            if (deviceConfig.state_temperature_target && deviceConfig.state_temperature_target.offset !== undefined) {
+                 const tOffset = deviceConfig.state_temperature_target.offset;
+                 const tIsBcd = deviceConfig.state_temperature_target.decode === 'bcd';
+                 if (tOffset < baseState.length) {
+                     tempPacket[tOffset] = tIsBcd ? 0x26 : 26;
+                 }
+            }
+
+            packets.push({ name: `${deviceName} (Temp 25C/26C)`, body: tempPacket });
+        }
+    }
+
+    // Special handling for fan speeds
+    if (deviceType === 'fan' && deviceConfig.state_speed && deviceConfig.state_speed.offset !== undefined) {
+        const offset = deviceConfig.state_speed.offset;
+        if (offset < baseState.length) {
+             // Speed 1
+             const speed1 = [...baseState];
+             speed1[offset] = 1;
+             packets.push({ name: `${deviceName} (Speed 1)`, body: speed1 });
+             
+             // Speed 2
+             const speed2 = [...baseState];
+             speed2[offset] = 2;
+             packets.push({ name: `${deviceName} (Speed 2)`, body: speed2 });
         }
     }
 
@@ -158,13 +217,6 @@ MANUFACTURERS.forEach(mfg => {
 
     const defaults = bridgeConfig.packet_defaults || {};
     const header = defaults.rx_header || [];
-    // Some configs put footer in packet_defaults (cvnet), some imply it
-    // We'll try to use what's defined. 
-    // Note: The simulator logic in `index.ts` expects FULL packets including header/footer/checksum.
-    // But `packet_defaults` might say `rx_header`.
-    // The simulator usually needs to SEND packets that the BRIDGE receives.
-    // So we should use `rx_header`, `rx_footer`, `rx_checksum`.
-    
     const footer = defaults.rx_footer || [];
     const checksumType = defaults.rx_checksum || 'none';
 
@@ -186,15 +238,6 @@ MANUFACTURERS.forEach(mfg => {
     
     allPackets.forEach(pkt => {
         const data = [...header, ...pkt.body];
-        
-        // Calculate checksum
-        // Checksum is calculated on (Header + Body) usually, but logic varies.
-        // Our helper `calculateChecksum` supports header skipping if needed.
-        // Core implementation of `packet-parser` typically verifies checksum on the buffer.
-        
-        // Special case for samsung_sds / commax?
-        // Commax config: rx_header [], checksum 'add'.
-        // Samsung config: rx_header [0xB0], checksum 'samsung_rx'.
         
         let checksumVal = 0;
         if (checksumType !== 'none') {
