@@ -16,9 +16,9 @@ export class FanDevice extends GenericDevice {
 
     // Handle on/off if not lambda
     if (!updates.state) {
-      if (this.matchesSchema(packet, entityConfig.state_on)) {
+      if (entityConfig.state_on && this.matchState(packet, entityConfig.state_on)) {
         updates.state = 'ON';
-      } else if (this.matchesSchema(packet, entityConfig.state_off)) {
+      } else if (entityConfig.state_off && this.matchState(packet, entityConfig.state_off)) {
         updates.state = 'OFF';
       }
     }
@@ -37,14 +37,14 @@ export class FanDevice extends GenericDevice {
 
     // Handle oscillation
     if (!updates.oscillating && entityConfig.state_oscillating) {
-      if (this.matchesSchema(packet, entityConfig.state_oscillating)) {
+      if (entityConfig.state_oscillating && this.matchState(packet, entityConfig.state_oscillating)) {
         updates.oscillating = true;
       }
     }
 
     // Handle direction
     if (!updates.direction && entityConfig.state_direction) {
-      if (this.matchesSchema(packet, entityConfig.state_direction)) {
+      if (entityConfig.state_direction && this.matchState(packet, entityConfig.state_direction)) {
         // Assume data value indicates direction: 0=forward, 1=reverse
         const offset = entityConfig.state_direction.offset || 0;
         if (packet[offset] === 0) {
@@ -56,41 +56,6 @@ export class FanDevice extends GenericDevice {
     }
 
     return Object.keys(updates).length > 0 ? updates : null;
-  }
-
-  private extractValue(packet: number[], schema: any): number | null {
-    if (!schema) return null;
-    const headerLength = this.protocolConfig.packet_defaults?.rx_header?.length || 0;
-    const offset = (schema.offset || 0) + headerLength;
-    const length = schema.length || 1;
-
-    if (packet.length < offset + length) return null;
-
-    let value = 0;
-    for (let i = 0; i < length; i++) {
-      value = (value << 8) | packet[offset + i];
-    }
-
-    if (schema.precision !== undefined) {
-      value = value / Math.pow(10, schema.precision);
-    }
-
-    return value;
-  }
-
-  private matchesSchema(packet: number[], schema: any): boolean {
-    if (!schema || !schema.data) return false;
-    const headerLength = this.protocolConfig.packet_defaults?.rx_header?.length || 0;
-    const offset = (schema.offset || 0) + headerLength;
-    if (packet.length < offset + schema.data.length) return false;
-
-    for (let i = 0; i < schema.data.length; i++) {
-      const mask = schema.mask ? schema.mask[i] : 0xff;
-      if ((packet[offset + i] & mask) !== (schema.data[i] & mask)) {
-        return false;
-      }
-    }
-    return true;
   }
 
   public constructCommand(commandName: string, value?: any): number[] | null {

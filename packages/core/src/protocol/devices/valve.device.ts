@@ -16,13 +16,13 @@ export class ValveDevice extends GenericDevice {
 
     // Handle basic open/closed states
     if (!updates.state) {
-      if (this.matchesSchema(packet, entityConfig.state_open)) {
+      if (entityConfig.state_open && this.matchState(packet, entityConfig.state_open)) {
         updates.state = 'OPEN';
-      } else if (this.matchesSchema(packet, entityConfig.state_closed)) {
+      } else if (entityConfig.state_closed && this.matchState(packet, entityConfig.state_closed)) {
         updates.state = 'CLOSED';
-      } else if (this.matchesSchema(packet, entityConfig.state_opening)) {
+      } else if (entityConfig.state_opening && this.matchState(packet, entityConfig.state_opening)) {
         updates.state = 'OPENING';
-      } else if (this.matchesSchema(packet, entityConfig.state_closing)) {
+      } else if (entityConfig.state_closing && this.matchState(packet, entityConfig.state_closing)) {
         updates.state = 'CLOSING';
       }
     }
@@ -30,47 +30,12 @@ export class ValveDevice extends GenericDevice {
     // Handle position (0-100%)
     if (!updates.position && entityConfig.state_position) {
       const position = this.extractValue(packet, entityConfig.state_position);
-      if (position !== null) {
+      if (position !== null && typeof position === 'number') {
         updates.position = Math.min(100, Math.max(0, position));
       }
     }
 
     return Object.keys(updates).length > 0 ? updates : null;
-  }
-
-  private extractValue(packet: number[], schema: any): number | null {
-    if (!schema) return null;
-    const headerLength = this.protocolConfig.packet_defaults?.rx_header?.length || 0;
-    const offset = (schema.offset || 0) + headerLength;
-    const length = schema.length || 1;
-
-    if (packet.length < offset + length) return null;
-
-    let value = 0;
-    for (let i = 0; i < length; i++) {
-      value = (value << 8) | packet[offset + i];
-    }
-
-    if (schema.precision !== undefined) {
-      value = value / Math.pow(10, schema.precision);
-    }
-
-    return value;
-  }
-
-  private matchesSchema(packet: number[], schema: any): boolean {
-    if (!schema || !schema.data) return false;
-    const headerLength = this.protocolConfig.packet_defaults?.rx_header?.length || 0;
-    const offset = (schema.offset || 0) + headerLength;
-    if (packet.length < offset + schema.data.length) return false;
-
-    for (let i = 0; i < schema.data.length; i++) {
-      const mask = schema.mask ? schema.mask[i] : 0xff;
-      if ((packet[offset + i] & mask) !== (schema.data[i] & mask)) {
-        return false;
-      }
-    }
-    return true;
   }
 
   public constructCommand(commandName: string, value?: any): number[] | null {

@@ -17,9 +17,9 @@ export class LightDevice extends GenericDevice {
 
     // Handle state_on / state_off schemas if defined and not lambdas
     if (!updates.state) {
-      if (this.matchesSchema(packet, entityConfig.state_on)) {
+      if (entityConfig.state_on && this.matchState(packet, entityConfig.state_on)) {
         updates.state = 'ON';
-      } else if (this.matchesSchema(packet, entityConfig.state_off)) {
+      } else if (entityConfig.state_off && this.matchState(packet, entityConfig.state_off)) {
         updates.state = 'OFF';
       }
     }
@@ -63,60 +63,6 @@ export class LightDevice extends GenericDevice {
     }
 
     return Object.keys(updates).length > 0 ? updates : null;
-  }
-
-  private extractValue(packet: number[], schema: any): number | null {
-    if (!schema) return null;
-
-    const headerLength = this.protocolConfig.packet_defaults?.rx_header?.length || 0;
-    const offset = (schema.offset || 0) + headerLength;
-    const length = schema.length || 1;
-
-    if (packet.length < offset + length) return null;
-
-    let value = 0;
-    const endian = schema.endian || 'big';
-
-    if (endian === 'big') {
-      for (let i = 0; i < length; i++) {
-        value = (value << 8) | packet[offset + i];
-      }
-    } else {
-      for (let i = length - 1; i >= 0; i--) {
-        value = (value << 8) | packet[offset + i];
-      }
-    }
-
-    // Apply precision if specified
-    if (schema.precision !== undefined) {
-      value = value / Math.pow(10, schema.precision);
-    }
-
-    return value;
-  }
-
-  private matchesSchema(packet: number[], schema: any): boolean {
-    if (!schema || !schema.data) return false;
-
-    const headerLength = this.protocolConfig.packet_defaults?.rx_header?.length || 0;
-    const offset = (schema.offset || 0) + headerLength;
-    if (packet.length < offset + schema.data.length) return false;
-
-    for (let i = 0; i < schema.data.length; i++) {
-      let mask = 0xff;
-      if (schema.mask) {
-        if (Array.isArray(schema.mask)) {
-          mask = schema.mask[i] ?? 0xff;
-        } else {
-          mask = schema.mask;
-        }
-      }
-
-      if ((packet[offset + i] & mask) !== (schema.data[i] & mask)) {
-        return false;
-      }
-    }
-    return true;
   }
 
   public constructCommand(commandName: string, value?: any): number[] | null {

@@ -24,82 +24,17 @@ export class NumberDevice extends GenericDevice {
     }
 
     // Check for increment/decrement/min/max state changes
-    if (this.matchesSchema(packet, entityConfig.state_increment)) {
+    if (entityConfig.state_increment && this.matchState(packet, entityConfig.state_increment)) {
       updates.action = 'increment';
-    } else if (this.matchesSchema(packet, entityConfig.state_decrement)) {
+    } else if (entityConfig.state_decrement && this.matchState(packet, entityConfig.state_decrement)) {
       updates.action = 'decrement';
-    } else if (this.matchesSchema(packet, entityConfig.state_to_min)) {
+    } else if (entityConfig.state_to_min && this.matchState(packet, entityConfig.state_to_min)) {
       updates.value = entityConfig.min_value;
-    } else if (this.matchesSchema(packet, entityConfig.state_to_max)) {
+    } else if (entityConfig.state_to_max && this.matchState(packet, entityConfig.state_to_max)) {
       updates.value = entityConfig.max_value;
     }
 
     return Object.keys(updates).length > 0 ? updates : null;
-  }
-
-  private extractValue(packet: number[], schema: any): number | null {
-    if (!schema) return null;
-
-    const headerLength = this.protocolConfig.packet_defaults?.rx_header?.length || 0;
-    const offset = (schema.offset || 0) + headerLength;
-    const length = schema.length || 1;
-    const precision = schema.precision || 0;
-    const signed = schema.signed !== undefined ? schema.signed : false;
-
-    if (packet.length < offset + length) return null;
-
-    let value = 0;
-
-    // Extract multi-byte value
-    if (length === 1) {
-      value = packet[offset];
-      if (signed && value > 127) {
-        value = value - 256;
-      }
-    } else {
-      // TODO: Handle endianness properly
-      const endian = schema.endian || 'big';
-      if (endian === 'big') {
-        for (let i = 0; i < length; i++) {
-          value = (value << 8) | packet[offset + i];
-        }
-      } else {
-        for (let i = length - 1; i >= 0; i--) {
-          value = (value << 8) | packet[offset + i];
-        }
-      }
-    }
-
-    // Apply precision
-    if (precision > 0) {
-      value = value / Math.pow(10, precision);
-    }
-
-    return value;
-  }
-
-  private matchesSchema(packet: number[], schema: any): boolean {
-    if (!schema || !schema.data) return false;
-
-    const headerLength = this.protocolConfig.packet_defaults?.rx_header?.length || 0;
-    const offset = (schema.offset || 0) + headerLength;
-    if (packet.length < offset + schema.data.length) return false;
-
-    for (let i = 0; i < schema.data.length; i++) {
-      let mask = 0xff;
-      if (schema.mask) {
-        if (Array.isArray(schema.mask)) {
-          mask = schema.mask[i];
-        } else {
-          mask = schema.mask;
-        }
-      }
-
-      if ((packet[offset + i] & mask) !== (schema.data[i] & mask)) {
-        return false;
-      }
-    }
-    return true;
   }
 
   public constructCommand(commandName: string, value?: any): number[] | null {

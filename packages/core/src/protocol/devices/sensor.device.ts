@@ -23,34 +23,6 @@ export class SensorDevice extends GenericDevice {
     return Object.keys(updates).length > 0 ? updates : null;
   }
 
-  private extractValue(packet: number[], schema: any): number | null {
-    if (!schema) return null;
-
-    const headerLength = this.protocolConfig.packet_defaults?.rx_header?.length || 0;
-    const offset = (schema.offset || 0) + headerLength;
-    const length = schema.length || 1;
-    const precision = schema.precision || 0;
-
-    if (packet.length < offset + length) return null;
-
-    let value = 0;
-    if (length === 1) {
-      value = packet[offset];
-    } else {
-      // Simple multi-byte support (big endian default)
-      for (let i = 0; i < length; i++) {
-        value = (value << 8) | packet[offset + i];
-      }
-    }
-
-    // Apply precision
-    if (precision > 0) {
-      value = value / Math.pow(10, precision);
-    }
-
-    return value;
-  }
-
   public constructCommand(commandName: string, value?: any): number[] | null {
     return super.constructCommand(commandName, value);
   }

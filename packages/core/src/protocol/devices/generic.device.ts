@@ -1,5 +1,6 @@
 import { Device } from '../device.js';
 import { DeviceConfig, ProtocolConfig, LambdaConfig } from '../types.js';
+import { StateSchema, StateNumSchema } from '../types.js';
 import { LambdaExecutor } from '../lambda-executor.js';
 import { calculateChecksum, ChecksumType } from '../utils/checksum.js';
 
@@ -90,5 +91,105 @@ export class GenericDevice extends Device {
     }
 
     return commandPacket;
+  }
+
+  // --- Helper methods for parsing (moved from PacketParser) ---
+
+  /**
+   * Check if packet data matches a state schema pattern
+   */
+  protected matchState(packetData: number[], stateSchema: StateSchema): boolean {
+    const { data, mask, offset = 0, inverted = false } = stateSchema;
+
+    if (!data || data.length === 0) {
+      return true;
+    }
+
+    if (offset + data.length > packetData.length) {
+      return false;
+    }
+
+    let isMatch = true;
+    for (let i = 0; i < data.length; i++) {
+      const packetByte = packetData[offset + i];
+      const patternByte = data[i];
+      let effectivePacketByte = packetByte;
+      let effectivePatternByte = patternByte;
+
+      if (mask) {
+        const currentMask = Array.isArray(mask) ? mask[i] : mask;
+        if (currentMask !== undefined) {
+          effectivePacketByte = packetByte & currentMask;
+          effectivePatternByte = patternByte & currentMask;
+        }
+      }
+
+      if (effectivePacketByte !== effectivePatternByte) {
+        isMatch = false;
+        break;
+      }
+    }
+
+    return inverted ? !isMatch : isMatch;
+  }
+
+  /**
+   * Extract a numeric or string value from packet bytes using a schema
+   */
+  protected extractValue(bytes: number[], schema: StateNumSchema): number | string | null {
+    const {
+      offset,
+      length = 1,
+      precision = 0,
+      signed = false,
+      endian = 'big',
+      decode = 'none',
+    } = schema;
+
+    if (offset === undefined || offset + length > bytes.length) {
+      return null;
+    }
+
+    const valueBytes = bytes.slice(offset, offset + length);
+    if (endian === 'little') {
+      valueBytes.reverse();
+    }
+
+    let value: number;
+    switch (decode) {
+      case 'bcd':
+        value = 0;
+        for (let i = 0; i < valueBytes.length; i++) {
+          value = value * 100 + (valueBytes[i] >> 4) * 10 + (valueBytes[i] & 0x0f);
+        }
+        break;
+      case 'ascii':
+        return String.fromCharCode(...valueBytes);
+      case 'signed_byte_half_degree':
+        value = valueBytes[0] & 0x7f;
+        if ((valueBytes[0] & 0x80) !== 0) {
+          value += 0.5;
+        }
+        if (signed && (valueBytes[0] & 0x40) !== 0) {
+          value = -value;
+        }
+        break;
+      case 'none':
+      default:
+        value = 0;
+        for (let i = 0; i < valueBytes.length; i++) {
+          value = (value << 8) | valueBytes[i];
+        }
+        break;
+    }
+
+    if (signed && (valueBytes[0] & 0x80) !== 0 && decode === 'none') {
+      const signBit = 1 << (length * 8 - 1);
+      if ((value & signBit) !== 0) {
+        value = value - 2 * signBit;
+      }
+    }
+
+    return precision > 0 ? parseFloat(value.toFixed(precision)) : value;
   }
 }
