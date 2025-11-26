@@ -98,7 +98,9 @@ export class GenericDevice extends Device {
   /**
    * Check if packet data matches a state schema pattern
    */
-  protected matchState(packetData: number[], stateSchema: StateSchema): boolean {
+  protected matchState(packetData: number[], stateSchema: StateSchema | undefined): boolean {
+    if (!stateSchema) return false;
+
     const { data, mask, offset = 0, inverted = false } = stateSchema;
 
     if (!data || data.length === 0) {
@@ -190,6 +192,11 @@ export class GenericDevice extends Device {
       }
     }
 
-    return precision > 0 ? parseFloat(value.toFixed(precision)) : value;
+    // Apply precision (division)
+    if (precision > 0) {
+      return parseFloat((value / Math.pow(10, precision)).toFixed(precision));
+    }
+
+    return value;
   }
 }

@@ -9,10 +9,19 @@ import { SensorEntity } from '../../domain/entities/sensor.entity.js';
 import { FanEntity } from '../../domain/entities/fan.entity.js';
 import { SwitchEntity } from '../../domain/entities/switch.entity.js';
 import { BinarySensorEntity } from '../../domain/entities/binary-sensor.entity.js';
-import { StateSchema, StateNumSchema, ChecksumType } from '../types.js';
+import { StateSchema, StateNumSchema, ChecksumType, ProtocolConfig } from '../types.js';
 import { bytesToHex } from '../utils/common.js';
 import { calculateChecksum } from '../utils/checksum.js';
 import { EntityStateProvider } from '../packet-processor.js';
+import { GenericDevice } from '../devices/generic.device.js';
+import { LightDevice } from '../devices/light.device.js';
+import { ClimateDevice } from '../devices/climate.device.js';
+import { FanDevice } from '../devices/fan.device.js';
+import { SwitchDevice } from '../devices/switch.device.js';
+import { SensorDevice } from '../devices/sensor.device.js';
+import { BinarySensorDevice } from '../devices/binary-sensor.device.js';
+import { ValveDevice } from '../devices/valve.device.js';
+import { NumberDevice } from '../devices/number.device.js';
 
 export class PacketParser {
   private config: HomenetBridgeConfig;
@@ -148,227 +157,124 @@ export class PacketParser {
     return undefined;
   }
 
+  /**
+   * Validate packet against entity configuration
+   * Returns validation result and extracted data without header/footer/checksum
+   */
+  private validatePacket(
+    packet: number[],
+    entity: EntityConfig,
+  ): {
+    valid: boolean;
+    dataWithoutHeaderAndFooter: number[];
+    checksumValid: boolean;
+  } {
+    const packetDefaults = { ...this.config.packet_defaults, ...entity.packet_parameters };
+    const rxHeader = packetDefaults.rx_header || [];
+    const rxFooter = packetDefaults.rx_footer || [];
+    const rxChecksum = (packetDefaults.rx_checksum || 'none') as ChecksumType;
+
+    // Header check
+    if (rxHeader.length > 0 && !this.startsWith(packet, rxHeader)) {
+      return { valid: false, dataWithoutHeaderAndFooter: [], checksumValid: false };
+    }
+
+    // Remove header
+    let data = packet.slice(rxHeader.length);
+
+    // Footer check
+    if (rxFooter.length > 0 && !this.endsWith(data, rxFooter)) {
+      return { valid: false, dataWithoutHeaderAndFooter: [], checksumValid: false };
+    }
+
+    // Remove footer
+    data = rxFooter.length > 0 ? data.slice(0, -rxFooter.length) : data;
+
+    // Checksum validation
+    let checksumValid = false;
+    if (rxChecksum !== 'none') {
+      const bytesToChecksum = [...rxHeader, ...data.slice(0, -1)];
+      const calculatedChecksum = calculateChecksum(Buffer.from(bytesToChecksum), rxChecksum);
+
+      if (calculatedChecksum !== data[data.length - 1]) {
+        return { valid: false, dataWithoutHeaderAndFooter: [], checksumValid: false };
+      }
+      checksumValid = true;
+      data = data.slice(0, -1); // Remove checksum byte
+    } else {
+      checksumValid = true;
+    }
+
+    return { valid: true, dataWithoutHeaderAndFooter: data, checksumValid };
+  }
+
+  /**
+   * Create appropriate Device instance based on entity type
+   */
+  private createDevice(entity: EntityConfig): GenericDevice {
+    const protocolConfig: ProtocolConfig = {
+      packet_defaults: this.config.packet_defaults,
+    };
+
+    // Use 'as any' to bypass strict type checking since we know the entity type is correct
+    switch (entity.type) {
+      case 'light':
+        return new LightDevice(entity as any, protocolConfig);
+      case 'climate':
+        return new ClimateDevice(entity as any, protocolConfig);
+      case 'fan':
+        return new FanDevice(entity as any, protocolConfig);
+      case 'switch':
+        return new SwitchDevice(entity as any, protocolConfig);
+      case 'sensor':
+        return new SensorDevice(entity as any, protocolConfig);
+      case 'binary_sensor':
+        return new BinarySensorDevice(entity as any, protocolConfig);
+      case 'valve':
+        return new ValveDevice(entity as any, protocolConfig);
+      case 'number':
+        return new NumberDevice(entity as any, protocolConfig);
+      default:
+        return new GenericDevice(entity, protocolConfig);
+    }
+  }
+
   public parseIncomingPacket(
     packet: number[],
     allEntities: EntityConfig[],
   ): { parsedStates: { entityId: string; state: any }[]; checksumValid: boolean } {
     const parsedStates: { entityId: string; state: any }[] = [];
-    let checksumValid = false;
+    let anyChecksumValid = false;
 
     console.log(
       `[PacketParser] Parsing packet: [${packet.map((b) => '0x' + b.toString(16).padStart(2, '0')).join(', ')}]`,
     );
 
     for (const entity of allEntities) {
-      const packetDefaults = { ...this.config.packet_defaults, ...entity.packet_parameters };
-
-      const rxHeader = packetDefaults.rx_header || [];
-      const rxFooter = packetDefaults.rx_footer || [];
-      const rxChecksum = (packetDefaults.rx_checksum || 'none') as ChecksumType;
-
       console.log(`[PacketParser] Checking entity: ${entity.id} (${entity.type})`);
 
-      if (rxHeader.length > 0 && !this.startsWith(packet, rxHeader)) {
-        // console.log(`[PacketParser]   ✗ Header mismatch - expected: [${rxHeader.map(b => '0x' + b.toString(16).padStart(2, '0')).join(', ')}]`);
+      // Validate packet against entity configuration
+      const validation = this.validatePacket(packet, entity);
+      if (!validation.valid) {
         continue;
       }
 
-      const dataWithoutHeader = packet.slice(rxHeader.length);
+      console.log(`[PacketParser]   ✓ Packet validation passed`);
+      anyChecksumValid = anyChecksumValid || validation.checksumValid;
 
-      if (rxFooter.length > 0 && !this.endsWith(dataWithoutHeader, rxFooter)) {
-        // console.log(`[PacketParser]   ✗ Footer mismatch - expected: [${rxFooter.map(b => '0x' + b.toString(16).padStart(2, '0')).join(', ')}]`);
-        continue;
-      }
+      // Create device and delegate parsing
+      const device = this.createDevice(entity);
+      const state = device.parseData(packet);
 
-      let dataWithoutHeaderAndFooter =
-        rxFooter.length > 0 ? dataWithoutHeader.slice(0, -rxFooter.length) : dataWithoutHeader;
-
-      // Validate checksum if required
-      if (rxChecksum !== 'none') {
-        const bytesToChecksum = [...rxHeader, ...dataWithoutHeaderAndFooter.slice(0, -1)];
-        const calculatedChecksum = calculateChecksum(Buffer.from(bytesToChecksum), rxChecksum);
-
-        if (
-          calculatedChecksum !== dataWithoutHeaderAndFooter[dataWithoutHeaderAndFooter.length - 1]
-        ) {
-          console.log(
-            `[PacketParser]   ✗ Checksum mismatch - expected: 0x${calculatedChecksum.toString(16).padStart(2, '0')}, got: 0x${dataWithoutHeaderAndFooter[dataWithoutHeaderAndFooter.length - 1].toString(16).padStart(2, '0')}`,
-          );
-          continue;
-        }
-        console.log(`[PacketParser]   ✓ Checksum valid`);
-        checksumValid = true;
-        // Remove checksum byte for state extraction (create a copy to avoid mutation)
-        dataWithoutHeaderAndFooter = dataWithoutHeaderAndFooter.slice(0, -1);
+      if (state) {
+        console.log(`[PacketParser]   ✓ State parsed:`, state);
+        parsedStates.push({ entityId: entity.id, state });
       } else {
-        // If no checksum is required, we consider it valid in terms of checksum
-        checksumValid = true;
-      }
-
-      console.log(
-        `[PacketParser]   Data for matching: [${dataWithoutHeaderAndFooter.map((b: number) => '0x' + b.toString(16).padStart(2, '0')).join(', ')}]`,
-      );
-
-      // --- State Extraction Logic ---
-      let currentState: { [key: string]: any } = {};
-      let matched = false;
-
-      if (entity.type === 'light') {
-        const lightEntity = entity as LightEntity;
-        if (lightEntity.state && this.matchState(dataWithoutHeaderAndFooter, lightEntity.state)) {
-          console.log(`[PacketParser]   ✓ State matched for light entity`);
-          matched = true;
-          if (
-            lightEntity.state_on &&
-            this.matchState(dataWithoutHeaderAndFooter, lightEntity.state_on)
-          ) {
-            currentState.isOn = true;
-          } else if (
-            lightEntity.state_off &&
-            this.matchState(dataWithoutHeaderAndFooter, lightEntity.state_off)
-          ) {
-            currentState.isOn = false;
-          }
-        } else if (lightEntity.state) {
-          console.log(`[PacketParser]   ✗ State mismatch for light entity`);
-        }
-      } else if (entity.type === 'switch') {
-        const switchEntity = entity as SwitchEntity;
-        if (switchEntity.state && this.matchState(dataWithoutHeaderAndFooter, switchEntity.state)) {
-          matched = true;
-          if (
-            switchEntity.state_on &&
-            this.matchState(dataWithoutHeaderAndFooter, switchEntity.state_on)
-          ) {
-            currentState.isOn = true;
-          } else if (
-            switchEntity.state_off &&
-            this.matchState(dataWithoutHeaderAndFooter, switchEntity.state_off)
-          ) {
-            currentState.isOn = false;
-          }
-        }
-      } else if (entity.type === 'valve') {
-        const valveEntity = entity as ValveEntity;
-        if (valveEntity.state && this.matchState(dataWithoutHeaderAndFooter, valveEntity.state)) {
-          matched = true;
-          if (
-            valveEntity.state_open &&
-            this.matchState(dataWithoutHeaderAndFooter, valveEntity.state_open)
-          ) {
-            currentState.isOpen = true;
-          } else if (
-            valveEntity.state_closed &&
-            this.matchState(dataWithoutHeaderAndFooter, valveEntity.state_closed)
-          ) {
-            currentState.isOpen = false;
-          }
-        }
-      } else if (entity.type === 'climate') {
-        const climateEntity = entity as ClimateEntity;
-        if (
-          climateEntity.state &&
-          this.matchState(dataWithoutHeaderAndFooter, climateEntity.state)
-        ) {
-          matched = true;
-
-          if (
-            climateEntity.state_off &&
-            this.matchState(dataWithoutHeaderAndFooter, climateEntity.state_off)
-          ) {
-            currentState.mode = 'off';
-          } else if (
-            climateEntity.state_heat &&
-            this.matchState(dataWithoutHeaderAndFooter, climateEntity.state_heat)
-          ) {
-            currentState.mode = 'heat';
-          } else if (
-            climateEntity.state_cool &&
-            this.matchState(dataWithoutHeaderAndFooter, climateEntity.state_cool)
-          ) {
-            currentState.mode = 'cool';
-          }
-
-          // Temperature parsing is handled by ClimateDevice, not here
-        }
-      } else if (entity.type === 'sensor') {
-        const sensorEntity = entity as SensorEntity;
-        if (sensorEntity.state && this.matchState(dataWithoutHeaderAndFooter, sensorEntity.state)) {
-          matched = true;
-          if (sensorEntity.state_number) {
-            currentState.value = this.decodeValue(
-              dataWithoutHeaderAndFooter,
-              sensorEntity.state_number,
-            );
-          }
-        }
-      } else if (entity.type === 'fan') {
-        const fanEntity = entity as FanEntity;
-        if (fanEntity.state && this.matchState(dataWithoutHeaderAndFooter, fanEntity.state)) {
-          matched = true;
-
-          if (
-            fanEntity.state_on &&
-            this.matchState(dataWithoutHeaderAndFooter, fanEntity.state_on)
-          ) {
-            currentState.isOn = true;
-          } else if (
-            fanEntity.state_off &&
-            this.matchState(dataWithoutHeaderAndFooter, fanEntity.state_off)
-          ) {
-            currentState.isOn = false;
-          }
-
-          if (fanEntity.state_speed) {
-            if (fanEntity.state_speed.homenet_logic) {
-              currentState.speed = this.evaluateStateLambda(
-                fanEntity.state_speed.homenet_logic,
-                dataWithoutHeaderAndFooter,
-              );
-            } else if (fanEntity.state_speed.mapping) {
-              const byteValue = this.decodeValue(dataWithoutHeaderAndFooter, fanEntity.state_speed);
-              if (
-                byteValue !== null &&
-                typeof byteValue === 'number' &&
-                fanEntity.state_speed.mapping[byteValue] !== undefined
-              ) {
-                currentState.speed = fanEntity.state_speed.mapping[byteValue];
-              }
-            } else if (fanEntity.state_speed.offset !== undefined) {
-              currentState.speed = this.decodeValue(
-                dataWithoutHeaderAndFooter,
-                fanEntity.state_speed,
-              );
-            }
-          }
-        }
-      } else if (entity.type === 'binary_sensor') {
-        const binarySensorEntity = entity as BinarySensorEntity;
-        if (
-          binarySensorEntity.state &&
-          this.matchState(dataWithoutHeaderAndFooter, binarySensorEntity.state)
-        ) {
-          matched = true;
-          if (
-            binarySensorEntity.state_on &&
-            this.matchState(dataWithoutHeaderAndFooter, binarySensorEntity.state_on)
-          ) {
-            currentState.isOn = true;
-          } else if (
-            binarySensorEntity.state_off &&
-            this.matchState(dataWithoutHeaderAndFooter, binarySensorEntity.state_off)
-          ) {
-            currentState.isOn = false;
-          }
-        }
-      }
-
-      if (matched) {
-        parsedStates.push({ entityId: entity.id, state: currentState });
+        console.log(`[PacketParser]   ✗ No state extracted`);
       }
     }
 
-    return { parsedStates, checksumValid };
+    return { parsedStates, checksumValid: anyChecksumValid };
   }
 
   private matchState(packetData: number[], stateSchema: StateSchema): boolean {

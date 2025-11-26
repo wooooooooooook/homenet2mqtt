@@ -17,29 +17,13 @@ export class BinarySensorDevice extends GenericDevice {
 
     // Handle state_on / state_off schemas
     if (!updates.state) {
-      if (this.matchesSchema(packet, entityConfig.state_on)) {
+      if (entityConfig.state_on && this.matchState(packet, entityConfig.state_on)) {
         updates.state = 'ON';
-      } else if (this.matchesSchema(packet, entityConfig.state_off)) {
+      } else if (entityConfig.state_off && this.matchState(packet, entityConfig.state_off)) {
         updates.state = 'OFF';
       }
     }
 
     return Object.keys(updates).length > 0 ? updates : null;
-  }
-
-  private matchesSchema(packet: number[], schema: any): boolean {
-    if (!schema || !schema.data) return false;
-
-    const headerLength = this.protocolConfig.packet_defaults?.rx_header?.length || 0;
-    const offset = (schema.offset || 0) + headerLength;
-    if (packet.length < offset + schema.data.length) return false;
-
-    for (let i = 0; i < schema.data.length; i++) {
-      const mask = schema.mask ? (Array.isArray(schema.mask) ? schema.mask[i] : schema.mask) : 0xff;
-      if ((packet[offset + i] & mask) !== (schema.data[i] & mask)) {
-        return false;
-      }
-    }
-    return true;
   }
 }
