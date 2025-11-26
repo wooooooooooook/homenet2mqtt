@@ -13,24 +13,26 @@ export class ClimateDevice extends GenericDevice {
     const updates = super.parseData(packet) || {};
     const entityConfig = this.config as any;
 
+    const headerLength = this.protocolConfig.packet_defaults?.rx_header?.length || 0;
+    const payload = packet.slice(headerLength);
     // Handle temperature extraction if not handled by lambda
     if (!updates.current_temperature && entityConfig.state_temperature_current) {
-      const val = this.extractValue(packet, entityConfig.state_temperature_current);
+      const val = this.extractValue(payload, entityConfig.state_temperature_current);
       if (val !== null) updates.current_temperature = val;
     }
 
     if (!updates.target_temperature && entityConfig.state_temperature_target) {
-      const val = this.extractValue(packet, entityConfig.state_temperature_target);
+      const val = this.extractValue(payload, entityConfig.state_temperature_target);
       if (val !== null) updates.target_temperature = val;
     }
 
     // Handle mode
     if (!updates.mode) {
-      if (this.matchState(packet, entityConfig.state_off)) {
+      if (this.matchState(payload, entityConfig.state_off)) {
         updates.mode = 'off';
-      } else if (this.matchState(packet, entityConfig.state_heat)) {
+      } else if (this.matchState(payload, entityConfig.state_heat)) {
         updates.mode = 'heat';
-      } else if (this.matchState(packet, entityConfig.state_cool)) {
+      } else if (this.matchState(payload, entityConfig.state_cool)) {
         updates.mode = 'cool';
       }
     }
@@ -38,15 +40,15 @@ export class ClimateDevice extends GenericDevice {
     // Handle action
     // Priority: heating/cooling > idle > off (though off usually implies idle or off action)
     if (!updates.action) {
-      if (this.matchState(packet, entityConfig.state_action_heating)) {
+      if (this.matchState(payload, entityConfig.state_action_heating)) {
         updates.action = 'heating';
-      } else if (this.matchState(packet, entityConfig.state_action_cooling)) {
+      } else if (this.matchState(payload, entityConfig.state_action_cooling)) {
         updates.action = 'cooling';
-      } else if (this.matchState(packet, entityConfig.state_action_drying)) {
+      } else if (this.matchState(payload, entityConfig.state_action_drying)) {
         updates.action = 'drying';
-      } else if (this.matchState(packet, entityConfig.state_action_fan)) {
+      } else if (this.matchState(payload, entityConfig.state_action_fan)) {
         updates.action = 'fan';
-      } else if (this.matchState(packet, entityConfig.state_action_idle)) {
+      } else if (this.matchState(payload, entityConfig.state_action_idle)) {
         updates.action = 'idle';
       } else if (updates.mode === 'off') {
         updates.action = 'off';

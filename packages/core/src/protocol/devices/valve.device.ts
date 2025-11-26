@@ -14,22 +14,24 @@ export class ValveDevice extends GenericDevice {
     const updates = super.parseData(packet) || {};
     const entityConfig = this.config as ValveEntity;
 
+    const headerLength = this.protocolConfig.packet_defaults?.rx_header?.length || 0;
+    const payload = packet.slice(headerLength);
     // Handle basic open/closed states
     if (!updates.state) {
-      if (entityConfig.state_open && this.matchState(packet, entityConfig.state_open)) {
+      if (entityConfig.state_open && this.matchState(payload, entityConfig.state_open)) {
         updates.state = 'OPEN';
-      } else if (entityConfig.state_closed && this.matchState(packet, entityConfig.state_closed)) {
+      } else if (entityConfig.state_closed && this.matchState(payload, entityConfig.state_closed)) {
         updates.state = 'CLOSED';
-      } else if (entityConfig.state_opening && this.matchState(packet, entityConfig.state_opening)) {
+      } else if (entityConfig.state_opening && this.matchState(payload, entityConfig.state_opening)) {
         updates.state = 'OPENING';
-      } else if (entityConfig.state_closing && this.matchState(packet, entityConfig.state_closing)) {
+      } else if (entityConfig.state_closing && this.matchState(payload, entityConfig.state_closing)) {
         updates.state = 'CLOSING';
       }
     }
 
     // Handle position (0-100%)
     if (!updates.position && entityConfig.state_position) {
-      const position = this.extractValue(packet, entityConfig.state_position);
+      const position = this.extractValue(payload, entityConfig.state_position);
       if (position !== null && typeof position === 'number') {
         updates.position = Math.min(100, Math.max(0, position));
       }

@@ -14,40 +14,41 @@ export class FanDevice extends GenericDevice {
     const updates = super.parseData(packet) || {};
     const entityConfig = this.config as FanEntity;
 
+    const headerLength = this.protocolConfig.packet_defaults?.rx_header?.length || 0;
+    const payload = packet.slice(headerLength);
     // Handle on/off if not lambda
     if (!updates.state) {
-      if (entityConfig.state_on && this.matchState(packet, entityConfig.state_on)) {
+      if (entityConfig.state_on && this.matchState(payload, entityConfig.state_on)) {
         updates.state = 'ON';
-      } else if (entityConfig.state_off && this.matchState(packet, entityConfig.state_off)) {
+      } else if (entityConfig.state_off && this.matchState(payload, entityConfig.state_off)) {
         updates.state = 'OFF';
       }
     }
 
     // Handle speed
     if (!updates.speed && entityConfig.state_speed) {
-      const val = this.extractValue(packet, entityConfig.state_speed);
+      const val = this.extractValue(payload, entityConfig.state_speed);
       if (val !== null) updates.speed = val;
     }
 
-    // Handle percentage (alternative to speed)
+    // Handle percentage
     if (!updates.percentage && entityConfig.state_percentage) {
-      const val = this.extractValue(packet, entityConfig.state_percentage);
+      const val = this.extractValue(payload, entityConfig.state_percentage);
       if (val !== null) updates.percentage = val;
     }
 
     // Handle oscillation
     if (!updates.oscillating && entityConfig.state_oscillating) {
-      if (entityConfig.state_oscillating && this.matchState(packet, entityConfig.state_oscillating)) {
+      if (entityConfig.state_oscillating && this.matchState(payload, entityConfig.state_oscillating)) {
         updates.oscillating = true;
       }
     }
 
     // Handle direction
     if (!updates.direction && entityConfig.state_direction) {
-      if (entityConfig.state_direction && this.matchState(packet, entityConfig.state_direction)) {
-        // Assume data value indicates direction: 0=forward, 1=reverse
+      if (entityConfig.state_direction && this.matchState(payload, entityConfig.state_direction)) {
         const offset = entityConfig.state_direction.offset || 0;
-        if (packet[offset] === 0) {
+        if (payload[offset] === 0) {
           updates.direction = 'forward';
         } else {
           updates.direction = 'reverse';

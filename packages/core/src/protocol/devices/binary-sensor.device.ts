@@ -15,11 +15,12 @@ export class BinarySensorDevice extends GenericDevice {
     const updates = super.parseData(packet) || {};
     const entityConfig = this.config as BinarySensorEntity;
 
-    // Handle state_on / state_off schemas
+    const headerLength = this.protocolConfig.packet_defaults?.rx_header?.length || 0;
+    const payload = packet.slice(headerLength);
     if (!updates.state) {
-      if (entityConfig.state_on && this.matchState(packet, entityConfig.state_on)) {
+      if (entityConfig.state_on && this.matchState(payload, entityConfig.state_on)) {
         updates.state = 'ON';
-      } else if (entityConfig.state_off && this.matchState(packet, entityConfig.state_off)) {
+      } else if (entityConfig.state_off && this.matchState(payload, entityConfig.state_off)) {
         updates.state = 'OFF';
       }
     }

@@ -13,10 +13,12 @@ export class SensorDevice extends GenericDevice {
     const updates = super.parseData(packet) || {};
     const entityConfig = this.config as any;
 
+    const headerLength = this.protocolConfig.packet_defaults?.rx_header?.length || 0;
+    const payload = packet.slice(headerLength);
     // Handle generic state extraction if defined
     // e.g., state_number
     if (!updates.value && entityConfig.state_number) {
-      const val = this.extractValue(packet, entityConfig.state_number);
+      const val = this.extractValue(payload, entityConfig.state_number);
       if (val !== null) updates.value = val;
     }
 

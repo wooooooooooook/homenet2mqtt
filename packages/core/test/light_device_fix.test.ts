@@ -23,7 +23,6 @@ describe('LightDevice Fix', () => {
     };
 
     const protocolConfig: ProtocolConfig = {
-      serial: {} as any,
       packet_defaults: {
         rx_header: [0xb0],
       },
@@ -67,7 +66,6 @@ describe('LightDevice Fix', () => {
     };
 
     const protocolConfig: ProtocolConfig = {
-      serial: {} as any,
       packet_defaults: {
         rx_header: [0xb0],
       },

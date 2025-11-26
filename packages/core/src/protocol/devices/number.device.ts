@@ -15,22 +15,24 @@ export class NumberDevice extends GenericDevice {
     const updates = super.parseData(packet) || {};
     const entityConfig = this.config as NumberEntity;
 
+    const headerLength = this.protocolConfig.packet_defaults?.rx_header?.length || 0;
+    const payload = packet.slice(headerLength);
     // Parse number value from state_number schema
     if (!updates.value && entityConfig.state_number) {
-      const val = this.extractValue(packet, entityConfig.state_number);
+      const val = this.extractValue(payload, entityConfig.state_number);
       if (val !== null) {
         updates.value = val;
       }
     }
 
     // Check for increment/decrement/min/max state changes
-    if (entityConfig.state_increment && this.matchState(packet, entityConfig.state_increment)) {
+    if (entityConfig.state_increment && this.matchState(payload, entityConfig.state_increment)) {
       updates.action = 'increment';
-    } else if (entityConfig.state_decrement && this.matchState(packet, entityConfig.state_decrement)) {
+    } else if (entityConfig.state_decrement && this.matchState(payload, entityConfig.state_decrement)) {
       updates.action = 'decrement';
-    } else if (entityConfig.state_to_min && this.matchState(packet, entityConfig.state_to_min)) {
+    } else if (entityConfig.state_to_min && this.matchState(payload, entityConfig.state_to_min)) {
       updates.value = entityConfig.min_value;
-    } else if (entityConfig.state_to_max && this.matchState(packet, entityConfig.state_to_max)) {
+    } else if (entityConfig.state_to_max && this.matchState(payload, entityConfig.state_to_max)) {
       updates.value = entityConfig.max_value;
     }
 

@@ -15,18 +15,20 @@ export class LightDevice extends GenericDevice {
     const updates = super.parseData(packet) || {};
     const entityConfig = this.config as LightEntity;
 
+    const headerLength = this.protocolConfig.packet_defaults?.rx_header?.length || 0;
+    const payload = packet.slice(headerLength);
     // Handle state_on / state_off schemas if defined and not lambdas
     if (!updates.state) {
-      if (entityConfig.state_on && this.matchState(packet, entityConfig.state_on)) {
+      if (entityConfig.state_on && this.matchState(payload, entityConfig.state_on)) {
         updates.state = 'ON';
-      } else if (entityConfig.state_off && this.matchState(packet, entityConfig.state_off)) {
+      } else if (entityConfig.state_off && this.matchState(payload, entityConfig.state_off)) {
         updates.state = 'OFF';
       }
     }
 
     // Parse brightness
     if (!updates.brightness && entityConfig.state_brightness) {
-      const brightness = this.extractValue(packet, entityConfig.state_brightness);
+      const brightness = this.extractValue(payload, entityConfig.state_brightness);
       if (brightness !== null) {
         updates.brightness = brightness;
       }
@@ -34,7 +36,7 @@ export class LightDevice extends GenericDevice {
 
     // Parse color temperature (mireds)
     if (!updates.color_temp && entityConfig.state_color_temp) {
-      const colorTemp = this.extractValue(packet, entityConfig.state_color_temp);
+      const colorTemp = this.extractValue(payload, entityConfig.state_color_temp);
       if (colorTemp !== null) {
         updates.color_temp = colorTemp;
       }
@@ -42,21 +44,21 @@ export class LightDevice extends GenericDevice {
 
     // Parse RGB colors
     if (!updates.red && entityConfig.state_red) {
-      const red = this.extractValue(packet, entityConfig.state_red);
+      const red = this.extractValue(payload, entityConfig.state_red);
       if (red !== null) updates.red = red;
     }
     if (!updates.green && entityConfig.state_green) {
-      const green = this.extractValue(packet, entityConfig.state_green);
+      const green = this.extractValue(payload, entityConfig.state_green);
       if (green !== null) updates.green = green;
     }
     if (!updates.blue && entityConfig.state_blue) {
-      const blue = this.extractValue(packet, entityConfig.state_blue);
+      const blue = this.extractValue(payload, entityConfig.state_blue);
       if (blue !== null) updates.blue = blue;
     }
 
     // Parse white value
     if (!updates.white && entityConfig.state_white) {
-      const white = this.extractValue(packet, entityConfig.state_white);
+      const white = this.extractValue(payload, entityConfig.state_white);
       if (white !== null) {
         updates.white = white;
       }
