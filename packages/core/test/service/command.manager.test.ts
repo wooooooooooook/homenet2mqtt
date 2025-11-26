@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { CommandManager } from '../../src/service/command.manager';
 import { Duplex } from 'stream';
-import { HomenetBridgeConfig, RetryConfig } from '../../src/config/types';
+import { HomenetBridgeConfig } from '../../src/config/types';
 import { EntityConfig } from '../../src/domain/entities/base.entity';
 import { eventBus } from '../../src/service/event-bus';
 
@@ -33,10 +33,10 @@ describe('CommandManager', () => {
     serialPort = new MockStream();
     config = {
       serial: { baud_rate: 9600, data_bits: 8, parity: 'none', stop_bits: 1 },
-      retry: {
-        attempts: 2,
-        timeout: 100,
-        interval: 50,
+      packet_defaults: {
+        tx_retry_cnt: 2,
+        tx_timeout: 100,
+        tx_delay: 50,
       },
     };
     commandManager = new CommandManager(serialPort, config);
@@ -86,14 +86,14 @@ describe('CommandManager', () => {
 
     await expect(sendPromise).rejects.toThrow('ACK timeout');
     // total attempts = initial (1) + retries (2) = 3
-    expect(writeSpy).toHaveBeenCalledTimes(config.retry!.attempts + 1);
+    expect(writeSpy).toHaveBeenCalledTimes(config.packet_defaults!.tx_retry_cnt! + 1);
   });
 
   it('should use entity-specific retry config', async () => {
     const writeSpy = vi.spyOn(serialPort, 'write');
     const specificEntity: EntityConfig = {
       ...testEntity,
-      retry: { attempts: 1, timeout: 200, interval: 100 },
+      packet_parameters: { tx_retry_cnt: 1, tx_timeout: 200, tx_delay: 100 },
     };
     const sendPromise = commandManager.send(specificEntity, testPacket);
 
@@ -102,7 +102,7 @@ describe('CommandManager', () => {
 
     await expect(sendPromise).rejects.toThrow('ACK timeout');
     // total attempts = initial (1) + retries (1) = 2
-    expect(writeSpy).toHaveBeenCalledTimes(specificEntity.retry!.attempts + 1);
+    expect(writeSpy).toHaveBeenCalledTimes(specificEntity.packet_parameters!.tx_retry_cnt! + 1);
   });
 
   it('should process commands in a queue', async () => {

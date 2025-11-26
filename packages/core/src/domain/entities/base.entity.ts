@@ -1,4 +1,3 @@
-import { RetryConfig } from '../../config/types.js';
 import { DecodeEncodeType, EndianType, ValueSource, Extractor } from '../../protocol/types.js';
 import { StateLambdaConfig } from '../../protocol/types.js';
 export type { StateLambdaConfig };
@@ -52,5 +51,4 @@ export interface EntityConfig {
   unit_of_measurement?: string;
   state_class?: string;
   icon?: string;
-  retry?: RetryConfig;
 }

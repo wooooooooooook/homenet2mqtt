@@ -12,6 +12,7 @@ interface CommandJob {
   timer: NodeJS.Timeout | null;
   resolve: () => void;
   reject: (reason?: any) => void;
+  isSettled: boolean;
 }
 
 export class CommandManager {
@@ -33,28 +34,30 @@ export class CommandManager {
 
   public send(entity: EntityConfig, packet: number[]): Promise<void> {
     return new Promise((resolve, reject) => {
-      const retryConfig = { ...this.getDefaultRetryConfig(), ...entity.retry };
+      const retryConfig = this.getRetryConfig(entity);
       const job: CommandJob = {
         entity,
         packet,
-        attemptsLeft: retryConfig.attempts + 1, // +1 for the initial attempt
+        attemptsLeft: (retryConfig.attempts ?? 5) + 1,
         timer: null,
         resolve,
         reject,
+        isSettled: false,
       };
       this.queue.push(job);
       this.processQueue();
     });
   }
 
-  private getDefaultRetryConfig() {
-    return (
-      this.config.retry || {
-        attempts: 5,
-        timeout: 2000,
-        interval: 125,
-      }
-    );
+  private getRetryConfig(entity: EntityConfig) {
+    const defaults = this.config.packet_defaults || {};
+    const overrides = entity.packet_parameters || {};
+
+    return {
+      attempts: overrides.tx_retry_cnt ?? defaults.tx_retry_cnt ?? 5,
+      timeout: overrides.tx_timeout ?? defaults.tx_timeout ?? 2000,
+      interval: overrides.tx_delay ?? defaults.tx_delay ?? 125,
+    };
   }
 
   private async processQueue() {
@@ -75,21 +78,23 @@ export class CommandManager {
 
   private executeJob(job: CommandJob): Promise<void> {
     return new Promise((resolve, reject) => {
-      const retryConfig = { ...this.getDefaultRetryConfig(), ...job.entity.retry };
+      const retryConfig = this.getRetryConfig(job.entity);
       job.attemptsLeft = retryConfig.attempts + 1;
 
       const attempt = () => {
+        if (job.isSettled) return;
+
         job.attemptsLeft--;
         if (job.attemptsLeft < 0) {
+          job.isSettled = true;
           logger.warn({ entity: job.entity.name }, `[CommandManager] Command failed after all retries`);
           this.removeAckListener(job.entity.id);
           return reject(new Error('ACK timeout'));
         }
 
-        logger.info({ entity: job.entity.name, attemptsLeft: job.attemptsLeft }, `[CommandManager] Sending command`);
-        this.serialPort.write(Buffer.from(job.packet));
-
         const onAck = () => {
+          if (job.isSettled) return;
+          job.isSettled = true;
           if (job.timer) clearTimeout(job.timer);
           logger.info({ entity: job.entity.name }, `[CommandManager] ACK received`);
           this.removeAckListener(job.entity.id);
@@ -98,8 +103,12 @@ export class CommandManager {
 
         this.setAckListener(job.entity.id, onAck);
 
+        logger.info({ entity: job.entity.name, attemptsLeft: job.attemptsLeft }, `[CommandManager] Sending command`);
+        this.serialPort.write(Buffer.from(job.packet));
+
         job.timer = setTimeout(() => {
           this.removeAckListener(job.entity.id);
+          if (job.isSettled) return;
           logger.warn({ entity: job.entity.name }, `[CommandManager] ACK timeout, retrying...`);
           setTimeout(attempt, retryConfig.interval);
         }, retryConfig.timeout);
