@@ -117,22 +117,103 @@ describe('HomeNetBridge Packet Interval Analysis', () => {
     fakeSerialPort.emit('data', Buffer.from([100]));
 
     // The stats are calculated based on the 100 intervals collected so far.
-    // Let's manually calculate the expected averages.
-    const intervals = Array(99).fill(10).concat([200]);
-    const mean = intervals.reduce((a, b) => a + b, 0) / intervals.length;
-    const stdDev = Math.sqrt(
-      intervals.map((x) => Math.pow(x - mean, 2)).reduce((a, b) => a + b, 0) / intervals.length
-    );
-    const threshold = mean + 1.5 * stdDev;
+    // The loop above advances time by 10ms after each packet, including the last one.
+    // So the interval for the last packet is 10ms (from loop) + 200ms (explicit) = 210ms.
 
-    // 200 should be above the threshold
-    const expectedPacketAvg = 10;
-    const expectedIdleAvg = 210;
+    // Packet Intervals: 99 intervals of 10ms.
+    // Idle Intervals: 1 interval of 210ms.
+
+    // Packet Stats:
+    // Avg: 10
+    // StdDev: 0
+
+    // Idle Stats:
+    // Avg: 210
+    // StdDev: 0
+
+    // Idle Occurrence Stats:
+    // Only 1 idle occurrence, so avg 0, stdDev 0.
 
     expect(eventBusEmitSpy).toHaveBeenCalledWith('packet-interval-stats', {
-      packetAvg: expectedPacketAvg,
-      idleAvg: expectedIdleAvg,
+      packetAvg: 10,
+      packetStdDev: 0,
+      idleAvg: 210,
+      idleStdDev: 0,
       sampleSize: 100,
+      idleOccurrenceAvg: 0,
+      idleOccurrenceStdDev: 0,
     });
+  });
+
+  it('should calculate idle occurrence average correctly', () => {
+    // Simulate a pattern: 10ms (x9), 200ms (idle), 10ms (x9), 200ms (idle)
+    // Total 20 intervals.
+    // Idle intervals at index 9 and 19.
+    // Duration between idles: sum of intervals from index 10 to 19.
+    // Intervals[10] to [18] are 10ms (9 packets).
+    // Interval[19] is 200ms.
+    // Sum = 9 * 10 + 200 = 290.
+    // idleOccurrenceAvg = 290.
+
+    // Need 100 packets to trigger stats.
+    // Let's fill up with 10ms packets first.
+    for (let i = 0; i < 80; i++) {
+      fakeSerialPort.emit('data', Buffer.from([0]));
+      vi.advanceTimersByTime(10);
+    }
+
+    // Now do the pattern
+    // 1. 10ms (x9) -> already done part of it, but let's just add more 10ms
+    for (let i = 0; i < 9; i++) {
+      fakeSerialPort.emit('data', Buffer.from([0]));
+      vi.advanceTimersByTime(10);
+    }
+    // 2. 200ms (idle)
+    vi.advanceTimersByTime(200);
+    fakeSerialPort.emit('data', Buffer.from([0]));
+
+    // 3. 10ms (x9)
+    for (let i = 0; i < 9; i++) {
+      fakeSerialPort.emit('data', Buffer.from([0]));
+      vi.advanceTimersByTime(10);
+    }
+    // 4. 200ms (idle)
+    // Total intervals so far: 80 + 9 + 1 + 9 = 99.
+    // Next one is the 100th interval.
+    vi.advanceTimersByTime(200);
+    fakeSerialPort.emit('data', Buffer.from([0]));
+
+    // We need 100 intervals to trigger the stats.
+    // Currently we have 99 intervals.
+    // Emit one more packet to create the 100th interval.
+    vi.advanceTimersByTime(10);
+    fakeSerialPort.emit('data', Buffer.from([0]));
+
+    // Intervals:
+    // 0-88: 10ms (89 packets)
+    // 89: 200ms (idle)
+    // 90-98: 10ms (9 packets)
+    // 99: 200ms (idle)
+    // 100: 10ms (1 packet)
+
+    // Idle indices in the 101 intervals (0-100):
+    // Index 89 (200ms)
+    // Index 99 (200ms)
+
+    // Duration between idles: Sum(intervals[90]...intervals[99])
+    // = 9 * 10 + 200 = 290.
+
+    // Idle Occurrence Stats:
+    // Only 1 interval between idles (290ms).
+    // Avg: 290
+    // StdDev: 0
+
+    expect(eventBusEmitSpy).toHaveBeenLastCalledWith(
+      'packet-interval-stats',
+      expect.objectContaining({
+        idleOccurrenceAvg: 290,
+        idleOccurrenceStdDev: 0,
+      })
+    );
   });
 });

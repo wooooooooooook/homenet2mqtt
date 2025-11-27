@@ -89,7 +89,7 @@ export class HomeNetBridge implements EntityStateProvider {
 
   async stop() {
     if (this.startPromise) {
-      await this.startPromise.catch(() => {});
+      await this.startPromise.catch(() => { });
     }
     this._mqttClient.end();
     if (this.port) {
@@ -159,7 +159,7 @@ export class HomeNetBridge implements EntityStateProvider {
       if (this.lastPacketTimestamp) {
         interval = now - this.lastPacketTimestamp;
         this.packetIntervals.push(interval);
-        if (this.packetIntervals.length > 200) {
+        if (this.packetIntervals.length > 1000) {
           this.packetIntervals.shift();
         }
       }
@@ -197,26 +197,51 @@ export class HomeNetBridge implements EntityStateProvider {
     const threshold = mean + 1.5 * stdDev;
     const packetIntervals: number[] = [];
     const idleIntervals: number[] = [];
+    const idleIndices: number[] = [];
 
-    for (const interval of intervals) {
+    for (let i = 0; i < intervals.length; i++) {
+      const interval = intervals[i];
       if (interval > threshold) {
         idleIntervals.push(interval);
+        idleIndices.push(i);
       } else {
         packetIntervals.push(interval);
       }
     }
 
-    const packetAvg =
-      packetIntervals.length > 0
-        ? packetIntervals.reduce((a, b) => a + b, 0) / packetIntervals.length
-        : 0;
-    const idleAvg =
-      idleIntervals.length > 0 ? idleIntervals.reduce((a, b) => a + b, 0) / idleIntervals.length : 0;
+    const calculateStats = (data: number[]) => {
+      if (data.length === 0) return { avg: 0, stdDev: 0 };
+      const avg = data.reduce((a, b) => a + b, 0) / data.length;
+      const std = Math.sqrt(
+        data.map((x) => Math.pow(x - avg, 2)).reduce((a, b) => a + b, 0) / data.length,
+      );
+      return { avg, stdDev: std };
+    };
+
+    const packetStats = calculateStats(packetIntervals);
+    const idleStats = calculateStats(idleIntervals);
+
+    // Calculate average interval between idle occurrences
+    const idleOccurrenceIntervals: number[] = [];
+    if (idleIndices.length > 1) {
+      for (let i = 1; i < idleIndices.length; i++) {
+        let durationBetweenIdles = 0;
+        for (let j = idleIndices[i - 1] + 1; j <= idleIndices[i]; j++) {
+          durationBetweenIdles += intervals[j];
+        }
+        idleOccurrenceIntervals.push(durationBetweenIdles);
+      }
+    }
+    const idleOccurrenceStats = calculateStats(idleOccurrenceIntervals);
 
     eventBus.emit('packet-interval-stats', {
-      packetAvg: Math.round(packetAvg),
-      idleAvg: Math.round(idleAvg),
+      packetAvg: Math.round(packetStats.avg),
+      packetStdDev: parseFloat(packetStats.stdDev.toFixed(2)),
+      idleAvg: Math.round(idleStats.avg),
+      idleStdDev: parseFloat(idleStats.stdDev.toFixed(2)),
       sampleSize: intervals.length,
+      idleOccurrenceAvg: Math.round(idleOccurrenceStats.avg),
+      idleOccurrenceStdDev: parseFloat(idleOccurrenceStats.stdDev.toFixed(2)),
     });
   }
 }

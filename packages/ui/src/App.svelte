@@ -52,7 +52,11 @@
 
   type PacketStats = {
     packetAvg: number;
+    packetStdDev: number;
     idleAvg: number;
+    idleStdDev: number;
+    idleOccurrenceAvg: number;
+    idleOccurrenceStdDev: number;
     sampleSize: number;
   };
 
@@ -381,12 +385,24 @@
           <h2>패킷 간격 분석</h2>
           <div class="viewer-meta stats-meta">
             <div>
-              <span class="label">패킷 간격</span>
-              <strong>{packetStats.packetAvg} ms</strong>
+              <span class="label">패킷 간격 (평균 ± 표준편차)</span>
+              <strong>{packetStats.packetAvg} ± {packetStats.packetStdDev} ms</strong>
             </div>
             <div>
-              <span class="label">유휴 간격</span>
-              <strong>{packetStats.idleAvg > 0 ? `${packetStats.idleAvg} ms` : 'N/A'}</strong>
+              <span class="label">유휴 간격 (평균 ± 표준편차)</span>
+              <strong
+                >{packetStats.idleAvg > 0
+                  ? `${packetStats.idleAvg} ± ${packetStats.idleStdDev} ms`
+                  : 'N/A'}</strong
+              >
+            </div>
+            <div>
+              <span class="label">유휴 발생 간격 (평균 ± 표준편차)</span>
+              <strong
+                >{packetStats.idleOccurrenceAvg > 0
+                  ? `${packetStats.idleOccurrenceAvg} ± ${packetStats.idleOccurrenceStdDev} ms`
+                  : 'N/A'}</strong
+              >
             </div>
             <div>
               <span class="label">표본 크기</span>
@@ -409,8 +425,7 @@
           {#each [...rawPackets].reverse() as packet (packet.receivedAt + packet.topic)}
             <div class="packet-line">
               <span class="time">[{new Date(packet.receivedAt).toLocaleTimeString()}]</span>
-              <span class="interval"
-                >{packet.interval !== null ? `+${packet.interval}ms` : ''}</span
+              <span class="interval">{packet.interval !== null ? `+${packet.interval}ms` : ''}</span
               >
               <code class="payload">{toHexPairs(packet.payload).join(' ')}</code>
             </div>
