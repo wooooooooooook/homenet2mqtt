@@ -80,6 +80,8 @@ export class CommandManager {
     return new Promise((resolve, reject) => {
       const retryConfig = this.getRetryConfig(job.entity);
       job.attemptsLeft = retryConfig.attempts + 1;
+      const totalAttempts = job.attemptsLeft;
+      let attemptNumber = 0;
 
       const attempt = () => {
         if (job.isSettled) return;
@@ -87,29 +89,41 @@ export class CommandManager {
         job.attemptsLeft--;
         if (job.attemptsLeft < 0) {
           job.isSettled = true;
-          logger.warn({ entity: job.entity.name }, `[CommandManager] Command failed after all retries`);
+          logger.warn(
+            {
+              entity: job.entity.name,
+              attempts: totalAttempts,
+              timeout: retryConfig.timeout,
+              interval: retryConfig.interval,
+            },
+            `[CommandManager] Command failed: sent ${totalAttempts} times but no ACK received`,
+          );
           this.removeAckListener(job.entity.id);
-          return reject(new Error('ACK timeout'));
+          return resolve(); // Resolve instead of reject to avoid throwing error
         }
+
+        attemptNumber++;
 
         const onAck = () => {
           if (job.isSettled) return;
           job.isSettled = true;
           if (job.timer) clearTimeout(job.timer);
-          logger.info({ entity: job.entity.name }, `[CommandManager] ACK received`);
+          logger.info({ entity: job.entity.name }, `[CommandManager] Command succeeded: ACK received`);
           this.removeAckListener(job.entity.id);
           resolve();
         };
 
         this.setAckListener(job.entity.id, onAck);
 
-        logger.info({ entity: job.entity.name, attemptsLeft: job.attemptsLeft }, `[CommandManager] Sending command`);
+        logger.info(
+          { entity: job.entity.name },
+          `[CommandManager] Trying to send command (${attemptNumber}/${totalAttempts})`,
+        );
         this.serialPort.write(Buffer.from(job.packet));
 
         job.timer = setTimeout(() => {
           this.removeAckListener(job.entity.id);
           if (job.isSettled) return;
-          logger.warn({ entity: job.entity.name }, `[CommandManager] ACK timeout, retrying...`);
           setTimeout(attempt, retryConfig.interval);
         }, retryConfig.timeout);
       };

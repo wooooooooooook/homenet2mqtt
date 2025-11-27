@@ -3,6 +3,7 @@
 import { Duplex } from 'stream';
 
 import { logger } from '../utils/logger.js';
+import { MQTT_TOPIC_PREFIX } from '../utils/constants.js';
 import { HomenetBridgeConfig } from '../config/types.js';
 import { loadConfig } from '../config/index.js';
 import { EntityConfig } from '../domain/entities/base.entity.js';
@@ -45,7 +46,7 @@ export class HomeNetBridge implements EntityStateProvider {
     this.options = options;
     this._mqttClient = new MqttClient(options.mqttUrl, {
       will: {
-        topic: 'homenet/bridge/status',
+        topic: `${MQTT_TOPIC_PREFIX}/bridge/status`,
         payload: 'offline',
         qos: 1,
         retain: true,
@@ -57,7 +58,7 @@ export class HomeNetBridge implements EntityStateProvider {
 
   // Implement EntityStateProvider methods
   getLightState(entityId: string): { isOn: boolean } | undefined {
-    const topic = `homenet/${entityId}/state`;
+    const topic = `${MQTT_TOPIC_PREFIX}/${entityId}/state`;
     const state = getStateCache().get(topic); // Use getStateCache()
     if (state) {
       const parsedState = JSON.parse(state);
@@ -69,7 +70,7 @@ export class HomeNetBridge implements EntityStateProvider {
   }
 
   getClimateState(entityId: string): { targetTemperature: number } | undefined {
-    const topic = `homenet/${entityId}/state`;
+    const topic = `${MQTT_TOPIC_PREFIX}/${entityId}/state`;
     const state = getStateCache().get(topic); // Use getStateCache()
     if (state) {
       const parsedState = JSON.parse(state);
@@ -187,7 +188,6 @@ export class HomeNetBridge implements EntityStateProvider {
 
   private analyzeAndEmitPacketStats() {
     const intervals = [...this.packetIntervals];
-    if (intervals.length < 100) return;
 
     const mean = intervals.reduce((a, b) => a + b, 0) / intervals.length;
     const stdDev = Math.sqrt(

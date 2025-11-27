@@ -5,6 +5,7 @@ import { HomenetBridgeConfig } from '../src/config/types.js';
 import { PacketProcessor } from '../src/protocol/packet-processor.js';
 import { Duplex } from 'stream';
 import { eventBus } from '../src/service/event-bus.js';
+import { CommandManager } from '../src/service/command.manager.js';
 
 describe('Climate Command Packet Generation', () => {
   let mqttSubscriber: MqttSubscriber;
@@ -12,6 +13,7 @@ describe('Climate Command Packet Generation', () => {
   let mockConfig: HomenetBridgeConfig;
   let mockPacketProcessor: any;
   let mockSerialPort: any;
+  let commandManager: CommandManager;
   let capturedCommands: Array<{ entity: string; command: string; value?: any; packet: string }> =
     [];
 
@@ -120,11 +122,13 @@ describe('Climate Command Packet Generation', () => {
       capturedCommands.push(data);
     });
 
+    commandManager = new CommandManager(mockSerialPort, mockConfig);
+
     mqttSubscriber = new MqttSubscriber(
       mockMqttClient,
       mockConfig,
       mockPacketProcessor,
-      mockSerialPort,
+      commandManager,
     );
   });
 

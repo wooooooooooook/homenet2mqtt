@@ -6,6 +6,7 @@ import { logger } from '../../utils/logger.js';
 import { PacketProcessor } from '../../protocol/packet-processor.js';
 import { eventBus } from '../../service/event-bus.js';
 import { CommandManager } from '../../service/command.manager.js';
+import { MQTT_TOPIC_PREFIX } from '../../utils/constants.js';
 
 export class MqttSubscriber {
   private mqttClient: MqttClient;
@@ -47,7 +48,7 @@ export class MqttSubscriber {
         | undefined;
       if (entities) {
         entities.forEach((entity) => {
-          const baseTopic = `homenet/${entity.id}`;
+          const baseTopic = `${MQTT_TOPIC_PREFIX}/${entity.id}`;
           // Subscribe to all subtopics under the entity's base topic
           // This matches /set, /mode/set, /temperature/set, /brightness/set, etc.
           this.mqttClient.client.subscribe(`${baseTopic}/#`, (err) => {
@@ -91,11 +92,15 @@ export class MqttSubscriber {
 
     const parts = topic.split('/');
 
-    // Validate topic format: homenet/{id}/.../set
-    if (parts.length < 3 || parts[0] !== 'homenet' || parts[parts.length - 1] !== 'set') {
-      // Only log warning if it looks like a homenet topic but invalid
-      if (parts[0] === 'homenet') {
-        logger.warn({ topic }, `[mqtt-subscriber] Unhandled MQTT topic format`);
+    // Validate topic format: {prefix}/{id}/.../set
+    if (parts.length < 3 || parts[0] !== MQTT_TOPIC_PREFIX || parts[parts.length - 1] !== 'set') {
+      // Silently ignore known system topics (state, availability, etc.)
+      if (parts[0] === MQTT_TOPIC_PREFIX && parts.length >= 3) {
+        const lastPart = parts[parts.length - 1];
+        // Only warn if it's not a known system topic
+        if (!['state', 'availability', 'attributes'].includes(lastPart)) {
+          logger.warn({ topic }, `[mqtt-subscriber] Unhandled MQTT topic format`);
+        }
       }
       return;
     }

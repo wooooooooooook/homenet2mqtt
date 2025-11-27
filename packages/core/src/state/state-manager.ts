@@ -8,6 +8,7 @@ import { logger } from '../utils/logger.js';
 import { MqttPublisher } from '../transports/mqtt/publisher.js';
 import { eventBus } from '../service/event-bus.js';
 import { stateCache, clearStateCache } from './store.js'; // Import clearStateCache
+import { MQTT_TOPIC_PREFIX } from '../utils/constants.js';
 
 export class StateManager {
   private receiveBuffer: Buffer = Buffer.alloc(0);
@@ -52,13 +53,13 @@ export class StateManager {
     const newState = { ...currentState, ...state };
     this.deviceStates.set(deviceId, newState);
 
-    const topic = `homenet/${deviceId}/state`;
+    const topic = `${MQTT_TOPIC_PREFIX}/${deviceId}/state`;
     const payload = JSON.stringify(newState);
 
     if (stateCache.get(topic) !== payload) {
       stateCache.set(topic, payload);
       const stateStr = JSON.stringify(newState).replace(/["{}]/g, '').replace(/,/g, ', ');
-      logger.debug(`[StateManager] ${deviceId}: {${stateStr}} → ${topic} [published]`);
+      logger.info(`[StateManager] ${deviceId}: {${stateStr}} → ${topic} [published]`);
       this.mqttPublisher.publish(topic, payload, { retain: true });
       eventBus.emit('state:changed', { entityId: deviceId, state: newState });
       eventBus.emit(`device:${deviceId}:state:changed`, newState);
