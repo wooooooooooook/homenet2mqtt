@@ -2,6 +2,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { EventEmitter } from 'node:events';
 import { HomenetBridgeConfig } from '../src/config/types';
 
+vi.mock('@rs485-homenet/core/service/event-bus.js', () => ({
+  eventBus: {
+    on: vi.fn(),
+    off: vi.fn(),
+    emit: vi.fn(),
+  },
+}));
+
 class FakeSerialPort extends EventEmitter {
   public options: Record<string, unknown>;
 

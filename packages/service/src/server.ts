@@ -152,6 +152,16 @@ app.get('/api/packets/stream', (req, res) => {
   };
   eventBus.on('raw-data', handleRawData);
 
+  const handleRawDataWithInterval = (data: unknown) => {
+    sendEvent('raw-data-with-interval', data);
+  };
+  eventBus.on('raw-data-with-interval', handleRawDataWithInterval);
+
+  const handlePacketIntervalStats = (data: unknown) => {
+    sendEvent('packet-interval-stats', data);
+  };
+  eventBus.on('packet-interval-stats', handlePacketIntervalStats);
+
   // Listen for command packets from the event bus
   const handleCommandPacket = (data: unknown) => {
     sendEvent('command-packet', data);
@@ -189,6 +199,8 @@ app.get('/api/packets/stream', (req, res) => {
     clearInterval(heartbeat);
     client.end(true);
     eventBus.off('raw-data', handleRawData); // Remove event bus listener
+    eventBus.off('raw-data-with-interval', handleRawDataWithInterval);
+    eventBus.off('packet-interval-stats', handlePacketIntervalStats);
     eventBus.off('command-packet', handleCommandPacket); // Remove command packet listener
   });
 });

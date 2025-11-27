@@ -1,10 +1,11 @@
 import { spawnSync } from 'node:child_process';
 import { createServer } from 'node:net';
 import { setInterval as createInterval, clearInterval } from 'node:timers';
-import { pathToFileURL } from 'node:url';
+import { pathToFileURL, fileURLToPath } from 'node:url';
+import path from 'node:path';
 import type { IPty } from '@homebridge/node-pty-prebuilt-multiarch';
 import * as pty from '@homebridge/node-pty-prebuilt-multiarch';
-import { loadYamlConfig } from '../../core/dist/config/yaml-loader.js';
+import { loadYamlConfig } from '@rs485-homenet/core/dist/config/yaml-loader.js';
 import { calculateChecksum, ChecksumType } from './checksum.js';
 import { SAMSUNG_SDS_PACKETS } from './samsung_sds.js';
 import { COMMAX_PACKETS } from './commax.js';
@@ -279,7 +280,10 @@ export function createSimulator(options: SimulatorOptions = {}): Simulator {
 }
 
 async function main() {
-  const configPath = process.env.CONFIG_PATH ?? 'packages/core/config/commax.homenet_bridge.yaml';
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  const configPath =
+    process.env.CONFIG_PATH ??
+    path.join(__dirname, '../../../packages/core/config/commax.homenet_bridge.yaml');
   const config = (await loadYamlConfig(configPath)) as {
     homenet_bridge: { packet_defaults: { tx_checksum: ChecksumType } };
   };

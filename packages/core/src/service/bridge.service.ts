@@ -12,6 +12,7 @@ import { MqttClient } from '../transports/mqtt/mqtt.client.js';
 import { MqttSubscriber } from '../transports/mqtt/subscriber.js';
 import { MqttPublisher } from '../transports/mqtt/publisher.js';
 import { StateManager } from '../state/state-manager.js';
+import { eventBus } from './event-bus.js';
 import { CommandManager } from './command.manager.js';
 import { getStateCache } from '../state/store.js';
 import { DiscoveryManager } from '../mqtt/discovery-manager.js'; // Import DiscoveryManager
@@ -37,6 +38,8 @@ export class HomeNetBridge implements EntityStateProvider {
   private stateManager?: StateManager; // New StateManager instance
   private commandManager?: CommandManager;
   private discoveryManager?: DiscoveryManager; // DiscoveryManager instance
+  private lastPacketTimestamp: number | null = null;
+  private packetIntervals: number[] = [];
 
   constructor(options: BridgeOptions) {
     this.options = options;
@@ -150,12 +153,70 @@ export class HomeNetBridge implements EntityStateProvider {
     }
 
     this.port.on('data', (data) => {
+      const now = Date.now();
+      let interval: number | null = null;
+
+      if (this.lastPacketTimestamp) {
+        interval = now - this.lastPacketTimestamp;
+        this.packetIntervals.push(interval);
+        if (this.packetIntervals.length > 200) {
+          this.packetIntervals.shift();
+        }
+      }
+      this.lastPacketTimestamp = now;
+
+      const hexData = data.toString('hex');
+      eventBus.emit('raw-data-with-interval', {
+        payload: hexData,
+        interval,
+        receivedAt: new Date().toISOString(),
+      });
+
+      if (this.packetIntervals.length >= 100) {
+        this.analyzeAndEmitPacketStats();
+      }
+
       if (this.stateManager) {
         this.stateManager.processIncomingData(data);
       }
     });
     this.port.on('error', (err) => {
       logger.error({ err, serialPath }, '[core] 시리얼 포트 오류');
+    });
+  }
+
+  private analyzeAndEmitPacketStats() {
+    const intervals = [...this.packetIntervals];
+    if (intervals.length < 100) return;
+
+    const mean = intervals.reduce((a, b) => a + b, 0) / intervals.length;
+    const stdDev = Math.sqrt(
+      intervals.map((x) => Math.pow(x - mean, 2)).reduce((a, b) => a + b, 0) / intervals.length,
+    );
+
+    const threshold = mean + 1.5 * stdDev;
+    const packetIntervals: number[] = [];
+    const idleIntervals: number[] = [];
+
+    for (const interval of intervals) {
+      if (interval > threshold) {
+        idleIntervals.push(interval);
+      } else {
+        packetIntervals.push(interval);
+      }
+    }
+
+    const packetAvg =
+      packetIntervals.length > 0
+        ? packetIntervals.reduce((a, b) => a + b, 0) / packetIntervals.length
+        : 0;
+    const idleAvg =
+      idleIntervals.length > 0 ? idleIntervals.reduce((a, b) => a + b, 0) / idleIntervals.length : 0;
+
+    eventBus.emit('packet-interval-stats', {
+      packetAvg: Math.round(packetAvg),
+      idleAvg: Math.round(idleAvg),
+      sampleSize: intervals.length,
     });
   }
 }
