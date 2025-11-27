@@ -39,7 +39,6 @@
   let bridgeInfo: BridgeInfo | null = null;
   let infoLoading = false;
   let infoError = '';
-  let rawPackets: MqttMessageEvent[] = [];
   let commandPackets: CommandPacket[] = [];
   let deviceStates = new Map<string, string>();
   let eventSource: EventSource | null = null;
@@ -47,6 +46,18 @@
   let statusMessage = '';
   let isLogPaused = false;
 
+  type RawPacketWithInterval = MqttMessageEvent & {
+    interval: number | null;
+  };
+
+  type PacketStats = {
+    packetAvg: number;
+    idleAvg: number;
+    sampleSize: number;
+  };
+
+  let rawPackets: RawPacketWithInterval[] = [];
+  let packetStats: PacketStats | null = null;
   let configFiles: string[] = [];
   let selectedConfigFile: string | null = null;
   let isSwitchingConfig = false;
@@ -167,12 +178,19 @@
       deviceStates = deviceStates; // Trigger Svelte reactivity
     };
 
-    const handleRawPacket = (event: MessageEvent<string>) => {
-      const data = safeParse<MqttMessageEvent>(event.data);
+    const handleRawPacketWithInterval = (event: MessageEvent<string>) => {
+      const data = safeParse<RawPacketWithInterval>(event.data);
       if (!data) return;
 
       if (!isLogPaused) {
         rawPackets = [...rawPackets, data].slice(-MAX_PACKETS);
+      }
+    };
+
+    const handlePacketStats = (event: MessageEvent<string>) => {
+      const data = safeParse<PacketStats>(event.data);
+      if (data) {
+        packetStats = data;
       }
     };
 
@@ -187,7 +205,8 @@
 
     eventSource.addEventListener('status', handleStatus);
     eventSource.addEventListener('mqtt-message', handleMqttMessage);
-    eventSource.addEventListener('raw-data', handleRawPacket);
+    eventSource.addEventListener('raw-data-with-interval', handleRawPacketWithInterval);
+    eventSource.addEventListener('packet-interval-stats', handlePacketStats);
     eventSource.addEventListener('command-packet', handleCommandPacket);
     eventSource.onerror = () => {
       connectionStatus = 'error';
@@ -202,6 +221,7 @@
     }
     connectionStatus = 'idle';
     statusMessage = '';
+    packetStats = null;
   }
 
   function safeParse<T>(value: string): T | null {
@@ -356,6 +376,26 @@
         </div>
       </div>
 
+      {#if packetStats}
+        <div class="stats-container">
+          <h2>패킷 간격 분석</h2>
+          <div class="viewer-meta stats-meta">
+            <div>
+              <span class="label">패킷 간격</span>
+              <strong>{packetStats.packetAvg} ms</strong>
+            </div>
+            <div>
+              <span class="label">유휴 간격</span>
+              <strong>{packetStats.idleAvg > 0 ? `${packetStats.idleAvg} ms` : 'N/A'}</strong>
+            </div>
+            <div>
+              <span class="label">표본 크기</span>
+              <strong>{packetStats.sampleSize}</strong>
+            </div>
+          </div>
+        </div>
+      {/if}
+
       <div class="raw-title-container">
         <h2 class="raw-title">Raw 패킷 로그</h2>
         <button class="ghost" on:click={() => (isLogPaused = !isLogPaused)}>
@@ -369,6 +409,9 @@
           {#each [...rawPackets].reverse() as packet (packet.receivedAt + packet.topic)}
             <div class="packet-line">
               <span class="time">[{new Date(packet.receivedAt).toLocaleTimeString()}]</span>
+              <span class="interval"
+                >{packet.interval !== null ? `+${packet.interval}ms` : ''}</span
+              >
               <code class="payload">{toHexPairs(packet.payload).join(' ')}</code>
             </div>
           {/each}
@@ -744,5 +787,35 @@
 
   .command-line .value {
     color: #fbbf24;
+  }
+
+  .stats-container {
+    margin-top: 2rem;
+  }
+
+  .stats-container h2 {
+    font-size: 1.2rem;
+    margin: 0 0 1rem;
+    color: rgba(226, 232, 240, 0.9);
+    border-bottom: 1px solid rgba(148, 163, 184, 0.3);
+    padding-bottom: 0.5rem;
+  }
+
+  .stats-meta {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  }
+
+  .packet-line {
+    display: grid;
+    grid-template-columns: auto auto 1fr;
+    gap: 0.5rem;
+    align-items: baseline;
+  }
+
+  .packet-line .interval {
+    color: #a7f3d0;
+    font-size: 0.75rem;
+    width: 60px;
+    text-align: right;
   }
 </style>
