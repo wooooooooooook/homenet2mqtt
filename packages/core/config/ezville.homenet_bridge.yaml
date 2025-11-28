@@ -13,8 +13,8 @@ homenet_bridge:
 
     rx_header: [0xF7]
     tx_header: [0xF7]
-    rx_checksum: xor_add
-    tx_checksum: xor_add
+    rx_checksum2: xor_add
+    tx_checksum2: xor_add
 
   light:
     - name: 'light_1_0'

@@ -18,6 +18,7 @@ import { BinarySensorEntity } from '../../domain/entities/binary-sensor.entity.j
 import {
   PacketDefaults,
   ChecksumType,
+  Checksum2Type,
   DecodeEncodeType,
   EndianType,
   ValueSource,
@@ -28,7 +29,7 @@ import {
 import { logger } from '../../utils/logger.js';
 import { EntityStateProvider } from '../packet-processor.js';
 import { hexToBytes, bytesToHex } from '../utils/common.js'; // Import utilities
-import { calculateChecksum } from '../utils/checksum.js';
+import { calculateChecksum, calculateChecksum2 } from '../utils/checksum.js';
 
 export class CommandGenerator {
   private config: HomenetBridgeConfig;
@@ -336,11 +337,34 @@ export class CommandGenerator {
 
     const txHeader = packetDefaults.tx_header || [];
     const txFooter = packetDefaults.tx_footer || [];
-    const txChecksum = (packetDefaults.tx_checksum || 'none') as ChecksumType;
 
-    const bytesToChecksum = [...txHeader, ...commandData, ...txFooter];
-    const checksum = calculateChecksum(Buffer.from(bytesToChecksum), txChecksum);
+    const headerPart = Buffer.from(txHeader);
+    const dataPart = Buffer.from(commandData);
 
-    return [...txHeader, ...commandData, checksum, ...txFooter];
+    // Check for 1-byte checksum first (more common)
+    if (packetDefaults.tx_checksum && packetDefaults.tx_checksum !== 'none') {
+      const checksum = calculateChecksum(headerPart, dataPart, packetDefaults.tx_checksum as ChecksumType);
+      return [...txHeader, ...commandData, checksum, ...txFooter];
+    }
+
+    // Check for 2-byte checksum
+    if (packetDefaults.tx_checksum2) {
+      let checksum: number[];
+
+      if (typeof packetDefaults.tx_checksum2 === 'string') {
+        checksum = calculateChecksum2(headerPart, dataPart, packetDefaults.tx_checksum2 as Checksum2Type);
+      } else {
+        // Lambda checksum2 (not yet implemented)
+        logger.warn('Lambda tx_checksum2 not yet implemented');
+        checksum = [0, 0];
+      }
+
+      return [...txHeader, ...commandData, ...checksum, ...txFooter];
+    }
+
+    // Fall back to default (no checksum)
+    // If tx_checksum is 'none' or undefined, and tx_checksum2 is undefined,
+    // we do not append any checksum byte.
+    return [...txHeader, ...commandData, ...txFooter];
   }
 }

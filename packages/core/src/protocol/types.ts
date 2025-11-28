@@ -3,10 +3,11 @@ export type ChecksumType =
   | 'xor'
   | 'add_no_header'
   | 'xor_no_header'
-  | 'xor_add'
   | 'samsung_rx'
   | 'samsung_tx'
   | 'none';
+
+export type Checksum2Type = 'xor_add';
 export type DecodeEncodeType =
   | 'none'
   | 'bcd'
@@ -20,10 +21,12 @@ export interface PacketDefaults {
   rx_header?: number[];
   rx_footer?: number[];
   rx_checksum?: ChecksumType | { type: 'custom'; algorithm: string } | LambdaConfig;
+  rx_checksum2?: Checksum2Type | LambdaConfig;
   rx_length?: number;
   tx_header?: number[];
   tx_footer?: number[];
   tx_checksum?: ChecksumType | { type: 'custom'; algorithm: string } | LambdaConfig;
+  tx_checksum2?: Checksum2Type | LambdaConfig;
   tx_delay?: number;
   tx_retry_cnt?: number;
   tx_timeout?: number;

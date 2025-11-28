@@ -1,5 +1,5 @@
-import { PacketDefaults, ChecksumType, LambdaConfig } from './types.js';
-import { calculateChecksum } from './utils/checksum.js';
+import { PacketDefaults, ChecksumType, Checksum2Type, LambdaConfig } from './types.js';
+import { calculateChecksum, calculateChecksum2 } from './utils/checksum.js';
 import { LambdaExecutor } from './lambda-executor.js';
 import { Buffer } from 'buffer';
 
@@ -79,9 +79,11 @@ export class PacketParser {
     }
 
     // 4. Check Checksum
-    if (this.defaults.rx_checksum && this.defaults.rx_checksum !== 'none') {
-      // Ensure we have at least one byte of data/checksum beyond the header
-      const minLength = (this.defaults.rx_header?.length || 0) + 1;
+    const checksumLength = this.defaults.rx_checksum2 ? 2 : (this.defaults.rx_checksum && this.defaults.rx_checksum !== 'none' ? 1 : 0);
+
+    if (checksumLength > 0) {
+      // Ensure we have at least checksum bytes beyond the header
+      const minLength = (this.defaults.rx_header?.length || 0) + checksumLength;
       if (this.buffer.length < minLength) {
         return false;
       }
@@ -117,48 +119,82 @@ export class PacketParser {
   }
 
   private verifyChecksum(packet: number[]): boolean {
-    if (!this.defaults.rx_checksum || this.defaults.rx_checksum === 'none') return true;
+    // If rx_checksum is 'none', skip this block
+    if (this.defaults.rx_checksum === 'none') return true;
 
-    let calculatedChecksum = 0;
-    let checksumByte = packet[packet.length - 1]; // Default assumption: checksum is last byte
-    let dataEnd = packet.length - 1;
+    // Check for 1-byte checksum first (more common)
+    if (this.defaults.rx_checksum) {
+      let calculatedChecksum = 0;
+      let checksumByte = packet[packet.length - 1]; // Default assumption: checksum is last byte
+      let dataEnd = packet.length - 1;
 
-    // Adjust for footer
-    if (this.defaults.rx_footer && this.defaults.rx_footer.length > 0) {
-      checksumByte = packet[packet.length - 1 - this.defaults.rx_footer.length];
-      dataEnd = packet.length - this.defaults.rx_footer.length - 1;
-    }
-
-    const dataToCheck = Buffer.from(packet.slice(0, dataEnd + 1)); // Include checksum byte for some algos, or handle inside
-
-    if (typeof this.defaults.rx_checksum === 'string') {
-      // Use calculateChecksum for string types
-      let dataPart = Buffer.from(packet.slice(0, dataEnd));
-
-      // samsung_rx expects data without header
-      if (this.defaults.rx_checksum === 'samsung_rx') {
-        const headerLength = this.defaults.rx_header?.length || 0;
-        dataPart = Buffer.from(packet.slice(headerLength, dataEnd));
+      // Adjust for footer
+      if (this.defaults.rx_footer && this.defaults.rx_footer.length > 0) {
+        checksumByte = packet[packet.length - 1 - this.defaults.rx_footer.length];
+        dataEnd = packet.length - this.defaults.rx_footer.length - 1;
       }
 
-      calculatedChecksum = calculateChecksum(dataPart, this.defaults.rx_checksum as ChecksumType);
+      if (typeof this.defaults.rx_checksum === 'string') {
+        // Use calculateChecksum for string types
+        const headerLength = this.defaults.rx_header?.length || 0;
+        const headerPart = Buffer.from(packet.slice(0, headerLength));
+        const dataPart = Buffer.from(packet.slice(headerLength, dataEnd));
 
-      // console.log(`[PacketParser] Verify Checksum: Type=${this.defaults.rx_checksum}, Packet=${packet.map(b => '0x' + b.toString(16).padStart(2, '0')).join(' ')}, Data=${dataPart.toString('hex')}, Calc=0x${calculatedChecksum.toString(16).padStart(2, '0')}, Expected=0x${checksumByte.toString(16).padStart(2, '0')}, Match=${calculatedChecksum === checksumByte}`);
+        calculatedChecksum = calculateChecksum(headerPart, dataPart, this.defaults.rx_checksum as ChecksumType);
 
-      return calculatedChecksum === checksumByte;
-    } else if ((this.defaults.rx_checksum as any).type === 'lambda') {
-      const lambda = this.defaults.rx_checksum as LambdaConfig;
-      // Execute lambda
-      // Context: data (array of bytes), len (length)
-      // Should return the calculated checksum
-      const result = this.lambdaExecutor.execute(lambda, {
-        data: packet.slice(0, dataEnd),
-        len: dataEnd,
-      });
+        // console.log(`[PacketParser] Verify Checksum: Type=${this.defaults.rx_checksum}, Packet=${packet.map(b => '0x' + b.toString(16).padStart(2, '0')).join(' ')}, Data=${dataPart.toString('hex')}, Calc=0x${calculatedChecksum.toString(16).padStart(2, '0')}, Expected=0x${checksumByte.toString(16).padStart(2, '0')}, Match=${calculatedChecksum === checksumByte}`);
 
-      return result === checksumByte;
+        return calculatedChecksum === checksumByte;
+      } else if ((this.defaults.rx_checksum as any).type === 'lambda') {
+        const lambda = this.defaults.rx_checksum as LambdaConfig;
+        // Execute lambda
+        // Context: data (array of bytes), len (length)
+        // Should return the calculated checksum
+        const result = this.lambdaExecutor.execute(lambda, {
+          data: packet.slice(0, dataEnd),
+          len: dataEnd,
+        });
+
+        return result === checksumByte;
+      }
+
+      return false;
     }
 
-    return false;
+    // Fall back to 2-byte checksum
+    if (this.defaults.rx_checksum2) {
+      const footerLength = this.defaults.rx_footer?.length || 0;
+      const headerLength = this.defaults.rx_header?.length || 0;
+
+      // Get the 2-byte checksum from the packet
+      const checksumStart = packet.length - 2 - footerLength;
+      if (checksumStart < headerLength) {
+        return false; // Not enough data
+      }
+
+      const checksumBytes = packet.slice(checksumStart, checksumStart + 2);
+      const headerPart = Buffer.from(packet.slice(0, headerLength));
+      const dataPart = Buffer.from(packet.slice(headerLength, checksumStart));
+
+      if (typeof this.defaults.rx_checksum2 === 'string') {
+        const calculated = calculateChecksum2(headerPart, dataPart, this.defaults.rx_checksum2 as Checksum2Type);
+        return calculated[0] === checksumBytes[0] && calculated[1] === checksumBytes[1];
+      } else if ((this.defaults.rx_checksum2 as any).type === 'lambda') {
+        const lambda = this.defaults.rx_checksum2 as LambdaConfig;
+        const result = this.lambdaExecutor.execute(lambda, {
+          data: packet.slice(0, checksumStart),
+          len: checksumStart,
+        });
+        // Lambda should return array of 2 bytes
+        if (Array.isArray(result) && result.length === 2) {
+          return result[0] === checksumBytes[0] && result[1] === checksumBytes[1];
+        }
+        return false;
+      }
+      return false;
+    }
+
+    // No checksum configured
+    return true;
   }
 }

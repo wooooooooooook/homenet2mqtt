@@ -2,7 +2,6 @@ export type ChecksumType =
   | 'add'
   | 'add_no_header'
   | 'xor'
-  | 'xor_add'
   | 'samsung_rx'
   | 'samsung_tx'
   | 'none';
@@ -14,10 +13,6 @@ export function calculateChecksum(data: Buffer, type: ChecksumType): number {
     case 'add_no_header':
       return addNoHeader(data);
     case 'xor':
-      return xor(data);
-    case 'xor_add':
-      // This is a guess based on the name.
-      // It might need to be adjusted based on device behavior.
       return xor(data);
     case 'samsung_rx':
       return samsungRx(data);
