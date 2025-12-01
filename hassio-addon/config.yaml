@@ -14,13 +14,13 @@ options:
   log_level: info
   mqtt_url: mqtt://core-mosquitto:1883
   mqtt_topic_prefix: homenet
-  serial_port: /dev/ttyUSB0
+  serial_port: 
   config_file: samsung_sds.homenet_bridge.yaml
 schema:
-  log_level: list(debug, info, warn, error)
+  log_level: list(trace|debug|info|warning|error|fatal)
   mqtt_url: str
   mqtt_topic_prefix: str
-  serial_port: device
+  serial_port: str
   config_file: str
 ports:
   3000/tcp: 3000
