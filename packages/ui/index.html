@@ -4,6 +4,15 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RS485 HomeNet Bridge UI</title>
+    <script>
+      // Set base URL dynamically based on the current location
+      // This ensures relative paths work correctly in HA Ingress iframe
+      const base = document.createElement('base');
+      // Normalize pathname: remove trailing slashes and add exactly one
+      const pathname = window.location.pathname.replace(/\/+$/, '') + '/';
+      base.href = pathname;
+      document.head.appendChild(base);
+    </script>
   </head>
   <body>
     <div id="app"></div>

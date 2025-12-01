@@ -1,5 +1,5 @@
 name: Homenet2MQTT
-version: 0.0.2_h
+version: 0.0.2_i
 slug: h2m
 description: Bridge between RS485 HomeNet devices and MQTT.
 url: https://github.com/woooook/RS485-HomeNet-to-MQTT-bridge
@@ -38,7 +38,4 @@ schema:
   config_file: str
 ingress: true
 ingress_port: 3000
-ingress_entry: /
 panel_icon: mdi:floor-plan
-ports: 
-  8099/tcp : null
