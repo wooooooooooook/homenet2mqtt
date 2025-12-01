@@ -73,7 +73,7 @@
 
   async function loadConfigFiles() {
     try {
-      const response = await fetch('/api/configs');
+      const response = await fetch('./api/configs');
       if (!response.ok) {
         throw new Error('설정 파일 목록을 불러오지 못했습니다.');
       }
@@ -91,7 +91,7 @@
     isSwitchingConfig = true;
     infoError = '';
     try {
-      const response = await fetch('/api/configs/select', {
+      const response = await fetch('./api/configs/select', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ file }),
@@ -115,7 +115,7 @@
     infoError = '';
 
     try {
-      const response = await fetch('/api/bridge/info');
+      const response = await fetch('./api/bridge/info');
 
       if (!response.ok) {
         const text = await response.text();
@@ -147,7 +147,7 @@
     connectionStatus = 'connecting';
     statusMessage = 'MQTT 스트림을 연결하는 중입니다...';
 
-    const url = new URL('/api/packets/stream', window.location.origin);
+    const url = new URL('./api/packets/stream', window.location.href);
     if (bridgeInfo.mqttUrl.trim().length > 0) {
       url.searchParams.set('mqttUrl', bridgeInfo.mqttUrl.trim());
     }
