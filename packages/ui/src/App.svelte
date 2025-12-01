@@ -82,6 +82,7 @@
     });
 
     if (!response.ok) {
+      console.log(response);
       // 에러 메시지를 서버에서 받거나 기본 메시지 사용
       let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
       try {
@@ -91,7 +92,6 @@
         }
       } catch {
         // JSON 파싱 실패 시 응답 텍스트 시도
-        console.log('JSON 파싱 실패:', response);
         try {
           const text = await response.text();
           if (text) errorMessage = text;
@@ -107,6 +107,7 @@
 
   async function loadConfigFiles() {
     try {
+      console.log(location);
       configFiles = await apiRequest<string[]>('./api/configs');
     } catch (err) {
       console.error('설정 파일 목록 로드 실패:', err);
