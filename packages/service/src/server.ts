@@ -48,7 +48,17 @@ let bridgeStartPromise: Promise<void> | null = null;
 
 // --- Express Middleware & Setup ---
 app.use(express.json());
-app.use(express.static(path.resolve(__dirname, '../static')));
+app.use(
+  express.static(path.resolve(__dirname, '../static'), {
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('.js')) {
+        res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+      } else if (filePath.endsWith('.css')) {
+        res.setHeader('Content-Type', 'text/css; charset=utf-8');
+      }
+    },
+  }),
+);
 
 // --- API Endpoints ---
 app.get('/api/health', (_req, res) => {
