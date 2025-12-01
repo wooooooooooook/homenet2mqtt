@@ -47,6 +47,15 @@ let bridgeError: string | null = null;
 let bridgeStartPromise: Promise<void> | null = null;
 
 // --- Express Middleware & Setup ---
+app.use((req, res, next) => {
+  const ingressPath = req.headers['x-ingress-path'];
+  if (typeof ingressPath === 'string' && req.url.startsWith(ingressPath)) {
+    req.url = req.url.substring(ingressPath.length) || '/';
+    logger.debug({ originalUrl: req.originalUrl, newUrl: req.url }, '[service] Stripped Ingress path');
+  }
+  next();
+});
+
 app.use(express.json());
 app.use(
   express.static(path.resolve(__dirname, '../static'), {
