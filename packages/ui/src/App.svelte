@@ -71,15 +71,45 @@
     loadConfigFiles();
   });
 
+  // API 요청 helper 함수
+  async function apiRequest<T = any>(url: string, options: RequestInit = {}): Promise<T> {
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+
+    if (!response.ok) {
+      // 에러 메시지를 서버에서 받거나 기본 메시지 사용
+      let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+      try {
+        const errorData = await response.json();
+        if (errorData.error) {
+          errorMessage = errorData.error;
+        }
+      } catch {
+        // JSON 파싱 실패 시 응답 텍스트 시도
+        console.log('JSON 파싱 실패:', response);
+        try {
+          const text = await response.text();
+          if (text) errorMessage = text;
+        } catch {
+          // 텍스트 읽기도 실패 시 기본 메시지 사용
+        }
+      }
+      throw new Error(errorMessage);
+    }
+
+    return await response.json();
+  }
+
   async function loadConfigFiles() {
     try {
-      const response = await fetch('./api/configs');
-      if (!response.ok) {
-        throw new Error('설정 파일 목록을 불러오지 못했습니다.');
-      }
-      configFiles = await response.json();
+      configFiles = await apiRequest<string[]>('./api/configs');
     } catch (err) {
-      console.error(err);
+      console.error('설정 파일 목록 로드 실패:', err);
     }
   }
 
@@ -91,15 +121,10 @@
     isSwitchingConfig = true;
     infoError = '';
     try {
-      const response = await fetch('./api/configs/select', {
+      await apiRequest('./api/configs/select', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ file }),
       });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || '설정 변경에 실패했습니다.');
-      }
       setTimeout(() => loadBridgeInfo(true), 1000);
     } catch (err) {
       infoError = err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.';
@@ -115,14 +140,7 @@
     infoError = '';
 
     try {
-      const response = await fetch('./api/bridge/info');
-
-      if (!response.ok) {
-        const text = await response.text();
-        throw new Error(text || '브리지 정보를 가져오지 못했습니다.');
-      }
-
-      const data = (await response.json()) as BridgeInfo;
+      const data = await apiRequest<BridgeInfo>('./api/bridge/info');
 
       bridgeInfo = data;
       selectedConfigFile = data.configFile;
