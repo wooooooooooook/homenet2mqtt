@@ -25,19 +25,23 @@ import {
   Extractor,
   StateNumSchema,
   StateSchema,
+  LambdaConfig,
 } from '../types.js';
 import { logger } from '../../utils/logger.js';
 import { EntityStateProvider } from '../packet-processor.js';
 import { hexToBytes, bytesToHex } from '../utils/common.js'; // Import utilities
 import { calculateChecksum, calculateChecksum2 } from '../utils/checksum.js';
+import { LambdaExecutor } from '../lambda-executor.js';
 
 export class CommandGenerator {
   private config: HomenetBridgeConfig;
   private stateProvider: EntityStateProvider;
+  private lambdaExecutor: LambdaExecutor;
 
   constructor(config: HomenetBridgeConfig, stateProvider: EntityStateProvider) {
     this.config = config;
     this.stateProvider = stateProvider;
+    this.lambdaExecutor = new LambdaExecutor();
   }
 
   // --- Value Encoding/Decoding Logic ---
@@ -361,9 +365,26 @@ export class CommandGenerator {
           dataPart,
           packetDefaults.tx_checksum2 as Checksum2Type,
         );
+      } else if ((packetDefaults.tx_checksum2 as any).type === 'lambda') {
+        // Lambda checksum2
+        const lambda = packetDefaults.tx_checksum2 as LambdaConfig;
+        const fullData = [...txHeader, ...commandData];
+        const result = this.lambdaExecutor.execute(lambda, {
+          data: fullData,
+          len: fullData.length,
+        });
+
+        // Validate result is array of 2 bytes
+        if (Array.isArray(result) && result.length === 2) {
+          checksum = result;
+        } else {
+          logger.error(
+            `Lambda tx_checksum2 returned invalid result. Expected array of 2 bytes, got: ${JSON.stringify(result)}`,
+          );
+          checksum = [0, 0];
+        }
       } else {
-        // Lambda checksum2 (not yet implemented)
-        logger.warn('Lambda tx_checksum2 not yet implemented');
+        logger.warn('Unknown tx_checksum2 type');
         checksum = [0, 0];
       }
 
