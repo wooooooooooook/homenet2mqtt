@@ -2,12 +2,10 @@ import express from 'express';
 import path from 'node:path';
 import fs from 'node:fs/promises';
 import dotenv from 'dotenv';
-import { createServer } from 'node:http';
+import { createServer, type IncomingMessage } from 'node:http';
 import { fileURLToPath } from 'node:url';
 import yaml, { Type } from 'js-yaml';
 import { WebSocket, WebSocketServer } from 'ws';
-// Import only createBridge and HomeNetBridge, BridgeOptions is now defined in core
-// Import only createBridge and HomeNetBridge, BridgeOptions is now defined in core
 import {
   createBridge,
   HomeNetBridge,
@@ -102,20 +100,40 @@ type StreamMessage<T = unknown> = {
   data: T;
 };
 
+type RawPacketPayload = {
+  payload?: string;
+  interval?: number | null;
+  receivedAt?: string;
+};
+
+type RawPacketEvent = {
+  topic: string;
+  payload: string;
+  receivedAt: string;
+  interval: number | null;
+};
+
+const normalizeRawPacket = (data: RawPacketPayload): RawPacketEvent => ({
+  topic: 'homenet/raw',
+  payload: typeof data.payload === 'string' ? data.payload : '',
+  receivedAt: data.receivedAt ?? new Date().toISOString(),
+  interval: typeof data.interval === 'number' ? data.interval : null,
+});
+
 const sendStreamEvent = <T>(socket: WebSocket, event: StreamEvent, payload: T) => {
   if (socket.readyState !== WebSocket.OPEN) return;
   const message: StreamMessage<T> = { event, data: payload };
   socket.send(JSON.stringify(message));
 };
 
-const getRequestUrl = (req: { url?: string; headers?: { host?: string } }) => {
-  if (!req.url) return null;
+const getRequestUrl = (req?: IncomingMessage) => {
+  if (!req?.url) return null;
   const host = req.headers?.host || 'localhost';
   return new URL(req.url, `http://${host}`);
 };
 
 const registerPacketStream = () => {
-  wss.on('connection', (socket, req) => {
+  wss.on('connection', (socket: WebSocket, req: IncomingMessage) => {
     const requestUrl = getRequestUrl(req);
     const streamMqttUrl = resolveMqttUrl(
       requestUrl?.searchParams.get('mqttUrl') ?? '',
@@ -145,17 +163,13 @@ const registerPacketStream = () => {
     const cleanupHandlers: Array<() => void> = [];
 
     const handleRawData = (data: string) => {
-      sendStreamEvent(socket, 'raw-data', {
-        topic: 'homenet/raw',
-        payload: data,
-        receivedAt: new Date().toISOString(),
-      });
+      sendStreamEvent(socket, 'raw-data', normalizeRawPacket({ payload: data, interval: null }));
     };
     eventBus.on('raw-data', handleRawData);
     cleanupHandlers.push(() => eventBus.off('raw-data', handleRawData));
 
-    const handleRawDataWithInterval = (data: unknown) => {
-      sendStreamEvent(socket, 'raw-data-with-interval', data);
+    const handleRawDataWithInterval = (data: RawPacketPayload) => {
+      sendStreamEvent(socket, 'raw-data-with-interval', normalizeRawPacket(data));
     };
     eventBus.on('raw-data-with-interval', handleRawDataWithInterval);
     cleanupHandlers.push(() => eventBus.off('raw-data-with-interval', handleRawDataWithInterval));

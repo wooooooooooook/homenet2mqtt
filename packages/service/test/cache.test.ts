@@ -37,16 +37,20 @@ describe('PacketCache', () => {
 
         // Add MAX_RAW + 10 packets
         for (let i = 0; i < MAX_RAW + 10; i++) {
-            eventBus.emit('raw-data-with-interval', { id: i, interval: i * 10 });
+            eventBus.emit('raw-data-with-interval', {
+                payload: `packet-${i}`,
+                interval: i * 10,
+                receivedAt: new Date(Date.now() + i).toISOString(),
+            });
         }
 
         const state = cache.getInitialState();
         expect(state.rawPackets).toHaveLength(MAX_RAW);
-        expect((state.rawPackets[0] as any).id).toBe(10); // First 10 should be dropped
-        expect((state.rawPackets[MAX_RAW - 1] as any).id).toBe(MAX_RAW + 9);
+        expect(state.rawPackets[0].payload).toBe('packet-10'); // First 10 should be dropped
+        expect(state.rawPackets[MAX_RAW - 1].payload).toBe(`packet-${MAX_RAW + 9}`);
         // Intervals should be preserved
-        expect((state.rawPackets[0] as any).interval).toBe(100);
-        expect((state.rawPackets[MAX_RAW - 1] as any).interval).toBe((MAX_RAW + 9) * 10);
+        expect(state.rawPackets[0].interval).toBe(100);
+        expect(state.rawPackets[MAX_RAW - 1].interval).toBe((MAX_RAW + 9) * 10);
     });
 
     it('should cache command packets with circular buffer', () => {

@@ -86,6 +86,9 @@ importers:
       '@types/express':
         specifier: ^4.17.21
         version: 4.17.25
+      '@types/ws':
+        specifier: ^8.18.1
+        version: 8.18.1
       pino-pretty:
         specifier: ^13.1.2
         version: 13.1.2

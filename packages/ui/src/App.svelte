@@ -65,7 +65,10 @@
   let temperatureInputs: Record<string, number> = {};
   let executingCommands: Set<string> = new Set();
 
-  type RawPacketWithInterval = MqttMessageEvent & {
+  type RawPacketWithInterval = {
+    topic: string;
+    payload: string;
+    receivedAt: string;
     interval: number | null;
   };
 
@@ -94,6 +97,23 @@
 
   let rawPackets: RawPacketWithInterval[] = [];
   let packetStats: PacketStats | null = null;
+  let hasIntervalPackets = false;
+  let lastRawPacketTimestamp: number | null = null;
+
+  const normalizeRawPacket = (
+    data: Partial<RawPacketWithInterval> & { payload?: string },
+  ): RawPacketWithInterval => ({
+    topic: data.topic ?? 'homenet/raw',
+    payload: data.payload ?? '',
+    receivedAt: data.receivedAt ?? new Date().toISOString(),
+    interval: typeof data.interval === 'number' ? data.interval : null,
+  });
+
+  const appendRawPacket = (packet: RawPacketWithInterval) => {
+    if (!isLogPaused) {
+      rawPackets = [...rawPackets, packet].slice(-MAX_PACKETS);
+    }
+  };
 
   onMount(() => {
     loadBridgeInfo(true);
@@ -202,9 +222,23 @@
     };
 
     const handleRawPacketWithInterval = (data: RawPacketWithInterval) => {
-      if (!isLogPaused) {
-        rawPackets = [...rawPackets, data].slice(-MAX_PACKETS);
-      }
+      hasIntervalPackets = true;
+      const packet = normalizeRawPacket(data);
+      lastRawPacketTimestamp = Date.parse(packet.receivedAt);
+      appendRawPacket(packet);
+    };
+
+    const handleRawPacketFallback = (data: MqttMessageEvent) => {
+      if (hasIntervalPackets) return;
+      const timestamp = Date.parse(data.receivedAt);
+      const interval = lastRawPacketTimestamp !== null ? timestamp - lastRawPacketTimestamp : null;
+      lastRawPacketTimestamp = timestamp;
+      appendRawPacket(
+        normalizeRawPacket({
+          ...data,
+          interval,
+        }),
+      );
     };
 
     const handlePacketStats = (data: PacketStats) => {
@@ -222,6 +256,7 @@
     const messageHandlers: Partial<Record<StreamEvent, (data: any) => void>> = {
       status: handleStatus,
       'mqtt-message': handleMqttMessage,
+      'raw-data': handleRawPacketFallback,
       'raw-data-with-interval': handleRawPacketWithInterval,
       'packet-interval-stats': handlePacketStats,
       'command-packet': handleCommandPacket,
@@ -272,6 +307,8 @@
     connectionStatus = 'idle';
     statusMessage = '';
     packetStats = null;
+    hasIntervalPackets = false;
+    lastRawPacketTimestamp = null;
   }
 
   function safeParse<T>(value: string): T | null {
