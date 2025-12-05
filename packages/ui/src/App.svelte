@@ -17,6 +17,18 @@
 
   type BridgeStatus = 'idle' | 'starting' | 'started' | 'stopped' | 'error';
 
+  type CommandInfo = {
+    entityId: string;
+    entityName: string;
+    entityType: string;
+    commandName: string;
+    displayName: string;
+    inputType?: 'number';
+    min?: number;
+    max?: number;
+    step?: number;
+  };
+
   type BridgeInfo = {
     configFile: string;
     serialPath: string;
@@ -45,6 +57,13 @@
   let connectionStatus: 'idle' | 'connecting' | 'connected' | 'error' = 'idle';
   let statusMessage = '';
   let isLogPaused = false;
+
+  // Command buttons state
+  let availableCommands: CommandInfo[] = [];
+  let commandsLoading = false;
+  let commandsError = '';
+  let temperatureInputs: Record<string, number> = {};
+  let executingCommands: Set<string> = new Set();
 
   type RawPacketWithInterval = MqttMessageEvent & {
     interval: number | null;
@@ -115,6 +134,7 @@
       commandPackets = [];
       deviceStates.clear();
       startMqttStream();
+      loadCommands();
     } catch (err) {
       bridgeInfo = null;
       closeStream();
@@ -238,6 +258,62 @@
 
   onDestroy(closeStream);
 
+  async function loadCommands() {
+    commandsLoading = true;
+    commandsError = '';
+    try {
+      const data = await apiRequest<{ commands: CommandInfo[] }>('./api/commands');
+      availableCommands = data.commands;
+      // Initialize temperature inputs with default values
+      for (const cmd of data.commands) {
+        if (cmd.inputType === 'number') {
+          temperatureInputs[`${cmd.entityId}_${cmd.commandName}`] = cmd.min ?? 20;
+        }
+      }
+    } catch (err) {
+      commandsError = err instanceof Error ? err.message : '명령 목록을 불러오지 못했습니다.';
+    } finally {
+      commandsLoading = false;
+    }
+  }
+
+  async function executeCommand(cmd: CommandInfo, value?: number) {
+    const key = `${cmd.entityId}_${cmd.commandName}`;
+    if (executingCommands.has(key)) return;
+
+    executingCommands.add(key);
+    executingCommands = executingCommands; // Trigger reactivity
+
+    try {
+      await apiRequest('./api/commands/execute', {
+        method: 'POST',
+        body: JSON.stringify({
+          entityId: cmd.entityId,
+          commandName: cmd.commandName,
+          value: value,
+        }),
+      });
+    } catch (err) {
+      console.error('Command execution failed:', err);
+    } finally {
+      executingCommands.delete(key);
+      executingCommands = executingCommands; // Trigger reactivity
+    }
+  }
+
+  // Group commands by entity
+  $: groupedCommands = (() => {
+    const groups = new Map<string, CommandInfo[]>();
+    for (const cmd of availableCommands) {
+      const key = cmd.entityId;
+      if (!groups.has(key)) {
+        groups.set(key, []);
+      }
+      groups.get(key)!.push(cmd);
+    }
+    return groups;
+  })();
+
   $: bridgeStatusState = (() => {
     if (infoError) return 'error';
     return bridgeInfo?.status ?? 'idle';
@@ -345,6 +421,78 @@
             {/if}
           </div>
         </div>
+      </div>
+
+      <!-- Command Buttons Section -->
+      <div class="commands-container">
+        <h2>명령 버튼</h2>
+        {#if commandsLoading}
+          <p class="empty">명령 목록을 불러오는 중입니다...</p>
+        {:else if commandsError}
+          <p class="error">{commandsError}</p>
+        {:else if groupedCommands.size === 0}
+          <p class="empty">사용 가능한 명령이 없습니다.</p>
+        {:else}
+          <div class="command-groups">
+            {#each Array.from(groupedCommands.entries()) as [entityId, commands] (entityId)}
+              <div class="command-group">
+                <h3 class="entity-name">{commands[0].entityName}</h3>
+                <div class="command-buttons">
+                  {#each commands as cmd (cmd.commandName)}
+                    {#if cmd.inputType === 'number'}
+                      <div class="command-input-group">
+                        <input
+                          type="number"
+                          min={cmd.min}
+                          max={cmd.max}
+                          step={cmd.step}
+                          bind:value={temperatureInputs[`${cmd.entityId}_${cmd.commandName}`]}
+                          class="temp-input"
+                        />
+                        <button
+                          class="command-btn input-btn"
+                          on:click={() =>
+                            executeCommand(
+                              cmd,
+                              temperatureInputs[`${cmd.entityId}_${cmd.commandName}`],
+                            )}
+                          disabled={executingCommands.has(`${cmd.entityId}_${cmd.commandName}`)}
+                        >
+                          {#if executingCommands.has(`${cmd.entityId}_${cmd.commandName}`)}
+                            전송 중...
+                          {:else}
+                            {cmd.commandName
+                              .replace('command_', '')
+                              .replace('temperature', '온도 설정')}
+                          {/if}
+                        </button>
+                      </div>
+                    {:else}
+                      <button
+                        class="command-btn"
+                        class:on={cmd.commandName.includes('on') ||
+                          cmd.commandName.includes('heat') ||
+                          cmd.commandName.includes('open') ||
+                          cmd.commandName.includes('unlock')}
+                        class:off={cmd.commandName.includes('off') ||
+                          cmd.commandName.includes('close') ||
+                          cmd.commandName.includes('lock')}
+                        on:click={() => executeCommand(cmd)}
+                        disabled={executingCommands.has(`${cmd.entityId}_${cmd.commandName}`)}
+                      >
+                        {#if executingCommands.has(`${cmd.entityId}_${cmd.commandName}`)}
+                          전송 중...
+                        {:else}
+                          {cmd.commandName.replace('command_', '').toUpperCase()}
+                        {/if}
+                      </button>
+                    {/if}
+                  {/each}
+                </div>
+              </div>
+            {/each}
+          </div>
+        {/if}
       </div>
 
       <div class="stats-container">
@@ -732,7 +880,7 @@
 
   .command-line {
     display: grid;
-    grid-template-columns: auto auto auto auto 1fr;
+    grid-template-columns: auto auto auto auto auto 1fr;
     gap: 0.5rem;
     align-items: center;
   }
@@ -768,7 +916,7 @@
 
   .packet-line {
     display: grid;
-    grid-template-columns: auto auto 1fr;
+    grid-template-columns: auto auto auto auto auto 1fr;
     gap: 0.5rem;
     align-items: baseline;
   }
@@ -778,5 +926,121 @@
     font-size: 0.75rem;
     width: 60px;
     text-align: right;
+  }
+
+  /* Command Buttons Styles */
+  .commands-container {
+    margin-top: 2rem;
+  }
+
+  .commands-container h2 {
+    font-size: 1.2rem;
+    margin: 0 0 1rem;
+    color: rgba(226, 232, 240, 0.9);
+    border-bottom: 1px solid rgba(148, 163, 184, 0.3);
+    padding-bottom: 0.5rem;
+  }
+
+  .command-groups {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+  }
+
+  .command-group {
+    background: rgba(30, 41, 59, 0.8);
+    border: 1px solid rgba(148, 163, 184, 0.3);
+    border-radius: 0.75rem;
+    padding: 1rem;
+  }
+
+  .command-group .entity-name {
+    font-size: 0.95rem;
+    margin: 0 0 0.75rem;
+    color: #60a5fa;
+    font-weight: 600;
+  }
+
+  .command-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .command-btn {
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    border: 1px solid rgba(148, 163, 184, 0.4);
+    background: rgba(51, 65, 85, 0.8);
+    color: #e2e8f0;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 500;
+    transition: all 0.15s ease;
+  }
+
+  .command-btn:hover:enabled {
+    background: rgba(71, 85, 105, 0.9);
+    border-color: rgba(148, 163, 184, 0.6);
+  }
+
+  .command-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .command-btn.on {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.3), rgba(16, 185, 129, 0.3));
+    border-color: rgba(34, 197, 94, 0.5);
+    color: #86efac;
+  }
+
+  .command-btn.on:hover:enabled {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.5), rgba(16, 185, 129, 0.5));
+  }
+
+  .command-btn.off {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.3), rgba(220, 38, 38, 0.3));
+    border-color: rgba(239, 68, 68, 0.5);
+    color: #fca5a5;
+  }
+
+  .command-btn.off:hover:enabled {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.5), rgba(220, 38, 38, 0.5));
+  }
+
+  .command-input-group {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .temp-input {
+    width: 60px;
+    padding: 0.5rem;
+    border-radius: 0.5rem 0 0 0.5rem;
+    border: 1px solid rgba(148, 163, 184, 0.4);
+    border-right: none;
+    background: rgba(15, 23, 42, 0.8);
+    color: #fbbf24;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-align: center;
+  }
+
+  .temp-input:focus {
+    outline: none;
+    border-color: #fbbf24;
+  }
+
+  .command-btn.input-btn {
+    border-radius: 0 0.5rem 0.5rem 0;
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.3), rgba(245, 158, 11, 0.3));
+    border-color: rgba(251, 191, 36, 0.5);
+    color: #fcd34d;
+  }
+
+  .command-btn.input-btn:hover:enabled {
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.5), rgba(245, 158, 11, 0.5));
   }
 </style>

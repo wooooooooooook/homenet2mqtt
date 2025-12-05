@@ -177,6 +177,157 @@ app.get('/api/packets/stream', (req, res) => {
   });
 });
 
+// --- Command API Endpoints ---
+interface CommandInfo {
+  entityId: string;
+  entityName: string;
+  entityType: string;
+  commandName: string;
+  displayName: string;
+  inputType?: 'number' | 'text';
+  min?: number;
+  max?: number;
+  step?: number;
+  options?: string[];
+}
+
+function extractCommands(config: HomenetBridgeConfig): CommandInfo[] {
+  const commands: CommandInfo[] = [];
+
+  // All entity types (same as discovery-manager)
+  const entityTypeKeys: (keyof HomenetBridgeConfig)[] = [
+    'light',
+    'climate',
+    'valve',
+    'button',
+    'sensor',
+    'fan',
+    'switch',
+    'lock',
+    'number',
+    'select',
+    'text_sensor',
+    'text',
+    'binary_sensor',
+  ];
+
+  for (const entityType of entityTypeKeys) {
+    const entities = config[entityType] as Array<Record<string, unknown>> | undefined;
+    if (!entities) continue;
+
+    for (const entity of entities) {
+      const entityId = entity.id as string;
+      const entityName = entity.name as string || entityId;
+
+      // Dynamically find all command_* properties in the entity
+      for (const key of Object.keys(entity)) {
+        if (!key.startsWith('command_')) continue;
+
+        const commandData = entity[key];
+        if (!commandData) continue;
+
+        const commandSuffix = key.replace('command_', '');
+        const displayCommandName = commandSuffix.charAt(0).toUpperCase() + commandSuffix.slice(1);
+
+        const cmdInfo: CommandInfo = {
+          entityId,
+          entityName,
+          entityType,
+          commandName: key,
+          displayName: `${entityName} ${displayCommandName}`,
+        };
+
+        // Detect input types based on command name and entity type
+        if (key === 'command_temperature' || key === 'command_speed' || key === 'command_brightness' || key === 'command_percentage' || key === 'command_position') {
+          cmdInfo.inputType = 'number';
+
+          // Get visual config for temperature bounds (climate)
+          const visual = entity.visual as { min_temperature?: string; max_temperature?: string; temperature_step?: string } | undefined;
+          if (visual && key === 'command_temperature') {
+            const parseTemp = (val?: string) => val ? parseInt(val.replace(/[^\d]/g, '')) : undefined;
+            cmdInfo.min = parseTemp(visual.min_temperature) ?? 5;
+            cmdInfo.max = parseTemp(visual.max_temperature) ?? 40;
+            cmdInfo.step = parseTemp(visual.temperature_step) ?? 1;
+          } else if (key === 'command_brightness') {
+            cmdInfo.min = 0;
+            cmdInfo.max = 255;
+            cmdInfo.step = 1;
+          } else if (key === 'command_percentage' || key === 'command_speed' || key === 'command_position') {
+            cmdInfo.min = 0;
+            cmdInfo.max = 100;
+            cmdInfo.step = 1;
+          }
+        }
+
+        // Number entity
+        if (entityType === 'number' && key === 'command_number') {
+          cmdInfo.inputType = 'number';
+          cmdInfo.min = entity.min_value as number ?? 0;
+          cmdInfo.max = entity.max_value as number ?? 100;
+          cmdInfo.step = entity.step as number ?? 1;
+        }
+
+        // Select entity
+        if (entityType === 'select' && key === 'command_option') {
+          cmdInfo.inputType = 'text';
+          cmdInfo.options = entity.options as string[] ?? [];
+        }
+
+        // Text entity
+        if (entityType === 'text' && key === 'command_text') {
+          cmdInfo.inputType = 'text';
+        }
+
+        commands.push(cmdInfo);
+      }
+    }
+  }
+
+  return commands;
+}
+
+app.get('/api/commands', (_req, res) => {
+  if (!currentConfigContent) {
+    return res.status(400).json({ error: 'Config not loaded' });
+  }
+
+  const commands = extractCommands(currentConfigContent);
+  res.json({ commands });
+});
+
+app.post('/api/commands/execute', async (req, res) => {
+  const { entityId, commandName, value } = req.body as {
+    entityId?: string;
+    commandName?: string;
+    value?: number | string;
+  };
+
+  if (!entityId || !commandName) {
+    return res.status(400).json({ error: 'entityId and commandName are required' });
+  }
+
+  if (!bridge) {
+    return res.status(400).json({ error: 'Bridge not started' });
+  }
+
+  // Convert command_on -> on, command_off -> off, etc.
+  const cmdName = commandName.replace('command_', '');
+
+  const result = await bridge.executeCommand(entityId, cmdName, value);
+
+  if (result.success) {
+    res.json({
+      success: true,
+      entityId,
+      commandName: cmdName,
+      value,
+      packet: result.packet,
+    });
+  } else {
+    res.status(400).json({ error: result.error });
+  }
+});
+
 // --- Static Serving & Error Handling ---
 // Serve static files AFTER API routes to prevent API requests from being served as static files
 app.use(

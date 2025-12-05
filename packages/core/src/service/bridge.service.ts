@@ -114,6 +114,105 @@ export class HomeNetBridge implements EntityStateProvider {
     this.startPromise = null;
   }
 
+  /**
+   * Send a raw packet directly to the serial port without ACK waiting
+   */
+  sendRawPacket(packet: number[]): boolean {
+    if (!this.port) {
+      logger.warn('[core] Cannot send packet: serial port not initialized');
+      return false;
+    }
+    this.port.write(Buffer.from(packet));
+    logger.info({ packet: packet.map(b => b.toString(16).padStart(2, '0')).join(' ') }, '[core] Raw packet sent');
+    return true;
+  }
+
+  /**
+   * Get the loaded configuration
+   */
+  getConfig(): HomenetBridgeConfig | undefined {
+    return this.config;
+  }
+
+  /**
+   * Execute a command by mocking subscriber behavior
+   * This mimics what handleMqttMessage does when receiving a set topic
+   */
+  async executeCommand(
+    entityId: string,
+    commandName: string,
+    value?: number | string,
+  ): Promise<{ success: boolean; packet?: string; error?: string }> {
+    if (!this.config || !this.packetProcessor || !this.commandManager) {
+      return { success: false, error: 'Bridge not initialized' };
+    }
+
+    // Find entity in config (same logic as subscriber)
+    const entityTypes: (keyof HomenetBridgeConfig)[] = [
+      'light',
+      'climate',
+      'valve',
+      'button',
+      'sensor',
+      'fan',
+      'switch',
+      'binary_sensor',
+      'lock',
+      'number',
+      'select',
+      'text',
+      'text_sensor',
+    ];
+
+    let targetEntity: (EntityConfig & { type: string }) | undefined;
+
+    for (const type of entityTypes) {
+      const entities = this.config[type] as EntityConfig[] | undefined;
+      if (entities) {
+        const found = entities.find((e) => e.id === entityId);
+        if (found) {
+          targetEntity = { ...found, type };
+          break;
+        }
+      }
+    }
+
+    if (!targetEntity) {
+      return { success: false, error: `Entity ${entityId} not found` };
+    }
+
+    // Construct command packet using packetProcessor (same as subscriber)
+    const commandPacket = this.packetProcessor.constructCommandPacket(
+      targetEntity,
+      commandName,
+      value,
+    );
+
+    if (!commandPacket) {
+      return { success: false, error: `Failed to construct packet for ${commandName}` };
+    }
+
+    const hexPacket = Buffer.from(commandPacket).toString('hex');
+
+    // Emit command-packet event (same as subscriber)
+    eventBus.emit('command-packet', {
+      entity: targetEntity.name || targetEntity.id,
+      command: commandName,
+      value: value,
+      packet: hexPacket,
+      timestamp: new Date().toISOString(),
+    });
+
+    // Send command via commandManager (same as subscriber)
+    try {
+      await this.commandManager.send(targetEntity, commandPacket);
+      return { success: true, packet: hexPacket };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      return { success: false, packet: hexPacket, error: message };
+    }
+  }
+
   private async initialize() {
     this.config = await loadConfig(this.options.configPath);
     this.packetProcessor = new PacketProcessor(this.config, this);
