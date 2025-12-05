@@ -62,13 +62,9 @@
 
   let rawPackets: RawPacketWithInterval[] = [];
   let packetStats: PacketStats | null = null;
-  let configFiles: string[] = [];
-  let selectedConfigFile: string | null = null;
-  let isSwitchingConfig = false;
 
   onMount(() => {
     loadBridgeInfo(true);
-    loadConfigFiles();
   });
 
   // API 요청 helper 함수
@@ -105,35 +101,6 @@
     return await response.json();
   }
 
-  async function loadConfigFiles() {
-    try {
-      console.log(location);
-      configFiles = await apiRequest<string[]>('./api/configs');
-    } catch (err) {
-      console.error('설정 파일 목록 로드 실패:', err);
-    }
-  }
-
-  async function handleConfigChange(event: Event) {
-    const target = event.target as HTMLSelectElement;
-    const file = target.value;
-    if (!file || isSwitchingConfig) return;
-
-    isSwitchingConfig = true;
-    infoError = '';
-    try {
-      await apiRequest('./api/configs/select', {
-        method: 'POST',
-        body: JSON.stringify({ file }),
-      });
-      setTimeout(() => loadBridgeInfo(true), 1000);
-    } catch (err) {
-      infoError = err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.';
-    } finally {
-      isSwitchingConfig = false;
-    }
-  }
-
   async function loadBridgeInfo(force = false) {
     if (infoLoading && !force) return;
 
@@ -144,7 +111,6 @@
       const data = await apiRequest<BridgeInfo>('./api/bridge/info');
 
       bridgeInfo = data;
-      selectedConfigFile = data.configFile;
       rawPackets = [];
       commandPackets = [];
       deviceStates.clear();
@@ -273,12 +239,11 @@
   onDestroy(closeStream);
 
   $: bridgeStatusState = (() => {
-    if (infoError || isSwitchingConfig) return 'error';
+    if (infoError) return 'error';
     return bridgeInfo?.status ?? 'idle';
   })();
 
   $: currentBridgeStatusLabel = (() => {
-    if (isSwitchingConfig) return '설정을 변경하는 중입니다...';
     if (infoLoading) return '브리지 정보를 불러오는 중입니다...';
     if (infoError) return infoError;
     if (!bridgeInfo) return '브리지 정보가 없습니다.';
@@ -294,28 +259,11 @@
         <h1>실시간 상태</h1>
       </div>
       <div class="controls">
-        <div class="control-group">
-          <label for="config-selector">설정 파일</label>
-          <select
-            id="config-selector"
-            bind:value={selectedConfigFile}
-            on:change={handleConfigChange}
-            disabled={isSwitchingConfig || configFiles.length === 0}
-          >
-            {#if configFiles.length > 0}
-              {#each configFiles as file (file)}
-                <option value={file}>{file}</option>
-              {/each}
-            {:else}
-              <option disabled>불러오는 중...</option>
-            {/if}
-          </select>
-        </div>
         <button
           class="ghost"
           type="button"
           on:click={() => loadBridgeInfo(true)}
-          disabled={infoLoading || isSwitchingConfig}
+          disabled={infoLoading}
         >
           {infoLoading ? '갱신 중...' : '정보 새로고침'}
         </button>
@@ -515,20 +463,6 @@
     box-shadow: none;
   }
 
-  select {
-    background: rgba(15, 23, 42, 0.7);
-    border: 1px solid rgba(148, 163, 184, 0.4);
-    color: #e2e8f0;
-    border-radius: 0.5rem;
-    padding: 0.35rem 0.9rem;
-    font-size: 0.9rem;
-  }
-
-  select:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-
   .viewer {
     display: flex;
     flex-direction: column;
@@ -554,18 +488,6 @@
     display: flex;
     gap: 1rem;
     align-items: center;
-  }
-
-  .control-group {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-  }
-
-  .control-group label {
-    font-size: 0.75rem;
-    color: rgba(226, 232, 240, 0.7);
-    padding-left: 0.5rem;
   }
 
   .status-column {

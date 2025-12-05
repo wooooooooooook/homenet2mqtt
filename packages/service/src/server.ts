@@ -81,41 +81,6 @@ app.get('/api/bridge/info', async (_req, res) => {
   });
 });
 
-app.get('/api/configs', async (_req, res, next) => {
-  try {
-    const files = await fs.readdir(CONFIG_DIR);
-    // Filter for homenet_bridge.yaml files
-    const yamlFiles = files.filter((file) => /\.homenet_bridge\.ya?ml$/.test(file));
-    res.json(yamlFiles);
-  } catch (err) {
-    next(err);
-  }
-});
-
-app.get('/api/configs/current', (_req, res) => {
-  if (!currentConfigFile) {
-    return res.status(404).json({ error: 'No config loaded' });
-  }
-  res.json({
-    file: currentConfigFile,
-    content: currentConfigContent,
-  });
-});
-
-app.post('/api/configs/select', async (req, res, next) => {
-  const { file } = req.body;
-  if (typeof file !== 'string') {
-    return res.status(400).json({ error: 'Invalid file name' });
-  }
-
-  try {
-    await loadAndStartBridge(file);
-    res.json({ success: true, message: `Configuration '${file}' loaded.` });
-  } catch (err) {
-    next(err);
-  }
-});
-
 app.get('/api/packets/stream', (req, res) => {
   const streamMqttUrl = resolveMqttUrl(
     req.query.mqttUrl,
