@@ -7,8 +7,7 @@ DOCKER_CONFIG_DIR=$(mktemp -d)
 export DOCKER_CONFIG=$DOCKER_CONFIG_DIR
 trap 'rm -rf "$DOCKER_CONFIG_DIR"' EXIT
 IMAGE="nubiz/homenet2mqtt"
-PLATFORMS=("linux/amd64" "linux/arm64" "linux/arm/v7")
-SUFFIXES=("amd64" "arm64" "armv7")
+PLATFORMS=("linux/amd64" "linux/arm64")
 BUILDER_NAME="addon-multiarch"
 NPM_REGISTRY_DEFAULT="https://registry.npmjs.org"
 
@@ -51,39 +50,26 @@ ensure_builder() {
   fi
 }
 
-build_single_arch() {
-  local platform=$1
-  local suffix=$2
-  local tag="${IMAGE}:${VERSION}-${suffix}"
+build_multi_arch() {
+  local platforms_csv
+  platforms_csv=$(IFS=','; printf '%s' "${PLATFORMS[*]}")
 
-  log "${platform} 아키텍처 빌드를 시작합니다"
+  log "멀티 아키텍처 빌드를 ${platforms_csv} 대상으로 시작합니다"
   docker buildx build \
     --builder "$BUILDER_NAME" \
-    --platform "$platform" \
+    --platform "$platforms_csv" \
     --file "$ROOT_DIR/hassio-addon/Dockerfile" \
     --build-arg "NPM_REGISTRY=${NPM_REGISTRY}" \
-    --tag "$tag" \
+    --tag "${IMAGE}:${VERSION}" \
+    --tag "${IMAGE}:latest" \
     --push \
     "$ROOT_DIR"
-}
-
-create_manifest() {
-  local main_tag=$1; shift
-  log "멀티 아키텍처 manifest를 ${main_tag} 태그로 생성합니다"
-  docker buildx imagetools create -t "$main_tag" "$@"
 }
 
 docker_login
 ensure_binfmt
 ensure_builder
 
-ARCH_TAGS=()
-for idx in "${!PLATFORMS[@]}"; do
-  build_single_arch "${PLATFORMS[$idx]}" "${SUFFIXES[$idx]}"
-  ARCH_TAGS+=("${IMAGE}:${VERSION}-${SUFFIXES[$idx]}")
-done
-
-create_manifest "${IMAGE}:${VERSION}" "${ARCH_TAGS[@]}"
-create_manifest "${IMAGE}:latest" "${ARCH_TAGS[@]}"
+build_multi_arch
 
 log "배포용 이미지 생성이 완료되었습니다"
