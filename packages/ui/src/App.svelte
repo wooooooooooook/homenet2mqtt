@@ -347,10 +347,10 @@
         </div>
       </div>
 
-      {#if packetStats}
-        <div class="stats-container">
-          <h2>패킷 간격 분석</h2>
-          <div class="viewer-meta stats-meta">
+      <div class="stats-container">
+        <h2>패킷 간격 분석</h2>
+        <div class="viewer-meta stats-meta">
+          {#if packetStats}
             <div>
               <span class="label">패킷 간격 (평균 ± 표준편차)</span>
               <strong>{packetStats.packetAvg} ± {packetStats.packetStdDev} ms</strong>
@@ -375,9 +375,11 @@
               <span class="label">표본 크기</span>
               <strong>{packetStats.sampleSize}</strong>
             </div>
-          </div>
+          {:else}
+            <p class="empty">분석중입니다...</p>
+          {/if}
         </div>
-      {/if}
+      </div>
 
       <div class="raw-title-container">
         <h2 class="raw-title">Raw 패킷 로그</h2>
@@ -392,7 +394,10 @@
           {#each [...rawPackets].reverse() as packet (packet.receivedAt + packet.topic)}
             <div class="packet-line">
               <span class="time">[{new Date(packet.receivedAt).toLocaleTimeString()}]</span>
-              <span class="interval">{packet.interval !== null ? `+${packet.interval}ms` : ''}</span
+              <span class="interval"
+                >{packet.interval !== null
+                  ? `${packet.interval >= 0 ? '+' : ''}${packet.interval}ms`
+                  : ''}</span
               >
               <code class="payload">{toHexPairs(packet.payload).join(' ')}</code>
             </div>

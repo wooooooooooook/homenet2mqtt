@@ -44,6 +44,7 @@ export class HomeNetBridge implements EntityStateProvider {
   private discoveryManager?: DiscoveryManager; // DiscoveryManager instance
   private lastPacketTimestamp: number | null = null;
   private packetIntervals: number[] = [];
+  private hrtimeBase: bigint = process.hrtime.bigint(); // Base time for monotonic clock
 
   constructor(options: BridgeOptions) {
     this.options = options;
@@ -166,16 +167,20 @@ export class HomeNetBridge implements EntityStateProvider {
     }
 
     this.port.on('data', (data) => {
-      const now = Date.now();
+      // Use high-resolution monotonic clock for accurate intervals
+      const hrNow = process.hrtime.bigint();
+      const now = Number((hrNow - this.hrtimeBase) / 1000000n); // Convert to ms
+
       let interval: number | null = null;
 
-      if (this.lastPacketTimestamp) {
+      if (this.lastPacketTimestamp !== null) {
         interval = now - this.lastPacketTimestamp;
         this.packetIntervals.push(interval);
         if (this.packetIntervals.length > 1000) {
           this.packetIntervals.shift();
         }
       }
+
       this.lastPacketTimestamp = now;
 
       const hexData = data.toString('hex');
@@ -246,7 +251,7 @@ export class HomeNetBridge implements EntityStateProvider {
     }
     const idleOccurrenceStats = calculateStats(idleOccurrenceIntervals);
 
-    eventBus.emit('packet-interval-stats', {
+    const stats = {
       packetAvg: Math.round(packetStats.avg),
       packetStdDev: parseFloat(packetStats.stdDev.toFixed(2)),
       idleAvg: Math.round(idleStats.avg),
@@ -254,6 +259,13 @@ export class HomeNetBridge implements EntityStateProvider {
       sampleSize: intervals.length,
       idleOccurrenceAvg: Math.round(idleOccurrenceStats.avg),
       idleOccurrenceStdDev: parseFloat(idleOccurrenceStats.stdDev.toFixed(2)),
-    });
+    };
+
+    // Debug: Check for invalid stats
+    if (stats.packetAvg < 0 || isNaN(stats.packetAvg)) {
+      logger.warn({ stats, packetIntervals, intervals: intervals.slice(0, 10) }, '[core] Invalid packet stats detected');
+    }
+
+    eventBus.emit('packet-interval-stats', stats);
   }
 }

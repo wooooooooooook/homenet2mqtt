@@ -14,6 +14,7 @@ import {
   eventBus,
   LambdaConfig,
 } from '@rs485-homenet/core';
+import { PacketCache } from './cache.js';
 
 // Define a custom YAML type for !lambda
 const LambdaType = new Type('!lambda', {
@@ -44,6 +45,9 @@ let currentConfigContent: HomenetBridgeConfig | null = null; // Type changed to 
 let bridgeStatus: 'idle' | 'starting' | 'started' | 'stopped' | 'error' = 'idle';
 let bridgeError: string | null = null;
 let bridgeStartPromise: Promise<void> | null = null;
+
+// --- Cache Initialization ---
+const packetCache = new PacketCache(eventBus);
 
 // --- Express Middleware & Setup ---
 app.use(express.json());
@@ -105,6 +109,25 @@ app.get('/api/packets/stream', (req, res) => {
   // We can't easily track the exact connection state of core's mqtt client here without more events from core.
   // For now, we'll send a 'connected' status to satisfy the UI.
   sendStatus('connected', { mqttUrl: streamMqttUrl });
+
+  // Send cached data
+  const initialState = packetCache.getInitialState();
+
+  initialState.mqttState.forEach((msg) => {
+    sendEvent('mqtt-message', msg);
+  });
+
+  initialState.rawPackets.forEach((packet) => {
+    sendEvent('raw-data-with-interval', packet);
+  });
+
+  initialState.commandPackets.forEach((packet) => {
+    sendEvent('command-packet', packet);
+  });
+
+  if (initialState.packetStats) {
+    sendEvent('packet-interval-stats', initialState.packetStats);
+  }
 
   // Listen for raw data from the event bus
   const handleRawData = (data: string) => {
