@@ -152,8 +152,8 @@
     connectionStatus = 'connecting';
     statusMessage = 'MQTT 스트림을 연결하는 중입니다...';
 
-    // document.baseURI respects the <base> tag so ingress paths remain intact
-    const baseUrl = typeof document !== 'undefined' ? document.baseURI : window.location.href;
+    // ingress 환경에서는 window.location을 기준으로 해야 Supervisor 토큰이 포함된다
+    const baseUrl = typeof window !== 'undefined' ? window.location.href : document.baseURI;
     const url = new URL('./api/packets/stream', baseUrl);
     if (bridgeInfo.mqttUrl.trim().length > 0) {
       url.searchParams.set('mqttUrl', bridgeInfo.mqttUrl.trim());

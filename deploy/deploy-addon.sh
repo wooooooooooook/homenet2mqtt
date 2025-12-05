@@ -28,6 +28,8 @@ fi
 : "${DOCKERHUB_TOKEN:?DOCKERHUB_TOKEN가 필요합니다}"
 
 VERSION=$(grep '^version:' "$ROOT_DIR/hassio-addon/config.yaml" | awk '{print $2}' | tr -d '"\r' | xargs)
+BASE_VERSION=${VERSION%%[-_]*}
+TAIL_SUFFIX=${VERSION#"$BASE_VERSION"}
 NPM_REGISTRY=${NPM_REGISTRY:-$NPM_REGISTRY_DEFAULT}
 
 docker_login() {
@@ -66,10 +68,57 @@ build_multi_arch() {
     "$ROOT_DIR"
 }
 
+get_manifest_digest() {
+  local ref="$1"
+  local raw
+  if ! raw=$(docker buildx imagetools inspect --raw "$ref" 2>/dev/null); then
+    return 1
+  fi
+
+  printf '%s' "$raw" | sha256sum | awk '{print $1}'
+}
+
+latest_matches_base_version() {
+  local latest_ref="${IMAGE}:latest"
+  local base_ref="${IMAGE}:${BASE_VERSION}"
+  local latest_digest base_digest
+
+  if ! latest_digest=$(get_manifest_digest "$latest_ref"); then
+    log "latest 태그(${latest_ref}) 조회에 실패했습니다"
+    return 1
+  fi
+
+  if ! base_digest=$(get_manifest_digest "$base_ref"); then
+    log "기존 기준 버전(${base_ref}) manifest를 찾을 수 없습니다"
+    return 1
+  fi
+
+  if [[ "$latest_digest" != "$base_digest" ]]; then
+    log "latest(${latest_ref})와 ${base_ref}의 digest가 달라 새 빌드가 필요합니다"
+    return 1
+  fi
+
+  return 0
+}
+
+tag_existing_manifest() {
+  log "새 빌드 없이 ${IMAGE}:${BASE_VERSION} 이미지를 ${IMAGE}:${VERSION} 태그로 복제합니다"
+  docker buildx imagetools create --tag "${IMAGE}:${VERSION}" "${IMAGE}:${BASE_VERSION}" >/dev/null
+}
+
 docker_login
 ensure_binfmt
 ensure_builder
 
-build_multi_arch
+if [[ -n "$TAIL_SUFFIX" ]]; then
+  log "tail(${TAIL_SUFFIX})을 제외한 기준 버전은 ${BASE_VERSION}입니다"
+fi
+
+if [[ -n "$TAIL_SUFFIX" ]] && latest_matches_base_version; then
+  log "latest가 ${BASE_VERSION}을 가리키므로 태그만 추가합니다"
+  tag_existing_manifest
+else
+  build_multi_arch
+fi
 
 log "배포용 이미지 생성이 완료되었습니다"
