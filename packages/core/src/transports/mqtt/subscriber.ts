@@ -84,6 +84,7 @@ export class MqttSubscriber {
     }
 
     logger.debug({ topic, message: message.toString() }, '[mqtt-subscriber] MQTT 메시지 수신');
+    eventBus.emit('mqtt-message', { topic, payload: message.toString() });
 
     if (this.externalHandlers.has(topic)) {
       this.externalHandlers.get(topic)!(message);

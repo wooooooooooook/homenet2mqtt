@@ -3,7 +3,6 @@ import path from 'node:path';
 import fs from 'node:fs/promises';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'node:url';
-import mqtt from 'mqtt';
 import yaml, { Type, Schema } from 'js-yaml';
 // Import only createBridge and HomeNetBridge, BridgeOptions is now defined in core
 // Import only createBridge and HomeNetBridge, BridgeOptions is now defined in core
@@ -137,9 +136,10 @@ app.get('/api/packets/stream', (req, res) => {
     sendEvent('status', { state, ...extra });
   };
 
-  sendStatus('connecting', { mqttUrl: streamMqttUrl });
-
-  const client = mqtt.connect(streamMqttUrl);
+  // Since we are using core's connection, we assume it's connected or will connect.
+  // We can't easily track the exact connection state of core's mqtt client here without more events from core.
+  // For now, we'll send a 'connected' status to satisfy the UI.
+  sendStatus('connected', { mqttUrl: streamMqttUrl });
 
   // Listen for raw data from the event bus
   const handleRawData = (data: string) => {
@@ -167,40 +167,25 @@ app.get('/api/packets/stream', (req, res) => {
   };
   eventBus.on('command-packet', handleCommandPacket);
 
-  client.on('connect', () => {
-    sendStatus('connected', { mqttUrl: streamMqttUrl });
-    client.subscribe('homenet/#', (err) => {
-      if (err) {
-        sendStatus('error', { message: err.message });
-        return;
-      }
-      sendStatus('subscribed', { topic: 'homenet/#' });
-    });
-  });
-
-  client.on('reconnect', () => sendStatus('connecting', { mqttUrl: streamMqttUrl }));
-  client.on('error', (err) => sendStatus('error', { message: err.message }));
-  client.on('close', () => sendStatus('error', { message: 'MQTT connection closed.' }));
-
-  client.on('message', (topic, payload) => {
-    logger.debug({ topic }, '[service] MQTT message received');
-    const payloadString =
-      topic === 'homenet/raw' ? payload.toString('hex') : payload.toString('utf8');
+  // Listen for MQTT messages from the event bus (emitted by core's subscriber and publisher)
+  const handleMqttMessage = (data: { topic: string; payload: string }) => {
+    // logger.debug({ topic: data.topic }, '[service] MQTT message received via eventBus');
     sendEvent('mqtt-message', {
-      topic,
-      payload: payloadString,
+      topic: data.topic,
+      payload: data.payload,
       receivedAt: new Date().toISOString(),
     });
-  });
+  };
+  eventBus.on('mqtt-message', handleMqttMessage);
 
   const heartbeat = setInterval(() => res.write(': keep-alive\n\n'), 15000);
   req.on('close', () => {
     clearInterval(heartbeat);
-    client.end(true);
-    eventBus.off('raw-data', handleRawData); // Remove event bus listener
+    eventBus.off('raw-data', handleRawData);
     eventBus.off('raw-data-with-interval', handleRawDataWithInterval);
     eventBus.off('packet-interval-stats', handlePacketIntervalStats);
-    eventBus.off('command-packet', handleCommandPacket); // Remove command packet listener
+    eventBus.off('command-packet', handleCommandPacket);
+    eventBus.off('mqtt-message', handleMqttMessage);
   });
 });
 

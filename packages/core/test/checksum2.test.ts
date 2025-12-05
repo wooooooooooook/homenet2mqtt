@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { calculateChecksum2 } from '../src/protocol/utils/checksum';
 import { PacketParser } from '../src/protocol/packet-parser';
 import { CommandGenerator } from '../src/protocol/generators/command.generator';
@@ -40,6 +40,11 @@ describe('2-Byte Checksum', () => {
 
   describe('Lambda checksum2 support', () => {
     it('should support lambda for rx_checksum2', () => {
+      // Freeze Date.now so the tiny rx_timeout doesn't drop bytes when the scheduler pauses.
+      const nowSpy = vi.spyOn(Date, 'now');
+      let fakeNow = 0;
+      nowSpy.mockImplementation(() => fakeNow++);
+
       // Lambda that implements xor_add algorithm
       const lambdaConfig: LambdaConfig = {
         type: 'lambda',
@@ -61,18 +66,22 @@ describe('2-Byte Checksum', () => {
         rx_timeout: 10,
       });
 
-      // Test packet: 0xF7 0x0e 0x11 0x81 0x00 0x00 0x01 [0x68 0x00]
-      const bytes = [0xf7, 0x0e, 0x11, 0x81, 0x00, 0x00, 0x01, 0x68, 0x00];
+      try {
+        // Test packet: 0xF7 0x0e 0x11 0x81 0x00 0x00 0x01 [0x68 0x00]
+        const bytes = [0xf7, 0x0e, 0x11, 0x81, 0x00, 0x00, 0x01, 0x68, 0x00];
 
-      let result = null;
-      for (const byte of bytes) {
-        const packet = parser.parse(byte);
-        if (packet) {
-          result = packet;
+        let result = null;
+        for (const byte of bytes) {
+          const packet = parser.parse(byte);
+          if (packet) {
+            result = packet;
+          }
         }
-      }
 
-      expect(result).toEqual(bytes);
+        expect(result).toEqual(bytes);
+      } finally {
+        nowSpy.mockRestore();
+      }
     });
 
     it('should support lambda for tx_checksum2', () => {
