@@ -1,7 +1,7 @@
 import parser from 'cron-parser';
 import { EventEmitter } from 'node:events';
 
-import {
+import type {
   AutomationAction,
   AutomationActionCommand,
   AutomationActionDelay,
