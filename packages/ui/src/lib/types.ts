@@ -7,6 +7,7 @@ export type MqttMessageEvent = {
 
 export type CommandPacket = {
     entity: string;
+    entityId: string;
     command: string;
     value: any;
     packet: string;
@@ -67,4 +68,11 @@ export type UnifiedEntity = {
 export type ParsedPayloadEntry = {
     key: string;
     value: string;
+};
+
+export type ParsedPacket = {
+    entityId: string;
+    packet: string; // hex string
+    state: any;
+    timestamp: string;
 };

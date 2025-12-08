@@ -93,6 +93,10 @@ export class PacketProcessor extends EventEmitter {
     this.protocolManager.on('packet', (packet) => {
       this.emit('packet', packet);
     });
+
+    this.protocolManager.on('parsed-packet', (data) => {
+      this.emit('parsed-packet', data);
+    });
   }
 
   public processChunk(chunk: Buffer) {

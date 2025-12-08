@@ -96,7 +96,8 @@ type StreamEvent =
   | 'raw-data'
   | 'raw-data-with-interval'
   | 'packet-interval-stats'
-  | 'command-packet';
+  | 'command-packet'
+  | 'parsed-packet';
 
 type StreamMessage<T = unknown> = {
   event: StreamEvent;
@@ -198,6 +199,12 @@ const registerPacketStream = () => {
     };
     eventBus.on('mqtt-message', handleMqttMessage);
     cleanupHandlers.push(() => eventBus.off('mqtt-message', handleMqttMessage));
+
+    const handleParsedPacket = (data: unknown) => {
+      sendStreamEvent(socket, 'parsed-packet', data);
+    };
+    eventBus.on('parsed-packet', handleParsedPacket);
+    cleanupHandlers.push(() => eventBus.off('parsed-packet', handleParsedPacket));
 
     const heartbeat = setInterval(() => {
       if (socket.readyState === WebSocket.OPEN) {

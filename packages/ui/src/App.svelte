@@ -8,7 +8,7 @@
     PacketStats,
     CommandInfo,
     UnifiedEntity,
-    ParsedPayloadEntry,
+    ParsedPacket,
   } from './lib/types';
   import Sidebar from './lib/components/Sidebar.svelte';
   import Header from './lib/components/Header.svelte';
@@ -39,10 +39,11 @@
   let commandsLoading = false;
   let commandsError = '';
   // Generic input state map for various input types
-  let commandInputs: Record<string, any> = {};
+
   let executingCommands: Set<string> = new Set();
 
   let rawPackets: RawPacketWithInterval[] = [];
+  let parsedPackets: ParsedPacket[] = [];
   let packetStats: PacketStats | null = null;
   let hasIntervalPackets = false;
   let lastRawPacketTimestamp: number | null = null;
@@ -53,7 +54,8 @@
     | 'raw-data'
     | 'raw-data-with-interval'
     | 'packet-interval-stats'
-    | 'command-packet';
+    | 'command-packet'
+    | 'parsed-packet';
 
   type StreamMessage<T = unknown> = {
     event: StreamEvent;
@@ -212,6 +214,12 @@
       }
     };
 
+    const handleParsedPacket = (data: ParsedPacket) => {
+      if (!isLogPaused) {
+        parsedPackets = [...parsedPackets, data].slice(-MAX_PACKETS);
+      }
+    };
+
     const messageHandlers: Partial<Record<StreamEvent, (data: any) => void>> = {
       status: handleStatus,
       'mqtt-message': handleMqttMessage,
@@ -219,6 +227,7 @@
       'raw-data-with-interval': handleRawPacketWithInterval,
       'packet-interval-stats': handlePacketStats,
       'command-packet': handleCommandPacket,
+      'parsed-packet': handleParsedPacket,
     };
 
     socket.addEventListener('open', () => {
@@ -301,11 +310,6 @@
       const data = await apiRequest<{ commands: CommandInfo[] }>('./api/commands');
       availableCommands = data.commands;
       // Initialize inputs with default values
-      for (const cmd of data.commands) {
-        if (cmd.inputType === 'number') {
-          commandInputs[`${cmd.entityId}_${cmd.commandName}`] = cmd.min ?? 20;
-        }
-      }
     } catch (err) {
       commandsError = err instanceof Error ? err.message : '명령 목록을 불러오지 못했습니다.';
     } finally {
@@ -388,21 +392,15 @@
     ? unifiedEntities.find((e) => e.id === selectedEntityId) || null
     : null;
 
-  $: selectedEntityRecentPackets =
-    selectedEntity && rawPackets
-      ? rawPackets
-          .filter(
-            (p) =>
-              p.payload.includes(selectedEntityId!) ||
-              (selectedEntity!.type && p.topic.includes(selectedEntity!.type)),
-          )
-          .slice(-20)
+  $: selectedEntityParsedPackets =
+    selectedEntity && parsedPackets
+      ? parsedPackets.filter((p) => p.entityId === selectedEntityId).slice(-20)
       : [];
 
-  // Command packets ARE structured with entity property
+  // Command packets ARE structured with entity property but we now have entityId
   $: selectedEntityCommandPackets =
     selectedEntity && commandPackets
-      ? commandPackets.filter((p) => p.entity === selectedEntityId).slice(-20)
+      ? commandPackets.filter((p) => p.entityId === selectedEntityId).slice(-20)
       : [];
 </script>
 
@@ -426,15 +424,13 @@
         {unifiedEntities}
         {deviceStates}
         {availableCommands}
-        {executingCommands}
-        {commandInputs}
-        on:execute={(e) => executeCommand(e.detail.cmd, e.detail.value)}
         on:select={(e) => (selectedEntityId = e.detail.entityId)}
       />
     {:else if activeView === 'analysis'}
       <Analysis
         stats={packetStats}
         {commandPackets}
+        {parsedPackets}
         {rawPackets}
         {isLogPaused}
         togglePause={() => (isLogPaused = !isLogPaused)}
@@ -446,7 +442,7 @@
     <EntityDetail
       entity={selectedEntity}
       isOpen={!!selectedEntityId}
-      recentPackets={selectedEntityRecentPackets}
+      parsedPackets={selectedEntityParsedPackets}
       commandPackets={selectedEntityCommandPackets}
       on:close={() => (selectedEntityId = null)}
       on:execute={(e) => executeCommand(e.detail.cmd, e.detail.value)}

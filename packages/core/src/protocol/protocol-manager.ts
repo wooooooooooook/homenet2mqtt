@@ -80,6 +80,7 @@ export class ProtocolManager extends EventEmitter {
           `[ProtocolManager] ${device.getId()} (${device.getName()}): ${packetHex} → {${stateStr}}`,
         );
         this.emit('state', { deviceId: device.getId(), state: stateUpdates });
+        this.emit('parsed-packet', { deviceId: device.getId(), packet, state: stateUpdates });
       }
     }
 

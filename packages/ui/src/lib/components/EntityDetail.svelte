@@ -1,10 +1,10 @@
 <script lang="ts">
   import { createEventDispatcher, onMount } from 'svelte';
   import { fade, scale } from 'svelte/transition';
-  import type { UnifiedEntity, CommandInfo, RawPacketWithInterval, CommandPacket } from '../types';
+  import type { UnifiedEntity, CommandInfo, ParsedPacket, CommandPacket } from '../types';
 
   export let entity: UnifiedEntity;
-  export let recentPackets: RawPacketWithInterval[] = [];
+  export let parsedPackets: ParsedPacket[] = [];
   export let commandPackets: CommandPacket[] = [];
   export let isOpen: boolean;
 
@@ -18,8 +18,27 @@
   let configLoading = false;
   let configError: string | null = null;
 
-  // Input states for commands
   let commandInputs: Record<string, any> = {};
+
+  let showRx = true;
+  let showTx = true;
+
+  type MergedPacket = ({ type: 'rx' } & ParsedPacket) | ({ type: 'tx' } & CommandPacket);
+
+  $: mergedPackets = (() => {
+    const packets: MergedPacket[] = [];
+
+    if (showRx) {
+      packets.push(...parsedPackets.map((p) => ({ ...p, type: 'rx' }) as const));
+    }
+    if (showTx) {
+      packets.push(...commandPackets.map((p) => ({ ...p, type: 'tx' }) as const));
+    }
+
+    return packets.sort(
+      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+    );
+  })();
 
   onMount(() => {
     if (entity) {
@@ -195,36 +214,47 @@
           </div>
         {:else if activeTab === 'packets'}
           <div class="section packet-log-section">
-            <div class="split-view">
-              <div class="log-column">
-                <h4>수신 (RX)</h4>
-                <div class="log-list">
-                  {#each recentPackets as packet}
-                    <div class="log-entry rx">
-                      <span class="time">{new Date(packet.receivedAt).toLocaleTimeString()}</span>
-                      <span class="payload">{packet.payload}</span>
-                    </div>
-                  {/each}
-                  {#if recentPackets.length === 0}
-                    <div class="no-data">수신된 패킷이 없습니다.</div>
-                  {/if}
+            <div class="log-header">
+              <div class="header-left">
+                <h4>패킷 로그 (RX/TX)</h4>
+                <div class="filters">
+                  <label>
+                    <input type="checkbox" bind:checked={showRx} /> RX (수신)
+                  </label>
+                  <label>
+                    <input type="checkbox" bind:checked={showTx} /> TX (발신)
+                  </label>
                 </div>
               </div>
-              <div class="log-column">
-                <h4>발신 (TX)</h4>
-                <div class="log-list">
-                  {#each commandPackets as packet}
-                    <div class="log-entry tx">
-                      <span class="time">{new Date(packet.timestamp).toLocaleTimeString()}</span>
-                      <span class="command">{packet.command}</span>
-                      <span class="val">{JSON.stringify(packet.value)}</span>
-                    </div>
-                  {/each}
-                  {#if commandPackets.length === 0}
-                    <div class="no-data">전송된 패킷이 없습니다.</div>
-                  {/if}
-                </div>
-              </div>
+            </div>
+            <div class="log-list unified-list">
+              {#if mergedPackets.length === 0}
+                <div class="no-data">표시할 패킷이 없습니다.</div>
+              {:else}
+                {#each mergedPackets as packet}
+                  <div class="log-entry {packet.type}">
+                    <span class="time">{new Date(packet.timestamp).toLocaleTimeString()}</span>
+
+                    {#if packet.type === 'rx'}
+                      <span class="direction rx">RX</span>
+                      <span class="entity">{packet.entityId}</span>
+                      <span class="payload">{packet.packet.toUpperCase()}</span>
+                      {#if packet.state}
+                        <span class="state-preview">→ {JSON.stringify(packet.state)}</span>
+                      {/if}
+                    {:else}
+                      <span class="direction tx">TX</span>
+                      <span class="entity">{packet.entityId}</span>
+                      <span class="payload">{packet.packet.toUpperCase()}</span>
+                      <span class="command-info">
+                        {packet.command}
+                        {#if packet.value !== undefined}<span class="value">({packet.value})</span
+                          >{/if}
+                      </span>
+                    {/if}
+                  </div>
+                {/each}
+              {/if}
             </div>
           </div>
         {/if}
@@ -376,12 +406,14 @@
 
   .command-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 1rem;
   }
 
   .action-btn {
     width: 100%;
+    height: 60px;
+    box-sizing: border-box;
     padding: 0.75rem;
     background: #334155;
     border: 1px solid #475569;
@@ -398,36 +430,55 @@
 
   .input-group {
     display: flex;
+    height: 60px;
+    box-sizing: border-box;
     gap: 0.5rem;
-    background: #0f172a;
-    padding: 0.5rem;
+    background: #334155;
+    padding: 0.75rem;
     border-radius: 6px;
-    border: 1px solid #334155;
+    border: 1px solid #475569;
     align-items: center;
+    color: #fff;
   }
 
   .input-group label {
-    font-size: 0.8rem;
-    color: #94a3b8;
+    font-size: 0.9rem;
+    color: #fff;
     flex: 1;
+    font-weight: 500;
   }
 
   .input-group input {
     background: #1e293b;
-    border: 1px solid #334155;
+    border: 1px solid #475569;
     color: #fff;
     padding: 0.25rem 0.5rem;
     border-radius: 4px;
-    width: 60px;
+    width: 40px;
+    font-size: 0.9rem;
+  }
+
+  .input-group input:focus {
+    outline: none;
+    border-color: #38bdf8;
   }
 
   .input-group button {
     background: #0ea5e9;
     border: none;
     color: white;
-    padding: 0.25rem 0.5rem;
+    padding: 0.25rem 0.75rem;
     border-radius: 4px;
     cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: background-color 0.2s;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .input-group button:hover {
+    background: #0284c7;
   }
 
   .yaml-code {
@@ -450,25 +501,36 @@
     color: #a5f3fc;
   }
 
-  .split-view {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1.5rem;
-    height: 400px;
-  }
-
-  .log-column {
+  /* Unified Log Styles */
+  .log-header {
     display: flex;
-    flex-direction: column;
-    overflow: hidden;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
   }
 
-  .log-column h4 {
-    margin: 0 0 0.5rem 0;
-    color: #94a3b8;
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  .filters {
+    display: flex;
+    gap: 1rem;
     font-size: 0.9rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+    color: #94a3b8;
+  }
+
+  .filters label {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    cursor: pointer;
+  }
+
+  .filters input {
+    cursor: pointer;
   }
 
   .log-list {
@@ -478,33 +540,69 @@
     border: 1px solid #334155;
     border-radius: 8px;
     padding: 0.5rem;
+    max-height: 500px; /* Limit height */
   }
 
   .log-entry {
-    padding: 0.5rem;
+    padding: 0.4rem 0.6rem;
     border-bottom: 1px solid #1e293b;
     font-size: 0.85rem;
     font-family: monospace;
     display: flex;
-    gap: 0.5rem;
+    gap: 0.75rem;
     align-items: center;
+    color: #cbd5e1;
   }
 
-  .log-entry.rx {
-    color: #10b981;
-  }
-  .log-entry.tx {
-    color: #f59e0b;
+  .log-entry:last-child {
+    border-bottom: none;
   }
 
   .log-entry .time {
     color: #64748b;
-    flex-shrink: 0;
+    font-size: 0.8rem;
+    white-space: nowrap;
   }
 
-  .log-entry .payload,
-  .log-entry .val {
-    word-break: break-all;
+  .direction {
+    font-weight: bold;
+    font-size: 0.75rem;
+    padding: 0.1rem 0.3rem;
+    border-radius: 4px;
+    width: 24px;
+    text-align: center;
+  }
+
+  .direction.rx {
+    background: rgba(16, 185, 129, 0.2);
+    color: #10b981;
+  }
+
+  .direction.tx {
+    background: rgba(245, 158, 11, 0.2);
+    color: #f59e0b;
+  }
+
+  .payload {
+    color: #10b981;
+    font-weight: 600;
+    font-family: monospace;
+  }
+
+  .command-info {
+    color: #a855f7;
+    margin-left: 0.5rem;
+  }
+
+  .value {
+    color: #ec4899;
+  }
+
+  .state-preview {
+    color: #38bdf8;
+    font-size: 0.85em;
+    margin-left: 0.5rem;
+    opacity: 0.9;
   }
 
   .no-data {

@@ -174,6 +174,7 @@ export class HomeNetBridge implements EntityStateProvider {
     // Emit command-packet event (same as subscriber)
     eventBus.emit('command-packet', {
       entity: targetEntity.name || targetEntity.id,
+      entityId: targetEntity.id,
       command: commandName,
       value: value,
       packet: hexPacket,
@@ -194,6 +195,17 @@ export class HomeNetBridge implements EntityStateProvider {
     this.config = await loadConfig(this.options.configPath);
     this.packetProcessor = new PacketProcessor(this.config, this);
     logger.debug('[core] PacketProcessor initialized.');
+
+    this.packetProcessor.on('parsed-packet', (data) => {
+      const { deviceId, packet, state } = data;
+      const hexPacket = packet.map((b: number) => b.toString(16).padStart(2, '0')).join('');
+      eventBus.emit('parsed-packet', {
+        entityId: deviceId,
+        packet: hexPacket,
+        state,
+        timestamp: new Date().toISOString(),
+      });
+    });
 
     const { serial: serialConfig } = this.config;
 

@@ -180,6 +180,7 @@ export class MqttSubscriber {
         const hexPacket = Buffer.from(commandPacket).toString('hex');
         eventBus.emit('command-packet', {
           entity: targetEntity.name || targetEntity.id,
+          entityId: targetEntity.id,
           command: commandName,
           value: commandValue,
           packet: hexPacket,

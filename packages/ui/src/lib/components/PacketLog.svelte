@@ -1,30 +1,74 @@
 <script lang="ts">
-  import type { CommandPacket, RawPacketWithInterval } from '../types';
+  import type { CommandPacket, RawPacketWithInterval, ParsedPacket } from '../types';
 
+  export let parsedPackets: ParsedPacket[] = [];
   export let commandPackets: CommandPacket[] = [];
   export let rawPackets: RawPacketWithInterval[] = [];
   export let isLogPaused = false;
   export let togglePause: () => void;
 
+  let showRx = true;
+  let showTx = true;
+
+  type MergedPacket = ({ type: 'rx' } & ParsedPacket) | ({ type: 'tx' } & CommandPacket);
+
+  $: mergedPackets = (() => {
+    const packets: MergedPacket[] = [];
+
+    if (showRx) {
+      packets.push(...parsedPackets.map((p) => ({ ...p, type: 'rx' }) as const));
+    }
+    if (showTx) {
+      packets.push(...commandPackets.map((p) => ({ ...p, type: 'tx' }) as const));
+    }
+
+    return packets.sort(
+      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+    );
+  })();
+
   const toHexPairs = (hex: string) => hex.match(/.{1,2}/g)?.map((pair) => pair.toUpperCase()) ?? [];
 </script>
 
-<!-- Command Log Section -->
+<!-- Unified Packet Log Section -->
 <div class="log-section">
   <div class="log-header">
-    <h2>명령 로그</h2>
+    <div class="header-left">
+      <h2>패킷 로그 (RX/TX)</h2>
+      <div class="filters">
+        <label>
+          <input type="checkbox" bind:checked={showRx} /> RX (수신)
+        </label>
+        <label>
+          <input type="checkbox" bind:checked={showTx} /> TX (발신)
+        </label>
+      </div>
+    </div>
   </div>
-  <div class="log-list">
-    {#if commandPackets.length === 0}
-      <p class="empty">아직 전송된 명령이 없습니다.</p>
+  <div class="log-list unified-list">
+    {#if mergedPackets.length === 0}
+      <p class="empty">표시할 패킷이 없습니다.</p>
     {:else}
-      {#each [...commandPackets].reverse() as packet (packet.timestamp + packet.entity + packet.command)}
-        <div class="log-item command-item">
+      {#each mergedPackets as packet}
+        <div class="log-item {packet.type}">
           <span class="time">[{new Date(packet.timestamp).toLocaleTimeString()}]</span>
-          <span class="entity">{packet.entity}</span>
-          <span class="command">{packet.command}</span>
-          <span class="value">{packet.value !== undefined ? `(${packet.value})` : ''}</span>
-          <code class="payload">{toHexPairs(packet.packet).join(' ')}</code>
+
+          {#if packet.type === 'rx'}
+            <span class="direction rx">RX</span>
+            <span class="entity">{packet.entityId}</span>
+            <span class="payload">{packet.packet.toUpperCase()}</span>
+            {#if packet.state}
+              <span class="state-preview">→ {JSON.stringify(packet.state)}</span>
+            {/if}
+          {:else}
+            <span class="direction tx">TX</span>
+            <span class="entity">{packet.entityId}</span>
+            <span class="payload">{packet.packet.toUpperCase()}</span>
+            <span class="command-info">
+              {packet.command}
+              {#if packet.value !== undefined}<span class="value">({packet.value})</span>{/if}
+            </span>
+          {/if}
         </div>
       {/each}
     {/if}
@@ -35,9 +79,11 @@
 <div class="log-section">
   <div class="log-header">
     <h2>Raw 패킷 로그</h2>
-    <button class="ghost-sm" on:click={togglePause}>
-      {isLogPaused ? '▶ 로그 이어보기' : '⏸ 로그 일시정지'}
-    </button>
+    <div class="header-right">
+      <button class="ghost-sm" on:click={togglePause}>
+        {isLogPaused ? '▶ 로그 이어보기' : '⏸ 로그 일시정지'}
+      </button>
+    </div>
   </div>
   <div class="log-list raw-list">
     {#if rawPackets.length === 0}
@@ -72,6 +118,30 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 1rem;
+  }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  .filters {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.9rem;
+    color: #94a3b8;
+  }
+
+  .filters label {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    cursor: pointer;
+  }
+
+  .filters input {
+    cursor: pointer;
   }
 
   h2 {
@@ -110,17 +180,28 @@
     white-space: nowrap;
   }
 
+  .direction {
+    font-weight: bold;
+    font-size: 0.75rem;
+    padding: 0.1rem 0.3rem;
+    border-radius: 4px;
+    width: 24px;
+    text-align: center;
+  }
+
+  .direction.rx {
+    background: rgba(16, 185, 129, 0.2);
+    color: #10b981;
+  }
+
+  .direction.tx {
+    background: rgba(245, 158, 11, 0.2);
+    color: #f59e0b;
+  }
+
   .entity {
     color: #3b82f6;
     font-weight: 600;
-  }
-
-  .command {
-    color: #a855f7;
-  }
-
-  .value {
-    color: #ec4899;
   }
 
   .interval {
@@ -133,6 +214,23 @@
   .payload {
     color: #10b981;
     font-weight: 600;
+    font-family: monospace;
+  }
+
+  .command-info {
+    color: #a855f7;
+    margin-left: 0.5rem;
+  }
+
+  .value {
+    color: #ec4899;
+  }
+
+  .state-preview {
+    color: #38bdf8;
+    font-size: 0.85em;
+    margin-left: 0.5rem;
+    opacity: 0.9;
   }
 
   .empty {

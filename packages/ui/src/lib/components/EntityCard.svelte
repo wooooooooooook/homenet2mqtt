@@ -1,14 +1,10 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
-  import type { UnifiedEntity, CommandInfo, ParsedPayloadEntry } from '../types';
+  import type { UnifiedEntity, ParsedPayloadEntry } from '../types';
 
   export let entity: UnifiedEntity;
-  export let executingCommands: Set<string>;
-  // We'll manage inputs locally since they are transient
-  export let commandInputs: Record<string, any> = {};
 
   const dispatch = createEventDispatcher<{
-    execute: { cmd: CommandInfo; value?: any };
     select: void;
   }>();
 
@@ -79,62 +75,6 @@
         <span class="no-status">상태 정보 없음</span>
       {/if}
     </div>
-
-    <!-- Command Section -->
-    {#if entity.commands.length > 0}
-      <div class="command-section">
-        <div class="command-buttons">
-          {#each entity.commands as cmd (cmd.commandName)}
-            {#if cmd.inputType === 'number'}
-              <div class="command-input-group">
-                <input
-                  type="number"
-                  min={cmd.min}
-                  max={cmd.max}
-                  step={cmd.step}
-                  bind:value={commandInputs[`${cmd.entityId}_${cmd.commandName}`]}
-                  class="temp-input"
-                />
-                <button
-                  class="command-btn input-btn"
-                  on:click={() =>
-                    dispatch('execute', {
-                      cmd,
-                      value: commandInputs[`${cmd.entityId}_${cmd.commandName}`],
-                    })}
-                  disabled={executingCommands.has(`${cmd.entityId}_${cmd.commandName}`)}
-                >
-                  {#if executingCommands.has(`${cmd.entityId}_${cmd.commandName}`)}
-                    ...
-                  {:else}
-                    {cmd.commandName.replace('command_', '')}
-                  {/if}
-                </button>
-              </div>
-            {:else}
-              <button
-                class="command-btn"
-                class:on={cmd.commandName.includes('on') ||
-                  cmd.commandName.includes('heat') ||
-                  cmd.commandName.includes('open') ||
-                  cmd.commandName.includes('unlock')}
-                class:off={cmd.commandName.includes('off') ||
-                  cmd.commandName.includes('close') ||
-                  cmd.commandName.includes('lock')}
-                on:click={() => dispatch('execute', { cmd })}
-                disabled={executingCommands.has(`${cmd.entityId}_${cmd.commandName}`)}
-              >
-                {#if executingCommands.has(`${cmd.entityId}_${cmd.commandName}`)}
-                  ...
-                {:else}
-                  {cmd.commandName.replace('command_', '').toUpperCase()}
-                {/if}
-              </button>
-            {/if}
-          {/each}
-        </div>
-      </div>
-    {/if}
   </div>
 </article>
 
@@ -228,72 +168,6 @@
   .no-status {
     color: #64748b;
     font-style: italic;
-    font-size: 0.9rem;
-  }
-
-  .command-buttons {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-  }
-
-  .command-btn {
-    padding: 0.5rem 1rem;
-    border-radius: 6px;
-    border: 1px solid rgba(148, 163, 184, 0.2);
-    background: rgba(30, 41, 59, 0.5);
-    color: #e2e8f0;
-    font-size: 0.85rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .command-btn:hover:not(:disabled) {
-    background: rgba(148, 163, 184, 0.1);
-    border-color: rgba(148, 163, 184, 0.4);
-  }
-
-  .command-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .command-btn.on {
-    background: rgba(16, 185, 129, 0.1);
-    border-color: rgba(16, 185, 129, 0.2);
-    color: #34d399;
-  }
-
-  .command-btn.on:hover:not(:disabled) {
-    background: rgba(16, 185, 129, 0.2);
-    border-color: rgba(16, 185, 129, 0.4);
-  }
-
-  .command-btn.off {
-    background: rgba(239, 68, 68, 0.1);
-    border-color: rgba(239, 68, 68, 0.2);
-    color: #f87171;
-  }
-
-  .command-btn.off:hover:not(:disabled) {
-    background: rgba(239, 68, 68, 0.2);
-    border-color: rgba(239, 68, 68, 0.4);
-  }
-
-  .command-input-group {
-    display: flex;
-    gap: 0.5rem;
-    align-items: center;
-  }
-
-  .temp-input {
-    background: rgba(15, 23, 42, 0.5);
-    border: 1px solid rgba(148, 163, 184, 0.2);
-    color: white;
-    padding: 0.4rem 0.5rem;
-    border-radius: 6px;
-    width: 60px;
     font-size: 0.9rem;
   }
 </style>

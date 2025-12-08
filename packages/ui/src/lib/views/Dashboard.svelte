@@ -9,17 +9,10 @@
   export let unifiedEntities: UnifiedEntity[];
   export let deviceStates: Map<string, string>;
   export let availableCommands: CommandInfo[];
-  export let executingCommands: Set<string>;
-  export let commandInputs: Record<string, any>;
 
   const dispatch = createEventDispatcher<{
-    execute: { cmd: CommandInfo; value?: any };
     select: { entityId: string };
   }>();
-
-  function handleExecute(event: CustomEvent<{ cmd: CommandInfo; value?: any }>) {
-    dispatch('execute', event.detail);
-  }
 
   function handleSelect(entityId: string) {
     dispatch('select', { entityId });
@@ -76,13 +69,7 @@
         {/if}
       {:else}
         {#each unifiedEntities as entity (entity.id)}
-          <EntityCard
-            {entity}
-            {executingCommands}
-            {commandInputs}
-            on:execute={handleExecute}
-            on:select={() => handleSelect(entity.id)}
-          />
+          <EntityCard {entity} on:select={() => handleSelect(entity.id)} />
         {/each}
       {/if}
     </div>
