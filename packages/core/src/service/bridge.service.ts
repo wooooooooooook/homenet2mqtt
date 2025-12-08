@@ -48,6 +48,7 @@ export class HomeNetBridge implements EntityStateProvider {
   private packetIntervals: number[] = [];
   private hrtimeBase: bigint = process.hrtime.bigint(); // Base time for monotonic clock
   private automationManager?: AutomationManager;
+  private rawPacketListener: ((data: Buffer) => void) | null = null;
 
   constructor(options: BridgeOptions) {
     this.options = options;
@@ -108,6 +109,7 @@ export class HomeNetBridge implements EntityStateProvider {
     if (this.startPromise) {
       await this.startPromise.catch(() => { });
     }
+    this.stopRawPacketListener();
     this.automationManager?.stop();
     this._mqttClient.end();
     if (this.port) {
@@ -142,6 +144,63 @@ export class HomeNetBridge implements EntityStateProvider {
    * Execute a command by mocking subscriber behavior
    * This mimics what handleMqttMessage does when receiving a set topic
    */
+  /**
+   * Starts listening for raw packets from the serial port and emitting events.
+   */
+  startRawPacketListener(): void {
+    if (!this.port || this.rawPacketListener) {
+      return;
+    }
+
+    logger.info('[core] Starting raw packet listener.');
+
+    this.rawPacketListener = (data: Buffer) => {
+      // Use high-resolution monotonic clock for accurate intervals
+      const hrNow = process.hrtime.bigint();
+      const now = Number((hrNow - this.hrtimeBase) / 1000000n); // Convert to ms
+
+      let interval: number | null = null;
+
+      if (this.lastPacketTimestamp !== null) {
+        interval = now - this.lastPacketTimestamp;
+        this.packetIntervals.push(interval);
+        if (this.packetIntervals.length > 1000) {
+          this.packetIntervals.shift();
+        }
+      }
+
+      this.lastPacketTimestamp = now;
+
+      const hexData = data.toString('hex');
+      eventBus.emit('raw-data-with-interval', {
+        payload: hexData,
+        interval,
+        receivedAt: new Date().toISOString(),
+      });
+
+      if (this.packetIntervals.length >= 100) {
+        this.analyzeAndEmitPacketStats();
+      }
+
+      if (this.stateManager) {
+        this.stateManager.processIncomingData(data);
+      }
+    };
+
+    this.port.on('data', this.rawPacketListener);
+  }
+
+  /**
+   * Stops listening for raw packets.
+   */
+  stopRawPacketListener(): void {
+    if (this.port && this.rawPacketListener) {
+      logger.info('[core] Stopping raw packet listener.');
+      this.port.off('data', this.rawPacketListener);
+      this.rawPacketListener = null;
+    }
+  }
+
   async executeCommand(
     entityId: string,
     commandName: string,
@@ -263,37 +322,11 @@ export class HomeNetBridge implements EntityStateProvider {
     this.automationManager.start();
 
     this.port.on('data', (data) => {
-      // Use high-resolution monotonic clock for accurate intervals
-      const hrNow = process.hrtime.bigint();
-      const now = Number((hrNow - this.hrtimeBase) / 1000000n); // Convert to ms
-
-      let interval: number | null = null;
-
-      if (this.lastPacketTimestamp !== null) {
-        interval = now - this.lastPacketTimestamp;
-        this.packetIntervals.push(interval);
-        if (this.packetIntervals.length > 1000) {
-          this.packetIntervals.shift();
-        }
-      }
-
-      this.lastPacketTimestamp = now;
-
-      const hexData = data.toString('hex');
-      eventBus.emit('raw-data-with-interval', {
-        payload: hexData,
-        interval,
-        receivedAt: new Date().toISOString(),
-      });
-
-      if (this.packetIntervals.length >= 100) {
-        this.analyzeAndEmitPacketStats();
-      }
-
-      if (this.stateManager) {
-        this.stateManager.processIncomingData(data);
+      if (!this.rawPacketListener) {
+        this.stateManager?.processIncomingData(data);
       }
     });
+
     this.port.on('error', (err) => {
       logger.error({ err, serialPath }, '[core] 시리얼 포트 오류');
     });

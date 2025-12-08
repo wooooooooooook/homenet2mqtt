@@ -6,6 +6,7 @@
   export let rawPackets: RawPacketWithInterval[] = [];
   export let isLogPaused = false;
   export let togglePause: () => void;
+  export let isStreaming: boolean;
 
   let showRx = true;
   let showTx = true;
@@ -86,8 +87,10 @@
     </div>
   </div>
   <div class="log-list raw-list">
-    {#if rawPackets.length === 0}
-      <p class="empty">아직 수신된 Raw 패킷이 없습니다.</p>
+    {#if !isStreaming}
+      <p class="empty">Raw 패킷 로깅이 중지되었습니다.</p>
+    {:else if rawPackets.length === 0}
+      <p class="empty">아직 수신된 Raw 패킷이 없습니다. (로깅 대기중...)</p>
     {:else}
       {#each [...rawPackets].reverse() as packet (packet.receivedAt + packet.topic)}
         <div class="log-item">
