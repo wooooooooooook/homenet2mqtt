@@ -42,14 +42,12 @@
   }
 </script>
 
-<article class="entity-card">
-  <header
-    class="card-header"
-    on:click={() => dispatch('select')}
-    role="button"
-    tabindex="0"
-    on:keydown={(e) => ['Enter', ' '].includes(e.key) && dispatch('select')}
-  >
+<button
+  class="entity-card"
+  on:click={() => dispatch('select')}
+  on:keydown={(e) => ['Enter', ' '].includes(e.key) && dispatch('select')}
+>
+  <header class="card-header">
     <h3>{entity.displayName}</h3>
     <span class="entity-id-badge">{entity.id}</span>
   </header>
@@ -76,7 +74,7 @@
       {/if}
     </div>
   </div>
-</article>
+</button>
 
 <style>
   .entity-card {
