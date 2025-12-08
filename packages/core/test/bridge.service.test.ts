@@ -77,6 +77,7 @@ describe('HomeNetBridge Packet Interval Analysis', () => {
 
   it('should calculate interval between packets and emit raw-data-with-interval event', () => {
     const data = Buffer.from([0x01, 0x02, 0x03]);
+    bridge.startRawPacketListener();
 
     // First packet
     fakeSerialPort.emit('data', data);
@@ -97,6 +98,7 @@ describe('HomeNetBridge Packet Interval Analysis', () => {
   });
 
   it('should not emit stats if fewer than 100 packets have been received', () => {
+    bridge.startRawPacketListener();
     for (let i = 0; i < 99; i++) {
       fakeSerialPort.emit('data', Buffer.from([i]));
       vi.advanceTimersByTime(10);
@@ -105,6 +107,7 @@ describe('HomeNetBridge Packet Interval Analysis', () => {
   });
 
   it('should calculate and emit packet interval stats after 101 packets', () => {
+    bridge.startRawPacketListener();
     // 100 intervals: 99 short, 1 long
     for (let i = 0; i < 100; i++) {
       fakeSerialPort.emit('data', Buffer.from([i]));
@@ -148,6 +151,7 @@ describe('HomeNetBridge Packet Interval Analysis', () => {
   });
 
   it('should calculate idle occurrence average correctly', () => {
+    bridge.startRawPacketListener();
     // Simulate a pattern: 10ms (x9), 200ms (idle), 10ms (x9), 200ms (idle)
     // Total 20 intervals.
     // Idle intervals at index 9 and 19.

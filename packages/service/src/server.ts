@@ -16,7 +16,6 @@ import {
   normalizeConfig,
   validateConfig,
 } from '@rs485-homenet/core';
-import { PacketCache } from './cache.js';
 
 // Define a custom YAML type for !lambda
 const LambdaType = new Type('!lambda', {
@@ -51,9 +50,6 @@ let currentRawConfig: HomenetBridgeConfig | null = null;
 let bridgeStatus: 'idle' | 'starting' | 'started' | 'stopped' | 'error' = 'idle';
 let bridgeError: string | null = null;
 let bridgeStartPromise: Promise<void> | null = null;
-
-// --- Cache Initialization ---
-const packetCache = new PacketCache(eventBus);
 
 type FrontendSettings = {
   toast: {
@@ -230,43 +226,40 @@ const registerPacketStream = () => {
 
     sendStreamEvent(socket, 'status', { state: 'connected', mqttUrl: streamMqttUrl });
 
-    const initialState = packetCache.getInitialState();
+    let isStreaming = false;
+    const streamEventHandlers: Array<() => void> = [];
 
-    initialState.mqttState.forEach((msg) => {
-      sendStreamEvent(socket, 'mqtt-message', msg);
-    });
+    const stopStreaming = () => {
+      if (!isStreaming) return;
+      logger.info('[service] UI requested to stop streaming raw packets.');
+      bridge?.stopRawPacketListener();
+      streamEventHandlers.forEach(handler => handler());
+      streamEventHandlers.length = 0;
+      isStreaming = false;
+    };
 
-    initialState.rawPackets.forEach((packet) => {
-      sendStreamEvent(socket, 'raw-data-with-interval', packet);
-    });
+    const startStreaming = () => {
+      if (isStreaming) return;
+      logger.info('[service] UI requested to start streaming raw packets.');
 
-    initialState.commandPackets.forEach((packet) => {
-      sendStreamEvent(socket, 'command-packet', packet);
-    });
+      const handleRawDataWithInterval = (data: RawPacketPayload) => {
+        sendStreamEvent(socket, 'raw-data-with-interval', normalizeRawPacket(data));
+      };
+      eventBus.on('raw-data-with-interval', handleRawDataWithInterval);
+      streamEventHandlers.push(() => eventBus.off('raw-data-with-interval', handleRawDataWithInterval));
 
-    if (initialState.packetStats) {
-      sendStreamEvent(socket, 'packet-interval-stats', initialState.packetStats);
-    }
+      const handlePacketIntervalStats = (data: unknown) => {
+        sendStreamEvent(socket, 'packet-interval-stats', data);
+      };
+      eventBus.on('packet-interval-stats', handlePacketIntervalStats);
+      streamEventHandlers.push(() => eventBus.off('packet-interval-stats', handlePacketIntervalStats));
 
+      bridge?.startRawPacketListener();
+      isStreaming = true;
+    };
+
+    // These events are always on, regardless of streaming state
     const cleanupHandlers: Array<() => void> = [];
-
-    const handleRawData = (data: string) => {
-      sendStreamEvent(socket, 'raw-data', normalizeRawPacket({ payload: data, interval: null }));
-    };
-    eventBus.on('raw-data', handleRawData);
-    cleanupHandlers.push(() => eventBus.off('raw-data', handleRawData));
-
-    const handleRawDataWithInterval = (data: RawPacketPayload) => {
-      sendStreamEvent(socket, 'raw-data-with-interval', normalizeRawPacket(data));
-    };
-    eventBus.on('raw-data-with-interval', handleRawDataWithInterval);
-    cleanupHandlers.push(() => eventBus.off('raw-data-with-interval', handleRawDataWithInterval));
-
-    const handlePacketIntervalStats = (data: unknown) => {
-      sendStreamEvent(socket, 'packet-interval-stats', data);
-    };
-    eventBus.on('packet-interval-stats', handlePacketIntervalStats);
-    cleanupHandlers.push(() => eventBus.off('packet-interval-stats', handlePacketIntervalStats));
 
     const handleCommandPacket = (data: unknown) => {
       sendStreamEvent(socket, 'command-packet', data);
@@ -296,6 +289,19 @@ const registerPacketStream = () => {
     eventBus.on('state:changed', handleStateChange);
     cleanupHandlers.push(() => eventBus.off('state:changed', handleStateChange));
 
+    socket.on('message', (message: string) => {
+      try {
+        const parsed = JSON.parse(message);
+        if (parsed.command === 'start') {
+          startStreaming();
+        } else if (parsed.command === 'stop') {
+          stopStreaming();
+        }
+      } catch (error) {
+        logger.warn({ err: error }, '[service] Invalid WebSocket message received');
+      }
+    });
+
     const heartbeat = setInterval(() => {
       if (socket.readyState === WebSocket.OPEN) {
         socket.ping();
@@ -304,6 +310,7 @@ const registerPacketStream = () => {
     cleanupHandlers.push(() => clearInterval(heartbeat));
 
     const cleanup = () => {
+      stopStreaming();
       cleanupHandlers.forEach((handler) => handler());
     };
 

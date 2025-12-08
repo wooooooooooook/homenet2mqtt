@@ -38,6 +38,7 @@
   let connectionStatus: 'idle' | 'connecting' | 'connected' | 'error' = 'idle';
   let statusMessage = '';
   let isLogPaused = false;
+  let isStreaming = false;
 
   // Command buttons state
   let availableCommands: CommandInfo[] = [];
@@ -293,6 +294,12 @@
 
     socket = new WebSocket(url.toString());
 
+    const sendStreamCommand = (command: 'start' | 'stop') => {
+      if (socket?.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ command }));
+      }
+    };
+
     const handleStatus = (data: Record<string, unknown>) => {
       const state = data.state;
       if (state === 'connected') {
@@ -405,6 +412,7 @@
       socket = null;
       socketCloseHandler = null;
       socketErrorHandler = null;
+      isStreaming = false;
     };
 
     socketCloseHandler = handleDisconnect;
@@ -591,7 +599,18 @@
         {parsedPackets}
         {rawPackets}
         {isLogPaused}
+        {isStreaming}
         togglePause={() => (isLogPaused = !isLogPaused)}
+        on:start={() => {
+          sendStreamCommand('start');
+          isStreaming = true;
+          rawPackets = [];
+          packetStats = null;
+        }}
+        on:stop={() => {
+          sendStreamCommand('stop');
+          isStreaming = false;
+        }}
       />
     {:else if activeView === 'settings'}
       <SettingsView
