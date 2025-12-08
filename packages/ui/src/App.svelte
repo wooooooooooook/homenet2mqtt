@@ -15,10 +15,13 @@
   import Dashboard from './lib/views/Dashboard.svelte';
   import Analysis from './lib/views/Analysis.svelte';
 
+  import EntityDetail from './lib/components/EntityDetail.svelte';
+
   const MAX_PACKETS = 1000;
 
   // -- State --
   let activeView: 'dashboard' | 'analysis' = 'dashboard';
+  let selectedEntityId: string | null = null;
 
   let bridgeInfo: BridgeInfo | null = null;
   let infoLoading = false;
@@ -378,6 +381,29 @@
       .filter((entity) => entity.statePayload) // Only show entities with state
       .sort((a, b) => a.displayName.localeCompare(b.displayName));
   })();
+
+  // --- Entity Detail Logic ---
+
+  $: selectedEntity = selectedEntityId
+    ? unifiedEntities.find((e) => e.id === selectedEntityId) || null
+    : null;
+
+  $: selectedEntityRecentPackets =
+    selectedEntity && rawPackets
+      ? rawPackets
+          .filter(
+            (p) =>
+              p.payload.includes(selectedEntityId!) ||
+              (selectedEntity!.type && p.topic.includes(selectedEntity!.type)),
+          )
+          .slice(-20)
+      : [];
+
+  // Command packets ARE structured with entity property
+  $: selectedEntityCommandPackets =
+    selectedEntity && commandPackets
+      ? commandPackets.filter((p) => p.entity === selectedEntityId).slice(-20)
+      : [];
 </script>
 
 <main class="app-container">
@@ -403,6 +429,7 @@
         {executingCommands}
         {commandInputs}
         on:execute={(e) => executeCommand(e.detail.cmd, e.detail.value)}
+        on:select={(e) => (selectedEntityId = e.detail.entityId)}
       />
     {:else if activeView === 'analysis'}
       <Analysis
@@ -414,6 +441,17 @@
       />
     {/if}
   </section>
+
+  {#if selectedEntity}
+    <EntityDetail
+      entity={selectedEntity}
+      isOpen={!!selectedEntityId}
+      recentPackets={selectedEntityRecentPackets}
+      commandPackets={selectedEntityCommandPackets}
+      on:close={() => (selectedEntityId = null)}
+      on:execute={(e) => executeCommand(e.detail.cmd, e.detail.value)}
+    />
+  {/if}
 </main>
 
 <style>

@@ -45,7 +45,8 @@ const port = process.env.PORT ? Number(process.env.PORT) : 3000;
 let bridge: HomeNetBridge | null = null;
 // bridgeOptions will now be derived from the loaded HomenetBridgeConfig
 let currentConfigFile: string | null = null;
-let currentConfigContent: HomenetBridgeConfig | null = null; // Type changed to HomenetBridgeConfig
+let currentConfigContent: HomenetBridgeConfig | null = null;
+let currentRawConfig: HomenetBridgeConfig | null = null;
 let bridgeStatus: 'idle' | 'starting' | 'started' | 'stopped' | 'error' = 'idle';
 let bridgeError: string | null = null;
 let bridgeStartPromise: Promise<void> | null = null;
@@ -338,6 +339,46 @@ app.get('/api/commands', (_req, res) => {
   res.json({ commands });
 });
 
+app.get('/api/config/raw/:entityId', (req, res) => {
+  if (!currentRawConfig) {
+    return res.status(400).json({ error: 'Config not loaded' });
+  }
+
+  const { entityId } = req.params;
+  let foundEntity: any = null;
+
+  // All entity types (same as discovery-manager)
+  const entityTypeKeys: (keyof HomenetBridgeConfig)[] = [
+    'light',
+    'climate',
+    'valve',
+    'button',
+    'sensor',
+    'fan',
+    'switch',
+    'lock',
+    'number',
+    'select',
+    'text_sensor',
+    'text',
+    'binary_sensor',
+  ];
+
+  for (const type of entityTypeKeys) {
+    const entities = currentRawConfig[type] as Array<any> | undefined;
+    if (Array.isArray(entities)) {
+      foundEntity = entities.find((e) => e.id === entityId);
+      if (foundEntity) break;
+    }
+  }
+
+  if (foundEntity) {
+    res.json({ yaml: yaml.dump(foundEntity, { styles: { '!!int': 'hexadecimal' } }) });
+  } else {
+    res.status(404).json({ error: 'Entity not found in config' });
+  }
+});
+
 app.post('/api/commands/execute', async (req, res) => {
   const { entityId, commandName, value } = req.body as {
     entityId?: string;
@@ -428,6 +469,7 @@ async function loadAndStartBridge(filename: string) {
     }
 
     currentConfigFile = filename;
+    currentRawConfig = loadedYaml.homenet_bridge; // Store raw config for display
     currentConfigContent = normalizeConfig(loadedYaml.homenet_bridge); // Store the normalized config
 
     validateConfig(currentConfigContent);

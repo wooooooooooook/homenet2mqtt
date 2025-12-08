@@ -14,10 +14,15 @@
 
   const dispatch = createEventDispatcher<{
     execute: { cmd: CommandInfo; value?: any };
+    select: { entityId: string };
   }>();
 
   function handleExecute(event: CustomEvent<{ cmd: CommandInfo; value?: any }>) {
     dispatch('execute', event.detail);
+  }
+
+  function handleSelect(entityId: string) {
+    dispatch('select', { entityId });
   }
 </script>
 
@@ -71,7 +76,13 @@
         {/if}
       {:else}
         {#each unifiedEntities as entity (entity.id)}
-          <EntityCard {entity} {executingCommands} {commandInputs} on:execute={handleExecute} />
+          <EntityCard
+            {entity}
+            {executingCommands}
+            {commandInputs}
+            on:execute={handleExecute}
+            on:select={() => handleSelect(entity.id)}
+          />
         {/each}
       {/if}
     </div>

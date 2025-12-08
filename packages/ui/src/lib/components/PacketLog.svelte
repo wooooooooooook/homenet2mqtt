@@ -11,7 +11,9 @@
 
 <!-- Command Log Section -->
 <div class="log-section">
-  <h2>명령 로그</h2>
+  <div class="log-header">
+    <h2>명령 로그</h2>
+  </div>
   <div class="log-list">
     {#if commandPackets.length === 0}
       <p class="empty">아직 전송된 명령이 없습니다.</p>
@@ -129,7 +131,6 @@
   }
 
   .payload {
-    margin-left: auto;
     color: #10b981;
     font-weight: 600;
   }

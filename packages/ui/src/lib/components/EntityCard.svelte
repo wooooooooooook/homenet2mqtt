@@ -9,6 +9,7 @@
 
   const dispatch = createEventDispatcher<{
     execute: { cmd: CommandInfo; value?: any };
+    select: void;
   }>();
 
   function parsePayload(payload: string): ParsedPayloadEntry[] | null {
@@ -46,7 +47,13 @@
 </script>
 
 <article class="entity-card">
-  <header class="card-header">
+  <header
+    class="card-header"
+    on:click={() => dispatch('select')}
+    role="button"
+    tabindex="0"
+    on:keydown={(e) => ['Enter', ' '].includes(e.key) && dispatch('select')}
+  >
     <h3>{entity.displayName}</h3>
     <span class="entity-id-badge">{entity.id}</span>
   </header>
@@ -152,6 +159,7 @@
     justify-content: space-between;
     align-items: center;
     background: rgba(15, 23, 42, 0.3);
+    cursor: pointer;
   }
 
   .card-header h3 {
