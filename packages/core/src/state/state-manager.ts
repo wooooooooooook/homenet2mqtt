@@ -61,7 +61,14 @@ export class StateManager {
       const stateStr = JSON.stringify(newState).replace(/["{}]/g, '').replace(/,/g, ', ');
       logger.info(`[StateManager] ${deviceId}: {${stateStr}} → ${topic} [published]`);
       this.mqttPublisher.publish(topic, payload, { retain: true });
-      eventBus.emit('state:changed', { entityId: deviceId, state: newState });
+      const timestamp = new Date().toISOString();
+      eventBus.emit('state:changed', {
+        entityId: deviceId,
+        topic,
+        payload,
+        state: newState,
+        timestamp,
+      });
       eventBus.emit(`device:${deviceId}:state:changed`, newState);
     } else {
       const stateStr = JSON.stringify(newState).replace(/["{}]/g, '').replace(/,/g, ', ');

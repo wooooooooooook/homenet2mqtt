@@ -9,6 +9,9 @@
     CommandInfo,
     UnifiedEntity,
     ParsedPacket,
+    StateChangeEvent,
+    ToastMessage,
+    FrontendSettings,
   } from './lib/types';
   import Sidebar from './lib/components/Sidebar.svelte';
   import Header from './lib/components/Header.svelte';
@@ -16,11 +19,13 @@
   import Analysis from './lib/views/Analysis.svelte';
 
   import EntityDetail from './lib/components/EntityDetail.svelte';
+  import ToastContainer from './lib/components/ToastContainer.svelte';
+  import SettingsView from './lib/views/Settings.svelte';
 
   const MAX_PACKETS = 1000;
 
   // -- State --
-  let activeView: 'dashboard' | 'analysis' = 'dashboard';
+  let activeView: 'dashboard' | 'analysis' | 'settings' = 'dashboard';
   let selectedEntityId: string | null = null;
 
   let bridgeInfo: BridgeInfo | null = null;
@@ -47,6 +52,21 @@
   let packetStats: PacketStats | null = null;
   let hasIntervalPackets = false;
   let lastRawPacketTimestamp: number | null = null;
+  let toasts: ToastMessage[] = [];
+  const toastTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
+  const MAX_TOASTS = 4;
+  const TOAST_DURATION = 5000;
+  let toastCounter = 0;
+  const DEFAULT_FRONTEND_SETTINGS: FrontendSettings = {
+    toast: {
+      stateChange: false,
+      command: true,
+    },
+  };
+  let frontendSettings: FrontendSettings | null = null;
+  let settingsLoading = false;
+  let settingsError = '';
+  let settingsSaving = false;
 
   type StreamEvent =
     | 'status'
@@ -55,7 +75,8 @@
     | 'raw-data-with-interval'
     | 'packet-interval-stats'
     | 'command-packet'
-    | 'parsed-packet';
+    | 'parsed-packet'
+    | 'state-change';
 
   type StreamMessage<T = unknown> = {
     event: StreamEvent;
@@ -77,8 +98,69 @@
     }
   };
 
+  const clearToastTimer = (id: string) => {
+    const timeout = toastTimeouts.get(id);
+    if (timeout) {
+      clearTimeout(timeout);
+      toastTimeouts.delete(id);
+    }
+  };
+
+  const removeToast = (id: string) => {
+    clearToastTimer(id);
+    toasts = toasts.filter((toast) => toast.id !== id);
+  };
+
+  const addToast = (toast: Omit<ToastMessage, 'id'>) => {
+    const id = `toast-${Date.now()}-${toastCounter++}`;
+    const newToast = { ...toast, id };
+    const next = [...toasts, newToast];
+
+    while (next.length > MAX_TOASTS) {
+      const removed = next.shift();
+      if (removed) {
+        clearToastTimer(removed.id);
+      }
+    }
+
+    toasts = next;
+
+    const timeout = setTimeout(() => removeToast(id), TOAST_DURATION);
+    toastTimeouts.set(id, timeout);
+  };
+
+  const formatToastValue = (value: unknown): string => {
+    if (value === null || typeof value === 'undefined') {
+      return '—';
+    }
+    if (typeof value === 'object') {
+      try {
+        return JSON.stringify(value);
+      } catch {
+        return String(value);
+      }
+    }
+    return String(value);
+  };
+
+  const formatStateSummary = (state: Record<string, unknown>): string => {
+    if (!state || typeof state !== 'object') {
+      return '';
+    }
+
+    return Object.entries(state)
+      .map(([key, value]) => `${key}: ${formatToastValue(value)}`)
+      .join(', ');
+  };
+
+  const isToastEnabled = (type: 'state' | 'command') => {
+    const currentSettings = frontendSettings ?? DEFAULT_FRONTEND_SETTINGS;
+    return type === 'command' ? currentSettings.toast.command : currentSettings.toast.stateChange;
+  };
+
   onMount(() => {
     loadBridgeInfo(true);
+    loadFrontendSettings();
   });
 
   // API 요청 helper 함수
@@ -135,6 +217,58 @@
       infoError = err instanceof Error ? err.message : '브리지 정보를 불러오지 못했습니다.';
     } finally {
       infoLoading = false;
+    }
+  }
+
+  async function loadFrontendSettings() {
+    settingsLoading = true;
+    settingsError = '';
+    try {
+      const data = await apiRequest<{ settings: FrontendSettings }>('./api/frontend-settings');
+      frontendSettings = data.settings;
+    } catch (err) {
+      settingsError =
+        err instanceof Error ? err.message : '프론트 설정을 불러오지 못했습니다.';
+      frontendSettings = DEFAULT_FRONTEND_SETTINGS;
+    } finally {
+      settingsLoading = false;
+    }
+  }
+
+  async function persistFrontendSettings(next: FrontendSettings) {
+    settingsSaving = true;
+    settingsError = '';
+    try {
+      const data = await apiRequest<{ settings: FrontendSettings }>(
+        './api/frontend-settings',
+        {
+          method: 'PUT',
+          body: JSON.stringify({ settings: next }),
+        },
+      );
+      frontendSettings = data.settings;
+    } catch (err) {
+      settingsError =
+        err instanceof Error ? err.message : '프론트 설정을 저장하지 못했습니다.';
+      throw err;
+    } finally {
+      settingsSaving = false;
+    }
+  }
+
+  async function updateToastSetting(key: 'stateChange' | 'command', value: boolean) {
+    const previous = frontendSettings ?? DEFAULT_FRONTEND_SETTINGS;
+    const next: FrontendSettings = {
+      toast: {
+        ...previous.toast,
+        [key]: value,
+      },
+    };
+    frontendSettings = next;
+    try {
+      await persistFrontendSettings(next);
+    } catch {
+      frontendSettings = previous;
     }
   }
 
@@ -212,12 +346,31 @@
       if (!isLogPaused) {
         commandPackets = [...commandPackets, data].slice(-MAX_PACKETS);
       }
+      if (!isToastEnabled('command')) return;
+      addToast({
+        type: 'command',
+        title: `${data.entity || data.entityId} 명령 전송`,
+        message:
+          data.value !== undefined ? `${data.command} → ${formatToastValue(data.value)}` : data.command,
+        timestamp: data.timestamp,
+      });
     };
 
     const handleParsedPacket = (data: ParsedPacket) => {
       if (!isLogPaused) {
         parsedPackets = [...parsedPackets, data].slice(-MAX_PACKETS);
       }
+    };
+
+    const handleStateChange = (data: StateChangeEvent) => {
+      if (!isToastEnabled('state')) return;
+      const summary = formatStateSummary(data.state);
+      addToast({
+        type: 'state',
+        title: `${extractEntityIdFromTopic(data.topic)} 상태 업데이트`,
+        message: summary || data.payload || '상태가 갱신되었습니다.',
+        timestamp: data.timestamp,
+      });
     };
 
     const messageHandlers: Partial<Record<StreamEvent, (data: any) => void>> = {
@@ -228,6 +381,7 @@
       'packet-interval-stats': handlePacketStats,
       'command-packet': handleCommandPacket,
       'parsed-packet': handleParsedPacket,
+      'state-change': handleStateChange,
     };
 
     socket.addEventListener('open', () => {
@@ -301,7 +455,11 @@
     return formatTopicName(topic);
   };
 
-  onDestroy(closeStream);
+  onDestroy(() => {
+    closeStream();
+    toastTimeouts.forEach((timeout) => clearTimeout(timeout));
+    toastTimeouts.clear();
+  });
 
   async function loadCommands() {
     commandsLoading = true;
@@ -435,6 +593,14 @@
         {isLogPaused}
         togglePause={() => (isLogPaused = !isLogPaused)}
       />
+    {:else if activeView === 'settings'}
+      <SettingsView
+        {frontendSettings}
+        isLoading={settingsLoading}
+        error={settingsError}
+        isSaving={settingsSaving}
+        on:toastChange={(e) => updateToastSetting(e.detail.key, e.detail.value)}
+      />
     {/if}
   </section>
 
@@ -449,6 +615,8 @@
     />
   {/if}
 </main>
+
+<ToastContainer {toasts} on:dismiss={(event) => removeToast(event.detail.id)} />
 
 <style>
   :global(body) {

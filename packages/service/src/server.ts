@@ -35,6 +35,7 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const CONFIG_DIR = process.env.CONFIG_ROOT || path.resolve(__dirname, '../../core/config');
+const FRONTEND_SETTINGS_FILE = path.join(CONFIG_DIR, 'frontend-setting.json');
 
 // --- Application State ---
 const app = express();
@@ -53,6 +54,59 @@ let bridgeStartPromise: Promise<void> | null = null;
 
 // --- Cache Initialization ---
 const packetCache = new PacketCache(eventBus);
+
+type FrontendSettings = {
+  toast: {
+    stateChange: boolean;
+    command: boolean;
+  };
+};
+
+const DEFAULT_FRONTEND_SETTINGS: FrontendSettings = {
+  toast: {
+    stateChange: false,
+    command: true,
+  },
+};
+
+const normalizeFrontendSettings = (value: Partial<FrontendSettings> | null | undefined) => {
+  return {
+    toast: {
+      stateChange:
+        typeof value?.toast?.stateChange === 'boolean'
+          ? value.toast.stateChange
+          : DEFAULT_FRONTEND_SETTINGS.toast.stateChange,
+      command:
+        typeof value?.toast?.command === 'boolean'
+          ? value.toast.command
+          : DEFAULT_FRONTEND_SETTINGS.toast.command,
+    },
+  };
+};
+
+const saveFrontendSettings = async (settings: FrontendSettings) => {
+  await fs.mkdir(CONFIG_DIR, { recursive: true });
+  await fs.writeFile(
+    FRONTEND_SETTINGS_FILE,
+    JSON.stringify(settings, null, 2),
+    'utf-8',
+  );
+};
+
+const loadFrontendSettings = async (): Promise<FrontendSettings> => {
+  try {
+    const data = await fs.readFile(FRONTEND_SETTINGS_FILE, 'utf-8');
+    const parsed = JSON.parse(data);
+    return normalizeFrontendSettings(parsed);
+  } catch (error) {
+    const err = error as NodeJS.ErrnoException;
+    if (err.code === 'ENOENT') {
+      await saveFrontendSettings(DEFAULT_FRONTEND_SETTINGS);
+      return DEFAULT_FRONTEND_SETTINGS;
+    }
+    throw error;
+  }
+};
 
 // --- Express Middleware & Setup ---
 app.use(express.json());
@@ -90,6 +144,27 @@ app.get('/api/bridge/info', async (_req, res) => {
   });
 });
 
+app.get('/api/frontend-settings', async (_req, res) => {
+  try {
+    const settings = await loadFrontendSettings();
+    res.json({ settings });
+  } catch (error) {
+    logger.error({ err: error }, '[service] Failed to load frontend settings');
+    res.status(500).json({ error: '프론트 설정을 불러오지 못했습니다.' });
+  }
+});
+
+app.put('/api/frontend-settings', async (req, res) => {
+  try {
+    const payload = normalizeFrontendSettings(req.body?.settings ?? req.body);
+    await saveFrontendSettings(payload);
+    res.json({ settings: payload });
+  } catch (error) {
+    logger.error({ err: error }, '[service] Failed to save frontend settings');
+    res.status(500).json({ error: '프론트 설정을 저장하지 못했습니다.' });
+  }
+});
+
 type StreamEvent =
   | 'status'
   | 'mqtt-message'
@@ -97,7 +172,8 @@ type StreamEvent =
   | 'raw-data-with-interval'
   | 'packet-interval-stats'
   | 'command-packet'
-  | 'parsed-packet';
+  | 'parsed-packet'
+  | 'state-change';
 
 type StreamMessage<T = unknown> = {
   event: StreamEvent;
@@ -115,6 +191,14 @@ type RawPacketEvent = {
   payload: string;
   receivedAt: string;
   interval: number | null;
+};
+
+type StateChangeEvent = {
+  entityId: string;
+  topic: string;
+  payload: string;
+  state: Record<string, unknown>;
+  timestamp: string;
 };
 
 const normalizeRawPacket = (data: RawPacketPayload): RawPacketEvent => ({
@@ -205,6 +289,12 @@ const registerPacketStream = () => {
     };
     eventBus.on('parsed-packet', handleParsedPacket);
     cleanupHandlers.push(() => eventBus.off('parsed-packet', handleParsedPacket));
+
+    const handleStateChange = (data: StateChangeEvent) => {
+      sendStreamEvent(socket, 'state-change', data);
+    };
+    eventBus.on('state:changed', handleStateChange);
+    cleanupHandlers.push(() => eventBus.off('state:changed', handleStateChange));
 
     const heartbeat = setInterval(() => {
       if (socket.readyState === WebSocket.OPEN) {

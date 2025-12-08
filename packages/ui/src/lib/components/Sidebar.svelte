@@ -1,5 +1,5 @@
 <script lang="ts">
-  export let activeView: 'dashboard' | 'analysis';
+  export let activeView: 'dashboard' | 'analysis' | 'settings';
 </script>
 
 <aside class="sidebar">
@@ -24,6 +24,14 @@
     >
       <span class="icon">📈</span>
       <span class="label">분석</span>
+    </button>
+    <button
+      class="nav-item"
+      class:active={activeView === 'settings'}
+      on:click={() => (activeView = 'settings')}
+    >
+      <span class="icon">⚙️</span>
+      <span class="label">설정</span>
     </button>
   </nav>
 </aside>

@@ -14,6 +14,21 @@ export type CommandPacket = {
     timestamp: string;
 };
 
+export type StateChangeEvent = {
+    entityId: string;
+    topic: string;
+    payload: string;
+    state: Record<string, unknown>;
+    timestamp: string;
+};
+
+export type FrontendSettings = {
+    toast: {
+        stateChange: boolean;
+        command: boolean;
+    };
+};
+
 export type BridgeStatus = 'idle' | 'starting' | 'started' | 'stopped' | 'error';
 
 export type CommandInfo = {
@@ -74,5 +89,13 @@ export type ParsedPacket = {
     entityId: string;
     packet: string; // hex string
     state: any;
+    timestamp: string;
+};
+
+export type ToastMessage = {
+    id: string;
+    type: 'state' | 'command';
+    title: string;
+    message: string;
     timestamp: string;
 };

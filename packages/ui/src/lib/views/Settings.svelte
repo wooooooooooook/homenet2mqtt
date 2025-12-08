@@ -1,0 +1,211 @@
+<script lang="ts">
+  import { createEventDispatcher } from 'svelte';
+  import type { FrontendSettings } from '../types';
+
+  export let frontendSettings: FrontendSettings | null = null;
+  export let isLoading = false;
+  export let isSaving = false;
+  export let error = '';
+
+  type ToastSettingKey = 'stateChange' | 'command';
+
+  const dispatch = createEventDispatcher<{ toastChange: { key: ToastSettingKey; value: boolean } }>();
+
+  const getToastValue = (key: ToastSettingKey) => {
+    return frontendSettings?.toast?.[key] ?? true;
+  };
+
+  const handleToggle = (key: ToastSettingKey, event: Event) => {
+    const target = event.currentTarget as HTMLInputElement;
+    dispatch('toastChange', { key, value: target.checked });
+  };
+</script>
+
+<section class="settings-view">
+  <h1>설정</h1>
+
+  {#if error}
+    <div class="error-banner">{error}</div>
+  {/if}
+
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <h2>토스트 알림</h2>
+        <p>상태 업데이트나 명령 전송 이벤트 발생 시 토스트 표시 여부를 제어합니다.</p>
+      </div>
+      {#if isSaving}
+        <span class="badge">저장 중...</span>
+      {/if}
+    </div>
+
+    {#if isLoading}
+      <div class="loading">설정을 불러오는 중...</div>
+    {:else}
+      <div class="setting">
+        <div>
+          <div class="setting-title">상태 변경 토스트</div>
+          <div class="setting-desc">상태 토픽 업데이트마다 토스트를 띄웁니다.</div>
+        </div>
+        <label class="switch">
+          <input
+            type="checkbox"
+            checked={getToastValue('stateChange')}
+            on:change={(event) => handleToggle('stateChange', event)}
+            disabled={isSaving || isLoading}
+          />
+          <span class="slider" />
+        </label>
+      </div>
+
+      <div class="setting">
+        <div>
+          <div class="setting-title">명령 전송 토스트</div>
+          <div class="setting-desc">명령 패킷을 보낼 때 토스트를 띄웁니다.</div>
+        </div>
+        <label class="switch">
+          <input
+            type="checkbox"
+            checked={getToastValue('command')}
+            on:change={(event) => handleToggle('command', event)}
+            disabled={isSaving || isLoading}
+          />
+          <span class="slider" />
+        </label>
+      </div>
+    {/if}
+  </div>
+</section>
+
+<style>
+  .settings-view {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: 1.75rem;
+  }
+
+  .card {
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(148, 163, 184, 0.1);
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 20px 40px rgba(15, 23, 42, 0.4);
+  }
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .card-header h2 {
+    margin: 0;
+    font-size: 1.2rem;
+  }
+
+  .card-header p {
+    margin: 0.25rem 0 0;
+    color: #94a3b8;
+    font-size: 0.9rem;
+  }
+
+  .badge {
+    align-self: flex-start;
+    background: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+    border-radius: 999px;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.85rem;
+  }
+
+  .setting {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 0;
+    border-top: 1px solid rgba(148, 163, 184, 0.15);
+  }
+
+  .setting:first-of-type {
+    border-top: none;
+  }
+
+  .setting-title {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+  }
+
+  .setting-desc {
+    color: #94a3b8;
+    font-size: 0.9rem;
+  }
+
+  .switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 28px;
+  }
+
+  .switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(148, 163, 184, 0.4);
+    transition: 0.2s;
+    border-radius: 34px;
+  }
+
+  .slider:before {
+    position: absolute;
+    content: '';
+    height: 22px;
+    width: 22px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: 0.2s;
+    border-radius: 50%;
+  }
+
+  input:checked + .slider {
+    background-color: rgba(59, 130, 246, 0.7);
+  }
+
+  input:checked + .slider:before {
+    transform: translateX(22px);
+  }
+
+  input:disabled + .slider {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .error-banner {
+    background: rgba(248, 113, 113, 0.15);
+    border: 1px solid rgba(248, 113, 113, 0.4);
+    border-radius: 10px;
+    padding: 0.75rem 1rem;
+    color: #fecaca;
+  }
+
+  .loading {
+    color: #94a3b8;
+    font-size: 0.95rem;
+  }
+</style>
