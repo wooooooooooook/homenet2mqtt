@@ -28,6 +28,7 @@
       </button>
     </div>
   </div>
+  <p class="description">RS485 장치에서 수신된 raw 패킷 목록을 interval과 함께 표시합니다.</p>
 
   {#if stats || isStreaming}
     <PacketStats {stats} />
@@ -72,6 +73,11 @@
     font-size: 1.1rem;
     margin: 0;
     color: #e2e8f0;
+  }
+
+  .description {
+    color: #94a3b8;
+    font-size: 0.9rem;
   }
 
   .log-list {

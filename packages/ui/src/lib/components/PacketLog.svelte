@@ -40,6 +40,7 @@
       </div>
     </div>
   </div>
+  <p class="description">파싱된 수신패킷과 H2M에서 발신한 패킷 목록입니다.</p>
   <div class="log-list unified-list">
     {#if mergedPackets.length === 0}
       <p class="empty">표시할 패킷이 없습니다.</p>
@@ -90,6 +91,11 @@
     display: flex;
     align-items: center;
     gap: 1.5rem;
+  }
+
+  .description {
+    color: #94a3b8;
+    font-size: 0.9rem;
   }
 
   .filters {
