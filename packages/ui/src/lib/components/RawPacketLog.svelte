@@ -28,7 +28,8 @@
       </button>
     </div>
   </div>
-  {#if stats}
+
+  {#if stats || isStreaming}
     <PacketStats {stats} />
   {/if}
 

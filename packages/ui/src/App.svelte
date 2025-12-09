@@ -38,7 +38,6 @@
   let socket: WebSocket | null = null;
   let connectionStatus: 'idle' | 'connecting' | 'connected' | 'error' = 'idle';
   let statusMessage = '';
-  let isLogPaused = false;
   let isStreaming = false;
 
   // Command buttons state
@@ -95,9 +94,7 @@
   });
 
   const appendRawPacket = (packet: RawPacketWithInterval) => {
-    if (!isLogPaused) {
-      rawPackets = [...rawPackets, packet].slice(-MAX_PACKETS);
-    }
+    rawPackets = [...rawPackets, packet].slice(-MAX_PACKETS);
   };
 
   const clearToastTimer = (id: string) => {
@@ -346,9 +343,7 @@
     };
 
     const handleCommandPacket = (data: CommandPacket) => {
-      if (!isLogPaused) {
-        commandPackets = [...commandPackets, data].slice(-MAX_PACKETS);
-      }
+      commandPackets = [...commandPackets, data].slice(-MAX_PACKETS);
       if (!isToastEnabled('command')) return;
       addToast({
         type: 'command',
@@ -362,9 +357,7 @@
     };
 
     const handleParsedPacket = (data: ParsedPacket) => {
-      if (!isLogPaused) {
-        parsedPackets = [...parsedPackets, data].slice(-MAX_PACKETS);
-      }
+      parsedPackets = [...parsedPackets, data].slice(-MAX_PACKETS);
     };
 
     const handleStateChange = (data: StateChangeEvent) => {

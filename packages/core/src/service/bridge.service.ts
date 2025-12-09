@@ -198,6 +198,10 @@ export class HomeNetBridge implements EntityStateProvider {
       logger.info('[core] Stopping raw packet listener.');
       this.port.off('data', this.rawPacketListener);
       this.rawPacketListener = null;
+
+      // Reset stats
+      this.packetIntervals = [];
+      this.lastPacketTimestamp = null;
     }
   }
 
