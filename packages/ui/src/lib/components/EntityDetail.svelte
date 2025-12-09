@@ -14,9 +14,11 @@
   }>();
 
   let activeTab: 'status' | 'config' | 'packets' = 'status';
-  let rawConfigHtml = '';
+  let editingConfig = '';
   let configLoading = false;
   let configError: string | null = null;
+  let isSaving = false;
+  let saveMessage = '';
 
   let commandInputs: Record<string, any> = {};
 
@@ -60,11 +62,12 @@
   async function loadRawConfig() {
     configLoading = true;
     configError = null;
+    saveMessage = '';
     try {
       const res = await fetch(`./api/config/raw/${entity.id}`);
       if (!res.ok) throw new Error('Failed to load config');
       const data = await res.json();
-      rawConfigHtml = highlightYaml(data.yaml);
+      editingConfig = data.yaml;
     } catch (err) {
       configError = '설정 정보를 불러올 수 없습니다.';
     } finally {
@@ -72,15 +75,34 @@
     }
   }
 
-  function highlightYaml(yaml: string): string {
-    // Simple syntax highlighting for YAML
-    if (!yaml) return '';
-    return yaml
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/^([a-zA-Z0-9_-]+):/gm, '<span class="key">$1</span>:')
-      .replace(/(: )(.+)$/gm, '$1<span class="value">$2</span>');
+  async function saveConfig() {
+    if (!editingConfig) return;
+    
+    isSaving = true;
+    configError = null;
+    saveMessage = '';
+
+    try {
+      const res = await fetch('./api/config/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          entityId: entity.id,
+          yaml: editingConfig,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || '저장에 실패했습니다.');
+      }
+
+      saveMessage = `저장 완료 (백업: ${data.backup})`;
+    } catch (err) {
+      configError = err instanceof Error ? err.message : '저장에 실패했습니다.';
+    } finally {
+      isSaving = false;
+    }
   }
 
   function close() {
@@ -206,10 +228,25 @@
           <div class="section config-section">
             {#if configLoading}
               <div class="loading">설정 불러오는 중...</div>
-            {:else if configError}
-              <div class="error">{configError}</div>
             {:else}
-              <pre class="yaml-code">{@html rawConfigHtml}</pre>
+              <div class="config-editor-container">
+                <textarea 
+                  class="config-editor" 
+                  bind:value={editingConfig}
+                  spellcheck="false"
+                ></textarea>
+                <div class="config-actions">
+                  <button class="save-btn" on:click={saveConfig} disabled={isSaving}>
+                    {isSaving ? '저장 중...' : '저장'}
+                  </button>
+                  {#if saveMessage}
+                    <span class="save-message success">{saveMessage}</span>
+                  {/if}
+                  {#if configError}
+                    <span class="save-message error">{configError}</span>
+                  {/if}
+                </div>
+              </div>
             {/if}
           </div>
         {:else if activeTab === 'packets'}
@@ -481,24 +518,68 @@
     background: #0284c7;
   }
 
-  .yaml-code {
+  .config-editor-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    height: 100%;
+  }
+
+  .config-editor {
+    flex: 1;
     background: #0f172a;
     padding: 1rem;
     border-radius: 8px;
     border: 1px solid #334155;
     color: #e2e8f0;
     font-family: 'Fira Code', monospace;
-    margin: 0;
-    white-space: pre-wrap;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    resize: vertical;
+    min-height: 400px;
+    outline: none;
+  }
+  
+  .config-editor:focus {
+    border-color: #38bdf8;
   }
 
-  /* YAML Highlighting */
-  :global(.yaml-code .key) {
-    color: #38bdf8;
-    font-weight: bold;
+  .config-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
   }
-  :global(.yaml-code .value) {
-    color: #a5f3fc;
+
+  .save-btn {
+    background: #10b981;
+    border: none;
+    color: white;
+    padding: 0.5rem 1.5rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background-color 0.2s;
+  }
+
+  .save-btn:hover:not(:disabled) {
+    background: #059669;
+  }
+
+  .save-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .save-message {
+    font-size: 0.9rem;
+  }
+  
+  .save-message.success {
+    color: #34d399;
+  }
+  
+  .save-message.error {
+    color: #f87171;
   }
 
   /* Unified Log Styles */
@@ -612,3 +693,4 @@
     font-style: italic;
   }
 </style>
+
