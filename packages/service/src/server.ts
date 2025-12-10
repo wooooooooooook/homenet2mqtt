@@ -213,7 +213,9 @@ app.get('/api/bridge/info', async (_req, res) => {
   res.json({
     configFile: currentConfigFile,
     serialPath: envSerialPorts.values[0] || '/simshare/rs485-sim-tty', // Serial path is now from env or default
-    baudRate: currentConfigContent.serial?.baud_rate ?? 0, // From new config structure
+    baudRate: currentConfigContent.serials?.[0]?.baud_rate
+      ?? currentConfigContent.serial?.baud_rate
+      ?? 0,
     mqttUrl: process.env.MQTT_URL?.trim() || 'mqtt://mq:1883',
     status: bridgeStatus,
     error: bridgeError,
