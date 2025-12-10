@@ -4,7 +4,6 @@ import { Duplex } from 'stream';
 import mqtt from 'mqtt';
 
 import { logger } from '../utils/logger.js';
-import { MQTT_TOPIC_PREFIX } from '../utils/constants.js';
 import { HomenetBridgeConfig, SerialConfig } from '../config/types.js';
 import { loadConfig } from '../config/index.js';
 import { EntityConfig } from '../domain/entities/base.entity.js';
@@ -55,12 +54,18 @@ export class HomeNetBridge {
   private config?: HomenetBridgeConfig; // Loaded configuration
   private readonly portContexts = new Map<string, PortContext>();
   private hrtimeBase: bigint = process.hrtime.bigint(); // Base time for monotonic clock
+  private envSerialPorts: string[] = [];
+  private envConfigFiles: string[] = [];
+  private envMqttTopicPrefixes: string[] = [];
+  private serialPortOverrides = new Map<string, string>();
+  private mqttTopicPrefixOverrides = new Map<string, string>();
+  private defaultMqttTopicPrefix = this.peekDefaultMqttTopicPrefix();
 
   constructor(options: BridgeOptions) {
     this.options = options;
     const mqttOptions: mqtt.IClientOptions = {
       will: {
-        topic: `${MQTT_TOPIC_PREFIX}/bridge/status`,
+        topic: `${this.defaultMqttTopicPrefix}/bridge/status`,
         payload: 'offline',
         qos: 1,
         retain: true,
@@ -233,6 +238,44 @@ export class HomeNetBridge {
     };
   }
 
+  private peekDefaultMqttTopicPrefix(): string {
+    const raw = process.env.MQTT_TOPIC_PREFIXES || process.env.MQTT_TOPIC_PREFIX || '';
+    const prefix = raw
+      .split(',')
+      .map((value) => value.trim())
+      .find((value) => value.length > 0);
+
+    return prefix || 'homenet';
+  }
+
+  private parseEnvList(primaryKey: string, legacyKey: string, label: string): string[] {
+    const raw = process.env[primaryKey] ?? process.env[legacyKey];
+    const source = process.env[primaryKey] ? primaryKey : process.env[legacyKey] ? legacyKey : null;
+
+    if (!raw) return [];
+
+    const values = raw
+      .split(',')
+      .map((value) => value.trim())
+      .filter((value) => value.length > 0);
+
+    if (values.length === 0) {
+      throw new Error(`[core] ${source}에 최소 1개 이상의 ${label}을 입력하세요.`);
+    }
+
+    if (!raw.includes(',')) {
+      logger.warn(
+        `[core] ${source}에 단일 값이 전달되었습니다. 쉼표로 구분된 배열 형식(${source}=item1,item2)를 권장합니다.`,
+      );
+    }
+
+    if (source === legacyKey && primaryKey !== legacyKey) {
+      logger.warn(`[core] ${legacyKey} 대신 ${primaryKey} 사용을 권장합니다.`);
+    }
+
+    return values;
+  }
+
   private getDefaultContext(portId?: string): PortContext | undefined {
     if (portId) {
       return this.portContexts.get(portId);
@@ -249,14 +292,79 @@ export class HomeNetBridge {
       logger.info({ envKey, portId: serialConfig.portId, serialPath: envValue }, '[core] Using port-specific SERIAL_PORT override');
       return envValue;
     }
+    const mappedPath = this.serialPortOverrides.get(serialConfig.portId);
+    if (mappedPath) return mappedPath;
     if (process.env.SERIAL_PORT) return process.env.SERIAL_PORT;
     return '/simshare/rs485-sim-tty';
   }
 
+  private getMqttTopicPrefix(portId: string): string {
+    return this.mqttTopicPrefixOverrides.get(portId) ?? this.defaultMqttTopicPrefix;
+  }
+
   private async initialize() {
+    this.serialPortOverrides.clear();
+    this.mqttTopicPrefixOverrides.clear();
+    this.envSerialPorts = this.parseEnvList('SERIAL_PORTS', 'SERIAL_PORT', '시리얼 포트 경로');
+    this.envConfigFiles = this.parseEnvList('CONFIG_FILES', 'CONFIG_FILE', '설정 파일');
+    this.envMqttTopicPrefixes = this.parseEnvList('MQTT_TOPIC_PREFIXES', 'MQTT_TOPIC_PREFIX', 'MQTT 토픽 prefix');
+    if (this.envMqttTopicPrefixes.length > 0) {
+      this.defaultMqttTopicPrefix = this.envMqttTopicPrefixes[0];
+    }
+
+    if (
+      this.envSerialPorts.length > 0 &&
+      this.envConfigFiles.length > 0 &&
+      this.envSerialPorts.length !== this.envConfigFiles.length
+    ) {
+      throw new Error(
+        `[core] SERIAL_PORTS(${this.envSerialPorts.length})와 CONFIG_FILES(${this.envConfigFiles.length}) 개수가 다릅니다. 쉼표로 구분된 순서를 맞춰주세요.`,
+      );
+    }
+
     this.config = await loadConfig(this.options.configPath);
     clearStateCache();
     logger.info('[core] MQTT 연결을 백그라운드에서 대기하며 시리얼 포트 연결을 진행합니다.');
+
+    if (this.envSerialPorts.length > 0) {
+      if (this.envSerialPorts.length !== this.config.serials.length) {
+        throw new Error(
+          `[core] SERIAL_PORT(S) 항목 수(${this.envSerialPorts.length})가 config.serials(${this.config.serials.length})와 일치하지 않습니다. 설정 파일의 serials 순서에 맞춰 포트 목록을 지정하세요.`,
+        );
+      }
+
+      this.config.serials.forEach((serial, index) => {
+        const serialPath = this.envSerialPorts[index];
+        this.serialPortOverrides.set(serial.portId, serialPath);
+        logger.info(
+          { portId: serial.portId, serialPath },
+          '[core] SERIAL_PORTS 배열을 통해 포트 매핑을 적용합니다.',
+        );
+      });
+    }
+
+    if (this.envMqttTopicPrefixes.length > 0) {
+      if (
+        this.envMqttTopicPrefixes.length !== 1 &&
+        this.envMqttTopicPrefixes.length !== this.config.serials.length
+      ) {
+        throw new Error(
+          `[core] MQTT_TOPIC_PREFIX(ES) 항목 수(${this.envMqttTopicPrefixes.length})는 1개 또는 config.serials(${this.config.serials.length})와 같아야 합니다.`,
+        );
+      }
+
+      this.config.serials.forEach((serial, index) => {
+        const mqttTopicPrefix =
+          this.envMqttTopicPrefixes.length === 1
+            ? this.envMqttTopicPrefixes[0]
+            : this.envMqttTopicPrefixes[index];
+        this.mqttTopicPrefixOverrides.set(serial.portId, mqttTopicPrefix);
+        logger.info(
+          { portId: serial.portId, mqttTopicPrefix },
+          '[core] MQTT_TOPIC_PREFIXES 배열로 토픽 접두사를 매핑합니다.',
+        );
+      });
+    }
 
     for (const serialConfig of this.config.serials) {
       const serialPath = this.resolveSerialPath(serialConfig);
@@ -277,8 +385,15 @@ export class HomeNetBridge {
         });
       });
 
-      const mqttPublisher = new MqttPublisher(this._mqttClient);
-      const stateManager = new StateManager(serialConfig.portId, this.config, packetProcessor, mqttPublisher);
+      const mqttTopicPrefix = this.getMqttTopicPrefix(serialConfig.portId);
+      const mqttPublisher = new MqttPublisher(this._mqttClient, mqttTopicPrefix);
+      const stateManager = new StateManager(
+        serialConfig.portId,
+        this.config,
+        packetProcessor,
+        mqttPublisher,
+        mqttTopicPrefix,
+      );
       const commandManager = new CommandManager(port, this.config, serialConfig.portId);
       const mqttSubscriber = new MqttSubscriber(
         this._mqttClient,
@@ -286,6 +401,7 @@ export class HomeNetBridge {
         this.config,
         packetProcessor,
         commandManager,
+        mqttTopicPrefix,
       );
 
       // Set up subscriptions
@@ -301,6 +417,7 @@ export class HomeNetBridge {
         this.config,
         mqttPublisher,
         mqttSubscriber,
+        mqttTopicPrefix,
       );
       discoveryManager.setup();
 
