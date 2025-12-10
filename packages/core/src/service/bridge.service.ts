@@ -47,8 +47,8 @@ export interface BridgeOptions {
 export class HomeNetBridge {
   private readonly minPacketIntervalsForStats = 10;
   private readonly options: BridgeOptions;
-  private readonly _mqttClient: MqttClient; // New internal instance
-  private readonly client: MqttClient['client']; // Reference to the actual mqtt client
+  private _mqttClient!: MqttClient; // New internal instance
+  private client!: MqttClient['client']; // Reference to the actual mqtt client
   private startPromise: Promise<void> | null = null;
 
   private config?: HomenetBridgeConfig; // Loaded configuration
@@ -63,24 +63,6 @@ export class HomeNetBridge {
 
   constructor(options: BridgeOptions) {
     this.options = options;
-    const mqttOptions: mqtt.IClientOptions = {
-      will: {
-        topic: `${this.defaultMqttTopicPrefix}/bridge/status`,
-        payload: 'offline',
-        qos: 1,
-        retain: true,
-      },
-    };
-
-    if (options.mqttUsername) {
-      mqttOptions.username = options.mqttUsername;
-    }
-    if (options.mqttPassword) {
-      mqttOptions.password = options.mqttPassword;
-    }
-
-    this._mqttClient = new MqttClient(options.mqttUrl, mqttOptions);
-    this.client = this._mqttClient.client; // Assign the client from the new MqttClient instance
   }
 
   async start() {
@@ -365,6 +347,26 @@ export class HomeNetBridge {
         );
       });
     }
+
+    const defaultWillPortId = this.config.serials[0]?.portId ?? 'default';
+    const mqttOptions: mqtt.IClientOptions = {
+      will: {
+        topic: `${this.getMqttTopicPrefix(defaultWillPortId)}/${defaultWillPortId}/bridge/status`,
+        payload: 'offline',
+        qos: 1,
+        retain: true,
+      },
+    };
+
+    if (this.options.mqttUsername) {
+      mqttOptions.username = this.options.mqttUsername;
+    }
+    if (this.options.mqttPassword) {
+      mqttOptions.password = this.options.mqttPassword;
+    }
+
+    this._mqttClient = new MqttClient(this.options.mqttUrl, mqttOptions);
+    this.client = this._mqttClient.client; // Assign the client from the new MqttClient instance
 
     for (const serialConfig of this.config.serials) {
       const serialPath = this.resolveSerialPath(serialConfig);
