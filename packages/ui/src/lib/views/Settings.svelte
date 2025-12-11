@@ -2,10 +2,12 @@
   import { createEventDispatcher } from 'svelte';
   import type { FrontendSettings } from '../types';
 
-  export let frontendSettings: FrontendSettings | null = null;
-  export let isLoading = false;
-  export let isSaving = false;
-  export let error = '';
+  let { frontendSettings = null, isLoading = false, isSaving = false, error = '' } = $props<{
+    frontendSettings?: FrontendSettings | null;
+    isLoading?: boolean;
+    isSaving?: boolean;
+    error?: string;
+  }>();
 
   type ToastSettingKey = 'stateChange' | 'command';
 

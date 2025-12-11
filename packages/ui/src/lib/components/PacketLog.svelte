@@ -1,28 +1,30 @@
 <script lang="ts">
   import type { CommandPacket, ParsedPacket } from '../types';
 
-  export let parsedPackets: ParsedPacket[] = [];
-  export let commandPackets: CommandPacket[] = [];
+  let { parsedPackets = [], commandPackets = [] } = $props<{
+    parsedPackets?: ParsedPacket[];
+    commandPackets?: CommandPacket[];
+  }>();
 
-  let showRx = true;
-  let showTx = true;
+  let showRx = $state(true);
+  let showTx = $state(true);
 
   type MergedPacket = ({ type: 'rx' } & ParsedPacket) | ({ type: 'tx' } & CommandPacket);
 
-  $: mergedPackets = (() => {
+  const mergedPackets = $derived.by(() => {
     const packets: MergedPacket[] = [];
 
     if (showRx) {
-      packets.push(...parsedPackets.map((p) => ({ ...p, type: 'rx' }) as const));
+      packets.push(...parsedPackets.map((p: ParsedPacket) => ({ ...p, type: 'rx' }) as const));
     }
     if (showTx) {
-      packets.push(...commandPackets.map((p) => ({ ...p, type: 'tx' }) as const));
+      packets.push(...commandPackets.map((p: CommandPacket) => ({ ...p, type: 'tx' }) as const));
     }
 
     return packets.sort(
       (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
     );
-  })();
+  });
 </script>
 
 <!-- Unified Packet Log Section -->

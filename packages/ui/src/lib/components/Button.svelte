@@ -1,6 +1,8 @@
 <script lang="ts">
-  export let variant: 'primary' | 'danger' = 'primary';
-  export let disabled = false;
+  let { variant = 'primary', disabled = false } = $props<{
+    variant?: 'primary' | 'danger';
+    disabled?: boolean;
+  }>();
 </script>
 
 <button class={`btn ${variant}`} on:click {disabled}>

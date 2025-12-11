@@ -2,7 +2,7 @@
   import { createEventDispatcher } from 'svelte';
   import type { ToastMessage } from '../types';
 
-  export let toasts: ToastMessage[] = [];
+  let { toasts = [] } = $props<{ toasts?: ToastMessage[] }>();
 
   const dispatch = createEventDispatcher<{ dismiss: { id: string } }>();
 

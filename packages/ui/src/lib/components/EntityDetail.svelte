@@ -3,12 +3,21 @@
   import { fade, scale } from 'svelte/transition';
   import type { UnifiedEntity, CommandInfo, ParsedPacket, CommandPacket } from '../types';
 
-  export let entity: UnifiedEntity;
-  export let parsedPackets: ParsedPacket[] = [];
-  export let commandPackets: CommandPacket[] = [];
-  export let isOpen: boolean;
-  export let isRenaming = false;
-  export let renameError: string | null = null;
+  let {
+    entity,
+    parsedPackets = [],
+    commandPackets = [],
+    isOpen,
+    isRenaming = false,
+    renameError = null,
+  } = $props<{
+    entity: UnifiedEntity;
+    parsedPackets?: ParsedPacket[];
+    commandPackets?: CommandPacket[];
+    isOpen: boolean;
+    isRenaming?: boolean;
+    renameError?: string | null;
+  }>();
 
   const dispatch = createEventDispatcher<{
     close: void;
@@ -16,49 +25,53 @@
     rename: { newName: string };
   }>();
 
-  let activeTab: 'status' | 'config' | 'packets' = 'status';
-  let editingConfig = '';
-  let configLoading = false;
-  let configError: string | null = null;
-  let isSaving = false;
-  let saveMessage = '';
-  let renameInput = '';
-  let renameLocalError: string | null = null;
-  let renameEntityId: string | null = null;
-  let effectiveRenameError = '';
+  let activeTab = $state<'status' | 'config' | 'packets'>('status');
+  let editingConfig = $state('');
+  let configLoading = $state(false);
+  let configError = $state<string | null>(null);
+  let isSaving = $state(false);
+  let saveMessage = $state('');
+  let renameInput = $state('');
+  let renameLocalError = $state<string | null>(null);
+  let renameEntityId = $state<string | null>(null);
+  let effectiveRenameError = $state('');
 
-  let commandInputs: Record<string, any> = {};
+  let commandInputs = $state<Record<string, any>>({});
 
-  let showRx = true;
-  let showTx = true;
+  let showRx = $state(true);
+  let showTx = $state(true);
 
   type MergedPacket = ({ type: 'rx' } & ParsedPacket) | ({ type: 'tx' } & CommandPacket);
 
-  $: mergedPackets = (() => {
+  const mergedPackets = $derived.by(() => {
     const packets: MergedPacket[] = [];
 
     if (showRx) {
-      packets.push(...parsedPackets.map((p) => ({ ...p, type: 'rx' }) as const));
+      packets.push(...parsedPackets.map((p: ParsedPacket) => ({ ...p, type: 'rx' }) as const));
     }
     if (showTx) {
-      packets.push(...commandPackets.map((p) => ({ ...p, type: 'tx' }) as const));
+      packets.push(...commandPackets.map((p: CommandPacket) => ({ ...p, type: 'tx' }) as const));
     }
 
     return packets.sort(
       (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
     );
-  })();
+  });
 
   // Use a variable to track the entity ID for which config was last loaded into the editor
-  let loadedConfigEntityId: string | null = null;
+  let loadedConfigEntityId = $state<string | null>(null);
 
-  $: if (entity && entity.id !== renameEntityId) {
-    renameInput = entity.displayName;
-    renameEntityId = entity.id;
-    renameLocalError = null;
-  }
+  $effect(() => {
+    if (entity && entity.id !== renameEntityId) {
+      renameInput = entity.displayName;
+      renameEntityId = entity.id;
+      renameLocalError = null;
+    }
+  });
 
-  $: effectiveRenameError = renameLocalError || renameError || '';
+  $effect(() => {
+    effectiveRenameError = renameLocalError || renameError || '';
+  });
 
   function handleRename() {
     const trimmed = renameInput.trim();
@@ -85,36 +98,29 @@
     }
   });
 
-  $: if (isOpen && entity && activeTab === 'config') {
-    // Only load config if a new entity is selected OR if we're switching to the config tab for a new entity
-    if (loadedConfigEntityId !== entity.id) {
-      loadRawConfig();
-      loadedConfigEntityId = entity.id;
-    }
-  } else if (!isOpen) {
-    // Reset loadedConfigEntityId when the modal is closed
-    loadedConfigEntityId = null;
-  }
-  
-  // Re-initialize command inputs only when the entity.id changes or modal opens for a *new* entity
-  $: if (isOpen && entity && loadedConfigEntityId !== entity.id) { // This condition needs to be adjusted. It should run when the entity for the modal changes.
-    // The previous implementation was: $: if (isOpen && entity)
-    // The issue here is that loadedConfigEntityId is for the config tab, not for the general entity object.
-    // Let's use a separate flag for the entity itself.
-    // However, the intent of the old code was to initialize inputs when *any* entity detail was opened or changed.
-    // This is fine as long as `commandInputs` are tied to the entity ID.
-    // Let's revert this reactive statement to its original form for now, it's not the cause of config editing issue.
-    // The previous change was based on the assumption that `loadedConfigEntityId` was to control all entity updates.
-    // It's only for the config editor.
-
-    // Revert to the original: This block runs when `isOpen` or `entity` changes.
-    // This is correct for initializing inputs for the currently displayed entity.
-    entity.commands.forEach((cmd) => {
-      if (cmd.inputType === 'number') {
-        commandInputs[`${cmd.entityId}_${cmd.commandName}`] = cmd.min ?? 0;
+  $effect(() => {
+    if (isOpen && entity && activeTab === 'config') {
+      // Only load config if a new entity is selected OR if we're switching to the config tab for a new entity
+      if (loadedConfigEntityId !== entity.id) {
+        loadRawConfig();
+        loadedConfigEntityId = entity.id;
       }
-    });
-  }
+    } else if (!isOpen) {
+      // Reset loadedConfigEntityId when the modal is closed
+      loadedConfigEntityId = null;
+    }
+  });
+
+  // Re-initialize command inputs only when the entity.id changes or modal opens for a *new* entity
+  $effect(() => {
+    if (isOpen && entity && loadedConfigEntityId !== entity.id) {
+      entity.commands.forEach((cmd: CommandInfo) => {
+        if (cmd.inputType === 'number') {
+          commandInputs[`${cmd.entityId}_${cmd.commandName}`] = cmd.min ?? 0;
+        }
+      });
+    }
+  });
 
   async function loadRawConfig() {
     configLoading = true;

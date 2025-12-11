@@ -9,11 +9,19 @@
   import PacketLog from '../components/PacketLog.svelte';
   import RawPacketLog from '../components/RawPacketLog.svelte';
 
-  export let stats: PacketStatsType | null;
-  export let commandPackets: CommandPacket[];
-  export let parsedPackets: ParsedPacket[];
-  export let rawPackets: RawPacketWithInterval[];
-  export let isStreaming: boolean;
+  let {
+    stats,
+    commandPackets,
+    parsedPackets,
+    rawPackets,
+    isStreaming,
+  } = $props<{
+    stats: PacketStatsType | null;
+    commandPackets: CommandPacket[];
+    parsedPackets: ParsedPacket[];
+    rawPackets: RawPacketWithInterval[];
+    isStreaming: boolean;
+  }>();
 
   const dispatch = createEventDispatcher();
   const startStreaming = () => dispatch('start');

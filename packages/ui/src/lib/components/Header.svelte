@@ -2,15 +2,23 @@
   import { createEventDispatcher } from 'svelte';
   import type { BridgeStatus } from '../types';
 
-  export let bridgeStatus: BridgeStatus = 'idle';
-  export let connectionStatus: 'idle' | 'connecting' | 'connected' | 'error' = 'idle';
-  export let statusMessage: string;
-  export let onRefresh: () => void;
-  export let isRefreshing: boolean = false;
+  let {
+    bridgeStatus = 'idle' as BridgeStatus,
+    connectionStatus = 'idle' as 'idle' | 'connecting' | 'connected' | 'error',
+    statusMessage,
+    onRefresh,
+    isRefreshing = false,
+  } = $props<{
+    bridgeStatus: BridgeStatus;
+    connectionStatus: 'idle' | 'connecting' | 'connected' | 'error';
+    statusMessage: string;
+    onRefresh: () => void;
+    isRefreshing?: boolean;
+  }>();
 
   const dispatch = createEventDispatcher();
 
-  const bridgeStatusLabels: Record<BridgeStatus, string> = {
+  const bridgeStatusLabels: Record<string, string> = {
     idle: '브리지를 준비하는 중입니다.',
     starting: '브리지를 시작하는 중입니다...',
     started: '브리지가 실행 중입니다.',

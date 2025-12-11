@@ -3,13 +3,23 @@
   import EntityCard from '../components/EntityCard.svelte';
   import { createEventDispatcher } from 'svelte';
 
-  export let bridgeInfo: BridgeInfo | null;
-  export let infoLoading: boolean;
-  export let infoError: string;
-  export let unifiedEntities: UnifiedEntity[];
-  export let deviceStates: Map<string, string>;
-  export let availableCommands: CommandInfo[];
-  export let showInactive: boolean;
+  let {
+    bridgeInfo,
+    infoLoading,
+    infoError,
+    unifiedEntities,
+    deviceStates,
+    availableCommands,
+    showInactive,
+  } = $props<{
+    bridgeInfo: BridgeInfo | null;
+    infoLoading: boolean;
+    infoError: string;
+    unifiedEntities: UnifiedEntity[];
+    deviceStates: Map<string, string>;
+    availableCommands: CommandInfo[];
+    showInactive: boolean;
+  }>();
 
   const dispatch = createEventDispatcher<{
     select: { entityId: string };
