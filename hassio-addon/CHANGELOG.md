@@ -1,3 +1,6 @@
+v0.0.19
+- feat: MQTT 공통 접두사(mqtt_common_prefix) 설정 추가
+
 v0.0.18
 - fix: MQTT 기본 토픽 구조 변경에 맞춰 테스트 및 기본 프리픽스 정비
 

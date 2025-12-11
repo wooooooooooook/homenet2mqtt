@@ -8,6 +8,7 @@ export MQTT_URL=$(jq --raw-output '.mqtt_url // "mqtt://127.0.0.1:1883"' $CONFIG
 export MQTT_NEED_LOGIN=$(jq --raw-output '.mqtt_need_login // false' $CONFIG_PATH)
 export MQTT_USER=$(jq --raw-output '.mqtt_user // ""' $CONFIG_PATH)
 export MQTT_PASSWD=$(jq --raw-output '.mqtt_passwd // ""' $CONFIG_PATH)
+MQTT_COMMON_PREFIX=$(jq --raw-output '.mqtt_common_prefix // ""' $CONFIG_PATH)
 MQTT_TOPIC_PREFIXES=$(jq --raw-output '.mqtt_topic_prefixes // [] | join(",")' $CONFIG_PATH)
 LEGACY_MQTT_TOPIC_PREFIX=$(jq --raw-output '.mqtt_topic_prefix // ""' $CONFIG_PATH)
 SERIAL_PORTS=$(jq --raw-output '.serial_ports // [] | join(",")' $CONFIG_PATH)
@@ -29,6 +30,10 @@ fi
 if [ -z "$MQTT_TOPIC_PREFIXES" ] && [ -n "$LEGACY_MQTT_TOPIC_PREFIX" ] && [ "$LEGACY_MQTT_TOPIC_PREFIX" != "null" ]; then
   echo "[addon] mqtt_topic_prefix 설정을 mqtt_topic_prefixes 배열로 옮겨주세요. 기존 값을 임시로 사용합니다."
   MQTT_TOPIC_PREFIXES="$LEGACY_MQTT_TOPIC_PREFIX"
+fi
+
+if [ -z "$MQTT_COMMON_PREFIX" ] || [ "$MQTT_COMMON_PREFIX" == "null" ]; then
+  MQTT_COMMON_PREFIX="homenet2mqtt"
 fi
 
 if [ -z "$MQTT_TOPIC_PREFIXES" ]; then
@@ -67,6 +72,7 @@ fi
 export SERIAL_PORTS="$SERIAL_PORTS"
 export CONFIG_FILES="$CONFIG_FILES"
 export MQTT_TOPIC_PREFIXES="$MQTT_TOPIC_PREFIXES"
+export MQTT_COMMON_PREFIX="$MQTT_COMMON_PREFIX"
 export SERIAL_PORT="${SERIAL_PORT_LIST[0]}"
 export CONFIG_FILE="${CONFIG_FILE_LIST[0]}"
 export MQTT_TOPIC_PREFIX="${MQTT_TOPIC_PREFIX_LIST[0]}"
@@ -100,6 +106,7 @@ echo "Starting homenet2mqtt..."
 echo "Configuration:"
 echo "  LOG_LEVEL: $LOG_LEVEL"
 echo "  MQTT_URL: $MQTT_URL"
+echo "  MQTT_COMMON_PREFIX: $MQTT_COMMON_PREFIX"
 echo "  MQTT_TOPIC_PREFIXES: $MQTT_TOPIC_PREFIXES"
 echo "  SERIAL_PORTS: $SERIAL_PORTS"
 echo "  CONFIG_FILES: $CONFIG_FILES"
