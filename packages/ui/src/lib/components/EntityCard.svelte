@@ -2,7 +2,7 @@
   import { createEventDispatcher } from 'svelte';
   import type { UnifiedEntity, ParsedPayloadEntry } from '../types';
 
-  export let entity: UnifiedEntity;
+  let { entity } = $props<{ entity: UnifiedEntity }>();
 
   const dispatch = createEventDispatcher<{
     select: void;

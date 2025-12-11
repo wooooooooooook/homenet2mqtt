@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { PacketStats } from '../types';
 
-  export let stats: PacketStats | null = null;
+  let { stats = null } = $props<{ stats?: PacketStats | null }>();
 </script>
 
 <div class="stats-container">

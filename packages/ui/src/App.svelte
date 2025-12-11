@@ -25,36 +25,36 @@
   const MAX_PACKETS = 1000;
 
   // -- State --
-  let activeView: 'dashboard' | 'analysis' | 'settings' = 'dashboard';
-  let selectedEntityId: string | null = null;
-  let isSidebarOpen = false;
-  let showInactiveEntities = false;
+  let activeView = $state<'dashboard' | 'analysis' | 'settings'>('dashboard');
+  let selectedEntityId = $state<string | null>(null);
+  let isSidebarOpen = $state(false);
+  let showInactiveEntities = $state(false);
 
-  let bridgeInfo: BridgeInfo | null = null;
-  let infoLoading = false;
-  let infoError = '';
+  let bridgeInfo = $state<BridgeInfo | null>(null);
+  let infoLoading = $state(false);
+  let infoError = $state('');
 
-  let commandPackets: CommandPacket[] = [];
-  let deviceStates = new Map<string, string>();
-  let socket: WebSocket | null = null;
-  let connectionStatus: 'idle' | 'connecting' | 'connected' | 'error' = 'idle';
-  let statusMessage = '';
-  let isStreaming = false;
+  let commandPackets = $state<CommandPacket[]>([]);
+  let deviceStates = $state(new Map<string, string>());
+  let socket = $state<WebSocket | null>(null);
+  let connectionStatus = $state<'idle' | 'connecting' | 'connected' | 'error'>('idle');
+  let statusMessage = $state('');
+  let isStreaming = $state(false);
 
   // Command buttons state
-  let availableCommands: CommandInfo[] = [];
-  let commandsLoading = false;
-  let commandsError = '';
+  let availableCommands = $state<CommandInfo[]>([]);
+  let commandsLoading = $state(false);
+  let commandsError = $state('');
   // Generic input state map for various input types
 
-  let executingCommands: Set<string> = new Set();
+  let executingCommands = $state(new Set<string>());
 
-  let rawPackets: RawPacketWithInterval[] = [];
-  let parsedPackets: ParsedPacket[] = [];
-  let packetStats: PacketStats | null = null;
-  let hasIntervalPackets = false;
-  let lastRawPacketTimestamp: number | null = null;
-  let toasts: ToastMessage[] = [];
+  let rawPackets = $state<RawPacketWithInterval[]>([]);
+  let parsedPackets = $state<ParsedPacket[]>([]);
+  let packetStats = $state<PacketStats | null>(null);
+  let hasIntervalPackets = $state(false);
+  let lastRawPacketTimestamp = $state<number | null>(null);
+  let toasts = $state<ToastMessage[]>([]);
   const toastTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
   const MAX_TOASTS = 4;
   const TOAST_DURATION = 5000;
@@ -65,12 +65,12 @@
       command: true,
     },
   };
-  let frontendSettings: FrontendSettings | null = null;
-  let settingsLoading = false;
-  let settingsError = '';
-  let settingsSaving = false;
-  let renamingEntityId: string | null = null;
-  let renameError = '';
+  let frontendSettings = $state<FrontendSettings | null>(null);
+  let settingsLoading = $state(false);
+  let settingsError = $state('');
+  let settingsSaving = $state(false);
+  let renamingEntityId = $state<string | null>(null);
+  let renameError = $state('');
 
   type StreamEvent =
     | 'status'
@@ -573,7 +573,7 @@
 
   // --- Entity Unification Logic ---
 
-  $: unifiedEntities = (() => {
+  const unifiedEntities = $derived.by<UnifiedEntity[]>(() => {
     const entities = new Map<string, UnifiedEntity>();
 
     // 1. Initialize with Commands (Source of Truth for Configured Names)
@@ -616,29 +616,33 @@
       ? allEntities
       : allEntities.filter((entity) => entity.statePayload);
     return filtered.sort((a, b) => a.displayName.localeCompare(b.displayName));
-  })();
+  });
 
   // --- Entity Detail Logic ---
 
-  $: selectedEntity = selectedEntityId
-    ? unifiedEntities.find((e) => e.id === selectedEntityId) || null
-    : null;
+  const selectedEntity = $derived.by<UnifiedEntity | null>(() =>
+    selectedEntityId ? unifiedEntities.find((e) => e.id === selectedEntityId) || null : null,
+  );
 
-  $: selectedEntityParsedPackets =
+  const selectedEntityParsedPackets = $derived.by<ParsedPacket[]>(() =>
     selectedEntity && parsedPackets
       ? parsedPackets.filter((p) => p.entityId === selectedEntityId).slice(-20)
-      : [];
+      : [],
+  );
 
   // Command packets ARE structured with entity property but we now have entityId
-  $: selectedEntityCommandPackets =
+  const selectedEntityCommandPackets = $derived.by<CommandPacket[]>(() =>
     selectedEntity && commandPackets
       ? commandPackets.filter((p) => p.entityId === selectedEntityId).slice(-20)
-      : [];
+      : [],
+  );
 
-  $: if (!selectedEntityId) {
-    renameError = '';
-    renamingEntityId = null;
-  }
+  $effect(() => {
+    if (!selectedEntityId) {
+      renameError = '';
+      renamingEntityId = null;
+    }
+  });
 </script>
 
 <main class="app-container">

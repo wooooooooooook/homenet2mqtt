@@ -3,9 +3,11 @@
   import type { RawPacketWithInterval, PacketStats as PacketStatsType } from '../types';
   import PacketStats from './PacketStats.svelte';
 
-  export let rawPackets: RawPacketWithInterval[] = [];
-  export let isStreaming: boolean;
-  export let stats: PacketStatsType | null = null;
+  let { rawPackets = [], isStreaming, stats = null } = $props<{
+    rawPackets?: RawPacketWithInterval[];
+    isStreaming: boolean;
+    stats?: PacketStatsType | null;
+  }>();
 
   const dispatch = createEventDispatcher();
   const toHexPairs = (hex: string) => hex.match(/.{1,2}/g)?.map((pair) => pair.toUpperCase()) ?? [];
