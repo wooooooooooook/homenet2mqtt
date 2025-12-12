@@ -1,6 +1,7 @@
 import { vi } from 'vitest';
 import { Buffer } from 'buffer';
 import * as path from 'path';
+import { access } from 'fs/promises';
 import { loadConfig } from '../../src/config';
 import { PacketProcessor } from '../../src/protocol/packet-processor';
 import { StateManager } from '../../src/state/state-manager';
@@ -29,7 +30,16 @@ const DEFAULT_TOPIC_PREFIX = 'homenet2mqtt/homedevice1';
 
 export async function setupTest(configPath: string): Promise<TestContext> {
   vi.clearAllMocks();
-  const absolutePath = path.resolve(__dirname, '../../config', configPath);
+  let absolutePath = path.resolve(__dirname, '../../config', configPath);
+
+  try {
+    await access(absolutePath);
+  } catch {
+    const examplePath = path.resolve(__dirname, '../../config/examples', configPath);
+    await access(examplePath);
+    absolutePath = examplePath;
+  }
+
   const config = await loadConfig(absolutePath);
   const portId = config.serials[0]?.portId || 'default';
   clearStateCache();

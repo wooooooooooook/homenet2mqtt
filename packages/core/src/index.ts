@@ -29,8 +29,17 @@ export async function createBridge(
   mqttUrl: string,
   mqttUsername?: string,
   mqttPassword?: string,
+  mqttTopicPrefix?: string,
+  configOverride?: HomenetBridgeConfig,
 ) {
-  const bridge = new HomeNetBridge({ configPath, mqttUrl, mqttUsername, mqttPassword });
+  const bridge = new HomeNetBridge({
+    configPath,
+    mqttUrl,
+    mqttUsername,
+    mqttPassword,
+    mqttTopicPrefix,
+    configOverride,
+  });
 
   await bridge.start();
   return bridge;

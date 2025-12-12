@@ -1,5 +1,7 @@
 homenet_bridge:
   serial:
+    portId: hyundai_door
+    path: 192.168.0.83:8888
     baud_rate: 3880
     data_bits: 8
     parity: NONE

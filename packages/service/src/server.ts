@@ -69,12 +69,7 @@ const parseEnvList = (
   return { source, values };
 };
 
-const envSerialPorts = parseEnvList('SERIAL_PORTS', 'SERIAL_PORT', '시리얼 포트 경로');
 const envConfigFiles = parseEnvList('CONFIG_FILES', 'CONFIG_FILE', '설정 파일');
-const envMqttTopicPrefixes = parseEnvList('MQTT_TOPIC_PREFIXES', 'MQTT_TOPIC_PREFIX', 'MQTT 토픽 prefix');
-const commonMqttPrefix = (process.env.MQTT_COMMON_PREFIX ?? '').trim() || 'homenet2mqtt';
-const defaultPortPrefix = envMqttTopicPrefixes.values[0] || 'homedevice1';
-const defaultMqttTopicPrefix = `${commonMqttPrefix}/${defaultPortPrefix}`;
 
 // --- Application State ---
 const app = express();
@@ -101,11 +96,17 @@ eventBus.on('parsed-packet', (packet) => {
   }
 });
 
-let bridge: HomeNetBridge | null = null;
-// bridgeOptions will now be derived from the loaded HomenetBridgeConfig
-let currentConfigFile: string | null = null;
-let currentConfigContent: HomenetBridgeConfig | null = null;
-let currentRawConfig: HomenetBridgeConfig | null = null;
+type BridgeInstance = {
+  bridge: HomeNetBridge;
+  configFile: string;
+  resolvedPath: string;
+  config: HomenetBridgeConfig;
+};
+
+let bridges: BridgeInstance[] = [];
+let currentConfigFiles: string[] = [];
+let currentConfigs: HomenetBridgeConfig[] = [];
+let currentRawConfigs: HomenetBridgeConfig[] = [];
 let bridgeStatus: 'idle' | 'starting' | 'started' | 'stopped' | 'error' = 'idle';
 let bridgeError: string | null = null;
 let bridgeStartPromise: Promise<void> | null = null;
@@ -139,6 +140,8 @@ const ENTITY_TYPE_KEYS: (keyof HomenetBridgeConfig)[] = [
   'text',
   'binary_sensor',
 ];
+
+const BASE_MQTT_PREFIX = (process.env.MQTT_TOPIC_PREFIX || 'homenet2mqtt').toString().trim();
 
 const normalizeFrontendSettings = (value: Partial<FrontendSettings> | null | undefined) => {
   return {
@@ -201,27 +204,42 @@ app.get('/api/bridge/info', async (_req, res) => {
     return res.status(503).json({ error: 'Bridge is starting...' });
   }
 
-  if (!currentConfigContent) {
+  if (currentConfigs.length === 0) {
     return res.json({
-      configFile: currentConfigFile || 'N/A',
-      serialPath: envSerialPorts.values[0] || '/simshare/rs485-sim-tty',
-      baudRate: 0,
+      configFiles: currentConfigFiles,
+      bridges: [],
       mqttUrl: process.env.MQTT_URL?.trim() || 'mqtt://mq:1883',
       status: 'error',
       error: bridgeError || '브리지가 설정되지 않았거나 시작에 실패했습니다.',
-      topic: `${defaultMqttTopicPrefix}/raw`,
+      topic: `${BASE_MQTT_PREFIX}/homedevice1/raw`,
     });
   }
+
+  const bridgesInfo = currentConfigs.map((config, configIndex) => {
+    const serialTopics = config.serials?.map((serial, index) => ({
+      portId: serial.portId,
+      path: serial.path,
+      baudRate: serial.baud_rate,
+      topic: `${BASE_MQTT_PREFIX}/${serial.portId?.trim() || `homedevice${index + 1}`}`,
+    })) ?? [];
+
+    return {
+      configFile: currentConfigFiles[configIndex],
+      serials: serialTopics,
+      mqttTopicPrefix: BASE_MQTT_PREFIX,
+      topic: `${serialTopics[0]?.topic || `${BASE_MQTT_PREFIX}/homedevice1`}/raw`,
+    };
+  });
+
+  const firstTopic = bridgesInfo[0]?.topic ?? `${BASE_MQTT_PREFIX}/homedevice1/raw`;
+
   res.json({
-    configFile: currentConfigFile,
-    serialPath: envSerialPorts.values[0] || '/simshare/rs485-sim-tty', // Serial path is now from env or default
-    baudRate: currentConfigContent.serials?.[0]?.baud_rate
-      ?? currentConfigContent.serial?.baud_rate
-      ?? 0,
+    configFiles: currentConfigFiles,
+    bridges: bridgesInfo,
     mqttUrl: process.env.MQTT_URL?.trim() || 'mqtt://mq:1883',
     status: bridgeStatus,
     error: bridgeError,
-    topic: `${defaultMqttTopicPrefix}/raw`, // This might become dynamic later
+    topic: firstTopic,
   });
 });
 
@@ -289,6 +307,14 @@ const normalizeRawPacket = (data: RawPacketPayload): RawPacketEvent => ({
   interval: typeof data.interval === 'number' ? data.interval : null,
 });
 
+const stopAllRawPacketListeners = () => {
+  bridges.forEach((instance) => instance.bridge.stopRawPacketListener());
+};
+
+const startAllRawPacketListeners = () => {
+  bridges.forEach((instance) => instance.bridge.startRawPacketListener());
+};
+
 const sendStreamEvent = <T>(socket: WebSocket, event: StreamEvent, payload: T) => {
   if (socket.readyState !== WebSocket.OPEN) return;
   const message: StreamMessage<T> = { event, data: payload };
@@ -317,7 +343,7 @@ const registerPacketStream = () => {
     const stopStreaming = () => {
       if (!isStreaming) return;
       logger.info('[service] UI requested to stop streaming raw packets.');
-      bridge?.stopRawPacketListener();
+      stopAllRawPacketListeners();
       streamEventHandlers.forEach(handler => handler());
       streamEventHandlers.length = 0;
       isStreaming = false;
@@ -339,7 +365,7 @@ const registerPacketStream = () => {
       eventBus.on('packet-interval-stats', handlePacketIntervalStats);
       streamEventHandlers.push(() => eventBus.off('packet-interval-stats', handlePacketIntervalStats));
 
-      bridge?.startRawPacketListener();
+      startAllRawPacketListeners();
       isStreaming = true;
     };
 
@@ -519,29 +545,51 @@ function extractCommands(config: HomenetBridgeConfig): CommandInfo[] {
   return commands;
 }
 
+const findBridgeForEntity = (entityId: string): BridgeInstance | undefined => {
+  for (let i = 0; i < currentConfigs.length; i += 1) {
+    const config = currentConfigs[i];
+    for (const type of ENTITY_TYPE_KEYS) {
+      const entities = config[type] as Array<any> | undefined;
+      if (Array.isArray(entities) && entities.some((entity) => entity.id === entityId)) {
+        return bridges.find((instance) => instance.configFile === currentConfigFiles[i]);
+      }
+    }
+  }
+
+  return undefined;
+};
+
 app.get('/api/commands', (_req, res) => {
-  if (!currentConfigContent) {
+  if (currentConfigs.length === 0) {
     return res.status(400).json({ error: 'Config not loaded' });
   }
 
-  const commands = extractCommands(currentConfigContent);
+  const commands = currentConfigs.flatMap((config, index) =>
+    extractCommands(config).map((command) => ({
+      ...command,
+      configFile: currentConfigFiles[index],
+    })),
+  );
   res.json({ commands });
 });
 
 app.get('/api/config/raw/:entityId', (req, res) => {
-  if (!currentRawConfig) {
+  if (currentRawConfigs.length === 0) {
     return res.status(400).json({ error: 'Config not loaded' });
   }
 
   const { entityId } = req.params;
   let foundEntity: any = null;
 
-  for (const type of ENTITY_TYPE_KEYS) {
-    const entities = currentRawConfig[type] as Array<any> | undefined;
-    if (Array.isArray(entities)) {
-      foundEntity = entities.find((e) => e.id === entityId);
-      if (foundEntity) break;
+  for (const rawConfig of currentRawConfigs) {
+    for (const type of ENTITY_TYPE_KEYS) {
+      const entities = rawConfig[type] as Array<any> | undefined;
+      if (Array.isArray(entities)) {
+        foundEntity = entities.find((e) => e.id === entityId);
+        if (foundEntity) break;
+      }
     }
+    if (foundEntity) break;
   }
 
   if (foundEntity) {
@@ -554,9 +602,11 @@ app.get('/api/config/raw/:entityId', (req, res) => {
 app.post('/api/config/update', async (req, res) => {
   const { entityId, yaml: newEntityYaml } = req.body as { entityId: string; yaml: string };
 
-  if (!currentConfigFile) {
-    return res.status(500).json({ error: 'No config file loaded' });
+  if (currentConfigFiles.length !== 1) {
+    return res.status(500).json({ error: '단일 설정 파일이 로드된 경우에만 수정할 수 있습니다.' });
   }
+
+  const targetConfigFile = currentConfigFiles[0];
 
   try {
     // 1. Parse new YAML snippet
@@ -580,7 +630,7 @@ app.post('/api/config/update', async (req, res) => {
     }
 
     // 2. Read full config
-    const configPath = path.join(CONFIG_DIR, currentConfigFile);
+    const configPath = path.join(CONFIG_DIR, targetConfigFile);
     const fileContent = await fs.readFile(configPath, 'utf8');
     const loadedYamlFromFile = yaml.load(fileContent, { schema: HOMENET_BRIDGE_SCHEMA }) as { homenet_bridge: HomenetBridgeConfig };
 
@@ -632,8 +682,8 @@ app.post('/api/config/update', async (req, res) => {
     await fs.writeFile(configPath, newFileContent, 'utf8');
 
     // 6. Update in-memory raw config (this also needs to be normalized)
-    currentRawConfig = normalizedFullConfig; // Update with normalized config
-    currentConfigContent = normalizedFullConfig; // Ensure bridge uses normalized config
+    currentRawConfigs = [normalizedFullConfig]; // Update with normalized config
+    currentConfigs = [normalizedFullConfig]; // Ensure bridge uses normalized config
 
     logger.info(`[service] Config updated for entity ${entityId}. Backup created at ${path.basename(backupPath)}`);
     res.json({ success: true, backup: path.basename(backupPath) });
@@ -654,12 +704,12 @@ app.post('/api/entities/rename', async (req, res) => {
     return res.status(400).json({ error: '새 이름을 입력해주세요.' });
   }
 
-  if (!currentConfigFile) {
-    return res.status(500).json({ error: 'No config file loaded' });
+  if (currentConfigFiles.length !== 1) {
+    return res.status(500).json({ error: '단일 설정 파일이 로드된 경우에만 엔터티 이름을 변경할 수 있습니다.' });
   }
 
   try {
-    const configPath = path.join(CONFIG_DIR, currentConfigFile);
+    const configPath = path.join(CONFIG_DIR, currentConfigFiles[0]);
     const fileContent = await fs.readFile(configPath, 'utf8');
     const loadedYamlFromFile = yaml.load(fileContent, { schema: HOMENET_BRIDGE_SCHEMA }) as {
       homenet_bridge: HomenetBridgeConfig;
@@ -708,12 +758,11 @@ app.post('/api/entities/rename', async (req, res) => {
 
     await fs.writeFile(configPath, newFileContent, 'utf8');
 
-    currentRawConfig = normalizedConfig;
-    currentConfigContent = normalizedConfig;
+    currentRawConfigs = [normalizedConfig];
+    currentConfigs = [normalizedConfig];
 
-    if (bridge) {
-      bridge.renameEntity(entityId, trimmedName, uniqueId);
-    }
+    const targetBridge = bridges.find((instance) => instance.configFile === currentConfigFiles[0]);
+    targetBridge?.bridge.renameEntity(entityId, trimmedName, uniqueId);
 
     logger.info(
       `[service] Entity ${entityId} renamed to '${trimmedName}'. Backup created at ${path.basename(backupPath)}`,
@@ -737,14 +786,20 @@ app.post('/api/commands/execute', async (req, res) => {
     return res.status(400).json({ error: 'entityId and commandName are required' });
   }
 
-  if (!bridge) {
+  if (bridges.length === 0) {
     return res.status(400).json({ error: 'Bridge not started' });
   }
 
   // Convert command_on -> on, command_off -> off, etc.
   const cmdName = commandName.replace('command_', '');
 
-  const result = await bridge.executeCommand(entityId, cmdName, value);
+  const targetBridge = findBridgeForEntity(entityId);
+
+  if (!targetBridge) {
+    return res.status(404).json({ error: 'Entity not found in loaded configs' });
+  }
+
+  const result = await targetBridge.bridge.executeCommand(entityId, cmdName, value);
 
   if (result.success) {
     res.json({
@@ -788,56 +843,111 @@ app.use(
 );
 
 // --- Bridge Management ---
-async function loadAndStartBridge(filename: string) {
-  if (bridgeStartPromise) {
-    await bridgeStartPromise.catch(() => { }); // Wait for any ongoing start/stop to finish
+const loadConfigFile = async (configPath: string): Promise<HomenetBridgeConfig> => {
+  const fileContent = await fs.readFile(configPath, 'utf8');
+  const loadedYaml = yaml.load(fileContent, { schema: HOMENET_BRIDGE_SCHEMA }) as {
+    homenet_bridge: HomenetBridgeConfig;
+  };
+
+  if (!loadedYaml || !loadedYaml.homenet_bridge) {
+    throw new Error('Invalid configuration file format. Missing "homenet_bridge" top-level key.');
   }
-  if (bridge) {
-    logger.info('[service] Stopping existing bridge...');
+
+  const rawConfig = loadedYaml.homenet_bridge;
+  const normalized = normalizeConfig(
+    JSON.parse(JSON.stringify(rawConfig)) as HomenetBridgeConfig,
+  );
+  validateConfig(normalized, rawConfig);
+
+  return normalized;
+};
+
+const resolveConfigPath = (filename: string) => {
+  if (path.isAbsolute(filename)) return filename;
+  if (filename.includes('/') || filename.includes('\\')) {
+    return path.resolve(filename);
+  }
+  return path.join(CONFIG_DIR, filename);
+};
+
+const stopAllBridges = async (options?: { preserveStatus?: boolean }) => {
+  if (bridges.length === 0) return;
+
+  logger.info('[service] Stopping existing bridges...');
+  await Promise.allSettled(bridges.map((instance) => instance.bridge.stop()));
+  bridges = [];
+  if (!options?.preserveStatus) {
     bridgeStatus = 'stopped';
-    await bridge.stop();
-    bridge = null;
-    logger.info('[service] Bridge stopped.');
+  }
+};
+
+async function loadAndStartBridges(filenames: string[]) {
+  if (filenames.length === 0) {
+    throw new Error('No configuration files provided.');
   }
 
-  logger.info(`[service] Loading configuration from '${filename}'...`);
-  bridgeStatus = 'starting';
-  bridgeError = null;
+  if (bridgeStartPromise) {
+    await bridgeStartPromise.catch(() => { });
+  }
 
-  try {
-    const configPath = path.join(CONFIG_DIR, filename);
-    const fileContent = await fs.readFile(configPath, 'utf8');
-    const loadedYaml = yaml.load(fileContent, { schema: HOMENET_BRIDGE_SCHEMA }) as {
-      homenet_bridge: HomenetBridgeConfig;
-    };
+  bridgeStartPromise = (async () => {
+    await stopAllBridges();
 
-    if (!loadedYaml || !loadedYaml.homenet_bridge) {
-      throw new Error('Invalid configuration file format. Missing "homenet_bridge" top-level key.');
+    bridgeStatus = 'starting';
+    bridgeError = null;
+
+    try {
+      const resolvedPaths = filenames.map(resolveConfigPath);
+      logger.info(`[service] Loading configuration files: ${filenames.join(', ')}`);
+
+      const loadedConfigs: HomenetBridgeConfig[] = [];
+      for (const configPath of resolvedPaths) {
+        loadedConfigs.push(await loadConfigFile(configPath));
+      }
+
+      currentConfigFiles = filenames;
+      currentRawConfigs = loadedConfigs;
+      currentConfigs = loadedConfigs;
+
+      const mqttUrl = process.env.MQTT_URL?.trim() || 'mqtt://mq:1883';
+      const mqttUsername = process.env.MQTT_USER?.trim() || undefined;
+      const mqttPassword = process.env.MQTT_PASSWD?.trim() || undefined;
+
+      const startedBridges: BridgeInstance[] = [];
+
+      for (let i = 0; i < loadedConfigs.length; i += 1) {
+        const bridge = await createBridge(
+          resolvedPaths[i],
+          mqttUrl,
+          mqttUsername,
+          mqttPassword,
+          BASE_MQTT_PREFIX,
+          loadedConfigs[i],
+        );
+
+        startedBridges.push({
+          bridge,
+          configFile: filenames[i],
+          resolvedPath: resolvedPaths[i],
+          config: loadedConfigs[i],
+        });
+      }
+
+      bridges = startedBridges;
+
+      bridgeStatus = 'started';
+      logger.info(`[service] Bridge started successfully with ${currentConfigFiles.join(', ')}`);
+    } catch (err) {
+      bridgeStatus = 'error';
+      bridgeError = err instanceof Error ? err.message : 'Unknown error during bridge start.';
+      await stopAllBridges({ preserveStatus: true });
+      logger.error({ err }, '[service] Failed to start bridge');
+    } finally {
+      bridgeStartPromise = null;
     }
+  })();
 
-    currentConfigFile = filename;
-    currentRawConfig = loadedYaml.homenet_bridge; // Store raw config for display
-    currentConfigContent = normalizeConfig(loadedYaml.homenet_bridge); // Store the normalized config
-
-    validateConfig(currentConfigContent);
-
-    const mqttUrl = process.env.MQTT_URL?.trim() || 'mqtt://mq:1883';
-    const mqttUsername = process.env.MQTT_USER?.trim() || undefined;
-    const mqttPassword = process.env.MQTT_PASSWD?.trim() || undefined;
-
-    // createBridge now expects configPath, mqttUrl, and optional credentials
-    bridge = await createBridge(configPath, mqttUrl, mqttUsername, mqttPassword);
-
-    bridgeStatus = 'started';
-    logger.info(`[service] Bridge started successfully with '${filename}'.`);
-  } catch (err) {
-    bridgeStatus = 'error';
-    bridgeError = err instanceof Error ? err.message : 'Unknown error during bridge start.';
-    logger.error({ err }, `[service] Failed to start bridge with '${filename}'`);
-    // Don't re-throw, let the caller handle the status
-  } finally {
-    bridgeStartPromise = null;
-  }
+  return bridgeStartPromise;
 }
 
 function resolveMqttUrl(queryValue: unknown, defaultValue?: string) {
@@ -850,41 +960,24 @@ server.listen(port, async () => {
   logger.info(`Service listening on port ${port}`);
   try {
     logger.info('[service] Initializing bridge on startup...');
-    if (
-      envSerialPorts.values.length > 0 &&
-      envConfigFiles.values.length > 0 &&
-      envSerialPorts.values.length !== envConfigFiles.values.length
-    ) {
-      throw new Error(
-        `[service] SERIAL_PORTS(${envSerialPorts.values.length})와 CONFIG_FILES(${envConfigFiles.values.length}) 개수가 일치하지 않습니다. 포트-설정 파일 매핑을 다시 확인하세요.`,
-      );
+    const configFilesFromEnv = envConfigFiles.values;
+    const availableConfigFiles = configFilesFromEnv.length > 0
+      ? configFilesFromEnv
+      : (await fs.readdir(CONFIG_DIR)).filter((file) => /\.homenet_bridge\.ya?ml$/.test(file));
+
+    if (availableConfigFiles.length === 0) {
+      throw new Error('No homenet_bridge configuration files found in config directory.');
     }
 
-    if (envSerialPorts.values.length > 0 && envConfigFiles.values.length > 0) {
-      envSerialPorts.values.forEach((serialPath, index) => {
-        logger.info(
-          { serialPath, configFile: envConfigFiles.values[index] },
-          '[service] 환경 변수 포트-설정 파일 매핑',
-        );
-      });
-    }
+    logger.info(
+      {
+        configFiles: availableConfigFiles.map((file) => path.basename(file)),
+        configRoot: CONFIG_DIR,
+      },
+      '[service] Starting bridge with configuration files',
+    );
 
-    const configFromEnv = envConfigFiles.values[0];
-    if (configFromEnv) {
-      logger.info(`[service] Loading configuration from environment variable: ${configFromEnv}`);
-      const configBasename = path.basename(configFromEnv);
-      await loadAndStartBridge(configBasename);
-    } else {
-      const files = await fs.readdir(CONFIG_DIR);
-      // Filter for homenet_bridge.yaml files
-      const defaultConfigFile = files.find((file) => /\.homenet_bridge\.ya?ml$/.test(file));
-
-      if (defaultConfigFile) {
-        await loadAndStartBridge(defaultConfigFile);
-      } else {
-        throw new Error('No homenet_bridge configuration files found in config directory.');
-      }
-    }
+    await loadAndStartBridges(availableConfigFiles);
   } catch (err) {
     logger.error({ err }, '[service] Initial bridge start failed');
     bridgeStatus = 'error';

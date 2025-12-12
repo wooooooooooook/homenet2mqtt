@@ -10,8 +10,10 @@ import { ProtocolManager } from '../src/protocol/protocol-manager.js';
 
 describe('ID Generation', () => {
   it('should generate ID from name if missing', () => {
+    const serial = { portId: 'main', baud_rate: 9600, data_bits: 8, parity: 'none', stop_bits: 1 } as any;
     const config: HomenetBridgeConfig = {
-      serials: [{ portId: 'main', baud_rate: 9600, data_bits: 8, parity: 'none', stop_bits: 1 }],
+      serial,
+      serials: [serial],
       packet_defaults: {},
       light: [
         {

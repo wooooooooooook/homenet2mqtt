@@ -28,7 +28,7 @@
 - `custom_fan_mode`, `custom_preset`: 커스텀 모드 목록. 프론트엔드에 노출되는 문자열 배열.
 
 ## 예제: 온도·습도 + 업데이트 요청
-`kocom_thinks.homenet_bridge.yaml`은 현재/목표 온도와 상태 비트를 분리해 읽고, `command_update`로 상태 재요청 패킷을 보냅니다.【F:packages/core/config/kocom_thinks.homenet_bridge.yaml†L601-L641】
+`kocom_thinks.homenet_bridge.yaml`은 현재/목표 온도와 상태 비트를 분리해 읽고, `command_update`로 상태 재요청 패킷을 보냅니다.【F:packages/core/config/examples/kocom_thinks.homenet_bridge.yaml†L601-L641】
 
 ```yaml
 climate:

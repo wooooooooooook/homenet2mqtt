@@ -19,17 +19,18 @@ describe('StateManager Merging', () => {
     mockPacketProcessor = new EventEmitter();
     mockPacketProcessor.processChunk = vi.fn();
 
+    const serial = {
+      portId: 'main',
+      path: '/dev/ttyUSB0',
+      baud_rate: 9600,
+      data_bits: 8,
+      parity: 'none',
+      stop_bits: 1,
+    };
+
     mockConfig = {
-      serials: [
-        {
-          portId: 'main',
-          path: '/dev/ttyUSB0',
-          baud_rate: 9600,
-          data_bits: 8,
-          parity: 'none',
-          stop_bits: 1,
-        },
-      ],
+      serial,
+      serials: [serial],
       mqtt: { brokerUrl: 'mqtt://localhost' },
     } as any;
 

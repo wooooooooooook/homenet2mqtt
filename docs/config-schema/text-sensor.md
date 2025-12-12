@@ -7,7 +7,7 @@
 - `state_text`: 문자열을 추출하는 [`StateSchema`](./lambda.md#stateschema와-statenumschema-필드) 또는 람다.
 
 ## 예제: 엘리베이터 방향 해석
-`kocom_thinks.homenet_bridge.yaml`은 패킷 오프셋 8 바이트를 확인해 방향을 한글 문자열로 치환합니다.【F:packages/core/config/kocom_thinks.homenet_bridge.yaml†L717-L728】
+`kocom_thinks.homenet_bridge.yaml`은 패킷 오프셋 8 바이트를 확인해 방향을 한글 문자열로 치환합니다.【F:packages/core/config/examples/kocom_thinks.homenet_bridge.yaml†L717-L728】
 
 ```yaml
 text_sensor:
