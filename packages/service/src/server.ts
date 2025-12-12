@@ -35,7 +35,11 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const CONFIG_DIR = process.env.CONFIG_ROOT || path.resolve(__dirname, '../../core/config');
 const FRONTEND_SETTINGS_FILE = path.join(CONFIG_DIR, 'frontend-setting.json');
-const stripLegacyKeysBeforeSave = (config: HomenetBridgeConfig) => {
+type PersistableHomenetBridgeConfig = Omit<HomenetBridgeConfig, 'serials'> & {
+  serials?: HomenetBridgeConfig['serials'];
+};
+
+const stripLegacyKeysBeforeSave = (config: HomenetBridgeConfig): PersistableHomenetBridgeConfig => {
   const { serials: _legacySerials, ...configToSave } = config;
   return configToSave;
 };
@@ -636,14 +640,16 @@ app.post('/api/config/update', async (req, res) => {
     // 2. Read full config
     const configPath = path.join(CONFIG_DIR, targetConfigFile);
     const fileContent = await fs.readFile(configPath, 'utf8');
-    const loadedYamlFromFile = yaml.load(fileContent, { schema: HOMENET_BRIDGE_SCHEMA }) as { homenet_bridge: HomenetBridgeConfig };
+    const loadedYamlFromFile = yaml.load(fileContent, { schema: HOMENET_BRIDGE_SCHEMA }) as {
+      homenet_bridge: PersistableHomenetBridgeConfig;
+    };
 
     if (!loadedYamlFromFile.homenet_bridge) {
       throw new Error('Invalid config file structure');
     }
 
     // Normalize the loaded config to ensure IDs are present
-    const normalizedFullConfig = normalizeConfig(loadedYamlFromFile.homenet_bridge);
+    const normalizedFullConfig = normalizeConfig(loadedYamlFromFile.homenet_bridge as HomenetBridgeConfig);
 
     // 3. Find and update entity
     let found = false;
@@ -716,14 +722,14 @@ app.post('/api/entities/rename', async (req, res) => {
     const configPath = path.join(CONFIG_DIR, currentConfigFiles[0]);
     const fileContent = await fs.readFile(configPath, 'utf8');
     const loadedYamlFromFile = yaml.load(fileContent, { schema: HOMENET_BRIDGE_SCHEMA }) as {
-      homenet_bridge: HomenetBridgeConfig;
+      homenet_bridge: PersistableHomenetBridgeConfig;
     };
 
     if (!loadedYamlFromFile.homenet_bridge) {
       throw new Error('Invalid config file structure');
     }
 
-    const normalizedConfig = normalizeConfig(loadedYamlFromFile.homenet_bridge);
+    const normalizedConfig = normalizeConfig(loadedYamlFromFile.homenet_bridge as HomenetBridgeConfig);
 
     let targetEntity: any | null = null;
     for (const type of ENTITY_TYPE_KEYS) {

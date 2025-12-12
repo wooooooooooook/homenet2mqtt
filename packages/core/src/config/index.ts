@@ -76,7 +76,7 @@ export function normalizeConfig(config: HomenetBridgeConfig) {
     config.serials = [normalizedSerial];
   } else {
     // 비정상 입력을 대비해 기본 구조만 유지하고, 검증 단계에서 에러를 던집니다.
-    config.serials = [] as unknown as [SerialConfig];
+    config.serials = [];
   }
 
   return config;
