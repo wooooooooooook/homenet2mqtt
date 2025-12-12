@@ -125,7 +125,7 @@ export interface HomenetBridgeConfig {
    */
   serial: SerialConfig;
   /** @deprecated 입력에서는 허용되지 않으며 normalize 과정에서 채워집니다. */
-  serials: [SerialConfig];
+  serials: SerialConfig[];
   devices?: DeviceConfig[];
   light?: LightEntity[];
   climate?: ClimateEntity[];
