@@ -315,6 +315,29 @@ type StateChangeEvent = {
 // 최근 상태를 UI에 재전송하기 위한 캐시
 const latestStates = new Map<string, StateChangeEvent>();
 
+const normalizeTopicParts = (topic: string) => topic.split('/').filter(Boolean);
+
+const extractEntityIdFromTopic = (topic: string) => {
+  const parts = normalizeTopicParts(topic);
+  if (parts.length >= 3) {
+    return parts[parts.length - 2];
+  }
+  return parts.at(-1) ?? topic;
+};
+
+const extractPortIdFromTopic = (topic: string) => {
+  const parts = normalizeTopicParts(topic);
+  if (parts.length >= 2) {
+    return parts[1];
+  }
+  return undefined;
+};
+
+const isStateTopic = (topic: string) => {
+  const parts = normalizeTopicParts(topic);
+  return parts.length >= 3 && parts[parts.length - 1] === 'state';
+};
+
 const normalizeRawPacket = (data: RawPacketPayload): RawPacketEvent => {
   const portId = data.portId ?? 'raw';
   const topic = data.topic ?? `${BASE_MQTT_PREFIX}/${portId}/raw`;
@@ -399,12 +422,33 @@ const registerPacketStream = () => {
     eventBus.on('command-packet', handleCommandPacket);
     cleanupHandlers.push(() => eventBus.off('command-packet', handleCommandPacket));
 
-    const handleMqttMessage = (data: { topic: string; payload: string }) => {
+    const handleMqttMessage = (data: { topic: string; payload: string; portId?: string }) => {
+      const receivedAt = new Date().toISOString();
+      const portId = data.portId ?? extractPortIdFromTopic(data.topic);
       sendStreamEvent(socket, 'mqtt-message', {
         topic: data.topic,
         payload: data.payload,
-        receivedAt: new Date().toISOString(),
+        receivedAt,
+        portId,
       });
+
+      if (isStateTopic(data.topic)) {
+        let parsedState: Record<string, unknown> = {};
+        try {
+          parsedState = JSON.parse(data.payload) as Record<string, unknown>;
+        } catch {
+          parsedState = {};
+        }
+
+        latestStates.set(data.topic, {
+          entityId: extractEntityIdFromTopic(data.topic),
+          topic: data.topic,
+          payload: data.payload,
+          state: parsedState,
+          timestamp: receivedAt,
+          portId,
+        });
+      }
     };
     eventBus.on('mqtt-message', handleMqttMessage);
     cleanupHandlers.push(() => eventBus.off('mqtt-message', handleMqttMessage));
