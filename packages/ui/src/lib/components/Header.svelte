@@ -8,12 +8,14 @@
     statusMessage,
     onRefresh,
     isRefreshing = false,
+    portStatuses = [],
   } = $props<{
     bridgeStatus: BridgeStatus;
     connectionStatus: 'idle' | 'connecting' | 'connected' | 'error';
     statusMessage: string;
     onRefresh: () => void;
     isRefreshing?: boolean;
+    portStatuses?: { portId: string; status: BridgeStatus | 'unknown'; message?: string }[];
   }>();
 
   const dispatch = createEventDispatcher();
@@ -39,11 +41,22 @@
     </button>
 
     <div class="status-container">
-      <div class="status-item">
-        <div class="status-indicator" data-state={bridgeStatus}>
-          <span class="dot" />
-          <span class="label">{bridgeStatusLabels[bridgeStatus]}</span>
-        </div>
+      <div class="status-item port-statuses">
+        {#if portStatuses.length === 0}
+          <div class="status-indicator" data-state={bridgeStatus}>
+            <span class="dot" />
+            <span class="label">{bridgeStatusLabels[bridgeStatus]}</span>
+          </div>
+        {:else}
+          {#each portStatuses as portStatus (portStatus.portId)}
+            <div class="status-indicator" data-state={portStatus.status}>
+              <span class="dot" />
+              <span class="label">
+                {portStatus.portId}: {portStatus.message || bridgeStatusLabels[portStatus.status] || bridgeStatusLabels[bridgeStatus]}
+              </span>
+            </div>
+          {/each}
+        {/if}
       </div>
       <div class="status-item">
         <div class="status-indicator" data-state={connectionStatus}>
@@ -88,6 +101,11 @@
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+  }
+
+  .port-statuses {
+    display: grid;
+    gap: 0.25rem;
   }
 
   .status-indicator {
