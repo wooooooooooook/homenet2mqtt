@@ -41,12 +41,13 @@ homenet_bridge:
     rx_header: [0x02]
     rx_footer: [0x03]
     rx_checksum: 'none'
-  serials:
-    - portId: main
-      baud_rate: 115200
-      data_bits: 8
-      parity: 'none'
-      stop_bits: 1
+  serial:
+    portId: main
+    path: /dev/ttyUSB0
+    baud_rate: 115200
+    data_bits: 8
+    parity: 'none'
+    stop_bits: 1
   light:
     - id: 'test_light'
       name: 'Test Light'
@@ -128,12 +129,13 @@ describe('HomeNetBridge', () => {
     readFileMock.mockResolvedValue(`
 homenet_bridge:
   packet_defaults: {}
-  serials:
-    - portId: main
-      baud_rate: 57600
-      data_bits: 8
-      parity: 'none'
-      stop_bits: 1
+  serial:
+    portId: main
+    path: /dev/ttyUSB1
+    baud_rate: 57600
+    data_bits: 8
+    parity: 'none'
+    stop_bits: 1
   light:
     - id: 'test_light'
       name: 'Test Light'
@@ -157,7 +159,7 @@ homenet_bridge:
 
     expect(serialPortInstances).toHaveLength(1);
     expect(serialPortInstances[0].options).toMatchObject({
-      path: process.env.SERIAL_PORT || '/simshare/rs485-sim-tty',
+      path: '/dev/ttyUSB1',
       baudRate: 57600,
       autoOpen: false,
     });

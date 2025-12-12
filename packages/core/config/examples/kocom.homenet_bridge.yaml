@@ -1,5 +1,7 @@
 homenet_bridge:
   serial:
+    portId: kocom_main
+    path: 192.168.0.83:8888
     baud_rate: 9600
     data_bits: 8
     parity: NONE

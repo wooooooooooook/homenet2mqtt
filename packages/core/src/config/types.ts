@@ -110,7 +110,7 @@ export interface LambdaConfig {
 
 export interface SerialConfig {
   portId: string;
-  path?: string;
+  path: string;
   baud_rate: number;
   data_bits: 5 | 6 | 7 | 8;
   parity: 'none' | 'even' | 'mark' | 'odd' | 'space';
@@ -119,8 +119,13 @@ export interface SerialConfig {
 
 export interface HomenetBridgeConfig {
   packet_defaults?: PacketDefaults;
-  serials: SerialConfig[];
-  serial?: SerialConfig;
+  /**
+   * 단일 시리얼 포트 설정입니다. 설정 파일에서는 `serial`만 허용하며, 내부적으로
+   * 호환성을 위해 `serials`에 동일한 값이 주입됩니다.
+   */
+  serial: SerialConfig;
+  /** @deprecated 입력에서는 허용되지 않으며 normalize 과정에서 채워집니다. */
+  serials: [SerialConfig];
   devices?: DeviceConfig[];
   light?: LightEntity[];
   climate?: ClimateEntity[];

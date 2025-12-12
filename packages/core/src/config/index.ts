@@ -7,6 +7,17 @@ import { ENTITY_TYPE_KEYS } from '../utils/entities.js';
 function normalizeSerialConfig(serial: SerialConfig): SerialConfig {
   const normalized = { ...serial };
 
+  if (normalized.portId) {
+    normalized.portId = normalized.portId.toString().trim();
+  } else {
+    normalized.portId = 'default';
+    logger.warn('[config] portId가 비어 있어 "default"로 대체합니다.');
+  }
+
+  if (normalized.path) {
+    normalized.path = normalized.path.toString().trim();
+  }
+
   if (normalized.parity) {
     normalized.parity = normalized.parity.toString().toLowerCase() as SerialConfig['parity'];
   }
@@ -59,53 +70,71 @@ export function normalizeConfig(config: HomenetBridgeConfig) {
     logger.debug({ packet_defaults: pd }, '[config] Normalized packet_defaults');
   }
 
-  if (!Array.isArray(config.serials) || config.serials.length === 0) {
-    if (config.serial) {
-      logger.warn(
-        '[config] "serial" 설정이 감지되었습니다. "serials" 배열로 마이그레이션합니다. portId를 "default"로 설정합니다.',
-      );
-      config.serials = [
-        normalizeSerialConfig({
-          ...config.serial,
-          portId: config.serial.portId || 'default',
-        } as SerialConfig),
-      ];
-    }
+  const normalizedSerial = config.serial ? normalizeSerialConfig(config.serial) : undefined;
+  if (normalizedSerial) {
+    config.serial = normalizedSerial;
+    config.serials = [normalizedSerial];
   } else {
-    config.serials = config.serials.map(normalizeSerialConfig);
+    // 비정상 입력을 대비해 기본 구조만 유지하고, 검증 단계에서 에러를 던집니다.
+    config.serials = [] as unknown as [SerialConfig];
   }
 
   return config;
 }
 
-export function validateConfig(config: HomenetBridgeConfig): void {
+export function validateConfig(
+  config: HomenetBridgeConfig,
+  rawConfig?: Partial<HomenetBridgeConfig> | null,
+): void {
   const errors: string[] = [];
 
+  if (rawConfig && (rawConfig as any).serials !== undefined) {
+    errors.push('serials 키는 더 이상 지원되지 않습니다. serial을 사용하세요.');
+  }
+
+  if ((config as any).mqtt_topic_prefix !== undefined) {
+    errors.push('mqtt_topic_prefix는 더 이상 설정 파일에 정의할 수 없습니다. MQTT_TOPIC_PREFIX 환경변수를 사용하세요.');
+  }
+
+  if (!config.serial) {
+    errors.push('serial 설정은 필수입니다.');
+  }
+
   if (!config.serials || !Array.isArray(config.serials) || config.serials.length === 0) {
-    errors.push('serials 설정에 최소 1개 이상의 포트가 필요합니다.');
-  } else {
+    errors.push('serial 설정에 최소 1개 이상의 포트가 필요합니다.');
+  } else if (config.serials.length !== 1) {
+    errors.push('각 설정 파일에는 단일 serial만 선언할 수 있습니다. 파일을 분리하여 포트를 나눠주세요.');
+  }
+
+  if (config.serial) {
     const allowedDataBits = [5, 6, 7, 8];
     const allowedParity = ['none', 'even', 'mark', 'odd', 'space'];
     const allowedStopBits = [1, 1.5, 2];
 
-    config.serials.forEach((serial, index) => {
-      if (!serial.portId || typeof serial.portId !== 'string') {
-        errors.push(`serials[${index}].portId는 필수 문자열입니다.`);
-      }
+    const serial = config.serial;
+    if ((serial as any).mqtt_topic_prefix !== undefined) {
+      errors.push('serial.mqtt_topic_prefix는 지원되지 않습니다. MQTT_TOPIC_PREFIX 환경변수를 사용하세요.');
+    }
+    if (!serial.portId || typeof serial.portId !== 'string') {
+      errors.push('serial.portId는 필수 문자열입니다.');
+    }
 
-      if (typeof serial.baud_rate !== 'number' || Number.isNaN(serial.baud_rate)) {
-        errors.push(`serials[${index}].baud_rate는 숫자여야 합니다.`);
-      }
-      if (!allowedDataBits.includes(serial.data_bits)) {
-        errors.push(`serials[${index}].data_bits는 ${allowedDataBits.join(', ')} 중 하나여야 합니다.`);
-      }
-      if (!allowedParity.includes(serial.parity as string)) {
-        errors.push(`serials[${index}].parity는 ${allowedParity.join(', ')} 중 하나여야 합니다.`);
-      }
-      if (!allowedStopBits.includes(serial.stop_bits)) {
-        errors.push(`serials[${index}].stop_bits는 ${allowedStopBits.join(', ')} 중 하나여야 합니다.`);
-      }
-    });
+    if (!serial.path || typeof serial.path !== 'string' || !serial.path.trim()) {
+      errors.push('serial.path는 비어 있지 않은 문자열이어야 합니다.');
+    }
+
+    if (typeof serial.baud_rate !== 'number' || Number.isNaN(serial.baud_rate)) {
+      errors.push('serial.baud_rate는 숫자여야 합니다.');
+    }
+    if (!allowedDataBits.includes(serial.data_bits)) {
+      errors.push(`serial.data_bits는 ${allowedDataBits.join(', ')} 중 하나여야 합니다.`);
+    }
+    if (!allowedParity.includes(serial.parity as string)) {
+      errors.push(`serial.parity는 ${allowedParity.join(', ')} 중 하나여야 합니다.`);
+    }
+    if (!allowedStopBits.includes(serial.stop_bits)) {
+      errors.push(`serial.stop_bits는 ${allowedStopBits.join(', ')} 중 하나여야 합니다.`);
+    }
   }
 
   if (config.packet_defaults) {
@@ -160,9 +189,11 @@ export async function loadConfig(configPath: string): Promise<HomenetBridgeConfi
     );
   }
 
-  const loadedConfig = normalizeConfig((loadedYaml as any).homenet_bridge as HomenetBridgeConfig);
+  const rawConfig = (loadedYaml as any).homenet_bridge as HomenetBridgeConfig;
+  const normalizedInput = JSON.parse(JSON.stringify(rawConfig)) as HomenetBridgeConfig;
+  const loadedConfig = normalizeConfig(normalizedInput);
 
-  validateConfig(loadedConfig);
+  validateConfig(loadedConfig, rawConfig);
 
   return loadedConfig;
 }

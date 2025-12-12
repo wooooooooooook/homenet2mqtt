@@ -1,8 +1,10 @@
 homenet_bridge:
   serial:
+    portId: commax_main
+    path: 192.168.0.83:8888
     baud_rate: 9600
     data_bits: 8
-    parity: NONE
+    parity: none
     stop_bits: 1
 
   packet_defaults: # New section for global packet defaults

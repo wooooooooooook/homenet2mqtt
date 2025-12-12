@@ -22,10 +22,18 @@ describe('DiscoveryManager', () => {
       subscribe: vi.fn(),
     } as unknown as MqttSubscriber;
 
+    const serial = {
+      portId: 'main',
+      path: '/dev/ttyUSB0',
+      baud_rate: 9600,
+      data_bits: 8,
+      parity: 'none',
+      stop_bits: 1,
+    } as any;
+
     mockConfig = {
-      serials: [
-        { portId: 'main', path: '/dev/ttyUSB0', baud_rate: 9600, data_bits: 8, parity: 'none', stop_bits: 1 },
-      ] as any,
+      serial,
+      serials: [serial],
       mqtt: { brokerUrl: 'mqtt://localhost' },
       switch: [{ id: 'switch1', name: 'Test Switch', type: 'switch', state: {} }],
       devices: [

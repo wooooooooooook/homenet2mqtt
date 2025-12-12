@@ -14,7 +14,7 @@
 - `command_update`: 상태 재요청 패킷.
 
 ## 예제: 가스 밸브 잠금 제어
-`kocom_theart.homenet_bridge.yaml`에서는 상태 비트로 잠금/해제를 구분하고, `command_update`로 최신 상태를 다시 요청합니다.【F:packages/core/config/kocom_theart.homenet_bridge.yaml†L496-L540】
+`kocom_theart.homenet_bridge.yaml`에서는 상태 비트로 잠금/해제를 구분하고, `command_update`로 최신 상태를 다시 요청합니다.【F:packages/core/config/examples/kocom_theart.homenet_bridge.yaml†L496-L540】
 
 ```yaml
 lock:

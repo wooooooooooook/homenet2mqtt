@@ -32,6 +32,7 @@ describe('CommandManager', () => {
     vi.useFakeTimers();
     serialPort = new MockStream();
     config = {
+      serial: { portId: 'main', baud_rate: 9600, data_bits: 8, parity: 'none', stop_bits: 1 } as any,
       serials: [{ portId: 'main', baud_rate: 9600, data_bits: 8, parity: 'none', stop_bits: 1 }],
       packet_defaults: {
         tx_retry_cnt: 2,

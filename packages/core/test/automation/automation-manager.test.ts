@@ -5,8 +5,10 @@ import { AutomationManager } from '../../src/automation/automation-manager.js';
 import { eventBus } from '../../src/service/event-bus.js';
 import { HomenetBridgeConfig } from '../../src/config/types.js';
 
+const serial = { portId: 'main', baud_rate: 9600, data_bits: 8, parity: 'none', stop_bits: 1 } as any;
 const baseConfig: HomenetBridgeConfig = {
-  serials: [{ portId: 'main', baud_rate: 9600, data_bits: 8, parity: 'none', stop_bits: 1 }],
+  serial,
+  serials: [serial],
   light: [{ id: 'light_1', name: 'Light 1', type: 'light' }],
 };
 
