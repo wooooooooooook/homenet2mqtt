@@ -35,6 +35,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const CONFIG_DIR = process.env.CONFIG_ROOT || path.resolve(__dirname, '../../core/config');
 const FRONTEND_SETTINGS_FILE = path.join(CONFIG_DIR, 'frontend-setting.json');
+const stripLegacyKeysBeforeSave = (config: HomenetBridgeConfig) => {
+  const { serials: _legacySerials, ...configToSave } = config;
+  return configToSave;
+};
 
 const parseEnvList = (
   primaryKey: string,
@@ -663,7 +667,7 @@ app.post('/api/config/update', async (req, res) => {
     // However, the original structure of `loadedYamlFromFile` (with `homenet_bridge` key)
     // needs to be preserved for dumping. So we will update the `loadedYamlFromFile.homenet_bridge`
     // with the content of `normalizedFullConfig` before dumping.
-    loadedYamlFromFile.homenet_bridge = normalizedFullConfig; // Update the original object with normalized content
+    loadedYamlFromFile.homenet_bridge = stripLegacyKeysBeforeSave(normalizedFullConfig); // Update the original object with normalized content
 
     // 4. Backup
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
@@ -743,7 +747,7 @@ app.post('/api/entities/rename', async (req, res) => {
       targetEntity.unique_id = uniqueId;
     }
 
-    loadedYamlFromFile.homenet_bridge = normalizedConfig;
+    loadedYamlFromFile.homenet_bridge = stripLegacyKeysBeforeSave(normalizedConfig);
 
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const backupPath = `${configPath}.${timestamp}.bak`;
