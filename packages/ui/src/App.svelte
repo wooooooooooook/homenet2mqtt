@@ -2,6 +2,8 @@
   import { onDestroy, onMount } from 'svelte';
   import type {
     BridgeInfo,
+    BridgeSerialInfo,
+    BridgeStatus,
     MqttMessageEvent,
     CommandPacket,
     RawPacketWithInterval,
@@ -33,6 +35,8 @@
   let bridgeInfo = $state<BridgeInfo | null>(null);
   let infoLoading = $state(false);
   let infoError = $state('');
+  let selectedPortId = $state<string | null>(null);
+  let bridgeStatusByPort = $state(new Map<string, string>());
 
   let commandPackets = $state<CommandPacket[]>([]);
   let deviceStates = $state(new Map<string, string>());
@@ -51,7 +55,7 @@
 
   let rawPackets = $state<RawPacketWithInterval[]>([]);
   let parsedPackets = $state<ParsedPacket[]>([]);
-  let packetStats = $state<PacketStats | null>(null);
+  let packetStatsByPort = $state(new Map<string, PacketStats>());
   let hasIntervalPackets = $state(false);
   let lastRawPacketTimestamp = $state<number | null>(null);
   let toasts = $state<ToastMessage[]>([]);
@@ -87,6 +91,46 @@
     data: T;
   };
 
+  const normalizeTopicParts = (topic: string) => topic.split('/').filter(Boolean);
+
+  const getKnownPortIds = () => bridgeInfo?.bridges?.flatMap((bridge) => bridge.serials.map((serial) => serial.portId)) ?? [];
+  const getDefaultPortId = () => selectedPortId ?? getKnownPortIds()[0] ?? null;
+
+  const inferPortId = (topic?: string, explicit?: string | null) =>
+    explicit ?? extractPortIdFromTopic(topic || '') ?? getDefaultPortId() ?? undefined;
+
+  const extractPortIdFromTopic = (topic: string) => {
+    const parts = normalizeTopicParts(topic);
+    if (parts.length >= 2) {
+      return parts[1];
+    }
+    return null;
+  };
+
+  const extractEntityIdFromTopic = (topic: string) => {
+    const parts = normalizeTopicParts(topic);
+    const stateIndex = parts.findIndex((part) => part === 'state');
+    if (stateIndex > 0) {
+      return parts[stateIndex - 1];
+    }
+
+    if (parts.length >= 3) {
+      return parts[parts.length - 2];
+    }
+
+    return parts.at(-1) ?? topic;
+  };
+
+  const isBridgeStatusTopic = (topic: string) => {
+    const parts = normalizeTopicParts(topic);
+    return parts.slice(-2).join('/') === 'bridge/status';
+  };
+
+  const isStateTopic = (topic: string) => {
+    const parts = normalizeTopicParts(topic);
+    return parts.length >= 3 && parts[parts.length - 1] === 'state';
+  };
+
   const normalizeRawPacket = (
     data: Partial<RawPacketWithInterval> & { payload?: string },
   ): RawPacketWithInterval => ({
@@ -94,6 +138,7 @@
     payload: data.payload ?? '',
     receivedAt: data.receivedAt ?? new Date().toISOString(),
     interval: typeof data.interval === 'number' ? data.interval : null,
+    portId: inferPortId(data.topic, data.portId),
   });
 
   const appendRawPacket = (packet: RawPacketWithInterval) => {
@@ -208,8 +253,17 @@
       const data = await apiRequest<BridgeInfo>('./api/bridge/info');
 
       bridgeInfo = data;
+      bridgeStatusByPort = new Map();
       rawPackets = [];
       deviceStates.clear();
+      packetStatsByPort = new Map();
+
+      const portIds = data.bridges?.flatMap((bridge) => bridge.serials.map((serial) => serial.portId)) ?? [];
+      const defaultPortId = portIds[0] ?? null;
+      if (!selectedPortId || (selectedPortId && !portIds.includes(selectedPortId))) {
+        selectedPortId = defaultPortId;
+      }
+
       startMqttStream();
       loadCommands();
       loadPacketHistory();
@@ -228,8 +282,15 @@
         apiRequest<CommandPacket[]>('./api/packets/command/history'),
         apiRequest<ParsedPacket[]>('./api/packets/parsed/history'),
       ]);
-      commandPackets = cmds;
-      parsedPackets = parsed;
+      const fallbackPort = getDefaultPortId();
+      commandPackets = cmds.map((cmd) => ({
+        ...cmd,
+        portId: cmd.portId ?? fallbackPort ?? undefined,
+      }));
+      parsedPackets = parsed.map((packet) => ({
+        ...packet,
+        portId: packet.portId ?? fallbackPort ?? undefined,
+      }));
     } catch (err) {
       console.error('Failed to load packet history:', err);
     }
@@ -327,7 +388,14 @@
       }
     };
 
-    const handleMqttMessage = (data: MqttMessageEvent) => {
+    const handleMqttMessage = (data: MqttMessageEvent & { portId?: string }) => {
+      const portId = data.portId ?? extractPortIdFromTopic(data.topic);
+      if (isBridgeStatusTopic(data.topic) && portId) {
+        bridgeStatusByPort.set(portId, data.payload);
+        bridgeStatusByPort = new Map(bridgeStatusByPort);
+        return;
+      }
+
       if (!isStateTopic(data.topic)) return;
       deviceStates.set(data.topic, data.payload);
       deviceStates = deviceStates; // Trigger Svelte reactivity
@@ -335,7 +403,10 @@
 
     const handleRawPacketWithInterval = (data: RawPacketWithInterval) => {
       hasIntervalPackets = true;
-      const packet = normalizeRawPacket(data);
+      const packet = normalizeRawPacket({
+        ...data,
+        portId: inferPortId(data.topic, data.portId),
+      });
       lastRawPacketTimestamp = Date.parse(packet.receivedAt);
       appendRawPacket(packet);
     };
@@ -349,32 +420,40 @@
         normalizeRawPacket({
           ...data,
           interval,
+          portId: inferPortId(data.topic),
         }),
       );
     };
 
     const handlePacketStats = (data: PacketStats) => {
       if (data) {
-        packetStats = data;
+        const portId = data.portId ?? getDefaultPortId() ?? undefined;
+        if (portId) {
+          packetStatsByPort.set(portId, { ...data, portId });
+          packetStatsByPort = new Map(packetStatsByPort);
+        }
       }
     };
 
     const handleCommandPacket = (data: CommandPacket) => {
-      commandPackets = [...commandPackets, data].slice(-MAX_PACKETS);
+      const portId = data.portId ?? getDefaultPortId() ?? undefined;
+      const packetWithPort = { ...data, portId };
+      commandPackets = [...commandPackets, packetWithPort].slice(-MAX_PACKETS);
       if (!isToastEnabled('command')) return;
       addToast({
         type: 'command',
         title: `${data.entity || data.entityId} 명령 전송`,
         message:
-          data.value !== undefined
-            ? `${data.command} → ${formatToastValue(data.value)}`
-            : data.command,
-        timestamp: data.timestamp,
+          packetWithPort.value !== undefined
+            ? `${packetWithPort.command} → ${formatToastValue(packetWithPort.value)}`
+            : packetWithPort.command,
+        timestamp: packetWithPort.timestamp,
       });
     };
 
     const handleParsedPacket = (data: ParsedPacket) => {
-      parsedPackets = [...parsedPackets, data].slice(-MAX_PACKETS);
+      const portId = data.portId ?? getDefaultPortId() ?? undefined;
+      parsedPackets = [...parsedPackets, { ...data, portId }].slice(-MAX_PACKETS);
     };
 
     const handleStateChange = (data: StateChangeEvent) => {
@@ -450,7 +529,7 @@
     }
     connectionStatus = 'idle';
     statusMessage = '';
-    packetStats = null;
+    packetStatsByPort = new Map();
     hasIntervalPackets = false;
     lastRawPacketTimestamp = null;
   }
@@ -462,36 +541,6 @@
       return null;
     }
   }
-
-  const normalizeTopicParts = (topic: string) => topic.split('/').filter(Boolean);
-
-  const isBridgeStatusTopic = (topic: string) => {
-    const parts = normalizeTopicParts(topic);
-    return parts.slice(-2).join('/') === 'bridge/status';
-  };
-
-  const isStateTopic = (topic: string) => {
-    const parts = normalizeTopicParts(topic);
-    return parts.length >= 3 && parts[parts.length - 1] === 'state';
-  };
-
-  const extractEntityIdFromTopic = (topic: string) => {
-    const parts = normalizeTopicParts(topic);
-
-    if (parts.length >= 3) {
-      const [, , ...rest] = parts;
-      const [entityId] = rest;
-      if (entityId) {
-        return entityId;
-      }
-    }
-
-    if (parts.length >= 2 && ['state', 'set', 'availability', 'attributes'].includes(parts.at(-1) || '')) {
-      return parts[parts.length - 2];
-    }
-
-    return parts[parts.length - 1] ?? topic;
-  };
 
   onDestroy(() => {
     closeStream();
@@ -571,13 +620,30 @@
     }
   }
 
-  // --- Entity Unification Logic ---
+  const portMetadata = $derived.by(() => {
+    if (!bridgeInfo?.bridges) return [] as Array<BridgeSerialInfo & { configFile: string }>;
+    return bridgeInfo.bridges.flatMap((bridge) =>
+      bridge.serials.map((serial) => ({ ...serial, configFile: bridge.configFile })),
+    );
+  });
+
+  const configPortMap = $derived.by(() => {
+    const map = new Map<string, string>();
+    for (const port of portMetadata) {
+      if (port.configFile) {
+        map.set(port.configFile, port.portId);
+      }
+    }
+    return map;
+  });
 
   const unifiedEntities = $derived.by<UnifiedEntity[]>(() => {
     const entities = new Map<string, UnifiedEntity>();
 
     // 1. Initialize with Commands (Source of Truth for Configured Names)
     for (const cmd of availableCommands) {
+      const portId = cmd.portId ?? (cmd.configFile ? configPortMap.get(cmd.configFile) : null) ?? getDefaultPortId() ?? undefined;
+
       if (!entities.has(cmd.entityId)) {
         entities.set(cmd.entityId, {
           id: cmd.entityId,
@@ -585,9 +651,14 @@
           type: cmd.entityType,
           commands: [],
           isStatusDevice: false,
+          portId,
         });
       }
-      entities.get(cmd.entityId)!.commands.push(cmd);
+      const entity = entities.get(cmd.entityId)!;
+      if (!entity.portId && portId) {
+        entity.portId = portId;
+      }
+      entity.commands.push({ ...cmd, portId });
     }
 
     // 2. Merge States
@@ -595,6 +666,7 @@
       if (isBridgeStatusTopic(topic)) continue; // Skip bridge status
 
       const entityId = extractEntityIdFromTopic(topic);
+      const portId = extractPortIdFromTopic(topic) ?? getDefaultPortId() ?? undefined;
 
       if (!entities.has(entityId)) {
         // Unknown entity (read-only or no commands configured)
@@ -603,11 +675,15 @@
           displayName: entityId, // Fallback to ID
           commands: [],
           isStatusDevice: false,
+          portId,
         });
       }
 
       const entity = entities.get(entityId)!;
       entity.statePayload = payload;
+      if (!entity.portId && portId) {
+        entity.portId = portId;
+      }
     }
 
     // Convert to array, filter only those with state, and sort
@@ -618,6 +694,41 @@
     return filtered.sort((a, b) => a.displayName.localeCompare(b.displayName));
   });
 
+  const entitiesByPort = $derived.by<Record<string, UnifiedEntity[]>>(() => {
+    const groups: Record<string, UnifiedEntity[]> = {};
+    for (const entity of unifiedEntities) {
+      const portId = entity.portId ?? 'unknown';
+      if (!groups[portId]) {
+        groups[portId] = [];
+      }
+      groups[portId].push(entity);
+    }
+
+    for (const key of Object.keys(groups)) {
+      groups[key] = groups[key].sort((a, b) => a.displayName.localeCompare(b.displayName));
+    }
+
+    return groups;
+  });
+
+  const availablePortIds = $derived.by<string[]>(() => getKnownPortIds());
+
+  const activePortId = $derived.by<string | null>(() => {
+    if (selectedPortId && availablePortIds.includes(selectedPortId)) return selectedPortId;
+    return availablePortIds[0] ?? null;
+  });
+
+  $effect(() => {
+    if (availablePortIds.length === 0) {
+      selectedPortId = null;
+      return;
+    }
+
+    if (!selectedPortId || !availablePortIds.includes(selectedPortId)) {
+      selectedPortId = availablePortIds[0];
+    }
+  });
+
   // --- Entity Detail Logic ---
 
   const selectedEntity = $derived.by<UnifiedEntity | null>(() =>
@@ -626,22 +737,80 @@
 
   const selectedEntityParsedPackets = $derived.by<ParsedPacket[]>(() =>
     selectedEntity && parsedPackets
-      ? parsedPackets.filter((p) => p.entityId === selectedEntityId).slice(-20)
+      ? parsedPackets
+          .filter(
+            (p) =>
+              p.entityId === selectedEntityId && (!selectedEntity.portId || !p.portId || p.portId === selectedEntity.portId),
+          )
+          .slice(-20)
       : [],
   );
 
   // Command packets ARE structured with entity property but we now have entityId
   const selectedEntityCommandPackets = $derived.by<CommandPacket[]>(() =>
     selectedEntity && commandPackets
-      ? commandPackets.filter((p) => p.entityId === selectedEntityId).slice(-20)
+      ? commandPackets
+          .filter(
+            (p) =>
+              p.entityId === selectedEntityId && (!selectedEntity.portId || !p.portId || p.portId === selectedEntity.portId),
+          )
+          .slice(-20)
       : [],
   );
+
+  $effect(() => {
+    if (selectedEntityId && !unifiedEntities.some((entity) => entity.id === selectedEntityId)) {
+      selectedEntityId = null;
+    }
+  });
 
   $effect(() => {
     if (!selectedEntityId) {
       renameError = '';
       renamingEntityId = null;
     }
+  });
+
+  const dashboardEntities = $derived.by<UnifiedEntity[]>(() =>
+    activePortId ? entitiesByPort[activePortId] ?? [] : unifiedEntities,
+  );
+
+  const filteredCommandPackets = $derived.by<CommandPacket[]>(() =>
+    activePortId
+      ? commandPackets.filter((packet) => !packet.portId || packet.portId === activePortId)
+      : commandPackets,
+  );
+
+  const filteredParsedPackets = $derived.by<ParsedPacket[]>(() =>
+    activePortId
+      ? parsedPackets.filter((packet) => !packet.portId || packet.portId === activePortId)
+      : parsedPackets,
+  );
+
+  const filteredRawPackets = $derived.by<RawPacketWithInterval[]>(() =>
+    activePortId
+      ? rawPackets.filter((packet) => !packet.portId || packet.portId === activePortId)
+      : rawPackets,
+  );
+
+  const filteredPacketStats = $derived.by<PacketStats | null>(() =>
+    activePortId ? packetStatsByPort.get(activePortId) ?? null : null,
+  );
+
+  const portStatuses = $derived.by(() => {
+    const defaultStatus = bridgeInfo?.status ?? 'idle';
+    return portMetadata.map((port) => {
+      const payload = bridgeStatusByPort.get(port.portId);
+      const normalized =
+        ['idle', 'starting', 'started', 'stopped', 'error'].includes((payload || defaultStatus) as string)
+          ? ((payload || defaultStatus) as BridgeStatus)
+          : 'idle';
+      return {
+        portId: port.portId,
+        status: normalized as BridgeStatus,
+        message: payload || undefined,
+      };
+    });
   });
 </script>
 
@@ -651,6 +820,7 @@
   <section class="main-content">
     <Header
       bridgeStatus={bridgeInfo?.status || 'idle'}
+      {portStatuses}
       {connectionStatus}
       {statusMessage}
       onRefresh={() => loadBridgeInfo(true)}
@@ -663,25 +833,30 @@
         {bridgeInfo}
         {infoLoading}
         {infoError}
-        {unifiedEntities}
-        {deviceStates}
-        {availableCommands}
+        portMetadata={portMetadata}
+        mqttUrl={bridgeInfo?.mqttUrl || ''}
+        entities={dashboardEntities}
+        selectedPortId={activePortId}
         showInactive={showInactiveEntities}
         on:select={(e) => (selectedEntityId = e.detail.entityId)}
         on:toggleInactive={() => (showInactiveEntities = !showInactiveEntities)}
+        on:portChange={(event) => (selectedPortId = event.detail.portId)}
       />
     {:else if activeView === 'analysis'}
       <Analysis
-        stats={packetStats}
-        {commandPackets}
-        {parsedPackets}
-        {rawPackets}
+        stats={filteredPacketStats}
+        commandPackets={filteredCommandPackets}
+        parsedPackets={filteredParsedPackets}
+        rawPackets={filteredRawPackets}
         {isStreaming}
+        portMetadata={portMetadata}
+        selectedPortId={activePortId}
+        on:portChange={(event) => (selectedPortId = event.detail.portId)}
         on:start={() => {
           sendStreamCommand('start');
           isStreaming = true;
           rawPackets = [];
-          packetStats = null;
+          packetStatsByPort = new Map();
         }}
         on:stop={() => {
           sendStreamCommand('stop');

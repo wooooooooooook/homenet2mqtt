@@ -12,6 +12,7 @@ export type CommandPacket = {
     value: any;
     packet: string;
     timestamp: string;
+    portId?: string;
 };
 
 export type StateChangeEvent = {
@@ -20,6 +21,7 @@ export type StateChangeEvent = {
     payload: string;
     state: Record<string, unknown>;
     timestamp: string;
+    portId?: string;
 };
 
 export type FrontendSettings = {
@@ -30,6 +32,29 @@ export type FrontendSettings = {
 };
 
 export type BridgeStatus = 'idle' | 'starting' | 'started' | 'stopped' | 'error';
+
+export type BridgeSerialInfo = {
+    portId: string;
+    path: string;
+    baudRate: number;
+    topic: string;
+};
+
+export type BridgeEntry = {
+    configFile: string;
+    serials: BridgeSerialInfo[];
+    mqttTopicPrefix: string;
+    topic: string;
+};
+
+export type BridgeInfo = {
+    configFiles: string[];
+    bridges: BridgeEntry[];
+    mqttUrl: string;
+    status: BridgeStatus;
+    error?: string | null;
+    topic: string;
+};
 
 export type CommandInfo = {
     entityId: string;
@@ -42,16 +67,8 @@ export type CommandInfo = {
     max?: number;
     step?: number;
     options?: string[];
-};
-
-export type BridgeInfo = {
-    configFile: string;
-    serialPath: string;
-    baudRate: number;
-    mqttUrl: string;
-    status: BridgeStatus;
-    error?: string | null;
-    topic: string;
+    configFile?: string;
+    portId?: string;
 };
 
 export type RawPacketWithInterval = {
@@ -59,6 +76,7 @@ export type RawPacketWithInterval = {
     payload: string;
     receivedAt: string;
     interval: number | null;
+    portId?: string;
 };
 
 export type PacketStats = {
@@ -69,6 +87,7 @@ export type PacketStats = {
     idleOccurrenceAvg: number;
     idleOccurrenceStdDev: number;
     sampleSize: number;
+    portId?: string;
 };
 
 export type UnifiedEntity = {
@@ -78,6 +97,7 @@ export type UnifiedEntity = {
     statePayload?: string;
     commands: CommandInfo[];
     isStatusDevice: boolean;
+    portId?: string;
 };
 
 export type ParsedPayloadEntry = {
@@ -90,6 +110,7 @@ export type ParsedPacket = {
     packet: string; // hex string
     state: any;
     timestamp: string;
+    portId?: string;
 };
 
 export type ToastMessage = {
