@@ -66,11 +66,11 @@ export class SelectDevice extends GenericDevice {
     // Check if it's NOT a lambda (GenericDevice handles lambdas)
     if (
       commandName === 'select' &&
-      entityConfig.command_select?.data &&
+      (entityConfig.command_select as any)?.data &&
       (entityConfig.command_select as any).type !== 'lambda' &&
       value !== undefined
     ) {
-      const command = [...entityConfig.command_select.data];
+      const command = [...(entityConfig.command_select as any).data];
       const commandSchema = entityConfig.command_select as any;
 
       if (commandSchema.map && commandSchema.map[value] !== undefined) {
