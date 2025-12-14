@@ -414,7 +414,7 @@
       }
 
       if (!isStateTopic(data.topic)) return;
-      deviceStates.set(data.topic, { payload: data.payload, portId });
+      deviceStates.set(data.topic, { payload: data.payload, portId: portId ?? undefined });
       deviceStates = new Map(deviceStates);
     };
 
@@ -457,6 +457,11 @@
       const packetWithPort = { ...data, portId };
       commandPackets = [...commandPackets, packetWithPort].slice(-MAX_PACKETS);
       if (!isToastEnabled('command')) return;
+
+      const eventTimestamp = new Date(data.timestamp).getTime();
+      const now = new Date().getTime();
+      if (now - eventTimestamp > 5000) return;
+
       addToast({
         type: 'command',
         title: `${data.entity || data.entityId} 명령 전송`,
@@ -478,6 +483,11 @@
       deviceStates = new Map(deviceStates);
 
       if (!isToastEnabled('state')) return;
+
+      const eventTimestamp = new Date(data.timestamp).getTime();
+      const now = new Date().getTime();
+      if (now - eventTimestamp > 5000) return;
+
       const summary = formatStateSummary(data.state);
       addToast({
         type: 'state',
