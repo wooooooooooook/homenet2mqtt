@@ -1,5 +1,5 @@
 import { GenericDevice } from './generic.device.js';
-import { DeviceConfig, ProtocolConfig } from '../types.js';
+import { ProtocolConfig } from '../types.js';
 import { SelectEntity } from '../../domain/entities/select.entity.js';
 
 export class SelectDevice extends GenericDevice {
@@ -15,13 +15,14 @@ export class SelectDevice extends GenericDevice {
     const updates = super.parseData(packet) || {};
     const entityConfig = this.config as SelectEntity;
 
-    // Parse selected option using state_select lambda
-    // For now, we'll use a simple approach
-    // TODO: Implement lambda execution for state_select
+    // If GenericDevice parsed state_select (as lambda), it puts it in updates.select.
+    // We map it to updates.option which is what the Select entity expects.
+    if (updates.select && !updates.option) {
+      updates.option = updates.select;
+    }
+
+    // Parse selected option using state_select schema if not already parsed
     if (!updates.option && entityConfig.state_select) {
-      // If state_select has homenet_logic, execute it
-      // Otherwise, try to extract from data
-      // This is a simplified version - real implementation would use lambda executor
       const option = this.extractOption(packet, entityConfig);
       if (option) {
         updates.option = option;
