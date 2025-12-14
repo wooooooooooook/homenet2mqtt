@@ -836,64 +836,65 @@
 </script>
 
 <main class="app-container">
-  <Sidebar bind:activeView isOpen={isSidebarOpen} on:close={() => (isSidebarOpen = false)} />
+  <Header
+    bridgeStatus={bridgeInfo?.status || 'idle'}
+    {portStatuses}
+    {connectionStatus}
+    {statusMessage}
+    onRefresh={() => loadBridgeInfo(true)}
+    isRefreshing={infoLoading}
+    on:toggleSidebar={() => (isSidebarOpen = !isSidebarOpen)}
+  />
+  <div class="content-body">
+    <Sidebar bind:activeView isOpen={isSidebarOpen} on:close={() => (isSidebarOpen = false)} />
 
-  <section class="main-content">
-    <Header
-      bridgeStatus={bridgeInfo?.status || 'idle'}
-      {portStatuses}
-      {connectionStatus}
-      {statusMessage}
-      onRefresh={() => loadBridgeInfo(true)}
-      isRefreshing={infoLoading}
-      on:toggleSidebar={() => (isSidebarOpen = !isSidebarOpen)}
-    />
-
-    {#if activeView === 'dashboard'}
-      <Dashboard
-        {bridgeInfo}
-        {infoLoading}
-        {infoError}
-        portMetadata={portMetadata}
-        mqttUrl={bridgeInfo?.mqttUrl || ''}
-        entities={dashboardEntities}
-        selectedPortId={activePortId}
-        showInactive={showInactiveEntities}
-        on:select={(e) => (selectedEntityId = e.detail.entityId)}
-        on:toggleInactive={() => (showInactiveEntities = !showInactiveEntities)}
-        on:portChange={(event) => (selectedPortId = event.detail.portId)}
-      />
-    {:else if activeView === 'analysis'}
-      <Analysis
-        stats={filteredPacketStats}
-        commandPackets={filteredCommandPackets}
-        parsedPackets={filteredParsedPackets}
-        rawPackets={filteredRawPackets}
-        {isStreaming}
-        portMetadata={portMetadata}
-        selectedPortId={activePortId}
-        on:portChange={(event) => (selectedPortId = event.detail.portId)}
-        on:start={() => {
-          sendStreamCommand('start');
-          isStreaming = true;
-          rawPackets = [];
-          packetStatsByPort = new Map();
-        }}
-        on:stop={() => {
-          sendStreamCommand('stop');
-          isStreaming = false;
-        }}
-      />
-    {:else if activeView === 'settings'}
-      <SettingsView
-        {frontendSettings}
-        isLoading={settingsLoading}
-        error={settingsError}
-        isSaving={settingsSaving}
-        on:toastChange={(e) => updateToastSetting(e.detail.key, e.detail.value)}
-      />
-    {/if}
-  </section>
+    <section class="main-content">
+      {#if activeView === 'dashboard'}
+        <Dashboard
+          {bridgeInfo}
+          {infoLoading}
+          {infoError}
+          portMetadata={portMetadata}
+          mqttUrl={bridgeInfo?.mqttUrl || ''}
+          entities={dashboardEntities}
+          selectedPortId={activePortId}
+          showInactive={showInactiveEntities}
+          on:select={(e) => (selectedEntityId = e.detail.entityId)}
+          on:toggleInactive={() => (showInactiveEntities = !showInactiveEntities)}
+          on:portChange={(event) => (selectedPortId = event.detail.portId)}
+        />
+      {:else if activeView === 'analysis'}
+        <Analysis
+          stats={filteredPacketStats}
+          commandPackets={filteredCommandPackets}
+          parsedPackets={filteredParsedPackets}
+          rawPackets={filteredRawPackets}
+          {isStreaming}
+          portMetadata={portMetadata}
+          selectedPortId={activePortId}
+          on:portChange={(event) => (selectedPortId = event.detail.portId)}
+          on:start={() => {
+            sendStreamCommand('start');
+            isStreaming = true;
+            rawPackets = [];
+            packetStatsByPort = new Map();
+          }}
+          on:stop={() => {
+            sendStreamCommand('stop');
+            isStreaming = false;
+          }}
+        />
+      {:else if activeView === 'settings'}
+        <SettingsView
+          {frontendSettings}
+          isLoading={settingsLoading}
+          error={settingsError}
+          isSaving={settingsSaving}
+          on:toastChange={(e) => updateToastSetting(e.detail.key, e.detail.value)}
+        />
+      {/if}
+    </section>
+  </div>
 
   {#if selectedEntity}
     <EntityDetail
@@ -923,22 +924,37 @@
 
   .app-container {
     display: flex;
+    flex-direction: column;
     min-height: 100vh;
+  }
+
+  .content-body {
+    display: flex;
+    flex: 1;
+    overflow: hidden; /* Prevent body scrollbars */
   }
 
   .main-content {
     flex: 1;
-    margin-left: 250px; /* Sidebar width */
     padding: 2rem;
-    max-width: 1600px;
+    max-width: 100%;
     box-sizing: border-box;
+    overflow-y: auto;
+    height: calc(100vh - 65px); /* Header height */
+  }
+
+  @media (min-width: 769px) {
+    .main-content {
+      margin-left: 250px; /* Sidebar width */
+      max-width: calc(100% - 250px);
+    }
   }
 
   @media (max-width: 768px) {
     .main-content {
       margin-left: 0;
       padding: 1rem;
-      padding-top: 80px; /* Space for mobile header usually, but we are keeping it simple for now */
+      width: 100%;
     }
   }
 
