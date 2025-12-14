@@ -180,10 +180,10 @@ select:
       - "AUTO"
       - "MANUAL"
     state_select: !lambda |-
-      if (packet[1] == 0x00) return "OFF";
-      if (packet[1] == 0x01) return "ON";
-      if (packet[1] == 0x02) return "AUTO";
-      if (packet[1] == 0x03) return "MANUAL";
+      if (data[1] == 0x00) return "OFF";
+      if (data[1] == 0x01) return "ON";
+      if (data[1] == 0x02) return "AUTO";
+      if (data[1] == 0x03) return "MANUAL";
       return "OFF";
     command_select:
       data: [0xC1, 0x00]
