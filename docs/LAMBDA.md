@@ -27,6 +27,27 @@ light:
       return data[4] === 0x01 ? 'ON' : 'OFF';
 ```
 
+### Select 엔티티 상태 추출 예시
+
+다음은 에어컨의 운전 모드를 추출하는 람다 예시입니다. 패킷의 값에 따라 미리 정의된 옵션 문자열을 반환해야 합니다.
+
+```yaml
+select:
+  - id: ac_mode
+    name: "에어컨 모드"
+    options:
+      - "냉방"
+      - "난방"
+      - "제습"
+      - "송풍"
+    state_select: !lambda |
+      const mode = data[5];
+      if (mode === 0x01) return '냉방';
+      if (mode === 0x02) return '난방';
+      if (mode === 0x03) return '제습';
+      return '송풍';
+```
+
 ### 명령 생성 예시
 
 다음은 조명을 켜거나 끄는 명령 패킷을 생성하는 람다 예시입니다. 입력 값(`x`)에 따라 다른 데이터 배열을 반환합니다.
