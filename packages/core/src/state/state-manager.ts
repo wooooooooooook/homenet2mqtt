@@ -90,6 +90,8 @@ export class StateManager {
         topic,
         payload,
         state: newState,
+        oldState: currentState,
+        changes: state,
         timestamp,
       });
       eventBus.emit(`device:${deviceId}:state:changed`, newState);

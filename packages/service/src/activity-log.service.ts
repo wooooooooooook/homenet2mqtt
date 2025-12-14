@@ -34,16 +34,25 @@ export class ActivityLogService {
 
   private subscribeToEvents() {
     eventBus.on('state:changed', (event) => {
-      const from = formatStateValue(event.old_state);
-      const to = formatStateValue(event.new_state);
-      this.addLog(
-        `${event.entity_id} 상태 변경: ${event.attribute} ${from} → ${to}`,
-        {
-          attribute: event.attribute,
-          from: event.old_state,
-          to: event.new_state
-        }
-      );
+      if (!event.changes || typeof event.changes !== 'object') return;
+
+      Object.entries(event.changes).forEach(([key, value]) => {
+        const oldValue = event.oldState ? event.oldState[key] : undefined;
+        // If value hasn't changed, skip logging (though typically PacketProcessor emits only changes)
+        if (oldValue === value) return;
+
+        const from = formatStateValue(oldValue);
+        const to = formatStateValue(value);
+
+        this.addLog(
+          `${event.entityId} 상태 변경: ${key} ${from} → ${to}`,
+          {
+            attribute: key,
+            from: oldValue,
+            to: value,
+          },
+        );
+      });
     });
 
     eventBus.on('mqtt-message', (event) => {
