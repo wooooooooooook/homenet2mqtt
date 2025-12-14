@@ -4,11 +4,6 @@ import { Duplex } from 'stream';
 import { HomeNetBridge } from '../src/service/bridge.service';
 import { eventBus } from '../src/service/event-bus.js';
 
-// Mocks
-
-// We no longer need to mock serialport globally or use the hack.
-// vi.mock('serialport', ...);
-
 vi.mock('mqtt', () => ({
   default: {
     connect: () => ({
@@ -50,14 +45,12 @@ vi.mock('node:fs/promises', () => ({
   access: vi.fn().mockResolvedValue(undefined),
 }));
 
-// Create a mock class that behaves like Duplex for our purposes
 class MockSerialPort extends EventEmitter {
   write = vi.fn();
   open(callback: (err?: Error | null) => void) {
     callback?.(null);
   }
   destroy = vi.fn();
-  // Mimic minimal Duplex props if needed by HomeNetBridge (it only uses write, on, destroy)
 }
 
 describe('HomeNetBridge Packet Interval Analysis', () => {
@@ -68,10 +61,7 @@ describe('HomeNetBridge Packet Interval Analysis', () => {
   beforeEach(async () => {
     vi.useFakeTimers();
 
-    // Create the mock serial port instance we will control
     fakeSerialPort = new MockSerialPort();
-
-    // Define the factory to return our mock
     const mockSerialFactory = vi.fn().mockResolvedValue(fakeSerialPort as unknown as Duplex);
 
     bridge = new HomeNetBridge({
@@ -81,8 +71,6 @@ describe('HomeNetBridge Packet Interval Analysis', () => {
     });
 
     await bridge.start();
-
-    // No longer need: fakeSerialPort = mockSerialPortInstances[mockSerialPortInstances.length - 1];
   });
 
   afterEach(() => {
@@ -95,7 +83,6 @@ describe('HomeNetBridge Packet Interval Analysis', () => {
     const data = Buffer.from([0x01, 0x02, 0x03]);
     bridge.startRawPacketListener();
 
-    // First packet
     fakeSerialPort.emit('data', data);
     expect(eventBusEmitSpy).toHaveBeenCalledWith(
       'raw-data-with-interval',
@@ -107,7 +94,6 @@ describe('HomeNetBridge Packet Interval Analysis', () => {
       }),
     );
 
-    // Second packet after 50ms
     vi.advanceTimersByTime(50);
     fakeSerialPort.emit('data', data);
     expect(eventBusEmitSpy).toHaveBeenCalledWith(
@@ -121,61 +107,64 @@ describe('HomeNetBridge Packet Interval Analysis', () => {
     );
   });
 
-  it('should not emit stats if fewer than 10 packets have been received', () => {
+  it('should increase sample size beyond 10 and rotate at 1000', () => {
     bridge.startRawPacketListener();
-    for (let i = 0; i < 10; i++) {
-      fakeSerialPort.emit('data', Buffer.from([i]));
-      vi.advanceTimersByTime(10);
-    }
-    expect(eventBusEmitSpy).not.toHaveBeenCalledWith('packet-interval-stats', expect.any(Object));
-  });
-
-  it('should calculate and emit packet interval stats after 11 packets', () => {
-    bridge.startRawPacketListener();
-    // 10 intervals: 9 short, 1 long
-    fakeSerialPort.emit('data', Buffer.from([0])); // first packet
-
-    for (let i = 0; i < 9; i++) {
-      vi.advanceTimersByTime(10); // 10ms interval
-      fakeSerialPort.emit('data', Buffer.from([i + 1]));
+    // Simulate 1010 packets
+    for (let i = 0; i < 1010; i++) {
+        vi.advanceTimersByTime(1);
+        fakeSerialPort.emit('data', Buffer.from([i % 255]));
     }
 
-    // 11th packet after a long interval
-    vi.advanceTimersByTime(200);
-    fakeSerialPort.emit('data', Buffer.from([10]));
+    const calls = eventBusEmitSpy.mock.calls.filter(call => call[0] === 'packet-interval-stats');
+    const lastCall = calls[calls.length - 1];
+    const stats = lastCall[1] as any;
 
-    expect(eventBusEmitSpy).toHaveBeenCalledWith(
-      'packet-interval-stats',
-      expect.objectContaining({
-        portId: 'main',
-        packetAvg: expect.any(Number),
-        packetStdDev: expect.any(Number),
-        idleAvg: expect.any(Number),
-        idleStdDev: expect.any(Number),
-      }),
-    );
+    // Should be capped at 1000
+    expect(stats.sampleSize).toBe(1000);
   });
 
-  it('should calculate idle occurrence average correctly', () => {
+  it('should calculate idle statistics correctly', () => {
     bridge.startRawPacketListener();
-    const intervals = [10, 10, 10, 200, 10, 10, 10, 200, 10, 10];
 
-    // First packet
     fakeSerialPort.emit('data', Buffer.from([0]));
 
-    intervals.forEach((interval, index) => {
-      vi.advanceTimersByTime(interval);
-      fakeSerialPort.emit('data', Buffer.from([index + 1]));
-    });
+    for(let i=0; i<3; i++) {
+        vi.advanceTimersByTime(10);
+        fakeSerialPort.emit('data', Buffer.from([i+1]));
+    }
 
-    expect(eventBusEmitSpy).toHaveBeenCalledWith(
-      'packet-interval-stats',
-      expect.objectContaining({
-        portId: 'main',
-        packetAvg: expect.any(Number),
-        idleAvg: expect.any(Number),
-        idleOccurrenceAvg: expect.any(Number),
-      }),
-    );
+    vi.advanceTimersByTime(200);
+    fakeSerialPort.emit('data', Buffer.from([4]));
+
+    for(let i=0; i<3; i++) {
+        vi.advanceTimersByTime(10);
+        fakeSerialPort.emit('data', Buffer.from([i+5]));
+    }
+
+    vi.advanceTimersByTime(200);
+    fakeSerialPort.emit('data', Buffer.from([8]));
+
+    for(let i=0; i<3; i++) {
+        vi.advanceTimersByTime(10);
+        fakeSerialPort.emit('data', Buffer.from([i+9]));
+    }
+
+    const calls = eventBusEmitSpy.mock.calls.filter(call => call[0] === 'packet-interval-stats');
+    expect(calls.length).toBeGreaterThan(0);
+    const lastCall = calls[calls.length - 1];
+    const stats = lastCall[1] as any;
+
+    // Check if idle stats are calculated
+    expect(stats.packetAvg).toBeDefined();
+    expect(stats.idleAvg).toBeDefined();
+    expect(stats.packetStdDev).toBeDefined();
+    expect(stats.idleStdDev).toBeDefined();
+    expect(stats.idleOccurrenceStdDev).toBeDefined();
+    expect(stats.idleOccurrenceAvg).toBeDefined();
+
+    // We expect some differentiation between packetAvg (small) and idleAvg (large)
+    if (stats.packetAvg > 0 && stats.idleAvg > 0) {
+        expect(stats.packetAvg).toBeLessThan(stats.idleAvg);
+    }
   });
 });
