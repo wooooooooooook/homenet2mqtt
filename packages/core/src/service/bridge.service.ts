@@ -434,7 +434,7 @@ export class HomeNetBridge {
 
   private analyzeAndEmitPacketStats(context: PortContext) {
     const intervals = [...context.packetIntervals];
-    context.packetIntervals = [];
+    // Do not clear the buffer; it's a rolling window managed in attachRawListener
 
     const mean = intervals.reduce((a, b) => a + b, 0) / intervals.length;
     const stdDev = Math.sqrt(
