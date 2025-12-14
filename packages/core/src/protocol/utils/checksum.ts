@@ -9,6 +9,8 @@ export type ChecksumType =
 
 export type Checksum2Type = 'xor_add';
 
+export type ByteArray = number[] | Buffer | Uint8Array;
+
 /**
  * Calculate 1-byte checksum
  * @param header Header bytes
@@ -16,7 +18,7 @@ export type Checksum2Type = 'xor_add';
  * @param type Checksum type
  * @returns Single byte checksum value
  */
-export function calculateChecksum(header: Buffer, data: Buffer, type: ChecksumType): number {
+export function calculateChecksum(header: ByteArray, data: ByteArray, type: ChecksumType): number {
   switch (type) {
     case 'add':
       return add(header, data);
@@ -37,7 +39,7 @@ export function calculateChecksum(header: Buffer, data: Buffer, type: ChecksumTy
   }
 }
 
-function add(header: Buffer, data: Buffer): number {
+function add(header: ByteArray, data: ByteArray): number {
   let sum = 0;
   for (const byte of header) {
     sum += byte;
@@ -48,7 +50,7 @@ function add(header: Buffer, data: Buffer): number {
   return sum & 0xff;
 }
 
-function addNoHeader(data: Buffer): number {
+function addNoHeader(data: ByteArray): number {
   let sum = 0;
   for (const byte of data) {
     sum += byte;
@@ -56,7 +58,7 @@ function addNoHeader(data: Buffer): number {
   return sum & 0xff;
 }
 
-function xor(header: Buffer, data: Buffer): number {
+function xor(header: ByteArray, data: ByteArray): number {
   let checksum = 0;
   for (const byte of header) {
     checksum ^= byte;
@@ -67,7 +69,7 @@ function xor(header: Buffer, data: Buffer): number {
   return checksum;
 }
 
-function xorNoHeader(data: Buffer): number {
+function xorNoHeader(data: ByteArray): number {
   let checksum = 0;
   for (const byte of data) {
     checksum ^= byte;
@@ -75,7 +77,7 @@ function xorNoHeader(data: Buffer): number {
   return checksum;
 }
 
-function samsungRx(data: Buffer): number {
+function samsungRx(data: ByteArray): number {
   let crc = 0xb0;
   for (const byte of data) {
     crc ^= byte;
@@ -86,7 +88,7 @@ function samsungRx(data: Buffer): number {
   return crc;
 }
 
-function samsungTx(data: Buffer): number {
+function samsungTx(data: ByteArray): number {
   let crc = 0x00;
   for (const byte of data) {
     crc ^= byte;
@@ -102,7 +104,7 @@ function samsungTx(data: Buffer): number {
  * @param type Checksum type
  * @returns Array of 2 bytes [high, low]
  */
-export function calculateChecksum2(header: Buffer, data: Buffer, type: Checksum2Type): number[] {
+export function calculateChecksum2(header: ByteArray, data: ByteArray, type: Checksum2Type): number[] {
   switch (type) {
     case 'xor_add':
       return xorAdd(header, data);
@@ -118,7 +120,7 @@ export function calculateChecksum2(header: Buffer, data: Buffer, type: Checksum2
  * - Adds XOR result to ADD accumulator
  * - Packs as [XOR, ADD&0xFF]
  */
-function xorAdd(header: Buffer, data: Buffer): number[] {
+function xorAdd(header: ByteArray, data: ByteArray): number[] {
   let crc = 0;
   let temp = 0;
 

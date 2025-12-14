@@ -162,8 +162,8 @@ export class PacketParser {
       if (typeof this.defaults.rx_checksum === 'string') {
         // Use calculateChecksum for string types
         const headerLength = this.defaults.rx_header?.length || 0;
-        const headerPart = Buffer.from(packet.slice(0, headerLength));
-        const dataPart = Buffer.from(packet.slice(headerLength, dataEnd));
+        const headerPart = packet.slice(0, headerLength);
+        const dataPart = packet.slice(headerLength, dataEnd);
 
         calculatedChecksum = calculateChecksum(
           headerPart,
@@ -202,8 +202,8 @@ export class PacketParser {
       }
 
       const checksumBytes = packet.slice(checksumStart, checksumStart + 2);
-      const headerPart = Buffer.from(packet.slice(0, headerLength));
-      const dataPart = Buffer.from(packet.slice(headerLength, checksumStart));
+      const headerPart = packet.slice(0, headerLength);
+      const dataPart = packet.slice(headerLength, checksumStart);
 
       if (typeof this.defaults.rx_checksum2 === 'string') {
         const calculated = calculateChecksum2(
