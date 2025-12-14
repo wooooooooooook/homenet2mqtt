@@ -19,3 +19,38 @@ Write imperative, sentence-style commits (“Add RS485 PTY simulator package”)
 
 ## Security & Configuration Tips
 Load runtime settings from `.env` keys such as `SERIAL_PORT`, `BAUD_RATE`, and `MQTT_*`. Thread options through constructors and document defaults in README updates. Guard serial features against blocking I/O: use timeouts, validate RS485 payload lengths, and avoid publishing malformed frames to `homeassistant/*` topics.
+
+---
+
+# Local Test Environment Setup (Without Docker)
+
+This document guides you through setting up and running the full "Homenet2MQTT" application stack in a local environment without using Docker.
+
+## Prerequisites
+
+- **Node.js and pnpm**: The project's primary runtime and package manager.
+- **Mosquitto MQTT Broker**: Serves as the local message broker.
+
+## Setup Steps
+
+1.  **Install and Run Mosquitto**:
+    -   `sudo apt-get update && sudo apt-get install -y mosquitto mosquitto-clients`
+    -   `sudo systemctl start mosquitto`
+
+2.  **Install Dependencies**:
+    -   Run `pnpm install` in the project root directory.
+
+3.  **Build the Project**:
+    -   Run `pnpm build` to build all packages. The `service` package builds the `ui` package and copies its output to its own `static` directory.
+
+4.  **Create a Test Configuration File**:
+    -   In the `packages/core/config/` directory, create a test configuration file, such as `test.homenet_bridge.yaml`.
+    -   Set the `serial.path` in this file to `localhost:8888` to connect to the local simulator.
+
+5.  **Run the Application Stack**:
+    -   **Start the Simulator**: `SIMULATOR_PROTOCOL=tcp pnpm --filter @rs485-homenet/simulator start &`
+    -   **Start the Service**: `CONFIG_FILE=./packages/core/config/test.homenet_bridge.yaml MQTT_URL=mqtt://localhost:1883 pnpm --filter @rs485-homenet/service start &`
+    -   **Important**: Do not run the `ui` development server (`pnpm --filter @rs485-homenet/ui dev`) separately. The `service` already provides the UI on port 3000.
+
+6.  **Verification**:
+    -   Open your browser and navigate to `http://localhost:3000` to confirm that the UI loads correctly.

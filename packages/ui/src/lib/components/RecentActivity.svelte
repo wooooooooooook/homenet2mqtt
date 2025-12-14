@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { afterUpdate } from 'svelte';
   import { sineOut } from 'svelte/easing';
   import { fade } from 'svelte/transition';
 
@@ -15,7 +14,9 @@
 
   let listElement: HTMLUListElement;
 
-  afterUpdate(() => {
+  $effect(() => {
+    // activities 변경을 감지하기 위해 의존성 추가
+    activities;
     if (listElement) {
       listElement.scrollTop = listElement.scrollHeight;
     }
