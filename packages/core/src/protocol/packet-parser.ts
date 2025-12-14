@@ -1,5 +1,10 @@
 import { PacketDefaults, ChecksumType, Checksum2Type, LambdaConfig } from './types.js';
-import { calculateChecksum, calculateChecksum2 } from './utils/checksum.js';
+import {
+  calculateChecksum,
+  calculateChecksum2,
+  calculateChecksumFromBuffer,
+  calculateChecksum2FromBuffer,
+} from './utils/checksum.js';
 import { LambdaExecutor } from './lambda-executor.js';
 import { Buffer } from 'buffer';
 
@@ -160,18 +165,15 @@ export class PacketParser {
       }
 
       if (typeof this.defaults.rx_checksum === 'string') {
-        // Use calculateChecksum for string types
+        // Use calculateChecksumFromBuffer for string types to avoid slicing
         const headerLength = this.defaults.rx_header?.length || 0;
-        const headerPart = packet.slice(0, headerLength);
-        const dataPart = packet.slice(headerLength, dataEnd);
 
-        calculatedChecksum = calculateChecksum(
-          headerPart,
-          dataPart,
+        calculatedChecksum = calculateChecksumFromBuffer(
+          packet,
           this.defaults.rx_checksum as ChecksumType,
+          headerLength,
+          dataEnd,
         );
-
-        // console.log(`[PacketParser] Verify Checksum: Type=${this.defaults.rx_checksum}, Packet=${packet.map(b => '0x' + b.toString(16).padStart(2, '0')).join(' ')}, Data=${dataPart.toString('hex')}, Calc=0x${calculatedChecksum.toString(16).padStart(2, '0')}, Expected=0x${checksumByte.toString(16).padStart(2, '0')}, Match=${calculatedChecksum === checksumByte}`);
 
         return calculatedChecksum === checksumByte;
       } else if ((this.defaults.rx_checksum as any).type === 'lambda') {
@@ -202,14 +204,13 @@ export class PacketParser {
       }
 
       const checksumBytes = packet.slice(checksumStart, checksumStart + 2);
-      const headerPart = packet.slice(0, headerLength);
-      const dataPart = packet.slice(headerLength, checksumStart);
 
       if (typeof this.defaults.rx_checksum2 === 'string') {
-        const calculated = calculateChecksum2(
-          headerPart,
-          dataPart,
+        const calculated = calculateChecksum2FromBuffer(
+          packet,
           this.defaults.rx_checksum2 as Checksum2Type,
+          headerLength,
+          checksumStart,
         );
         return calculated[0] === checksumBytes[0] && calculated[1] === checksumBytes[1];
       } else if ((this.defaults.rx_checksum2 as any).type === 'lambda') {

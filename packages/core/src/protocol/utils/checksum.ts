@@ -39,6 +39,39 @@ export function calculateChecksum(header: ByteArray, data: ByteArray, type: Chec
   }
 }
 
+/**
+ * Calculate 1-byte checksum from a single buffer without slicing
+ * @param buffer Full packet buffer
+ * @param type Checksum type
+ * @param headerLength Length of the header
+ * @param dataEnd Index where data ends (exclusive, typically checks starts here)
+ */
+export function calculateChecksumFromBuffer(
+  buffer: ByteArray,
+  type: ChecksumType,
+  headerLength: number,
+  dataEnd: number,
+): number {
+  switch (type) {
+    case 'add':
+      return addRange(buffer, 0, dataEnd);
+    case 'add_no_header':
+      return addRange(buffer, headerLength, dataEnd);
+    case 'xor':
+      return xorRange(buffer, 0, dataEnd);
+    case 'xor_no_header':
+      return xorRange(buffer, headerLength, dataEnd);
+    case 'samsung_rx':
+      return samsungRxFromBuffer(buffer, headerLength, dataEnd);
+    case 'samsung_tx':
+      return samsungTxFromBuffer(buffer, headerLength, dataEnd);
+    case 'none':
+      throw new Error("Checksum type 'none' should not be calculated");
+    default:
+      throw new Error(`Unknown checksum type: ${type}`);
+  }
+}
+
 function add(header: ByteArray, data: ByteArray): number {
   let sum = 0;
   for (const byte of header) {
@@ -54,6 +87,14 @@ function addNoHeader(data: ByteArray): number {
   let sum = 0;
   for (const byte of data) {
     sum += byte;
+  }
+  return sum & 0xff;
+}
+
+function addRange(buffer: ByteArray, start: number, end: number): number {
+  let sum = 0;
+  for (let i = start; i < end; i++) {
+    sum += buffer[i];
   }
   return sum & 0xff;
 }
@@ -77,6 +118,14 @@ function xorNoHeader(data: ByteArray): number {
   return checksum;
 }
 
+function xorRange(buffer: ByteArray, start: number, end: number): number {
+  let checksum = 0;
+  for (let i = start; i < end; i++) {
+    checksum ^= buffer[i];
+  }
+  return checksum;
+}
+
 function samsungRx(data: ByteArray): number {
   let crc = 0xb0;
   for (const byte of data) {
@@ -88,10 +137,30 @@ function samsungRx(data: ByteArray): number {
   return crc;
 }
 
+function samsungRxFromBuffer(buffer: ByteArray, start: number, end: number): number {
+  let crc = 0xb0;
+  for (let i = start; i < end; i++) {
+    crc ^= buffer[i];
+  }
+  if (start < end && buffer[start] < 0x7c) {
+    crc ^= 0x80;
+  }
+  return crc;
+}
+
 function samsungTx(data: ByteArray): number {
   let crc = 0x00;
   for (const byte of data) {
     crc ^= byte;
+  }
+  crc ^= 0x80;
+  return crc;
+}
+
+function samsungTxFromBuffer(buffer: ByteArray, start: number, end: number): number {
+  let crc = 0x00;
+  for (let i = start; i < end; i++) {
+    crc ^= buffer[i];
   }
   crc ^= 0x80;
   return crc;
@@ -108,6 +177,24 @@ export function calculateChecksum2(header: ByteArray, data: ByteArray, type: Che
   switch (type) {
     case 'xor_add':
       return xorAdd(header, data);
+    default:
+      throw new Error(`Unknown 2-byte checksum type: ${type}`);
+  }
+}
+
+/**
+ * Calculate 2-byte checksum from buffer without slicing
+ */
+export function calculateChecksum2FromBuffer(
+  buffer: ByteArray,
+  type: Checksum2Type,
+  headerLength: number,
+  dataEnd: number,
+): number[] {
+  switch (type) {
+    case 'xor_add':
+      // xorAdd processes header then data linearly, so we can process range 0..dataEnd
+      return xorAddRange(buffer, 0, dataEnd);
     default:
       throw new Error(`Unknown 2-byte checksum type: ${type}`);
   }
@@ -132,6 +219,25 @@ function xorAdd(header: ByteArray, data: ByteArray): number[] {
 
   // Process data bytes
   for (const byte of data) {
+    crc += byte;
+    temp ^= byte;
+  }
+
+  crc += temp;
+
+  // Pack into 2 bytes: [XOR, ADD]
+  const high = temp & 0xff;
+  const low = crc & 0xff;
+
+  return [high, low];
+}
+
+function xorAddRange(buffer: ByteArray, start: number, end: number): number[] {
+  let crc = 0;
+  let temp = 0;
+
+  for (let i = start; i < end; i++) {
+    const byte = buffer[i];
     crc += byte;
     temp ^= byte;
   }
