@@ -9,6 +9,12 @@ import { HomenetBridgeConfig, SerialConfig, AutomationConfig } from '../config/t
 import { loadConfig } from '../config/index.js';
 import { EntityConfig } from '../domain/entities/base.entity.js';
 import { PacketProcessor, EntityStateProvider } from '../protocol/packet-processor.js';
+import {
+  calculateChecksumFromBuffer,
+  calculateChecksum2FromBuffer,
+  ChecksumType,
+  Checksum2Type,
+} from '../protocol/utils/checksum.js';
 import { createSerialPortConnection } from '../transports/serial/serial.factory.js';
 import { MqttClient } from '../transports/mqtt/mqtt.client.js';
 import { MqttSubscriber } from '../transports/mqtt/subscriber.js';
@@ -244,8 +250,57 @@ export class HomeNetBridge {
     const commandName = commandKey.replace('command_', '');
 
     // 3. Construct the test packet (use it as input trigger)
-    const testPacket = context.packetProcessor.constructCommandPacket(targetEntity, commandName);
-    if (!testPacket) throw new Error(`Failed to construct test packet for ${targetEntity.id}`);
+    const commandPacket = context.packetProcessor.constructCommandPacket(targetEntity, commandName);
+    if (!commandPacket) throw new Error(`Failed to construct test packet for ${targetEntity.id}`);
+
+    // Modify the packet to look like a valid RX packet (State)
+    // PacketParser enforces rx_header and rx_checksum, so we must match them.
+    const testPacket = [...commandPacket];
+    const defaults = this.config.packet_defaults || {};
+
+    // Apply RX Header
+    if (defaults.rx_header && defaults.rx_header.length > 0) {
+      if (testPacket.length < defaults.rx_header.length) {
+        while (testPacket.length < defaults.rx_header.length) testPacket.push(0);
+      }
+      for (let i = 0; i < defaults.rx_header.length; i++) {
+        testPacket[i] = defaults.rx_header[i];
+      }
+    }
+
+    // Recalculate Checksum
+    const buffer = Buffer.from(testPacket);
+    const headerLen = defaults.rx_header?.length || 0;
+    const footerLen = defaults.rx_footer?.length || 0;
+
+    if (defaults.rx_checksum && defaults.rx_checksum !== 'none') {
+      const checksumPos = testPacket.length - 1 - footerLen;
+      if (checksumPos >= headerLen) {
+        if (typeof defaults.rx_checksum === 'string') {
+          const newChecksum = calculateChecksumFromBuffer(
+            buffer,
+            defaults.rx_checksum as ChecksumType,
+            headerLen,
+            checksumPos,
+          );
+          testPacket[checksumPos] = newChecksum;
+        }
+      }
+    } else if (defaults.rx_checksum2) {
+      const checksumPos = testPacket.length - 2 - footerLen;
+      if (checksumPos >= headerLen) {
+        if (typeof defaults.rx_checksum2 === 'string') {
+          const newChecksum = calculateChecksum2FromBuffer(
+            buffer,
+            defaults.rx_checksum2 as Checksum2Type,
+            headerLen,
+            checksumPos,
+          );
+          testPacket[checksumPos] = newChecksum[0];
+          testPacket[checksumPos + 1] = newChecksum[1];
+        }
+      }
+    }
 
     // 4. Setup Automation
     const automationId = `latency_test_${Date.now()}`;
@@ -255,13 +310,13 @@ export class HomeNetBridge {
         type: 'packet',
         match: {
           data: testPacket,
-          mask: testPacket.map(() => 0xFF) // Exact match
-        }
+          mask: testPacket.map(() => 0xFF), // Exact match
+        },
       }],
       then: [{
         action: 'command',
-        target: `id(${targetEntity.id}).command_${commandName}()`
-      }]
+        target: `id(${targetEntity.id}).command_${commandName}()`,
+      }],
     };
 
     context.automationManager.addAutomation(automationConfig);
