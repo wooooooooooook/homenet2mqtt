@@ -466,6 +466,17 @@ const broadcastStreamEvent = <T>(event: StreamEvent, payload: T) => {
     sendStreamEvent(client, event, payload);
   });
 };
+
+const rawPacketSubscribers = new Set<WebSocket>();
+
+const sendToRawSubscribers = <T>(event: StreamEvent, payload: T) => {
+  rawPacketSubscribers.forEach((client) => {
+    if (client.readyState === WebSocket.OPEN) {
+      sendStreamEvent(client, event, payload);
+    }
+  });
+};
+
 const registerGlobalEventHandlers = () => {
   const broadcastStateChange = (stateChangeEvent: StateChangeEvent) => {
     latestStates.set(stateChangeEvent.topic, stateChangeEvent);
@@ -506,10 +517,10 @@ const registerGlobalEventHandlers = () => {
     broadcastStreamEvent('parsed-packet', data);
   });
   eventBus.on('raw-data-with-interval', (data: RawPacketPayload) => {
-    broadcastStreamEvent('raw-data-with-interval', normalizeRawPacket(data));
+    sendToRawSubscribers('raw-data-with-interval', normalizeRawPacket(data));
   });
   eventBus.on('packet-interval-stats', (data: unknown) => {
-    broadcastStreamEvent('packet-interval-stats', data);
+    sendToRawSubscribers('packet-interval-stats', data);
   });
   eventBus.on('activity-log:added', (data: unknown) => {
     broadcastStreamEvent('activity-log-added', data);
@@ -519,8 +530,6 @@ const registerGlobalEventHandlers = () => {
 activityLogService.addLog('서비스가 시작되었습니다.');
 
 const registerPacketStream = () => {
-  const rawPacketSubscribers = new Set<WebSocket>();
-
   wss.on('connection', (socket: WebSocket, req: IncomingMessage) => {
     const requestUrl = getRequestUrl(req);
     const streamMqttUrl = resolveMqttUrl(
