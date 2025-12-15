@@ -19,7 +19,8 @@ COPY packages/ui/package.json packages/ui/
 COPY packages/simulator/package.json packages/simulator/
 
 # Install dependencies
-RUN pnpm install --frozen-lockfile
+# Limit concurrency to prevent QEMU hangs on ARM builds
+RUN pnpm install --frozen-lockfile --network-concurrency 1
 
 # Copy source code
 COPY . .
