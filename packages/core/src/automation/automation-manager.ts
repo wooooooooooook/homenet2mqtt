@@ -57,6 +57,17 @@ export class AutomationManager {
     this.mqttPublisher = mqttPublisher;
   }
 
+  public addAutomation(config: AutomationConfig) {
+    this.automationList.push(config);
+  }
+
+  public removeAutomation(id: string) {
+    const index = this.automationList.findIndex((a) => a.id === id);
+    if (index !== -1) {
+      this.automationList.splice(index, 1);
+    }
+  }
+
   start() {
     if (this.isStarted || this.automationList.length === 0) return;
     this.isStarted = true;
