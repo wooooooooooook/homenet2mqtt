@@ -1,4 +1,3 @@
-
 import path from 'path';
 import fs from 'fs/promises';
 import { fileURLToPath } from 'url';
@@ -15,8 +14,8 @@ const __dirname = path.dirname(__filename);
 const CONFIG_DIR = process.env.CONFIG_ROOT || path.resolve(__dirname, '../../core/config');
 const CONSENT_FILE = path.join(CONFIG_DIR, '.share_logs');
 
-const LOG_COLLECTOR_URL = 'https://h2m-log-collector.nubiz.workers.dev/';
-const API_KEY = 'h2m-log-collector-is-cool';
+const DEFAULT_LOG_COLLECTOR_URL = 'https://h2m-log-collector.nubiz.workers.dev/';
+const DEFAULT_API_KEY = 'h2m-log-collector-is-cool';
 
 export class LogCollectorService {
   private packetBuffer: string[] = [];
@@ -28,8 +27,23 @@ export class LogCollectorService {
 
   constructor() {}
 
+  private get collectorUrl() {
+    return process.env.LOG_COLLECTOR_URL || DEFAULT_LOG_COLLECTOR_URL;
+  }
+
+  private get apiKey() {
+    return process.env.LOG_COLLECTOR_API_KEY || DEFAULT_API_KEY;
+  }
+
   async init(bridges: HomeNetBridge[]) {
     this.bridges = bridges;
+
+    if (!process.env.LOG_COLLECTOR_API_KEY) {
+      logger.warn(
+        '[LogCollector] Using insecure default API key. Please set LOG_COLLECTOR_API_KEY environment variable.',
+      );
+    }
+
     await this.checkConsent();
     if (this.hasConsented) {
       this.startCollection();
@@ -99,15 +113,15 @@ export class LogCollectorService {
   async updateConsent(consent: boolean) {
     this.hasConsented = consent;
     try {
-        await fs.mkdir(path.dirname(CONSENT_FILE), { recursive: true });
-        await fs.writeFile(CONSENT_FILE, consent ? 'true' : 'false');
-        if (consent) {
-            this.startCollection();
-        } else {
-            this.stopCollection();
-        }
+      await fs.mkdir(path.dirname(CONSENT_FILE), { recursive: true });
+      await fs.writeFile(CONSENT_FILE, consent ? 'true' : 'false');
+      if (consent) {
+        this.startCollection();
+      } else {
+        this.stopCollection();
+      }
     } catch (err) {
-        logger.error({ err }, '[LogCollector] Failed to update consent file');
+      logger.error({ err }, '[LogCollector] Failed to update consent file');
     }
   }
 
@@ -124,7 +138,7 @@ export class LogCollectorService {
     logger.info('[LogCollector] Starting packet collection (target: 1000 packets)');
 
     // Enable raw listeners
-    this.bridges.forEach(b => b.startRawPacketListener());
+    this.bridges.forEach((b) => b.startRawPacketListener());
 
     // Subscribe
     eventBus.on('raw-data-with-interval', this.handlePacketBound);
@@ -133,7 +147,7 @@ export class LogCollectorService {
   stopCollection() {
     if (!this.isCollecting) return;
     this.isCollecting = false;
-    this.bridges.forEach(b => b.stopRawPacketListener());
+    this.bridges.forEach((b) => b.stopRawPacketListener());
     eventBus.off('raw-data-with-interval', this.handlePacketBound);
   }
 
@@ -170,11 +184,11 @@ export class LogCollectorService {
         timestamp: Date.now(),
       };
 
-      const response = await fetch(LOG_COLLECTOR_URL, {
+      const response = await fetch(this.collectorUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': API_KEY,
+          'x-api-key': this.apiKey,
         },
         body: JSON.stringify(payload),
       });

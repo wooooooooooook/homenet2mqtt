@@ -36,7 +36,9 @@ export class StateManager {
         this.handleStateUpdate(event);
       });
     } else {
-      logger.warn('[StateManager] PacketProcessor does not support events; state updates will not be processed automatically');
+      logger.warn(
+        '[StateManager] PacketProcessor does not support events; state updates will not be processed automatically',
+      );
     }
   }
 

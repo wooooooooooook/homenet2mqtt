@@ -5,7 +5,13 @@ import { AutomationManager } from '../../src/automation/automation-manager.js';
 import { eventBus } from '../../src/service/event-bus.js';
 import { HomenetBridgeConfig } from '../../src/config/types.js';
 
-const serial = { portId: 'main', baud_rate: 9600, data_bits: 8, parity: 'none', stop_bits: 1 } as any;
+const serial = {
+  portId: 'main',
+  baud_rate: 9600,
+  data_bits: 8,
+  parity: 'none',
+  stop_bits: 1,
+} as any;
 const baseConfig: HomenetBridgeConfig = {
   serial,
   serials: [serial],
@@ -56,7 +62,12 @@ describe('AutomationManager', () => {
       ],
     };
 
-    automationManager = new AutomationManager(config, packetProcessor as any, commandManager as any, mqttPublisher as any);
+    automationManager = new AutomationManager(
+      config,
+      packetProcessor as any,
+      commandManager as any,
+      mqttPublisher as any,
+    );
     automationManager.start();
 
     eventBus.emit('state:changed', { entityId: 'light_1', state: { state_on: true } });
@@ -91,13 +102,21 @@ describe('AutomationManager', () => {
 
     packetProcessor.constructCommandPacket.mockReturnValue([0x01]);
 
-    automationManager = new AutomationManager(config, packetProcessor as any, commandManager as any, mqttPublisher as any);
+    automationManager = new AutomationManager(
+      config,
+      packetProcessor as any,
+      commandManager as any,
+      mqttPublisher as any,
+    );
     automationManager.start();
 
     eventBus.emit('state:changed', { entityId: 'light_1', state: { state_on: true } });
     await new Promise((resolve) => setTimeout(resolve, 0));
 
     expect(packetProcessor.constructCommandPacket).toHaveBeenCalled();
-    expect(commandManager.send).toHaveBeenCalledWith(expect.objectContaining({ id: 'light_1', type: 'light' }), [0x01]);
+    expect(commandManager.send).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'light_1', type: 'light' }),
+      [0x01],
+    );
   });
 });
