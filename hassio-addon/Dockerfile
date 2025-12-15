@@ -34,7 +34,8 @@ RUN pnpm --filter "!@rs485-homenet/simulator" build
 RUN rm -rf packages/simulator
 
 # Remove development dependencies to reduce size of node_modules
-RUN pnpm prune --prod
+# We use 'install --prod' instead of 'prune --prod' because the latter can incorrectly remove workspace dependencies
+RUN pnpm install --prod --frozen-lockfile
 
 # Stage 2: Runner
 # node:20-alpine is used for a smaller runtime image
