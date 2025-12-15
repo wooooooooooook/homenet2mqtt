@@ -232,16 +232,25 @@ export class HomeNetBridge {
 
     // 1. Pick a random entity that has commands
     const entities: EntityConfig[] = [];
+    const defaults = this.config.packet_defaults || {};
+
     for (const type of ENTITY_TYPE_KEYS) {
       const typeEntities = this.config[type] as EntityConfig[] | undefined;
       if (typeEntities) entities.push(...typeEntities);
     }
 
-    const candidates = entities.filter(e =>
-      Object.keys(e).some(k => k.startsWith('command_'))
-    );
+    // Filter out entities with lambda checksums or complex configurations that we can't easily mimic
+    const candidates = entities.filter((e) => {
+      const hasCommand = Object.keys(e).some((k) => k.startsWith('command_'));
+      if (!hasCommand) return false;
 
-    if (candidates.length === 0) throw new Error('No capable entities found for test');
+      // If defaults use lambda checksum, we can't reliably calculate it here without duplication logic
+      if (defaults.rx_checksum && typeof defaults.rx_checksum !== 'string' && defaults.rx_checksum !== 'none') return false;
+      if (defaults.rx_checksum2 && typeof defaults.rx_checksum2 !== 'string') return false;
+      return true;
+    });
+
+    if (candidates.length === 0) throw new Error('No capable entities found for test (filtered out complex checksums)');
     const targetEntity = candidates[Math.floor(Math.random() * candidates.length)];
 
     // 2. Find a command to use
@@ -256,7 +265,6 @@ export class HomeNetBridge {
     // Modify the packet to look like a valid RX packet (State)
     // PacketParser enforces rx_header and rx_checksum, so we must match them.
     const testPacket = [...commandPacket];
-    const defaults = this.config.packet_defaults || {};
 
     // Apply RX Header
     if (defaults.rx_header && defaults.rx_header.length > 0) {
@@ -323,15 +331,9 @@ export class HomeNetBridge {
 
     // 5. Mock CommandManager
     const originalSend = context.commandManager.send;
-    // We need to bypass the `send` method entirely to avoid queueing logic if we want to measure pure processing time?
-    // Actually, `processQueue` is part of the system latency. We should keep it.
-    // However, `CommandManager` waits for ACK. We must prevent that.
-    // We will spy on `send` but we need to resolve the promise immediately to simulate "sent".
-    // Wait, `send` pushes to queue. `processQueue` calls `executeJob`. `executeJob` calls `port.write` and waits.
-    // We want to measure time until `CommandManager.send` is CALLED by the automation action?
-    // No, `AutomationManager` calls `commandManager.send`.
-    // So if we mock `send`, we measure time until automation finishes.
-    // That's "Packet Reception -> Command Generation".
+
+    // Ignore updates for this entity in StateManager to prevent MQTT spam
+    context.stateManager.setIgnoreEntity(targetEntity.id);
 
     const measurements: number[] = [];
     let resolveTestIteration: (() => void) | null = null;
@@ -346,7 +348,7 @@ export class HomeNetBridge {
       // 6. Loop
       for (let i = 0; i < 100; i++) {
         // Wait a bit to ensure clean state?
-        await new Promise(r => setTimeout(r, 2));
+        await new Promise(r => setTimeout(r, 5));
 
         const start = performance.now();
         const iterationPromise = new Promise<void>(resolve => { resolveTestIteration = resolve; });
@@ -368,6 +370,7 @@ export class HomeNetBridge {
       // Cleanup
       context.commandManager.send = originalSend;
       context.automationManager.removeAutomation(automationId);
+      context.stateManager.setIgnoreEntity(null);
     }
 
     // 7. Calculate Stats
