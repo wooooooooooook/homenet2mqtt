@@ -15,6 +15,7 @@ export class StateManager {
   private mqttPublisher: MqttPublisher;
   private portId: string;
   private mqttTopicPrefix: string;
+  private ignoredEntityId: string | null = null;
   // Timestamp of the last received chunk (ms since epoch)
   private lastChunkTimestamp: number = 0;
 
@@ -38,6 +39,10 @@ export class StateManager {
     } else {
       logger.warn('[StateManager] PacketProcessor does not support events; state updates will not be processed automatically');
     }
+  }
+
+  public setIgnoreEntity(entityId: string | null) {
+    this.ignoredEntityId = entityId;
   }
 
   public processIncomingData(chunk: Buffer): void {
@@ -68,6 +73,10 @@ export class StateManager {
 
   private handleStateUpdate(event: { deviceId: string; state: any }) {
     const { deviceId, state } = event;
+
+    if (this.ignoredEntityId && deviceId === this.ignoredEntityId) {
+      return;
+    }
 
     const currentState = this.deviceStates.get(deviceId) || {};
     const newState = { ...currentState, ...state };
