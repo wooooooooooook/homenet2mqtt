@@ -71,7 +71,6 @@ export class ActivityLogService {
   }
 
   public addLog(message: string, details: any = {}): void {
-    console.log(`[Activity Log] ${message}`, details);
     const logEntry: ActivityLog = {
       timestamp: Date.now(),
       message,
@@ -101,9 +100,7 @@ export class ActivityLogService {
     }
 
     if (ttlRemoved > 0) {
-      console.log(
-        `[Activity Log] ${ttlRemoved}개의 오래된 로그를 정리했습니다.`,
-      );
+      // Log removed
     }
   }
 }
