@@ -230,87 +230,119 @@ export class HomeNetBridge {
     const context = this.portContexts.get(portId);
     if (!context || !this.config) throw new Error('Port not found or config not loaded');
 
-    // 1. Pick a random entity that has commands
-    const entities: EntityConfig[] = [];
     const defaults = this.config.packet_defaults || {};
 
-    for (const type of ENTITY_TYPE_KEYS) {
-      const typeEntities = this.config[type] as EntityConfig[] | undefined;
-      if (typeEntities) entities.push(...typeEntities);
+    // 1. Construct an arbitrary "trigger" packet
+    // This packet must satisfy the PacketParser (header, length, checksum)
+    const header = defaults.rx_header || [];
+    const footer = defaults.rx_footer || [];
+    const headerLen = header.length;
+    const footerLen = footer.length;
+    const checksumType = defaults.rx_checksum;
+    const checksum2Type = defaults.rx_checksum2;
+
+    let targetLength = defaults.rx_length;
+    if (!targetLength) {
+      // If no fixed length, create a packet with some data
+      // Header + 4 bytes random + Footer + Checksum
+      let overhead = headerLen + footerLen;
+      if (checksum2Type) overhead += 2;
+      else if (checksumType && checksumType !== 'none') overhead += 1;
+      targetLength = overhead + 4;
     }
 
-    // Filter out entities with lambda checksums or complex configurations that we can't easily mimic
-    const candidates = entities.filter((e) => {
-      const hasCommand = Object.keys(e).some((k) => k.startsWith('command_'));
-      if (!hasCommand) return false;
+    const testPacket = new Array(targetLength).fill(0);
 
-      // If defaults use lambda checksum, we can't reliably calculate it here without duplication logic
-      if (defaults.rx_checksum && typeof defaults.rx_checksum !== 'string') return false;
-      if (defaults.rx_checksum2 && typeof defaults.rx_checksum2 !== 'string') return false;
-      return true;
-    });
+    // Fill Header
+    for (let i = 0; i < headerLen; i++) {
+      testPacket[i] = header[i];
+    }
 
-    if (candidates.length === 0) throw new Error('No capable entities found for test (filtered out complex checksums)');
-    const targetEntity = candidates[Math.floor(Math.random() * candidates.length)];
+    // Fill Footer (at end, before checksum if checksum includes footer, wait, checksum usually includes footer?
+    // PacketParser logic:
+    // If rx_footer defined: it scans for footer.
+    // Checksum verification is usually on the whole buffer.
+    // Let's look at PacketParser:
+    // verifyChecksum(buffer, length):
+    //   checksumByte = buffer[length - 1];
+    //   if (rx_footer) checksumByte = buffer[length - 1 - rx_footer.length];
+    // This means checksum is AFTER footer? Or BEFORE?
+    // Code:
+    // if rx_footer: checksumByte = buffer[len - 1 - footerLen]
+    // dataEnd = len - 1 - footerLen
+    // This implies structure: [DATA] [CHECKSUM] [FOOTER]?
+    // Let's re-read PacketParser.ts very carefully.
+    // verifyChecksum:
+    // if rx_footer: checksumByte = buffer[length - 1 - rx_footer.length];
+    // This accesses a byte BEFORE the footer.
+    // So structure is [ ... CHECKSUM ... FOOTER ].
+    // Wait, if checksum is calculated over `dataEnd`, and `dataEnd` excludes footer...
+    // Yes.
+    // BUT, standard RS485 usually has [Header] [Data] [Checksum] [Footer] OR [Header] [Data] [Footer] [Checksum].
+    // If PacketParser expects `buffer[length - 1 - footerLen]`, then checksum is just before footer.
 
-    // 2. Find a command to use
-    const commandKey = Object.keys(targetEntity).find(k => k.startsWith('command_'));
-    if (!commandKey) throw new Error('Entity has no command'); // Should not happen due to filter
-    const commandName = commandKey.replace('command_', '');
+    // Let's assume standard behavior unless proven otherwise:
+    // Fill random data in the middle
+    const checksumLen = checksum2Type ? 2 : (checksumType && checksumType !== 'none' ? 1 : 0);
+    const bodyStart = headerLen;
+    const bodyEnd = targetLength - footerLen - checksumLen;
 
-    // 3. Construct the test packet (use it as input trigger)
-    const commandPacket = context.packetProcessor.constructCommandPacket(targetEntity, commandName);
-    if (!commandPacket) throw new Error(`Failed to construct test packet for ${targetEntity.id}`);
+    for (let i = bodyStart; i < bodyEnd; i++) {
+      testPacket[i] = Math.floor(Math.random() * 256);
+    }
 
-    // Modify the packet to look like a valid RX packet (State)
-    // PacketParser enforces rx_header and rx_checksum, so we must match them.
-    const testPacket = [...commandPacket];
-
-    // Apply RX Header
-    if (defaults.rx_header && defaults.rx_header.length > 0) {
-      if (testPacket.length < defaults.rx_header.length) {
-        while (testPacket.length < defaults.rx_header.length) testPacket.push(0);
-      }
-      for (let i = 0; i < defaults.rx_header.length; i++) {
-        testPacket[i] = defaults.rx_header[i];
+    // Fill Footer
+    if (footerLen > 0) {
+      for (let i = 0; i < footerLen; i++) {
+        testPacket[targetLength - footerLen + i] = footer[i];
       }
     }
 
-    // Recalculate Checksum
+    // Calculate Checksum
     const buffer = Buffer.from(testPacket);
-    const headerLen = defaults.rx_header?.length || 0;
-    const footerLen = defaults.rx_footer?.length || 0;
-
-    if (defaults.rx_checksum && defaults.rx_checksum !== 'none') {
-      const checksumPos = testPacket.length - 1 - footerLen;
-      if (checksumPos >= headerLen) {
-        if (typeof defaults.rx_checksum === 'string') {
-          const newChecksum = calculateChecksumFromBuffer(
-            buffer,
-            defaults.rx_checksum as ChecksumType,
-            headerLen,
-            checksumPos,
-          );
-          testPacket[checksumPos] = newChecksum;
-        }
+    if (checksumType && checksumType !== 'none') {
+      // Checksum is at `bodyEnd` (index)
+      // PacketParser expects checksum at `length - 1 - footerLen`.
+      // My bodyEnd = targetLength - footerLen - 1. Yes.
+      if (typeof checksumType === 'string') {
+        const cs = calculateChecksumFromBuffer(buffer, checksumType as ChecksumType, headerLen, bodyEnd);
+        testPacket[bodyEnd] = cs;
       }
-    } else if (defaults.rx_checksum2) {
-      const checksumPos = testPacket.length - 2 - footerLen;
-      if (checksumPos >= headerLen) {
-        if (typeof defaults.rx_checksum2 === 'string') {
-          const newChecksum = calculateChecksum2FromBuffer(
-            buffer,
-            defaults.rx_checksum2 as Checksum2Type,
-            headerLen,
-            checksumPos,
-          );
-          testPacket[checksumPos] = newChecksum[0];
-          testPacket[checksumPos + 1] = newChecksum[1];
-        }
+    } else if (checksum2Type) {
+      if (typeof checksum2Type === 'string') {
+        const cs = calculateChecksum2FromBuffer(buffer, checksum2Type as Checksum2Type, headerLen, bodyEnd);
+        testPacket[bodyEnd] = cs[0];
+        testPacket[bodyEnd + 1] = cs[1];
       }
     }
 
-    // 4. Setup Automation
+    // 2. Find a target for the response
+    // We need ANY entity with ANY command to use as the action target.
+    // The action doesn't actually execute on the device, we mock it.
+    let targetEntity: EntityConfig | undefined;
+    let targetCommand: string | undefined;
+
+    for (const type of ENTITY_TYPE_KEYS) {
+      const entities = this.config[type] as EntityConfig[] | undefined;
+      if (entities && entities.length > 0) {
+        for (const e of entities) {
+          const cmdKey = Object.keys(e).find(k => k.startsWith('command_'));
+          if (cmdKey) {
+            targetEntity = e;
+            targetCommand = cmdKey.replace('command_', '');
+            break;
+          }
+        }
+      }
+      if (targetEntity) break;
+    }
+
+    if (!targetEntity || !targetCommand) {
+       // Fallback: If no entity/command exists, we can't run the test easily because Automation needs a target.
+       throw new Error('No capable entities found for latency test action target.');
+    }
+
+    // 3. Setup Automation
     const automationId = `latency_test_${Date.now()}`;
     const automationConfig: AutomationConfig = {
       id: automationId,
@@ -323,16 +355,16 @@ export class HomeNetBridge {
       }],
       then: [{
         action: 'command',
-        target: `id(${targetEntity.id}).command_${commandName}()`,
+        target: `id(${targetEntity.id}).command_${targetCommand}()`,
       }],
     };
 
     context.automationManager.addAutomation(automationConfig);
 
-    // 5. Mock CommandManager
+    // 4. Mock CommandManager
     const originalSend = context.commandManager.send;
 
-    // Ignore updates for this entity in StateManager to prevent MQTT spam
+    // Ignore updates for this entity in StateManager to prevent MQTT spam (though we are using a real entity now)
     context.stateManager.setIgnoreEntity(targetEntity.id);
 
     const measurements: number[] = [];
@@ -345,26 +377,27 @@ export class HomeNetBridge {
     };
 
     try {
-      // 6. Loop
+      // 5. Loop 100 times
       for (let i = 0; i < 100; i++) {
-        // Wait a bit to ensure clean state?
-        await new Promise(r => setTimeout(r, 5));
+        // Wait a bit to ensure clean state
+        await new Promise(r => setTimeout(r, 10));
 
         const start = performance.now();
         const iterationPromise = new Promise<void>(resolve => { resolveTestIteration = resolve; });
 
-        // Inject
-        // We must mimic serial data coming in.
+        // Inject Trigger Packet
         context.stateManager.processIncomingData(Buffer.from(testPacket));
 
-        // Wait for command generation
-        // Timeout safety
-        const timeoutPromise = new Promise<void>((_, reject) => setTimeout(() => reject(new Error('Timeout')), 1000));
+        // Wait for command generation (Automation -> CommandManager.send)
+        const timeoutPromise = new Promise<void>((_, reject) => setTimeout(() => reject(new Error('Timeout')), 2000));
 
-        await Promise.race([iterationPromise, timeoutPromise]);
-
-        const end = performance.now();
-        measurements.push(end - start);
+        try {
+          await Promise.race([iterationPromise, timeoutPromise]);
+          const end = performance.now();
+          measurements.push(end - start);
+        } catch (e) {
+          logger.warn('[LatencyTest] Timeout or error in iteration');
+        }
       }
     } finally {
       // Cleanup
@@ -373,7 +406,7 @@ export class HomeNetBridge {
       context.stateManager.setIgnoreEntity(null);
     }
 
-    // 7. Calculate Stats
+    // 6. Calculate Stats
     if (measurements.length === 0) return { avg: 0, stdDev: 0, min: 0, max: 0, samples: 0 };
 
     const sum = measurements.reduce((a, b) => a + b, 0);
