@@ -1,4 +1,6 @@
 <script lang="ts">
+  import Button from './Button.svelte';
+
   let { onclose } = $props<{ onclose: () => void }>();
 
   let isConsenting = $state(false);
@@ -39,12 +41,22 @@
     </p>
 
     <div class="actions">
-      <button onclick={() => handleConsent(false)} disabled={isConsenting} class="secondary">
+      <Button
+        variant="secondary"
+        class="modal-btn"
+        onclick={() => handleConsent(false)}
+        disabled={isConsenting}
+      >
         거절
-      </button>
-      <button onclick={() => handleConsent(true)} disabled={isConsenting} class="primary">
+      </Button>
+      <Button
+        variant="primary"
+        class="modal-btn"
+        onclick={() => handleConsent(true)}
+        isLoading={isConsenting}
+      >
         동의 및 활성화
-      </button>
+      </Button>
     </div>
   </div>
 </div>
@@ -98,37 +110,18 @@
     gap: 1rem;
   }
 
-  button {
-    padding: 0.75rem 1.5rem;
-    border-radius: 0.5rem;
-    border: none;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
+  :global(.modal-btn) {
+    padding: 0.75rem 1.5rem !important;
+    border-radius: 0.5rem !important;
+    font-size: 0.95rem !important;
+    font-weight: 600 !important;
   }
 
-  button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+  :global(.modal-btn.primary) {
+    background-color: #3b82f6 !important;
   }
 
-  .primary {
-    background: #3b82f6;
-    color: white;
-  }
-
-  .primary:hover:not(:disabled) {
-    background: #2563eb;
-  }
-
-  .secondary {
-    background: transparent;
-    color: #94a3b8;
-    border: 1px solid #475569;
-  }
-
-  .secondary:hover:not(:disabled) {
-    background: #334155;
-    color: white;
+  :global(.modal-btn.primary:hover:not(:disabled)) {
+    background-color: #2563eb !important;
   }
 </style>
