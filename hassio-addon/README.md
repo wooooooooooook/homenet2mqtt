@@ -2,6 +2,9 @@
 
 # Homenet2MQTT - RS485 HomeNet to MQTT Bridge
 
+> **⚠️ 주의: 알파 버전**
+> 이 프로젝트는 현재 **초기 개발 단계(Alpha)**입니다. 소프트웨어가 불안정할 수 있으며, 잦은 업데이트와 **하위 호환성을 깨는 변경(Breaking Changes)**이 예고 없이 발생할 수 있습니다. 운영 환경 적용 시 주의하시기 바랍니다.
+
 [Config 작성법](https://github.com/wooooooooooook/RS485-HomeNet-to-MQTT-bridge/tree/main/docs/config-schema)
 
 간단 사용법
