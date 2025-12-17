@@ -1,19 +1,41 @@
-name: "HomeNet to MQTT Bridge (Dev)"
+name: "Homenet2MQTT (Dev)"
 version: "dev"
 slug: "h2m-dev"
-description: "RS485 HomeNet Bridge for Commax/Kocom/Bestin Wallpads (Development Version)"
-url: "https://github.com/wooooooooooook/homenet2mqtt"
+description: "Bridge between RS485 HomeNet devices and MQTT (supports multi-port/topic mapping)"
+url: "https://github.com/wooooooooooook/RS485-HomeNet-to-MQTT-bridge"
 startup: application
 arch:
   - aarch64
   - amd64
+boot: auto
 map:
-  - config:rw
-  - share:rw
+  - type: homeassistant_config
+    read_only: false
+    path: /homeassistant
 options:
-  config_file: "config.yaml"
-  log_level: "debug"
+  log_level: info
+  mqtt_url: mqtt://core-mosquitto:1883
+  mqtt_need_login: true
+  mqtt_user: "addons"
+  mqtt_passwd: ""
+  config_files:
+    - commax.homenet_bridge.yaml
+  mqtt_topic_prefix: homenet2mqtt
+hassio_role: default
+hassio_api: true
+services:
+  - mqtt:need
 schema:
-  config_file: str
-  log_level: list(debug|info|warn|error)
-image: nubiz/homenet2mqtt
+  log_level: list(trace|debug|info|warning|error|fatal)
+  mqtt_url: str
+  mqtt_need_login: bool
+  mqtt_user: str?
+  mqtt_passwd: str?
+  mqtt_topic_prefix: str?
+  config_files:
+    - str
+ingress: true
+ingress_port: 3000
+ingress_stream: true
+panel_icon: mdi:crop-landscape
+

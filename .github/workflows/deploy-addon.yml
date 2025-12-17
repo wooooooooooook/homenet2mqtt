@@ -100,6 +100,8 @@ jobs:
           tags: |
             nubiz/homenet2mqtt:latest
             nubiz/homenet2mqtt:${{ steps.get_version.outputs.VERSION }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Commit and Push Version
         if: ${{ github.event.inputs.increment != 'none' && steps.check_image.outputs.exists != 'true' }}
