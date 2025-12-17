@@ -18,7 +18,7 @@ jobs:
       - name: Generate Timestamp Version
         id: version
         run: |
-          VERSION=$(date +'%Y%m%d.%H%M')
+          VERSION="dev-$(date +'%Y%m%d-%H%M')"
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
           echo "Generated version: $VERSION"
 
@@ -44,7 +44,9 @@ jobs:
           file: hassio-addon-dev/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: nubiz/homenet2mqtt:dev
+          tags: |
+            nubiz/homenet2mqtt:dev
+            nubiz/homenet2mqtt:${{ steps.version.outputs.VERSION }}
 
   sync-addon-repo:
     needs: build
@@ -71,8 +73,8 @@ jobs:
 
       - name: Sync Files
         run: |
-          mkdir -p target/homenet2mqtt-dev
-          cp -r source/hassio-addon-dev/* target/homenet2mqtt-dev/
+          mkdir -p target/Homenet2MQTT-dev
+          cp -r source/hassio-addon-dev/* target/Homenet2MQTT-dev/
 
           # Check for changes
           cd target

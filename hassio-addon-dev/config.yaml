@@ -1,6 +1,6 @@
 name: "HomeNet to MQTT Bridge (Dev)"
-version: "0.0.0-dev"
-slug: "homenet2mqtt-dev"
+version: "dev"
+slug: "h2m-dev"
 description: "RS485 HomeNet Bridge for Commax/Kocom/Bestin Wallpads (Development Version)"
 url: "https://github.com/wooooooooooook/homenet2mqtt"
 startup: application
@@ -16,4 +16,4 @@ options:
 schema:
   config_file: str
   log_level: list(debug|info|warn|error)
-image: nubiz/homenet2mqtt:dev
+image: nubiz/homenet2mqtt
