@@ -1,6 +1,13 @@
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/wooooooooooook/RS485-HomeNet-to-MQTT-bridge)
 
-# Homenet2MQTT - RS485 HomeNet to MQTT Bridge
+# Homenet2MQTT (DEV) - RS485 HomeNet to MQTT Bridge
+
+> **⛔ 개발자 전용 버전 (Development Version)**
+>
+> 이 애드온은 **개발 및 테스트 목적**으로 배포되는 버전입니다.
+> 일반적인 사용자는 이 버전을 사용하지 마시고 **정식 버전**을 사용해 주시기 바랍니다.
+>
+> This is a development version for testing purposes only. General users should use the stable version.
 
 > **⚠️ 주의: 알파 버전**
 > 이 프로젝트는 현재 **초기 개발 단계(Alpha)**입니다. 소프트웨어가 불안정할 수 있으며, 잦은 업데이트와 **하위 호환성을 깨는 변경(Breaking Changes)**이 예고 없이 발생할 수 있습니다. 운영 환경 적용 시 주의하시기 바랍니다.
