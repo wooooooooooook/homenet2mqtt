@@ -1,6 +1,7 @@
 <script lang="ts">
   import { sineOut } from 'svelte/easing';
   import { fade } from 'svelte/transition';
+  import { t } from 'svelte-i18n';
 
   interface ActivityLog {
     timestamp: number;
@@ -42,9 +43,9 @@
 </script>
 
 <div class="recent-activity-container">
-  <h4>최근 활동</h4>
+  <h4>{$t('dashboard.recent_activity.title')}</h4>
   {#if activities.length === 0}
-    <p>최근 활동이 없습니다.</p>
+    <p>{$t('dashboard.recent_activity.empty')}</p>
   {:else}
     <ul bind:this={listElement} onscroll={handleScroll}>
       {#each activities as activity, index (`${activity.timestamp}-${index}`)}

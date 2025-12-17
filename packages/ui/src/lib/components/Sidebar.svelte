@@ -1,5 +1,6 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
+  import { t } from 'svelte-i18n';
 
   let {
     activeView = $bindable<'dashboard' | 'analysis' | 'settings'>('dashboard'),
@@ -21,7 +22,7 @@
   <button
     type="button"
     class="sidebar-backdrop"
-    aria-label="사이드바 닫기"
+    aria-label={$t('sidebar.close_aria')}
     onclick={() => dispatch('close')}
   ></button>
 {/if}
@@ -40,7 +41,7 @@
       onclick={() => handleNavClick('dashboard')}
     >
       <span class="icon">📊</span>
-      <span class="label">대시보드</span>
+      <span class="label">{$t('sidebar.dashboard')}</span>
     </button>
     <button
       class="nav-item"
@@ -49,7 +50,7 @@
       onclick={() => handleNavClick('analysis')}
     >
       <span class="icon">📈</span>
-      <span class="label">분석</span>
+      <span class="label">{$t('sidebar.analysis')}</span>
     </button>
     <button
       class="nav-item"
@@ -58,7 +59,7 @@
       onclick={() => handleNavClick('settings')}
     >
       <span class="icon">⚙️</span>
-      <span class="label">설정</span>
+      <span class="label">{$t('sidebar.settings')}</span>
     </button>
   </nav>
 </aside>
