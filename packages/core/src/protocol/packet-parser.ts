@@ -183,10 +183,14 @@ export class PacketParser {
         return calculated === checksumByte;
       } else if ((this.defaults.rx_checksum as any).type === 'lambda') {
         const lambda = this.defaults.rx_checksum as LambdaConfig;
-        const result = this.lambdaExecutor.execute(lambda, {
-          data: [...buffer.subarray(0, dataEnd)],
-          len: dataEnd,
-        });
+        const result = this.lambdaExecutor.execute(
+          lambda,
+          {
+            data: buffer.subarray(0, dataEnd),
+            len: dataEnd,
+          },
+          { allowNoTimeout: true },
+        );
         return result === checksumByte;
       }
       return false;
@@ -212,10 +216,14 @@ export class PacketParser {
         );
       } else if ((this.defaults.rx_checksum2 as any).type === 'lambda') {
         const lambda = this.defaults.rx_checksum2 as LambdaConfig;
-        const result = this.lambdaExecutor.execute(lambda, {
-          data: [...buffer.subarray(0, checksumStart)],
-          len: checksumStart,
-        });
+        const result = this.lambdaExecutor.execute(
+          lambda,
+          {
+            data: buffer.subarray(0, checksumStart),
+            len: checksumStart,
+          },
+          { allowNoTimeout: true },
+        );
         if (Array.isArray(result) && result.length === 2) {
           return result[0] === buffer[checksumStart] && result[1] === buffer[checksumStart + 1];
         }
