@@ -97,7 +97,9 @@
 
     {#if bridgeInfo.error}
       <div class="bridge-error">
-        <p class="error subtle">{$t('dashboard.bridge_error', { values: { error: bridgeInfo.error } })}</p>
+        <p class="error subtle">
+          {$t('dashboard.bridge_error', { values: { error: bridgeInfo.error } })}
+        </p>
       </div>
     {/if}
 
@@ -133,9 +135,15 @@
         <!-- Minimized Port Metadata -->
         {#each portMetadata.filter((p: BridgeSerialInfo & { configFile: string }) => p.portId === activePortId) as port (port.portId)}
           <div class="port-meta-mini">
-            <div class="meta-item"><strong>{$t('dashboard.port_meta.path')}</strong> <span>{port.path || 'N/A'}</span></div>
-            <div class="meta-item"><strong>{$t('dashboard.port_meta.baud')}</strong> <span>{port.baudRate}</span></div>
-            <div class="meta-item"><strong>{$t('dashboard.port_meta.file')}</strong> <span>{port.configFile}</span></div>
+            <div class="meta-item">
+              <strong>{$t('dashboard.port_meta.path')}</strong> <span>{port.path || 'N/A'}</span>
+            </div>
+            <div class="meta-item">
+              <strong>{$t('dashboard.port_meta.baud')}</strong> <span>{port.baudRate}</span>
+            </div>
+            <div class="meta-item">
+              <strong>{$t('dashboard.port_meta.file')}</strong> <span>{port.configFile}</span>
+            </div>
           </div>
         {/each}
 
