@@ -30,9 +30,20 @@
 
   // -- State --
   let activeView = $state<'dashboard' | 'analysis' | 'settings'>('dashboard');
-  let selectedEntityId = $state<string | null>(null);
+  // Entity selection uses a composite key: "portId:entityId" to distinguish entities across ports
+  let selectedEntityKey = $state<string | null>(null);
   let isSidebarOpen = $state(false);
   let showInactiveEntities = $state(false);
+
+  // Helper to create/parse entity composite keys
+  const makeEntityKey = (portId: string | undefined, entityId: string) =>
+    `${portId ?? 'unknown'}:${entityId}`;
+  const parseEntityKey = (key: string): { portId: string | undefined; entityId: string } => {
+    const idx = key.indexOf(':');
+    if (idx === -1) return { portId: undefined, entityId: key };
+    const portId = key.slice(0, idx);
+    return { portId: portId === 'unknown' ? undefined : portId, entityId: key.slice(idx + 1) };
+  };
 
   let bridgeInfo = $state<BridgeInfo | null>(null);
   let infoLoading = $state(false);
@@ -823,16 +834,18 @@
 
   // --- Entity Detail Logic ---
 
-  const selectedEntity = $derived.by<UnifiedEntity | null>(() =>
-    selectedEntityId ? unifiedEntities.find((e) => e.id === selectedEntityId) || null : null,
-  );
+  const selectedEntity = $derived.by<UnifiedEntity | null>(() => {
+    if (!selectedEntityKey) return null;
+    const { portId, entityId } = parseEntityKey(selectedEntityKey);
+    return unifiedEntities.find((e) => e.id === entityId && e.portId === portId) || null;
+  });
 
   const selectedEntityParsedPackets = $derived.by<ParsedPacket[]>(() =>
     selectedEntity && parsedPackets
       ? parsedPackets
           .filter(
             (p) =>
-              p.entityId === selectedEntityId &&
+              p.entityId === selectedEntity.id &&
               (!selectedEntity.portId || !p.portId || p.portId === selectedEntity.portId),
           )
           .slice(-20)
@@ -845,7 +858,7 @@
       ? commandPackets
           .filter(
             (p) =>
-              p.entityId === selectedEntityId &&
+              p.entityId === selectedEntity.id &&
               (!selectedEntity.portId || !p.portId || p.portId === selectedEntity.portId),
           )
           .slice(-20)
@@ -853,13 +866,19 @@
   );
 
   $effect(() => {
-    if (selectedEntityId && !unifiedEntities.some((entity) => entity.id === selectedEntityId)) {
-      selectedEntityId = null;
+    if (selectedEntityKey) {
+      const { portId, entityId } = parseEntityKey(selectedEntityKey);
+      const exists = unifiedEntities.some(
+        (entity) => entity.id === entityId && entity.portId === portId,
+      );
+      if (!exists) {
+        selectedEntityKey = null;
+      }
     }
   });
 
   $effect(() => {
-    if (!selectedEntityId) {
+    if (!selectedEntityKey) {
       renameError = '';
       renamingEntityId = null;
     }
@@ -935,7 +954,7 @@
           {connectionStatus}
           {statusMessage}
           {portStatuses}
-          on:select={(e) => (selectedEntityId = e.detail.entityId)}
+          on:select={(e) => (selectedEntityKey = makeEntityKey(e.detail.portId, e.detail.entityId))}
           on:toggleInactive={() => (showInactiveEntities = !showInactiveEntities)}
           on:portChange={(event) => (selectedPortId = event.detail.portId)}
         />
@@ -975,12 +994,12 @@
   {#if selectedEntity}
     <EntityDetail
       entity={selectedEntity}
-      isOpen={!!selectedEntityId}
+      isOpen={!!selectedEntityKey}
       parsedPackets={selectedEntityParsedPackets}
       commandPackets={selectedEntityCommandPackets}
-      on:close={() => (selectedEntityId = null)}
+      on:close={() => (selectedEntityKey = null)}
       on:execute={(e) => executeCommand(e.detail.cmd, e.detail.value)}
-      isRenaming={renamingEntityId === selectedEntityId}
+      isRenaming={renamingEntityId === selectedEntity.id}
       {renameError}
       on:rename={(e) =>
         selectedEntity &&

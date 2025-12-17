@@ -39,7 +39,7 @@
   }>();
 
   const dispatch = createEventDispatcher<{
-    select: { entityId: string };
+    select: { entityId: string; portId?: string };
     toggleInactive: void;
     portChange: { portId: string };
   }>();
@@ -63,8 +63,8 @@
     return portStatus?.status ?? 'unknown';
   }
 
-  function handleSelect(entityId: string) {
-    dispatch('select', { entityId });
+  function handleSelect(entityId: string, portId?: string) {
+    dispatch('select', { entityId, portId });
   }
 </script>
 
@@ -151,7 +151,7 @@
         </div>
       {:else}
         {#each visibleEntities as entity (entity.id)}
-          <EntityCard {entity} on:select={() => handleSelect(entity.id)} />
+          <EntityCard {entity} on:select={() => handleSelect(entity.id, entity.portId)} />
         {/each}
       {/if}
     </div>
