@@ -80,7 +80,7 @@ const parseEnvList = (
   if (!raw.includes(',')) {
     logger.warn(
       `[service] ${source}에 단일 값이 입력되었습니다. 쉼표로 구분된 배열 형식(${source}=item1,item2)` +
-      ' 사용을 권장합니다.',
+        ' 사용을 권장합니다.',
     );
   }
 
@@ -743,7 +743,11 @@ function extractCommands(config: HomenetBridgeConfig): CommandInfo[] {
 const findConfigIndexByPortId = (portId: string): number => {
   for (let i = 0; i < currentConfigs.length; i += 1) {
     const config = currentConfigs[i];
-    const serials = Array.isArray(config.serial) ? config.serial : config.serial ? [config.serial] : [];
+    const serials = Array.isArray(config.serial)
+      ? config.serial
+      : config.serial
+        ? [config.serial]
+        : [];
     for (let j = 0; j < serials.length; j += 1) {
       const serial = serials[j] as { portId?: string };
       const configPortId = normalizePortId(serial.portId, j);
@@ -831,7 +835,11 @@ app.get('/api/config/raw/:entityId', (req, res) => {
 });
 
 app.post('/api/config/update', async (req, res) => {
-  const { entityId, yaml: newEntityYaml, portId } = req.body as { entityId: string; yaml: string; portId?: string };
+  const {
+    entityId,
+    yaml: newEntityYaml,
+    portId,
+  } = req.body as { entityId: string; yaml: string; portId?: string };
 
   // Find config by portId if provided, otherwise fallback to finding by entityId
   let configIndex = portId ? findConfigIndexByPortId(portId) : findConfigIndexForEntity(entityId);
@@ -935,7 +943,11 @@ app.post('/api/config/update', async (req, res) => {
 });
 
 app.post('/api/entities/rename', async (req, res) => {
-  const { entityId, newName, portId } = req.body as { entityId?: string; newName?: string; portId?: string };
+  const { entityId, newName, portId } = req.body as {
+    entityId?: string;
+    newName?: string;
+    portId?: string;
+  };
 
   if (!entityId || typeof entityId !== 'string') {
     return res.status(400).json({ error: 'entityId가 필요합니다.' });
@@ -1234,7 +1246,7 @@ async function loadAndStartBridges(filenames: string[]) {
   }
 
   if (bridgeStartPromise) {
-    await bridgeStartPromise.catch(() => { });
+    await bridgeStartPromise.catch(() => {});
   }
 
   bridgeStartPromise = (async () => {

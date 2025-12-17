@@ -177,14 +177,7 @@ export abstract class Device {
     const headerLength = this.protocolConfig.packet_defaults?.rx_header?.length || 0;
     const offset = (stateConfig.offset || 0) + headerLength;
 
-    // const packetHex = packet.map(b => '0x' + b.toString(16).padStart(2, '0')).join(' ');
-    // const stateDataHex = stateConfig.data.map((b: number) => '0x' + b.toString(16).padStart(2, '0')).join(' ');
-
-    // console.log(`[Device ${this.config.name}] Matching packet: ${packetHex}`);
-    // console.log(`[Device ${this.config.name}] State data: ${stateDataHex}, headerLength: ${headerLength}, offset: ${offset}`);
-
     if (packet.length < offset + stateConfig.data.length) {
-      // console.log(`[Device ${this.config.name}] Packet too short: ${packet.length} < ${offset + stateConfig.data.length}`);
       return false;
     }
 
@@ -201,15 +194,11 @@ export abstract class Device {
       const packetByte = packet[offset + i];
       const stateByte = stateConfig.data[i];
 
-      // console.log(`[Device ${this.config.name}] Comparing index ${i}: packet[${offset + i}]=0x${packetByte?.toString(16)} & 0x${mask.toString(16)} vs state=0x${stateByte?.toString(16)} & 0x${mask.toString(16)} => ${(packetByte & mask)} vs ${(stateByte & mask)}`);
-
       if ((packetByte & mask) !== (stateByte & mask)) {
-        // console.log(`[Device ${this.config.name}] Match failed at index ${i}`);
         return false;
       }
     }
 
-    // console.log(`[Device ${this.config.name}] Match successful!`);
     return true;
   }
 }
