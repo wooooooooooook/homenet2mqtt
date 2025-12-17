@@ -35,3 +35,5 @@ coverage
 # .refs
 packages/ui/vite.config.ts.timestamp-*.mjs
 deploy/docker/docker-compose.dev.yml
+
+verification/
