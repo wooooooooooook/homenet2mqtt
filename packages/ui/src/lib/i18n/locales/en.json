@@ -64,6 +64,12 @@
     "english": "English",
     "korean": "Korean"
   },
+  "sidebar": {
+    "dashboard": "Dashboard",
+    "analysis": "Analysis",
+    "settings": "Settings",
+    "close_aria": "Close Sidebar"
+  },
   "dashboard": {
     "loading_bridge": "Loading bridge information...",
     "no_bridge_info": "No bridge information available.",

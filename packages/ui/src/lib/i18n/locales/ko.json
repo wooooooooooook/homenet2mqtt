@@ -64,6 +64,12 @@
     "english": "English",
     "korean": "한국어"
   },
+  "sidebar": {
+    "dashboard": "대시보드",
+    "analysis": "분석",
+    "settings": "설정",
+    "close_aria": "사이드바 닫기"
+  },
   "dashboard": {
     "loading_bridge": "브리지 정보를 불러오는 중입니다...",
     "no_bridge_info": "브리지 정보가 없습니다.",
