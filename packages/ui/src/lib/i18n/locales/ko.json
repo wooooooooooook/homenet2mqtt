@@ -63,5 +63,28 @@
     "language": "언어",
     "english": "English",
     "korean": "한국어"
+  },
+  "dashboard": {
+    "loading_bridge": "브리지 정보를 불러오는 중입니다...",
+    "no_bridge_info": "브리지 정보가 없습니다.",
+    "mqtt_label": "MQTT:",
+    "mqtt_waiting": "MQTT 스트림을 기다리는 중입니다.",
+    "bridge_error": "브리지 오류: {error}",
+    "no_configured_ports": "구성된 포트가 없습니다.",
+    "port_tabs_aria": "포트 선택",
+    "show_inactive_entities": "비활성 엔티티 보기",
+    "port_meta": {
+      "path": "경로 (Path):",
+      "baud": "속도 (Baud):",
+      "file": "설정파일:"
+    },
+    "recent_activity": {
+      "title": "최근 활동",
+      "empty": "최근 활동이 없습니다."
+    },
+    "no_devices_found": "선택한 포트에서 감지된 장치나 설정된 명령이 없습니다.",
+    "entity_card": {
+      "no_status": "상태 정보 없음"
+    }
   }
 }

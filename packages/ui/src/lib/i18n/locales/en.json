@@ -63,5 +63,28 @@
     "language": "Language",
     "english": "English",
     "korean": "Korean"
+  },
+  "dashboard": {
+    "loading_bridge": "Loading bridge information...",
+    "no_bridge_info": "No bridge information available.",
+    "mqtt_label": "MQTT:",
+    "mqtt_waiting": "Waiting for MQTT stream...",
+    "bridge_error": "Bridge Error: {error}",
+    "no_configured_ports": "No configured ports found.",
+    "port_tabs_aria": "Select Port",
+    "show_inactive_entities": "Show Inactive Entities",
+    "port_meta": {
+      "path": "Path:",
+      "baud": "Baud:",
+      "file": "File:"
+    },
+    "recent_activity": {
+      "title": "Recent Activity",
+      "empty": "No recent activity."
+    },
+    "no_devices_found": "No devices detected or commands configured for the selected port.",
+    "entity_card": {
+      "no_status": "No status info"
+    }
   }
 }

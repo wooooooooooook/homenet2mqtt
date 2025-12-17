@@ -1,6 +1,7 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
   import type { UnifiedEntity, ParsedPayloadEntry } from '../types';
+  import { t } from 'svelte-i18n';
 
   let { entity } = $props<{ entity: UnifiedEntity }>();
 
@@ -71,7 +72,7 @@
           <strong class="payload-raw">{entity.statePayload}</strong>
         {/if}
       {:else}
-        <span class="no-status">상태 정보 없음</span>
+        <span class="no-status">{$t('dashboard.entity_card.no_status')}</span>
       {/if}
     </div>
   </div>

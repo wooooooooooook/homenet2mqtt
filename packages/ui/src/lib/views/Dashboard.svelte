@@ -9,6 +9,7 @@
   import EntityCard from '../components/EntityCard.svelte';
   import RecentActivity from '../components/RecentActivity.svelte';
   import { createEventDispatcher } from 'svelte';
+  import { t } from 'svelte-i18n';
 
   let {
     bridgeInfo,
@@ -71,7 +72,7 @@
 <div class="dashboard-view">
   {#if infoLoading && !bridgeInfo && !infoError}
     <div class="loading-state">
-      <p class="hint">브리지 정보를 불러오는 중입니다...</p>
+      <p class="hint">{$t('dashboard.loading_bridge')}</p>
     </div>
   {:else if infoError}
     <div class="error-state">
@@ -79,32 +80,32 @@
     </div>
   {:else if !bridgeInfo}
     <div class="empty-state">
-      <p class="empty">브리지 정보가 없습니다.</p>
+      <p class="empty">{$t('dashboard.no_bridge_info')}</p>
     </div>
   {:else}
     <!-- Minimized Metadata Section with MQTT Status -->
     <div class="viewer-meta-mini">
       <div class="mqtt-info">
-        <span class="label">MQTT:</span>
+        <span class="label">{$t('dashboard.mqtt_label')}</span>
         <strong>{mqttUrl}</strong>
       </div>
       <div class="mqtt-status" data-state={connectionStatus}>
         <span class="dot"></span>
-        <span class="status-text">{statusMessage || 'MQTT 스트림을 기다리는 중입니다.'}</span>
+        <span class="status-text">{statusMessage || $t('dashboard.mqtt_waiting')}</span>
       </div>
     </div>
 
     {#if bridgeInfo.error}
       <div class="bridge-error">
-        <p class="error subtle">브리지 오류: {bridgeInfo.error}</p>
+        <p class="error subtle">{$t('dashboard.bridge_error', { values: { error: bridgeInfo.error } })}</p>
       </div>
     {/if}
 
     <!-- Toolbar Section -->
     <div class="dashboard-toolbar">
-      <div class="port-tabs" aria-label="포트 선택">
+      <div class="port-tabs" aria-label={$t('dashboard.port_tabs_aria')}>
         {#if portIds.length === 0}
-          <span class="hint">구성된 포트가 없습니다.</span>
+          <span class="hint">{$t('dashboard.no_configured_ports')}</span>
         {:else}
           {#each portIds as portId (portId)}
             <button
@@ -122,7 +123,7 @@
       <label class="toggle-switch">
         <input type="checkbox" checked={showInactive} onchange={() => dispatch('toggleInactive')} />
         <span class="slider"></span>
-        비활성 엔티티 보기
+        {$t('dashboard.show_inactive_entities')}
       </label>
     </div>
 
@@ -132,9 +133,9 @@
         <!-- Minimized Port Metadata -->
         {#each portMetadata.filter((p: BridgeSerialInfo & { configFile: string }) => p.portId === activePortId) as port (port.portId)}
           <div class="port-meta-mini">
-            <div class="meta-item"><strong>Path:</strong> <span>{port.path || 'N/A'}</span></div>
-            <div class="meta-item"><strong>Baud:</strong> <span>{port.baudRate}</span></div>
-            <div class="meta-item"><strong>File:</strong> <span>{port.configFile}</span></div>
+            <div class="meta-item"><strong>{$t('dashboard.port_meta.path')}</strong> <span>{port.path || 'N/A'}</span></div>
+            <div class="meta-item"><strong>{$t('dashboard.port_meta.baud')}</strong> <span>{port.baudRate}</span></div>
+            <div class="meta-item"><strong>{$t('dashboard.port_meta.file')}</strong> <span>{port.configFile}</span></div>
           </div>
         {/each}
 
@@ -147,7 +148,7 @@
     <div class="entity-grid">
       {#if visibleEntities.length === 0 && !infoLoading}
         <div class="empty-grid">
-          <p class="empty full-width">선택한 포트에서 감지된 장치나 설정된 명령이 없습니다.</p>
+          <p class="empty full-width">{$t('dashboard.no_devices_found')}</p>
         </div>
       {:else}
         {#each visibleEntities as entity (entity.id)}
