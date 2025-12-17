@@ -39,10 +39,12 @@
       <h2>{$t('analysis.packet_log.title')}</h2>
       <div class="filters">
         <label>
-          <input type="checkbox" bind:checked={showRx} /> {$t('analysis.packet_log.rx')}
+          <input type="checkbox" bind:checked={showRx} />
+          {$t('analysis.packet_log.rx')}
         </label>
         <label>
-          <input type="checkbox" bind:checked={showTx} /> {$t('analysis.packet_log.tx')}
+          <input type="checkbox" bind:checked={showTx} />
+          {$t('analysis.packet_log.tx')}
         </label>
       </div>
     </div>
