@@ -88,7 +88,7 @@
     </div>
   {:else if infoError}
     <div class="error-state">
-      <p class="error">{infoError}</p>
+      <p class="error">{$t(`errors.${infoError}`)}</p>
     </div>
   {:else if !bridgeInfo}
     <div class="empty-state">

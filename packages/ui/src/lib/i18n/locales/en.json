@@ -109,8 +109,10 @@
   },
   "errors": {
     "BRIDGE_NOT_CONFIGURED": "Bridge is not configured or failed to start.",
-    "BRIDGE_STARTING": "Bridge is starting...",
+    "BRIDGE_STARTING": "Bridge is starting... (If it persists, check if the port is being used by another device)",
     "BRIDGE_NOT_STARTED": "Bridge has not started.",
-    "BRIDGE_NOT_FOUND_FOR_PORT": "Bridge not found for port {portId}."
+    "BRIDGE_NOT_FOUND_FOR_PORT": "Bridge not found for port {portId}.",
+    "BRIDGE_INFO_LOAD_FAILED": "Failed to load bridge information.",
+    "UNKNOWN_ERROR": "An unknown error occurred."
   }
 }

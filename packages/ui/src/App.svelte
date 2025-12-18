@@ -328,7 +328,10 @@
     } catch (err) {
       bridgeInfo = null;
       closeStream();
-      infoError = err instanceof Error ? err.message : '브리지 정보를 불러오지 못했습니다.';
+      // 서버에서 오는 에러가 에러 키 형태면 그대로 사용, 아니면 기본 에러 키 사용
+      const errorMessage = err instanceof Error ? err.message : 'BRIDGE_INFO_LOAD_FAILED';
+      // 에러 키 형태인지 확인 (대문자와 언더스코어로 구성)
+      infoError = /^[A-Z_]+$/.test(errorMessage) ? errorMessage : 'BRIDGE_INFO_LOAD_FAILED';
     } finally {
       infoLoading = false;
     }
