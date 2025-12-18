@@ -121,3 +121,19 @@ state_value: !lambda |
 # 신규 CEL 방식
 state_value: "bcd_to_int(data[4])"
 ```
+
+## 제한 사항 (Limitations)
+
+CEL 도입으로 인해 기존 `!lambda`에서 가능했던 일부 기능이 더 이상 지원되지 않습니다. 이는 보안성과 안정성을 높이기 위한 의도적인 제약입니다.
+
+1.  **반복문 사용 불가 (No Loops)**
+    *   `for`, `while` 등의 반복문을 사용할 수 없습니다.
+    *   따라서 가변 길이의 데이터를 순회하며 체크섬을 계산하거나 복잡한 알고리즘을 수행하는 로직은 단일 표현식으로 구현하기 어렵습니다.
+
+2.  **부작용 없음 (No Side Effects)**
+    *   CEL 표현식은 순수(Pure)해야 하며, 외부 상태를 변경하거나 부작용을 일으키는 코드를 실행할 수 없습니다.
+    *   예: `console.log()`로 로그를 출력하거나, `id('device').write_command(...)`와 같이 다른 장치를 제어하는 함수를 호출할 수 없습니다.
+    *   참고: *`packages/core/config/examples/samsung_sds_door.homenet_bridge.yaml` 내 주석 참조 ("Complex side-effect logic is not supported in CEL")*
+
+3.  **제한된 표준 라이브러리**
+    *   JavaScript의 모든 표준 객체(`Math`, `Date` 등)를 사용할 수 없으며, 제공된 연산자와 헬퍼 함수만 사용 가능합니다.
