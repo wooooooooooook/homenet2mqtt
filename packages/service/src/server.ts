@@ -80,7 +80,7 @@ const parseEnvList = (
   if (!raw.includes(',')) {
     logger.warn(
       `[service] ${source}에 단일 값이 입력되었습니다. 쉼표로 구분된 배열 형식(${source}=item1,item2)` +
-      ' 사용을 권장합니다.',
+        ' 사용을 권장합니다.',
     );
   }
 
@@ -140,6 +140,7 @@ type FrontendSettings = {
     stateChange: boolean;
     command: boolean;
   };
+  locale?: string;
 };
 
 const DEFAULT_FRONTEND_SETTINGS: FrontendSettings = {
@@ -180,6 +181,7 @@ const normalizeFrontendSettings = (value: Partial<FrontendSettings> | null | und
           ? value.toast.command
           : DEFAULT_FRONTEND_SETTINGS.toast.command,
     },
+    locale: typeof value?.locale === 'string' ? value.locale : undefined,
   };
 };
 
@@ -227,7 +229,7 @@ app.post('/api/bridge/:portId/latency-test', async (req, res) => {
   const { portId } = req.params;
 
   if (bridges.length === 0) {
-    return res.status(503).json({ error: 'Bridge not started' });
+    return res.status(503).json({ error: 'BRIDGE_NOT_STARTED' });
   }
 
   // Find the bridge instance managing this port
@@ -248,7 +250,7 @@ app.post('/api/bridge/:portId/latency-test', async (req, res) => {
   }
 
   if (!targetBridgeInstance) {
-    return res.status(404).json({ error: 'Bridge not found for port ' + portId });
+    return res.status(404).json({ error: 'BRIDGE_NOT_FOUND_FOR_PORT', portId });
   }
 
   try {
@@ -266,7 +268,7 @@ app.get('/api/bridge/info', async (_req, res) => {
 
   // If a startup is in progress, tell the client to wait.
   if (bridgeStartPromise) {
-    return res.status(503).json({ error: 'Bridge is starting...' });
+    return res.status(503).json({ error: 'BRIDGE_STARTING' });
   }
 
   if (currentConfigs.length === 0) {
@@ -275,7 +277,7 @@ app.get('/api/bridge/info', async (_req, res) => {
       bridges: [],
       mqttUrl: process.env.MQTT_URL?.trim() || 'mqtt://mq:1883',
       status: 'error',
-      error: bridgeError || '브리지가 설정되지 않았거나 시작에 실패했습니다.',
+      error: bridgeError || 'BRIDGE_NOT_CONFIGURED',
       topic: `${BASE_MQTT_PREFIX}/homedevice1/raw`,
     });
   }
@@ -538,7 +540,7 @@ const registerGlobalEventHandlers = () => {
   });
 };
 
-activityLogService.addLog('서비스가 시작되었습니다.');
+activityLogService.addLog('log.service_started');
 
 const registerPacketStream = () => {
   wss.on('connection', (socket: WebSocket, req: IncomingMessage) => {
@@ -743,7 +745,11 @@ function extractCommands(config: HomenetBridgeConfig): CommandInfo[] {
 const findConfigIndexByPortId = (portId: string): number => {
   for (let i = 0; i < currentConfigs.length; i += 1) {
     const config = currentConfigs[i];
-    const serials = Array.isArray(config.serial) ? config.serial : config.serial ? [config.serial] : [];
+    const serials = Array.isArray(config.serial)
+      ? config.serial
+      : config.serial
+        ? [config.serial]
+        : [];
     for (let j = 0; j < serials.length; j += 1) {
       const serial = serials[j] as { portId?: string };
       const configPortId = normalizePortId(serial.portId, j);
@@ -831,7 +837,11 @@ app.get('/api/config/raw/:entityId', (req, res) => {
 });
 
 app.post('/api/config/update', async (req, res) => {
-  const { entityId, yaml: newEntityYaml, portId } = req.body as { entityId: string; yaml: string; portId?: string };
+  const {
+    entityId,
+    yaml: newEntityYaml,
+    portId,
+  } = req.body as { entityId: string; yaml: string; portId?: string };
 
   // Find config by portId if provided, otherwise fallback to finding by entityId
   let configIndex = portId ? findConfigIndexByPortId(portId) : findConfigIndexForEntity(entityId);
@@ -935,7 +945,11 @@ app.post('/api/config/update', async (req, res) => {
 });
 
 app.post('/api/entities/rename', async (req, res) => {
-  const { entityId, newName, portId } = req.body as { entityId?: string; newName?: string; portId?: string };
+  const { entityId, newName, portId } = req.body as {
+    entityId?: string;
+    newName?: string;
+    portId?: string;
+  };
 
   if (!entityId || typeof entityId !== 'string') {
     return res.status(400).json({ error: 'entityId가 필요합니다.' });
@@ -1234,7 +1248,7 @@ async function loadAndStartBridges(filenames: string[]) {
   }
 
   if (bridgeStartPromise) {
-    await bridgeStartPromise.catch(() => { });
+    await bridgeStartPromise.catch(() => {});
   }
 
   bridgeStartPromise = (async () => {

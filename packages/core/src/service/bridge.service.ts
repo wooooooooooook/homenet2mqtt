@@ -282,30 +282,6 @@ export class HomeNetBridge {
       testPacket[i] = header[i];
     }
 
-    // Fill Footer (at end, before checksum if checksum includes footer, wait, checksum usually includes footer?
-    // PacketParser logic:
-    // If rx_footer defined: it scans for footer.
-    // Checksum verification is usually on the whole buffer.
-    // Let's look at PacketParser:
-    // verifyChecksum(buffer, length):
-    //   checksumByte = buffer[length - 1];
-    //   if (rx_footer) checksumByte = buffer[length - 1 - rx_footer.length];
-    // This means checksum is AFTER footer? Or BEFORE?
-    // Code:
-    // if rx_footer: checksumByte = buffer[len - 1 - footerLen]
-    // dataEnd = len - 1 - footerLen
-    // This implies structure: [DATA] [CHECKSUM] [FOOTER]?
-    // Let's re-read PacketParser.ts very carefully.
-    // verifyChecksum:
-    // if rx_footer: checksumByte = buffer[length - 1 - rx_footer.length];
-    // This accesses a byte BEFORE the footer.
-    // So structure is [ ... CHECKSUM ... FOOTER ].
-    // Wait, if checksum is calculated over `dataEnd`, and `dataEnd` excludes footer...
-    // Yes.
-    // BUT, standard RS485 usually has [Header] [Data] [Checksum] [Footer] OR [Header] [Data] [Footer] [Checksum].
-    // If PacketParser expects `buffer[length - 1 - footerLen]`, then checksum is just before footer.
-
-    // Let's assume standard behavior unless proven otherwise:
     // Fill random data in the middle
     const checksumLen = checksum2Type ? 2 : checksumType && checksumType !== 'none' ? 1 : 0;
     const bodyStart = headerLen;
@@ -325,9 +301,6 @@ export class HomeNetBridge {
     // Calculate Checksum
     const buffer = Buffer.from(testPacket);
     if (checksumType && checksumType !== 'none') {
-      // Checksum is at `bodyEnd` (index)
-      // PacketParser expects checksum at `length - 1 - footerLen`.
-      // My bodyEnd = targetLength - footerLen - 1. Yes.
       if (typeof checksumType === 'string') {
         const cs = calculateChecksumFromBuffer(
           buffer,

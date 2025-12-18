@@ -1,5 +1,7 @@
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte';
+  import { isLoading, locale } from 'svelte-i18n';
+  import './lib/i18n';
   import type {
     BridgeInfo,
     BridgeSerialInfo,
@@ -365,6 +367,9 @@
     try {
       const data = await apiRequest<{ settings: FrontendSettings }>('./api/frontend-settings');
       frontendSettings = data.settings;
+      if (frontendSettings.locale) {
+        locale.set(frontendSettings.locale);
+      }
     } catch (err) {
       settingsError = err instanceof Error ? err.message : '프론트 설정을 불러오지 못했습니다.';
       frontendSettings = DEFAULT_FRONTEND_SETTINGS;
@@ -393,6 +398,7 @@
   async function updateToastSetting(key: 'stateChange' | 'command', value: boolean) {
     const previous = frontendSettings ?? DEFAULT_FRONTEND_SETTINGS;
     const next: FrontendSettings = {
+      ...previous,
       toast: {
         ...previous.toast,
         [key]: value,
@@ -403,6 +409,24 @@
       await persistFrontendSettings(next);
     } catch {
       frontendSettings = previous;
+    }
+  }
+
+  async function updateLocaleSetting(newLocale: string) {
+    const previous = frontendSettings ?? DEFAULT_FRONTEND_SETTINGS;
+    const next: FrontendSettings = {
+      ...previous,
+      locale: newLocale,
+    };
+    frontendSettings = next;
+    locale.set(newLocale);
+    try {
+      await persistFrontendSettings(next);
+    } catch {
+      frontendSettings = previous;
+      if (previous.locale) {
+        locale.set(previous.locale);
+      }
     }
   }
 
@@ -438,17 +462,32 @@
       const state = data.state;
       if (state === 'connected') {
         connectionStatus = 'connected';
-        statusMessage = 'MQTT 스트림 연결 완료';
+        statusMessage = 'mqtt.connected';
       } else if (state === 'subscribed') {
         connectionStatus = 'connected';
-        statusMessage = `'${data.topic}' 토픽 구독 중`;
+        // params will be handled by translation component if we pass params separately,
+        // but currently Dashboard receives a single string.
+        // We can pre-interpolate here if we had access to $t inside script,
+        // OR we change statusMessage to be an object or use a convention.
+        // Given current architecture, let's keep it simple: pass a special string format or handle it in Dashboard.
+        // To support params like {topic}, we need to change how statusMessage is used.
+        // However, since we don't want to refactor Dashboard props too much right now,
+        // let's try to pass the key and rely on Dashboard to translate it.
+        // BUT 'subscribed' needs a param.
+        // Hack: We will store JSON string if params are needed, or handle it in Dashboard.
+        // Better: Dashboard uses $t(statusMessage)
+        // For params: statusMessage = JSON.stringify({ key: 'mqtt.subscribed', values: { topic: data.topic } })
+        // This is getting complicated for a simple status.
+        // Let's modify handleStatus to dispatch an object or simply use a dedicated store for status.
+        // For now, let's use the simplest approach compatible with Dashboard's string prop.
+        statusMessage = JSON.stringify({ key: 'mqtt.subscribed', values: { topic: data.topic } });
       } else if (state === 'error') {
         connectionStatus = 'error';
-        statusMessage =
-          typeof data.message === 'string' ? data.message : 'MQTT 스트림 오류가 발생했습니다.';
+        // Error messages from server might be raw strings.
+        statusMessage = typeof data.message === 'string' ? data.message : 'mqtt.error';
       } else if (state === 'connecting') {
         connectionStatus = 'connecting';
-        statusMessage = 'MQTT 스트림을 다시 연결하는 중입니다...';
+        statusMessage = 'mqtt.connecting';
       }
     };
 
@@ -577,7 +616,7 @@
 
     const handleDisconnect = () => {
       connectionStatus = 'connecting';
-      statusMessage = '스트림 연결이 끊어졌습니다. 재연결을 시도합니다...';
+      statusMessage = 'mqtt.disconnected';
       socket = null;
       socketCloseHandler = null;
       socketErrorHandler = null;
@@ -934,79 +973,85 @@
   });
 </script>
 
-<main class="app-container">
-  <Header on:toggleSidebar={() => (isSidebarOpen = !isSidebarOpen)} />
-  <div class="content-body">
-    <Sidebar bind:activeView isOpen={isSidebarOpen} on:close={() => (isSidebarOpen = false)} />
+{#if $isLoading}
+  <div class="loading-screen">Loading resources...</div>
+{:else}
+  <main class="app-container">
+    <Header on:toggleSidebar={() => (isSidebarOpen = !isSidebarOpen)} />
+    <div class="content-body">
+      <Sidebar bind:activeView isOpen={isSidebarOpen} on:close={() => (isSidebarOpen = false)} />
 
-    <section class="main-content">
-      {#if activeView === 'dashboard'}
-        <Dashboard
-          {bridgeInfo}
-          {infoLoading}
-          {infoError}
-          {portMetadata}
-          mqttUrl={bridgeInfo?.mqttUrl || ''}
-          entities={dashboardEntities}
-          selectedPortId={activePortId}
-          showInactive={showInactiveEntities}
-          activityLogs={filteredActivityLogs}
-          {connectionStatus}
-          {statusMessage}
-          {portStatuses}
-          on:select={(e) => (selectedEntityKey = makeEntityKey(e.detail.portId, e.detail.entityId))}
-          on:toggleInactive={() => (showInactiveEntities = !showInactiveEntities)}
-          on:portChange={(event) => (selectedPortId = event.detail.portId)}
-        />
-      {:else if activeView === 'analysis'}
-        <Analysis
-          stats={filteredPacketStats}
-          commandPackets={filteredCommandPackets}
-          parsedPackets={filteredParsedPackets}
-          rawPackets={filteredRawPackets}
-          {isStreaming}
-          {portMetadata}
-          selectedPortId={activePortId}
-          on:portChange={(event) => (selectedPortId = event.detail.portId)}
-          on:start={() => {
-            sendStreamCommand('start');
-            isStreaming = true;
-            rawPackets = [];
-            packetStatsByPort = new Map();
-          }}
-          on:stop={() => {
-            sendStreamCommand('stop');
-            isStreaming = false;
-          }}
-        />
-      {:else if activeView === 'settings'}
-        <SettingsView
-          {frontendSettings}
-          isLoading={settingsLoading}
-          error={settingsError}
-          isSaving={settingsSaving}
-          on:toastChange={(e) => updateToastSetting(e.detail.key, e.detail.value)}
-        />
-      {/if}
-    </section>
-  </div>
+      <section class="main-content">
+        {#if activeView === 'dashboard'}
+          <Dashboard
+            {bridgeInfo}
+            {infoLoading}
+            {infoError}
+            {portMetadata}
+            mqttUrl={bridgeInfo?.mqttUrl || ''}
+            entities={dashboardEntities}
+            selectedPortId={activePortId}
+            showInactive={showInactiveEntities}
+            activityLogs={filteredActivityLogs}
+            {connectionStatus}
+            {statusMessage}
+            {portStatuses}
+            on:select={(e) =>
+              (selectedEntityKey = makeEntityKey(e.detail.portId, e.detail.entityId))}
+            on:toggleInactive={() => (showInactiveEntities = !showInactiveEntities)}
+            on:portChange={(event) => (selectedPortId = event.detail.portId)}
+          />
+        {:else if activeView === 'analysis'}
+          <Analysis
+            stats={filteredPacketStats}
+            commandPackets={filteredCommandPackets}
+            parsedPackets={filteredParsedPackets}
+            rawPackets={filteredRawPackets}
+            {isStreaming}
+            {portMetadata}
+            selectedPortId={activePortId}
+            on:portChange={(event) => (selectedPortId = event.detail.portId)}
+            on:start={() => {
+              sendStreamCommand('start');
+              isStreaming = true;
+              rawPackets = [];
+              packetStatsByPort = new Map();
+            }}
+            on:stop={() => {
+              sendStreamCommand('stop');
+              isStreaming = false;
+            }}
+          />
+        {:else if activeView === 'settings'}
+          <SettingsView
+            {frontendSettings}
+            isLoading={settingsLoading}
+            error={settingsError}
+            isSaving={settingsSaving}
+            on:toastChange={(e) => updateToastSetting(e.detail.key, e.detail.value)}
+            on:localeChange={(e) => updateLocaleSetting(e.detail.value)}
+          />
+        {/if}
+      </section>
+    </div>
 
-  {#if selectedEntity}
-    <EntityDetail
-      entity={selectedEntity}
-      isOpen={!!selectedEntityKey}
-      parsedPackets={selectedEntityParsedPackets}
-      commandPackets={selectedEntityCommandPackets}
-      on:close={() => (selectedEntityKey = null)}
-      on:execute={(e) => executeCommand(e.detail.cmd, e.detail.value)}
-      isRenaming={renamingEntityId === selectedEntity.id}
-      {renameError}
-      on:rename={(e) =>
-        selectedEntity &&
-        renameEntityRequest(selectedEntity.id, e.detail.newName, selectedEntity.portId)}
-    />
-  {/if}
-</main>
+    {#if selectedEntity}
+      <EntityDetail
+        entity={selectedEntity}
+        isOpen={!!selectedEntityKey}
+        parsedPackets={selectedEntityParsedPackets}
+        commandPackets={selectedEntityCommandPackets}
+        on:close={() => (selectedEntityKey = null)}
+        on:execute={(e) => executeCommand(e.detail.cmd, e.detail.value)}
+        isRenaming={renamingEntityId === selectedEntity.id}
+        {renameError}
+        on:rename={(e) =>
+          selectedEntity &&
+          renameEntityRequest(selectedEntity.id, e.detail.newName, selectedEntity.portId)}
+      />
+    {/if}
+  </main>
+{/if}
 
 <ToastContainer {toasts} on:dismiss={(event) => removeToast(event.detail.id)} />
 
@@ -1076,5 +1121,13 @@
 
   :global(::-webkit-scrollbar-thumb:hover) {
     background: rgba(148, 163, 184, 0.5);
+  }
+
+  .loading-screen {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    color: #94a3b8;
   }
 </style>
