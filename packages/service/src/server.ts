@@ -16,6 +16,8 @@ import {
   normalizeConfig,
   normalizePortId,
   validateConfig,
+  StateChangedEvent,
+  MqttMessageEvent,
 } from '@rs485-homenet/core';
 import { activityLogService } from './activity-log.service.js';
 import { logCollectorService } from './log-collector.service.js';
@@ -524,8 +526,8 @@ const registerGlobalEventHandlers = () => {
     latestStates.set(stateChangeEvent.topic, stateChangeEvent);
     broadcastStreamEvent('state-change', stateChangeEvent);
   };
-  eventBus.on('state:changed', broadcastStateChange);
-  eventBus.on('mqtt-message', (data: { topic: string; payload: string; portId?: string }) => {
+  eventBus.on('state:changed', (event: StateChangedEvent) => broadcastStateChange(event));
+  eventBus.on('mqtt-message', (data: MqttMessageEvent) => {
     const receivedAt = new Date().toISOString();
     const portId = data.portId ?? extractPortIdFromTopic(data.topic);
     broadcastStreamEvent('mqtt-message', {

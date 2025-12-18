@@ -5,6 +5,7 @@ import type { BridgeOptions } from './service/bridge.service.js';
 import { logger } from './utils/logger.js';
 import { logBuffer } from './utils/log-buffer.js';
 import { eventBus } from './service/event-bus.js';
+import type { MqttMessageEvent, StateChangedEvent } from './service/event-bus.js';
 import type { HomenetBridgeConfig, LambdaConfig } from './config/types.js';
 import { CommandGenerator } from './protocol/generators/command.generator.js';
 import type { EntityConfig } from './domain/entities/base.entity.js';
@@ -26,7 +27,7 @@ export {
   normalizePortId,
   validateConfig,
 };
-export type { EntityConfig };
+export type { EntityConfig, MqttMessageEvent, StateChangedEvent };
 
 export async function createBridge(
   configPath: string,
