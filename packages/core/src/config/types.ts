@@ -22,7 +22,7 @@ export interface DeviceConfig {
   area?: string;
 }
 
-export type AutomationGuard = string | LambdaConfig;
+export type AutomationGuard = string;
 
 export interface AutomationTriggerState {
   type: 'state';
@@ -83,7 +83,7 @@ export interface AutomationActionDelay {
 
 export interface AutomationActionScript {
   action: 'script';
-  code: AutomationGuard;
+  code: string;
 }
 
 export type AutomationAction =
@@ -102,11 +102,6 @@ export interface AutomationConfig {
   then: AutomationAction[];
   else?: AutomationAction[];
   enabled?: boolean;
-}
-
-export interface LambdaConfig {
-  type: 'lambda';
-  script: string;
 }
 
 export interface SerialConfig {

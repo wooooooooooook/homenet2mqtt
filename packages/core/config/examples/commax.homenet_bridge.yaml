@@ -188,9 +188,8 @@ homenet_bridge:
       command_heat:
         data: [0x04, 0x01, 0x04, 0x81, 0x00, 0x00, 0x00]
         ack: [0x84, 0x81, 0x01]
-      command_temperature: !lambda |-
-        var target = int_to_bcd(x);
-        return [[0x04, 0x01, 0x03, target, 0x00, 0x00, 0x00], [0x84, 0x00, 0x01]];
+      command_temperature: >-
+        [[0x04, 0x01, 0x03, int_to_bcd(x), 0x00, 0x00, 0x00], [0x84, 0x00, 0x01]]
 
     - id: 'heater_2'
       name: 'Heater 2'
@@ -232,9 +231,8 @@ homenet_bridge:
       command_heat:
         data: [0x04, 0x02, 0x04, 0x81, 0x00, 0x00, 0x00]
         ack: [0x84, 0x81, 0x02]
-      command_temperature: !lambda |-
-        var target = int_to_bcd(x);
-        return [[0x04, 0x02, 0x03, target, 0x00, 0x00, 0x00], [0x84, 0x00, 0x02]];
+      command_temperature: >-
+        [[0x04, 0x02, 0x03, int_to_bcd(x), 0x00, 0x00, 0x00], [0x84, 0x00, 0x02]]
 
     - id: 'heater_3'
       name: 'Heater 3'
@@ -276,9 +274,8 @@ homenet_bridge:
       command_heat:
         data: [0x04, 0x03, 0x04, 0x81, 0x00, 0x00, 0x00]
         ack: [0x84, 0x81, 0x03]
-      command_temperature: !lambda |-
-        var target = int_to_bcd(x);
-        return [[0x04, 0x03, 0x03, target, 0x00, 0x00, 0x00], [0x84, 0x00, 0x03]];
+      command_temperature: >-
+        [[0x04, 0x03, 0x03, int_to_bcd(x), 0x00, 0x00, 0x00], [0x84, 0x00, 0x03]]
 
     - id: 'heater_4'
       name: 'Heater 4'
@@ -320,9 +317,8 @@ homenet_bridge:
       command_heat:
         data: [0x04, 0x04, 0x04, 0x81, 0x00, 0x00, 0x00]
         ack: [0x84, 0x81, 0x04]
-      command_temperature: !lambda |-
-        var target = int_to_bcd(x);
-        return [[0x04, 0x04, 0x03, target, 0x00, 0x00, 0x00], [0x84, 0x00, 0x04]];
+      command_temperature: >-
+        [[0x04, 0x04, 0x03, int_to_bcd(x), 0x00, 0x00, 0x00], [0x84, 0x00, 0x04]]
 
   #상태      Head,   ON,   ID,  SPD, 0x00, 0x00, 0x00, add checksum
   #상태 OFF  0xF6, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, add checksum
@@ -362,19 +358,16 @@ homenet_bridge:
       command_off:
         data: [0x78, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00]
         ack: [0xF8, 0x00]
-      command_speed: !lambda |-
-        var speed = x;
-        return [[0x78, 0x01, 0x02, speed, 0x00, 0x00, 0x00], [0xF8, 0x04]];
+      command_speed: >-
+        [[0x78, 0x01, 0x02, x, 0x00, 0x00, 0x00], [0xF8, 0x04]]
       state_speed:
         offset: 3
         signed: False
       preset_modes:
         - 'Auto'
         - 'Night'
-      state_preset: !lambda |-
-        if (data[1] === 0x02) return "Auto";
-        if (data[1] === 0x06) return "Night";
-        return "";
+      state_preset: >-
+        data[1] == 0x02 ? "Auto" : (data[1] == 0x06 ? "Night" : "")
 
   #상태      Head,   ON,   ID, 0x00, 0x00, 0x00, 0x00, add checksum
   #상태 ON   0x90, 0x80, 0x80, 0x00, 0x00, 0x00, 0x00, add checksum
@@ -417,9 +410,8 @@ homenet_bridge:
       state:
         data: [0xF9, 0x00, 0x01, 0x11]
         mask: [0xFF, 0x00, 0xFF, 0xFF]
-      state_value: !lambda |-
-        var val = (bcd_to_int(data[4]) * 10000) + (bcd_to_int(data[5]) * 100) + bcd_to_int(data[6]);
-        return val * 0.1;
+      state_value: >-
+        double((bcd_to_int(data[4]) * 10000) + (bcd_to_int(data[5]) * 100) + bcd_to_int(data[6])) * 0.1
 
     - id: 'plug_2_power'
       name: 'Plug 2 Power'
@@ -428,9 +420,8 @@ homenet_bridge:
       state:
         data: [0xF9, 0x00, 0x02, 0x11]
         mask: [0xFF, 0x00, 0xFF, 0xFF]
-      state_value: !lambda |-
-        var val = (bcd_to_int(data[4]) * 10000) + (bcd_to_int(data[5]) * 100) + bcd_to_int(data[6]);
-        return val * 0.1;
+      state_value: >-
+        double((bcd_to_int(data[4]) * 10000) + (bcd_to_int(data[5]) * 100) + bcd_to_int(data[6])) * 0.1
 
     - id: 'plug_3_power'
       name: 'Plug 3 Power'
@@ -439,9 +430,8 @@ homenet_bridge:
       state:
         data: [0xF9, 0x00, 0x03, 0x11]
         mask: [0xFF, 0x00, 0xFF, 0xFF]
-      state_value: !lambda |-
-        var val = (bcd_to_int(data[4]) * 10000) + (bcd_to_int(data[5]) * 100) + bcd_to_int(data[6]);
-        return val * 0.1;
+      state_value: >-
+        double((bcd_to_int(data[4]) * 10000) + (bcd_to_int(data[5]) * 100) + bcd_to_int(data[6])) * 0.1
 
     - id: 'plug_4_power'
       name: 'Plug 4 Power'
@@ -450,9 +440,8 @@ homenet_bridge:
       state:
         data: [0xF9, 0x00, 0x04, 0x11]
         mask: [0xFF, 0x00, 0xFF, 0xFF]
-      state_value: !lambda |-
-        var val = (bcd_to_int(data[4]) * 10000) + (bcd_to_int(data[5]) * 100) + bcd_to_int(data[6]);
-        return val * 0.1;
+      state_value: >-
+        double((bcd_to_int(data[4]) * 10000) + (bcd_to_int(data[5]) * 100) + bcd_to_int(data[6])) * 0.1
 
   #명령 0xA0, 0x01, 0x01, 0x00, 0x08, 0x15, 0x00, add checksum
   button:

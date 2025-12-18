@@ -80,7 +80,7 @@ const parseEnvList = (
   if (!raw.includes(',')) {
     logger.warn(
       `[service] ${source}에 단일 값이 입력되었습니다. 쉼표로 구분된 배열 형식(${source}=item1,item2)` +
-      ' 사용을 권장합니다.',
+        ' 사용을 권장합니다.',
     );
   }
 
@@ -1291,7 +1291,7 @@ async function loadAndStartBridges(filenames: string[]) {
   }
 
   if (bridgeStartPromise) {
-    await bridgeStartPromise.catch(() => { });
+    await bridgeStartPromise.catch(() => {});
   }
 
   bridgeStartPromise = (async () => {

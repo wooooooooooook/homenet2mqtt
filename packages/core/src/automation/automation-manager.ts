@@ -14,11 +14,10 @@ import type {
   AutomationTriggerSchedule,
   AutomationTriggerState,
   HomenetBridgeConfig,
-  LambdaConfig,
 } from '../config/types.js';
 import type { StateSchema } from '../protocol/types.js';
 import { PacketProcessor } from '../protocol/packet-processor.js';
-import { LambdaExecutor } from '../protocol/lambda-executor.js';
+import { CelExecutor } from '../protocol/cel-executor.js';
 import { CommandManager } from '../service/command.manager.js';
 import { eventBus } from '../service/event-bus.js';
 import { MqttPublisher } from '../transports/mqtt/publisher.js';
@@ -38,7 +37,7 @@ export class AutomationManager {
   private readonly packetProcessor: PacketProcessor;
   private readonly commandManager: CommandManager;
   private readonly mqttPublisher: MqttPublisher;
-  private readonly lambdaExecutor = new LambdaExecutor();
+  private readonly celExecutor = new CelExecutor();
   private readonly debounceTracker = new Map<string, number>();
   private readonly timers: NodeJS.Timeout[] = [];
   private readonly subscriptions: {
@@ -272,12 +271,8 @@ export class AutomationManager {
 
   private evaluateGuard(guard: AutomationGuard | undefined, context: TriggerContext) {
     if (!guard) return true;
-    const lambda: LambdaConfig =
-      typeof guard === 'string'
-        ? { type: 'lambda', script: guard.trim().startsWith('return') ? guard : `return ${guard}` }
-        : guard;
-
-    const result = this.lambdaExecutor.execute(lambda, this.buildContext(context));
+    // guard is now a CEL string.
+    const result = this.celExecutor.execute(guard, this.buildContext(context));
     return Boolean(result);
   }
 
@@ -329,12 +324,10 @@ export class AutomationManager {
     await new Promise((resolve) => setTimeout(resolve, duration));
   }
 
-  private async executeScriptAction(action: { code: AutomationGuard }, context: TriggerContext) {
-    const lambda: LambdaConfig =
-      typeof action.code === 'string'
-        ? { type: 'lambda', script: action.code }
-        : (action.code as LambdaConfig);
-    this.lambdaExecutor.execute(lambda, this.buildContext(context));
+  private async executeScriptAction(action: { code: string }, context: TriggerContext) {
+    logger.warn(
+      '[automation] Script action is not supported with CEL executor (no side effects). Ignoring.',
+    );
   }
 
   private parseCommandTarget(
@@ -372,33 +365,12 @@ export class AutomationManager {
       stateSnapshot[key] = value;
     }
 
-    const id = (entityId: string) =>
-      new Proxy(stateSnapshot[entityId] || {}, {
-        get: (target, prop) => {
-          if (typeof prop === 'string' && prop.startsWith('command_')) {
-            const command = prop.replace('command_', '');
-            return (value?: any) =>
-              this.executeCommandAction(
-                { action: 'command', target: `id(${entityId}).command_${command}()`, input: value },
-                context,
-              );
-          }
-          return target[prop as keyof typeof target];
-        },
-      });
-
+    // CEL context: simple data
     return {
-      id,
-      states: stateSnapshot,
+      states: stateSnapshot, // access as states['entity_id']['property']
       trigger: context,
       timestamp: Date.now(),
-      command: (entityId: string, command: string, value?: any) =>
-        this.executeCommandAction(
-          { action: 'command', target: `id(${entityId}).command_${command}()`, input: value },
-          context,
-        ),
-      publish: (topic: string, payload: any, retain?: boolean) =>
-        this.executePublishAction({ action: 'publish', topic, payload, retain }, context),
+      // 'id' and 'command' helpers removed as they are functions
     };
   }
 }

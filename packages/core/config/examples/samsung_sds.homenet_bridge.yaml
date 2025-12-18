@@ -124,15 +124,10 @@ homenet_bridge:
       command_heat:
         data: [0xAE, 0x7D, 0x01, 0x01, 0x00, 0x00, 0x00]
         ack: [0x7D, 0x01, 0x01]
-      command_temperature: !lambda |-
-        const target = x;
-        return [[0xAE, 0x7F, 0x01, target, 0x00, 0x00, 0x00],[0x7F, 0x01, target]];
-      state_action: !lambda |-
-        if (data[3] === 0x00) return 'off';
-        const target = data[4];
-        const current = data[5];
-        if (target > current) return 'heating';
-        return 'idle';
+      command_temperature: >-
+        [[0xAE, 0x7F, 0x01, x, 0x00, 0x00, 0x00],[0x7F, 0x01, x]]
+      state_action: >-
+        data[3] == 0x00 ? 'off' : (data[4] > data[5] ? 'heating' : 'idle')
 
     - name: 'Room 1 Heater'
       visual:
@@ -161,15 +156,10 @@ homenet_bridge:
       command_heat:
         data: [0xAE, 0x7D, 0x02, 0x01, 0x00, 0x00, 0x00]
         ack: [0x7D, 0x02, 0x01]
-      command_temperature: !lambda |-
-        const target = x;
-        return [[0xAE, 0x7F, 0x02, target, 0x00, 0x00, 0x00],[0x7F, 0x02, target]];
-      state_action: !lambda |-
-        if (data[3] === 0x00) return 'off';
-        const target = data[4];
-        const current = data[5];
-        if (target > current) return 'heating';
-        return 'idle';
+      command_temperature: >-
+        [[0xAE, 0x7F, 0x02, x, 0x00, 0x00, 0x00],[0x7F, 0x02, x]]
+      state_action: >-
+        data[3] == 0x00 ? 'off' : (data[4] > data[5] ? 'heating' : 'idle')
 
     - name: 'Room 2 Heater'
       visual:
@@ -198,15 +188,10 @@ homenet_bridge:
       command_heat:
         data: [0xAE, 0x7D, 0x03, 0x01, 0x00, 0x00, 0x00]
         ack: [0x7D, 0x03, 0x01]
-      command_temperature: !lambda |-
-        const target = x;
-        return [[0xAE, 0x7F, 0x03, target, 0x00, 0x00, 0x00],[0x7F, 0x03, target]];
-      state_action: !lambda |-
-        if (data[3] === 0x00) return 'off';
-        const target = data[4];
-        const current = data[5];
-        if (target > current) return 'heating';
-        return 'idle';
+      command_temperature: >-
+        [[0xAE, 0x7F, 0x03, x, 0x00, 0x00, 0x00],[0x7F, 0x03, x]]
+      state_action: >-
+        data[3] == 0x00 ? 'off' : (data[4] > data[5] ? 'heating' : 'idle')
 
     - name: 'Room 3 Heater'
       visual:
@@ -235,15 +220,10 @@ homenet_bridge:
       command_heat:
         data: [0xAE, 0x7D, 0x04, 0x01, 0x00, 0x00, 0x00]
         ack: [0x7D, 0x04, 0x01]
-      command_temperature: !lambda |-
-        const target = x;
-        return [[0xAE, 0x7F, 0x04, target, 0x00, 0x00, 0x00],[0x7F, 0x04, target]];
-      state_action: !lambda |-
-        if (data[3] === 0x00) return 'off';
-        const target = data[4];
-        const current = data[5];
-        if (target > current) return 'heating';
-        return 'idle';
+      command_temperature: >-
+        [[0xAE, 0x7F, 0x04, x, 0x00, 0x00, 0x00],[0x7F, 0x04, x]]
+      state_action: >-
+        data[3] == 0x00 ? 'off' : (data[4] > data[5] ? 'heating' : 'idle')
 
   fan:
     - name: 'Ventilator'
@@ -255,17 +235,13 @@ homenet_bridge:
       state_off:
         offset: 3
         data: [0x01]
-      state_speed: !lambda |-
-        if (data[1] === 0x03) return 1;
-        if (data[1] === 0x02) return 2;
-        if (data[1] === 0x01) return 3;
-        return 0;
+      state_speed: >-
+        data[1] == 0x03 ? 1 : (data[1] == 0x02 ? 2 : (data[1] == 0x01 ? 3 : 0))
       command_on:
         data: [0xC2, 0x4F, 0x05, 0x00, 0x00]
         ack: [0x4F, 0x05]
       command_off:
         data: [0xC2, 0x4F, 0x06, 0x00, 0x00]
         ack: [0x4F, 0x06]
-      command_speed: !lambda |-
-        const speed = 0x04 - x;
-        return [[0xC2, 0x4F, speed, 0x00, 0x00],[0x4F, speed]];
+      command_speed: >-
+        [[0xC2, 0x4F, 0x04 - x, 0x00, 0x00],[0x4F, 0x04 - x]]

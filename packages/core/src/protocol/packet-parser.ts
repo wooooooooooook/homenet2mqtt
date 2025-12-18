@@ -1,18 +1,29 @@
-import { PacketDefaults, ChecksumType, Checksum2Type, LambdaConfig } from './types.js';
+import { PacketDefaults, ChecksumType, Checksum2Type } from './types.js';
 import { calculateChecksumFromBuffer, calculateChecksum2FromBuffer } from './utils/checksum.js';
-import { LambdaExecutor } from './lambda-executor.js';
+import { CelExecutor } from './cel-executor.js';
 import { Buffer } from 'buffer';
 
 export class PacketParser {
   private buffer: Buffer = Buffer.alloc(0);
   private lastRxTime: number = 0;
   private defaults: PacketDefaults;
-  private lambdaExecutor: LambdaExecutor;
+  private celExecutor: CelExecutor;
   private headerBuffer: Buffer | null = null;
+
+  private readonly checksumTypes = new Set([
+    'add',
+    'xor',
+    'add_no_header',
+    'xor_no_header',
+    'samsung_rx',
+    'samsung_tx',
+    'none',
+  ]);
+  private readonly checksum2Types = new Set(['xor_add']);
 
   constructor(defaults: PacketDefaults) {
     this.defaults = defaults;
-    this.lambdaExecutor = new LambdaExecutor();
+    this.celExecutor = new CelExecutor();
     if (this.defaults.rx_header && this.defaults.rx_header.length > 0) {
       this.headerBuffer = Buffer.from(this.defaults.rx_header);
     }
@@ -173,21 +184,32 @@ export class PacketParser {
       }
 
       if (typeof this.defaults.rx_checksum === 'string') {
-        const headerLength = this.defaults.rx_header?.length || 0;
-        const calculated = calculateChecksumFromBuffer(
-          buffer,
-          this.defaults.rx_checksum as ChecksumType,
-          headerLength,
-          dataEnd,
-        );
-        return calculated === checksumByte;
-      } else if ((this.defaults.rx_checksum as any).type === 'lambda') {
-        const lambda = this.defaults.rx_checksum as LambdaConfig;
-        const result = this.lambdaExecutor.execute(lambda, {
-          data: [...buffer.subarray(0, dataEnd)],
-          len: dataEnd,
-        });
-        return result === checksumByte;
+        const checksumOrScript = this.defaults.rx_checksum as string;
+
+        if (this.checksumTypes.has(checksumOrScript)) {
+          const headerLength = this.defaults.rx_header?.length || 0;
+          const calculated = calculateChecksumFromBuffer(
+            buffer,
+            checksumOrScript as ChecksumType,
+            headerLength,
+            dataEnd,
+          );
+          return calculated === checksumByte;
+        } else {
+          // CEL Expression
+          const result = this.celExecutor.execute(checksumOrScript, {
+            data: [...buffer.subarray(0, dataEnd)],
+            len: dataEnd,
+          });
+          return result === checksumByte;
+        }
+      } else if (
+        typeof this.defaults.rx_checksum === 'object' &&
+        (this.defaults.rx_checksum as any).type === 'custom'
+      ) {
+        // Custom algorithm handling (omitted here as it might be handled externally or not implemented fully yet)
+        // Just leaving it as false or basic check if needed.
+        return false;
       }
       return false;
     }
@@ -201,25 +223,28 @@ export class PacketParser {
       if (checksumStart < headerLength) return false;
 
       if (typeof this.defaults.rx_checksum2 === 'string') {
-        const calculated = calculateChecksum2FromBuffer(
-          buffer,
-          this.defaults.rx_checksum2 as Checksum2Type,
-          headerLength,
-          checksumStart,
-        );
-        return (
-          calculated[0] === buffer[checksumStart] && calculated[1] === buffer[checksumStart + 1]
-        );
-      } else if ((this.defaults.rx_checksum2 as any).type === 'lambda') {
-        const lambda = this.defaults.rx_checksum2 as LambdaConfig;
-        const result = this.lambdaExecutor.execute(lambda, {
-          data: [...buffer.subarray(0, checksumStart)],
-          len: checksumStart,
-        });
-        if (Array.isArray(result) && result.length === 2) {
-          return result[0] === buffer[checksumStart] && result[1] === buffer[checksumStart + 1];
+        const checksumOrScript = this.defaults.rx_checksum2 as string;
+
+        if (this.checksum2Types.has(checksumOrScript)) {
+          const calculated = calculateChecksum2FromBuffer(
+            buffer,
+            checksumOrScript as Checksum2Type,
+            headerLength,
+            checksumStart,
+          );
+          return (
+            calculated[0] === buffer[checksumStart] && calculated[1] === buffer[checksumStart + 1]
+          );
+        } else {
+          // CEL Expression
+          const result = this.celExecutor.execute(checksumOrScript, {
+            data: [...buffer.subarray(0, checksumStart)],
+            len: checksumStart,
+          });
+          if (Array.isArray(result) && result.length === 2) {
+            return result[0] === buffer[checksumStart] && result[1] === buffer[checksumStart + 1];
+          }
         }
-        return false;
       }
     }
 
