@@ -280,9 +280,10 @@ app.get('/api/bridge/info', async (_req, res) => {
     return res.status(503).json({ error: 'BRIDGE_STARTING' });
   }
 
-  if (currentConfigs.length === 0) {
+  // Return info even when no configs loaded successfully (to show errors)
+  if (currentConfigFiles.length === 0) {
     return res.json({
-      configFiles: currentConfigFiles,
+      configFiles: [],
       bridges: [],
       mqttUrl: process.env.MQTT_URL?.trim() || 'mqtt://mq:1883',
       status: 'error',
@@ -291,7 +292,23 @@ app.get('/api/bridge/info', async (_req, res) => {
     });
   }
 
-  const bridgesInfo = currentConfigs.map((config, configIndex) => {
+  const bridgesInfo = currentConfigFiles.map((configFile, configIndex) => {
+    const config = currentConfigs[configIndex];
+    const configError = currentConfigErrors[configIndex];
+    const configStatus = currentConfigStatuses[configIndex] || 'idle';
+
+    // Handle case where config failed to load (empty object or null)
+    if (configError || !config || !config.serials) {
+      return {
+        configFile,
+        serials: [],
+        mqttTopicPrefix: BASE_MQTT_PREFIX,
+        topic: `${BASE_MQTT_PREFIX}/homedevice1/raw`,
+        error: configError || 'Config not loaded',
+        status: configStatus,
+      };
+    }
+
     const serialTopics =
       config.serials?.map((serial: HomenetBridgeConfig['serials'][number], index: number) => {
         const portId = normalizePortId(serial.portId, index);
@@ -304,12 +321,12 @@ app.get('/api/bridge/info', async (_req, res) => {
       }) ?? [];
 
     return {
-      configFile: currentConfigFiles[configIndex],
+      configFile,
       serials: serialTopics,
       mqttTopicPrefix: BASE_MQTT_PREFIX,
       topic: `${serialTopics[0]?.topic || `${BASE_MQTT_PREFIX}/homedevice1`}/raw`,
-      error: currentConfigErrors[configIndex] || undefined,
-      status: currentConfigStatuses[configIndex] || 'idle',
+      error: configError || undefined,
+      status: configStatus,
     };
   });
 
@@ -1268,101 +1285,137 @@ async function loadAndStartBridges(filenames: string[]) {
     bridgeStatus = 'starting';
     bridgeError = null;
 
-    try {
-      const resolvedPaths = filenames.map(resolveConfigPath);
-      logger.info(`[service] Loading configuration files: ${filenames.join(', ')}`);
+    const resolvedPaths = filenames.map(resolveConfigPath);
+    logger.info(`[service] Loading configuration files: ${filenames.join(', ')}`);
 
-      const loadedConfigs: HomenetBridgeConfig[] = [];
-      for (const configPath of resolvedPaths) {
-        loadedConfigs.push(await loadConfigFile(configPath));
+    // Load configs individually, capturing errors per config
+    const loadResults: { config: HomenetBridgeConfig | null; error: string | null }[] = [];
+    for (const configPath of resolvedPaths) {
+      try {
+        const config = await loadConfigFile(configPath);
+        loadResults.push({ config, error: null });
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error loading config';
+        logger.error({ err, configPath }, '[service] Failed to load config file');
+        loadResults.push({ config: null, error: errorMessage });
       }
+    }
 
+    // Check if at least one config loaded successfully
+    const successfulConfigs = loadResults.filter((r) => r.config !== null);
+    if (successfulConfigs.length === 0) {
+      bridgeStatus = 'error';
+      bridgeError = 'All configuration files failed to load.';
+      // Still populate currentConfigFiles and errors for UI display
       currentConfigFiles = filenames;
-      currentRawConfigs = loadedConfigs;
-      currentConfigs = loadedConfigs;
-      currentConfigErrors = new Array(loadedConfigs.length).fill(null);
-      rebuildPortMappings();
+      currentConfigs = [];
+      currentRawConfigs = [];
+      currentConfigErrors = loadResults.map((r) => r.error);
+      currentConfigStatuses = loadResults.map(() => 'error' as const);
+      bridgeStartPromise = null;
+      return;
+    }
 
-      const mqttUrl = process.env.MQTT_URL?.trim() || 'mqtt://mq:1883';
-      const mqttUsername = process.env.MQTT_USER?.trim() || undefined;
-      const mqttPassword = process.env.MQTT_PASSWD?.trim() || undefined;
+    const mqttUrl = process.env.MQTT_URL?.trim() || 'mqtt://mq:1883';
+    const mqttUsername = process.env.MQTT_USER?.trim() || undefined;
+    const mqttPassword = process.env.MQTT_PASSWD?.trim() || undefined;
 
-      const newBridges: BridgeInstance[] = [];
-      const newConfigErrors: (string | null)[] = new Array(loadedConfigs.length).fill(null);
-      const newConfigStatuses: ('idle' | 'starting' | 'started' | 'error' | 'stopped')[] =
-        new Array(loadedConfigs.length).fill('starting');
+    const newBridges: BridgeInstance[] = [];
+    const newConfigErrors: (string | null)[] = [];
+    const newConfigStatuses: ('idle' | 'starting' | 'started' | 'error' | 'stopped')[] = [];
+    const loadedConfigs: HomenetBridgeConfig[] = [];
+    const loadedConfigFilesForCollector: { name: string; content: string }[] = [];
 
-      // 1. Instantiate all bridges immediately
-      for (let i = 0; i < loadedConfigs.length; i += 1) {
+    // 1. Instantiate bridges only for successfully loaded configs
+    for (let i = 0; i < filenames.length; i += 1) {
+      const result = loadResults[i];
+      if (result.config) {
         const bridge = new HomeNetBridge({
           configPath: resolvedPaths[i],
           mqttUrl,
           mqttUsername,
           mqttPassword,
           mqttTopicPrefix: BASE_MQTT_PREFIX,
-          configOverride: loadedConfigs[i],
+          configOverride: result.config,
         });
 
         newBridges.push({
           bridge,
           configFile: filenames[i],
           resolvedPath: resolvedPaths[i],
-          config: loadedConfigs[i],
+          config: result.config,
         });
+
+        loadedConfigs.push(result.config);
+        newConfigErrors.push(null);
+        newConfigStatuses.push('starting');
+
+        // Read file content for log collector
+        try {
+          const content = await fs.readFile(resolvedPaths[i], 'utf-8');
+          loadedConfigFilesForCollector.push({ name: filenames[i], content });
+        } catch {
+          // Ignore read error for log collector
+        }
+      } else {
+        // Config failed to load - add placeholder entries
+        loadedConfigs.push({} as HomenetBridgeConfig); // Empty placeholder
+        newConfigErrors.push(result.error);
+        newConfigStatuses.push('error');
       }
+    }
 
-      bridges = newBridges;
-      currentConfigErrors = newConfigErrors;
-      currentConfigStatuses = newConfigStatuses;
+    currentConfigFiles = filenames;
+    currentRawConfigs = loadedConfigs;
+    currentConfigs = loadedConfigs;
+    currentConfigErrors = newConfigErrors;
+    currentConfigStatuses = newConfigStatuses;
+    bridges = newBridges;
+    rebuildPortMappings();
 
-      // 2. Init LogCollector immediately
-      const loadedConfigFiles = await Promise.all(
-        resolvedPaths.map(async (p, idx) => ({
-          name: filenames[idx],
-          content: await fs.readFile(p, 'utf-8'),
-        })),
-      );
-      await logCollectorService.init(
-        bridges.map((b) => b.bridge),
-        loadedConfigFiles,
-      );
+    // 2. Init LogCollector with successfully loaded bridges
+    await logCollectorService.init(
+      bridges.map((b) => b.bridge),
+      loadedConfigFilesForCollector,
+    );
 
-      // 3. Mark service as started effectively immediately, so API is available
-      bridgeStatus = 'started';
-      bridgeStartPromise = null; // Allow API access immediately
+    // 3. Mark service as started effectively immediately, so API is available
+    bridgeStatus = 'started';
+    bridgeStartPromise = null; // Allow API access immediately
 
-      logger.info(
-        `[service] Bridge service initialized with ${currentConfigFiles.join(', ')}. Starting connections in background...`,
-      );
+    const successCount = newBridges.length;
+    const failCount = loadResults.filter((r) => r.config === null).length;
+    logger.info(
+      `[service] Bridge service initialized with ${successCount} config(s) (${failCount} failed). Starting connections in background...`,
+    );
 
-      // 4. Start all bridges in background (non-blocking for API)
-      // We do not await this Promise.all, so the function returns and releases the lock.
-      Promise.all(
-        newBridges.map(async (instance, i) => {
-          try {
-            await instance.bridge.start();
-            currentConfigStatuses[i] = 'started';
-          } catch (err) {
-            logger.error(
-              { err, configFile: instance.configFile },
-              '[service] Failed to start bridge instance',
-            );
-            currentConfigStatuses[i] = 'error';
-            currentConfigErrors[i] =
+    // 4. Start all bridges in background (non-blocking for API)
+    // We do not await this Promise.all, so the function returns and releases the lock.
+    Promise.all(
+      newBridges.map(async (instance) => {
+        // Find the original index in filenames array
+        const originalIndex = filenames.indexOf(instance.configFile);
+        try {
+          await instance.bridge.start();
+          if (originalIndex !== -1) {
+            currentConfigStatuses[originalIndex] = 'started';
+          }
+        } catch (err) {
+          logger.error(
+            { err, configFile: instance.configFile },
+            '[service] Failed to start bridge instance',
+          );
+          if (originalIndex !== -1) {
+            currentConfigStatuses[originalIndex] = 'error';
+            currentConfigErrors[originalIndex] =
               err instanceof Error ? err.message : 'Unknown error during bridge start';
           }
-        }),
-      ).catch((err) => {
-        // Should not happen as individual promises catch errors, but just in case
-        logger.error({ err }, '[service] Unexpected error in background startup');
-      });
-    } catch (err) {
-      bridgeStatus = 'error';
-      bridgeError = err instanceof Error ? err.message : 'Unknown error during bridge start.';
-      await stopAllBridges({ preserveStatus: true });
-      logger.error({ err }, '[service] Failed to start bridge');
-      bridgeStartPromise = null;
-    }
+        }
+      }),
+    ).catch((err) => {
+      // Should not happen as individual promises catch errors, but just in case
+      logger.error({ err }, '[service] Unexpected error in background startup');
+    });
   })();
 
   // We return a resolved promise immediately so the caller doesn't wait

@@ -464,24 +464,6 @@ homenet_bridge:
         ack: [0x23]
 
   switch:
-    - id: 'switch_7'
-      name: 'Switch 7'
-      state:
-        data: [0xF8, 0x00, 0x07]
-        mask: [0xF8, 0x00, 0xFF]
-      state_on:
-        offset: 1
-        data: [0x01]
-      state_off:
-        offset: 1
-        data: [0x00]
-      command_on:
-        data: [0x7A, 0x07, 0x01, 0x01, 0x00, 0x00, 0x00]
-        ack: [0xFA, 0x01, 0x07]
-      command_off:
-        data: [0x7A, 0x07, 0x01, 0x00, 0x00, 0x00, 0x00]
-        ack: [0xFA, 0x00, 0x07]
-
     #스마트 콘센트 (Plugs)
     #상태      Head,   PWR,  ID,   TYPE,  D1,   D2,   D3,   add checksum
     #TYPE 11 (Wattage), 21 (Eco - ignored)
