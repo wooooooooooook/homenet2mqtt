@@ -28,7 +28,7 @@
     bridgeInfo: BridgeInfo | null;
     infoLoading: boolean;
     infoError: string;
-    portMetadata: Array<BridgeSerialInfo & { configFile: string }>;
+    portMetadata: Array<BridgeSerialInfo & { configFile: string; error?: string }>;
     mqttUrl: string;
     entities: UnifiedEntity[];
     selectedPortId: string | null;
@@ -46,7 +46,9 @@
   }>();
 
   const portIds = $derived.by<string[]>(() =>
-    portMetadata.map((port: BridgeSerialInfo & { configFile: string }) => port.portId),
+    portMetadata.map(
+      (port: BridgeSerialInfo & { configFile: string; error?: string }) => port.portId,
+    ),
   );
   const activePortId = $derived.by<string | null>(() =>
     selectedPortId && portIds.includes(selectedPortId) ? selectedPortId : (portIds[0] ?? null),
@@ -150,7 +152,7 @@
     <div class="port-details-container">
       {#if activePortId}
         <!-- Minimized Port Metadata -->
-        {#each portMetadata.filter((p: BridgeSerialInfo & { configFile: string }) => p.portId === activePortId) as port (port.portId)}
+        {#each portMetadata.filter((p: BridgeSerialInfo & { configFile: string; error?: string }) => p.portId === activePortId) as port (port.portId)}
           <div class="port-meta-mini">
             <div class="meta-item">
               <strong>{$t('dashboard.port_meta.path')}</strong> <span>{port.path || 'N/A'}</span>

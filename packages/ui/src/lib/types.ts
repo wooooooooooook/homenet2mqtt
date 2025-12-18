@@ -52,6 +52,7 @@ export type BridgeEntry = {
   serials: BridgeSerialInfo[];
   mqttTopicPrefix: string;
   topic: string;
+  error?: string;
 };
 
 export type BridgeInfo = {

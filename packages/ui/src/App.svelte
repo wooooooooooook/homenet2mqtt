@@ -755,9 +755,14 @@
   }
 
   const portMetadata = $derived.by(() => {
-    if (!bridgeInfo?.bridges) return [] as Array<BridgeSerialInfo & { configFile: string }>;
+    if (!bridgeInfo?.bridges)
+      return [] as Array<BridgeSerialInfo & { configFile: string; error?: string }>;
     return bridgeInfo.bridges.flatMap((bridge) =>
-      bridge.serials.map((serial) => ({ ...serial, configFile: bridge.configFile })),
+      bridge.serials.map((serial) => ({
+        ...serial,
+        configFile: bridge.configFile,
+        error: bridge.error,
+      })),
     );
   });
 
@@ -961,6 +966,15 @@
   const portStatuses = $derived.by(() => {
     const defaultStatus = bridgeInfo?.status ?? 'idle';
     return portMetadata.map((port) => {
+      // If the bridge itself failed to start, mark it as error immediately.
+      if (port.error) {
+        return {
+          portId: port.portId,
+          status: 'error' as BridgeStatus,
+          message: port.error,
+        };
+      }
+
       const payload = bridgeStatusByPort.get(port.portId);
       const normalized = ['idle', 'starting', 'started', 'stopped', 'error'].includes(
         (payload || defaultStatus) as string,

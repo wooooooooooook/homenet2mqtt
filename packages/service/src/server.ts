@@ -80,7 +80,7 @@ const parseEnvList = (
   if (!raw.includes(',')) {
     logger.warn(
       `[service] ${source}에 단일 값이 입력되었습니다. 쉼표로 구분된 배열 형식(${source}=item1,item2)` +
-        ' 사용을 권장합니다.',
+      ' 사용을 권장합니다.',
     );
   }
 
@@ -130,7 +130,9 @@ type BridgeInstance = {
 let bridges: BridgeInstance[] = [];
 let currentConfigFiles: string[] = [];
 let currentConfigs: HomenetBridgeConfig[] = [];
+
 let currentRawConfigs: HomenetBridgeConfig[] = [];
+let currentConfigErrors: (string | null)[] = [];
 let bridgeStatus: 'idle' | 'starting' | 'started' | 'stopped' | 'error' = 'idle';
 let bridgeError: string | null = null;
 let bridgeStartPromise: Promise<void> | null = null;
@@ -299,6 +301,7 @@ app.get('/api/bridge/info', async (_req, res) => {
       serials: serialTopics,
       mqttTopicPrefix: BASE_MQTT_PREFIX,
       topic: `${serialTopics[0]?.topic || `${BASE_MQTT_PREFIX}/homedevice1`}/raw`,
+      error: currentConfigErrors[configIndex],
     };
   });
 
@@ -1248,7 +1251,7 @@ async function loadAndStartBridges(filenames: string[]) {
   }
 
   if (bridgeStartPromise) {
-    await bridgeStartPromise.catch(() => {});
+    await bridgeStartPromise.catch(() => { });
   }
 
   bridgeStartPromise = (async () => {
@@ -1270,6 +1273,7 @@ async function loadAndStartBridges(filenames: string[]) {
       currentConfigFiles = filenames;
       currentRawConfigs = loadedConfigs;
       currentConfigs = loadedConfigs;
+      currentConfigErrors = new Array(loadedConfigs.length).fill(null);
       rebuildPortMappings();
 
       const mqttUrl = process.env.MQTT_URL?.trim() || 'mqtt://mq:1883';
@@ -1279,26 +1283,36 @@ async function loadAndStartBridges(filenames: string[]) {
       const startedBridges: BridgeInstance[] = [];
 
       for (let i = 0; i < loadedConfigs.length; i += 1) {
-        const bridge = await createBridge(
-          resolvedPaths[i],
-          mqttUrl,
-          mqttUsername,
-          mqttPassword,
-          BASE_MQTT_PREFIX,
-          loadedConfigs[i],
-        );
+        try {
+          const bridge = await createBridge(
+            resolvedPaths[i],
+            mqttUrl,
+            mqttUsername,
+            mqttPassword,
+            BASE_MQTT_PREFIX,
+            loadedConfigs[i],
+          );
 
-        startedBridges.push({
-          bridge,
-          configFile: filenames[i],
-          resolvedPath: resolvedPaths[i],
-          config: loadedConfigs[i],
-        });
+          startedBridges.push({
+            bridge,
+            configFile: filenames[i],
+            resolvedPath: resolvedPaths[i],
+            config: loadedConfigs[i],
+          });
+        } catch (err) {
+          logger.error(
+            { err, configFile: filenames[i] },
+            '[service] Failed to start bridge instance',
+          );
+          currentConfigErrors[i] =
+            err instanceof Error ? err.message : 'Unknown error during bridge start';
+        }
       }
 
       bridges = startedBridges;
 
       // Init LogCollector with the new bridges
+      // We only pass successful bridges
       const loadedConfigFiles = await Promise.all(
         resolvedPaths.map(async (p, idx) => ({
           name: filenames[idx],
@@ -1310,8 +1324,23 @@ async function loadAndStartBridges(filenames: string[]) {
         loadedConfigFiles,
       );
 
-      bridgeStatus = 'started';
-      logger.info(`[service] Bridge started successfully with ${currentConfigFiles.join(', ')}`);
+      if (bridges.length > 0) {
+        bridgeStatus = 'started';
+        // If some failed, we might want to indicate partial success in global status,
+        // but 'started' is safer for UI compatibility. The individual errors will be shown.
+        if (bridges.length < loadedConfigs.length) {
+          bridgeError = 'Some bridges failed to start. Check details.';
+        } else {
+          bridgeError = null;
+        }
+        logger.info(
+          `[service] Bridges started: ${bridges.length}/${loadedConfigs.length} successful.`,
+        );
+      } else {
+        bridgeStatus = 'error';
+        bridgeError = 'All bridges failed to start.';
+        logger.error('[service] All bridges failed to start.');
+      }
     } catch (err) {
       bridgeStatus = 'error';
       bridgeError = err instanceof Error ? err.message : 'Unknown error during bridge start.';
