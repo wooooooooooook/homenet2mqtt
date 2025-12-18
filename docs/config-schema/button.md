@@ -6,7 +6,7 @@
 - `command_press`: 버튼 눌림 시 송신할 패킷. [`CommandSchema`](./lambda.md#commandschema-필드) 또는 CEL 표현식으로 작성합니다.
 
 ## 옵션 필드
-- 추가 필드는 없지만, `command_press`에 `homenet_logic`을 넣어 다중 패킷 전송이나 엔티티 상태 조건부 전송을 구성할 수 있습니다.
+- 추가 필드는 없지만, `command_press`에 CEL 표현식을 사용해 다중 패킷 전송이나 동적 명령 생성을 구성할 수 있습니다. [CEL 가이드](../CEL_GUIDE.md)를 참고하세요.
 
 ## 예제: 공동 현관 문열림 명령
 `hyundai_door.homenet_bridge.yaml`은 두 가지 버튼을 정의하고, 고정 데이터 배열로 문열림 명령을 보냅니다.【F:packages/core/config/hyundai_door.homenet_bridge.yaml†L40-L51】

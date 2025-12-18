@@ -40,26 +40,12 @@ export interface StateSchema {
   inverted?: boolean;
 }
 
-export interface StateLambdaConfig {
-  conditions?: {
-    extractor: Extractor;
-    value: any;
-    then: any;
-  }[];
-  valueSource?: ValueSource;
-  valueMappings?: {
-    map: number | string;
-    value: number | string | boolean;
-  }[];
-}
-
 export interface StateNumSchema extends StateSchema {
   length?: number;
   precision?: number;
   signed?: boolean;
   endian?: EndianType;
   decode?: DecodeEncodeType;
-  homenet_logic?: StateLambdaConfig;
   mapping?: { [key: number]: string | number };
 }
 

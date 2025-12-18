@@ -1,11 +1,7 @@
 // packages/core/src/protocol/generators/command.generator.ts
 
 import { HomenetBridgeConfig } from '../../config/types.js';
-import {
-  EntityConfig,
-  CommandSchema,
-  CommandLambdaConfig,
-} from '../../domain/entities/base.entity.js';
+import { EntityConfig, CommandSchema } from '../../domain/entities/base.entity.js';
 import { LightEntity } from '../../domain/entities/light.entity.js';
 import { ClimateEntity } from '../../domain/entities/climate.entity.js';
 import { ValveEntity } from '../../domain/entities/valve.entity.js';
@@ -158,109 +154,6 @@ export class CommandGenerator {
     return encodedBytes;
   }
 
-  private evaluateCommandLambda(
-    lambdaConfig: CommandLambdaConfig,
-    entity: EntityConfig,
-    inputValue?: number | string,
-  ): number[][] | null {
-    if (lambdaConfig.conditions && lambdaConfig.conditions.length > 0) {
-      for (const condition of lambdaConfig.conditions) {
-        logger.warn(`[CommandGenerator] Conditional logic for entity state not fully implemented.`);
-      }
-    }
-
-    const packets: number[][] = [];
-    for (const template of lambdaConfig.packetTemplates) {
-      let packetData = [...template.data];
-
-      if (template.conditions && template.conditions.length > 0) {
-        let templateConditionsMet = true;
-        for (const condition of template.conditions) {
-          let conditionValue: any;
-          if (condition.entityId && condition.property) {
-            if (condition.property === 'is_on') {
-              conditionValue = this.stateProvider.getLightState(condition.entityId)?.isOn;
-            } else if (condition.property === 'target_temperature') {
-              conditionValue = this.stateProvider.getClimateState(
-                condition.entityId,
-              )?.targetTemperature;
-            }
-          } else if (condition.extractor) {
-            logger.warn(`[CommandGenerator] Extractor conditions not fully implemented.`);
-          }
-
-          if (conditionValue !== condition.value) {
-            templateConditionsMet = false;
-            break;
-          }
-        }
-        if (!templateConditionsMet) {
-          continue;
-        }
-      }
-
-      if (template.valueInsertions) {
-        for (const insertion of template.valueInsertions) {
-          let finalValue: number | string;
-
-          let rawValue: number | string | boolean | undefined;
-          if (insertion.value !== undefined) {
-            rawValue = insertion.value;
-          } else if (insertion.valueSource) {
-            if (insertion.valueSource.type === 'input') {
-              rawValue = inputValue;
-            } else if (insertion.valueSource.type === 'entity_state') {
-              const { entityId, property } = insertion.valueSource;
-              if (entityId && property) {
-                if (property === 'is_on') {
-                  rawValue = this.stateProvider.getLightState(entityId)?.isOn;
-                } else if (property === 'target_temperature') {
-                  rawValue = this.stateProvider.getClimateState(entityId)?.targetTemperature;
-                }
-              }
-            }
-          }
-
-          if (rawValue === undefined) {
-            logger.warn(
-              `rawValue is undefined for insertion at offset ${insertion.valueOffset}. Skipping.`,
-            );
-            continue;
-          }
-
-          if (typeof rawValue === 'boolean') {
-            finalValue = rawValue ? 1 : 0;
-          } else if (typeof rawValue === 'number') {
-            finalValue = rawValue;
-          } else if (typeof rawValue === 'string') {
-            finalValue = rawValue;
-          } else {
-            logger.warn(`Unsupported rawValue type for encoding: ${typeof rawValue}. Skipping.`);
-            continue;
-          }
-
-          const tempCommandSchema: CommandSchema = {
-            value_encode: insertion.valueEncode,
-            length: insertion.length,
-            signed: insertion.signed,
-            endian: insertion.endian,
-            multiply_factor:
-              insertion.valueEncode === 'multiply' && typeof finalValue === 'number'
-                ? finalValue
-                : undefined,
-          };
-
-          const encodedValue = this.encodeValue(finalValue, tempCommandSchema);
-
-          packetData.splice(insertion.valueOffset, encodedValue.length, ...encodedValue);
-        }
-      }
-      packets.push(packetData);
-    }
-
-    return packets.length > 0 ? packets : null;
-  }
-
   public constructCommandPacket(
     entity: EntityConfig,
     commandName: string,
@@ -311,11 +204,6 @@ export class CommandGenerator {
     if (!commandSchema) {
       logger.error(`Command schema not found for ${entity.type}.${commandName}`);
       return null;
-    }
-
-    if (commandSchema.homenet_logic) {
-      const packets = this.evaluateCommandLambda(commandSchema.homenet_logic, entity, value);
-      return packets && packets.length > 0 ? packets[0] : null;
     }
 
     if (!commandSchema.cmd) {

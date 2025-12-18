@@ -1,7 +1,7 @@
 // packages/core/src/protocol/parsers/packet.parser.ts
 
 import { HomenetBridgeConfig } from '../../config/types.js';
-import { EntityConfig, StateLambdaConfig } from '../../domain/entities/base.entity.js';
+import { EntityConfig } from '../../domain/entities/base.entity.js';
 import { LightEntity } from '../../domain/entities/light.entity.js';
 import { ClimateEntity } from '../../domain/entities/climate.entity.js';
 import { ValveEntity } from '../../domain/entities/valve.entity.js';
@@ -95,72 +95,6 @@ export class PacketParser {
     }
 
     return precision > 0 ? parseFloat(value.toFixed(precision)) : value;
-  }
-
-  private evaluateStateLambda(
-    lambdaConfig: StateLambdaConfig,
-    packetData: number[],
-  ): number | string | boolean | undefined {
-    if (lambdaConfig.conditions && lambdaConfig.conditions.length > 0) {
-      for (const condition of lambdaConfig.conditions) {
-        if (condition.extractor) {
-          if (condition.extractor.type === 'check_value') {
-            const { offset, value } = condition.extractor;
-            if (offset !== undefined && packetData[offset] === value) {
-              return condition.then;
-            }
-          } else if (condition.extractor.type === 'offset_value') {
-            const extractedValue = this.decodeValue(packetData, {
-              offset: condition.extractor.offset,
-              length: condition.extractor.length,
-              precision: condition.extractor.precision,
-              signed: condition.extractor.signed,
-              endian: condition.extractor.endian,
-              decode: condition.extractor.decode,
-            } as StateNumSchema);
-            if (extractedValue === condition.value) {
-              return condition.then;
-            }
-          }
-        }
-      }
-    }
-
-    if (lambdaConfig.valueSource) {
-      let resolvedValue: number | string | undefined;
-      if (lambdaConfig.valueSource.type === 'packet') {
-        const decoded = this.decodeValue(packetData, {
-          offset: lambdaConfig.valueSource.offset,
-          length: lambdaConfig.valueSource.length,
-          precision: lambdaConfig.valueSource.precision,
-          signed: lambdaConfig.valueSource.signed,
-          endian: lambdaConfig.valueSource.endian,
-          decode: lambdaConfig.valueSource.decode,
-        } as StateNumSchema);
-        if (decoded !== null) {
-          resolvedValue = decoded;
-        }
-      } else if (lambdaConfig.valueSource.type === 'entity_state') {
-        const { entityId, property } = lambdaConfig.valueSource;
-        if (entityId && property) {
-          if (property === 'is_on') {
-            resolvedValue = this.stateProvider.getLightState(entityId)?.isOn ? 1 : 0;
-          } else if (property === 'target_temperature') {
-            resolvedValue = this.stateProvider.getClimateState(entityId)?.targetTemperature;
-          }
-        }
-      }
-
-      if (resolvedValue !== undefined && lambdaConfig.valueMappings) {
-        for (const mapping of lambdaConfig.valueMappings) {
-          if (mapping.map === resolvedValue) {
-            return mapping.value;
-          }
-        }
-      }
-    }
-
-    return undefined;
   }
 
   /**
