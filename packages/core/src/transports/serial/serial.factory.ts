@@ -29,7 +29,10 @@ export async function createSerialPortConnection(
           socket.destroy();
 
           if (retries > 0) {
-            logger.warn({ err, remainingRetries: retries }, '[serial] failed to connect TCP, retrying...');
+            logger.warn(
+              { err, remainingRetries: retries },
+              '[serial] failed to connect TCP, retrying...',
+            );
             await new Promise((r) => setTimeout(r, delayMs));
             try {
               const newSocket = await connectTcp(retries - 1, delayMs);

@@ -36,6 +36,9 @@ importers:
 
   packages/core:
     dependencies:
+      '@marcbachmann/cel-js':
+        specifier: ^6.3.4
+        version: 6.3.4
       cron-parser:
         specifier: ^4.9.0
         version: 4.9.0
@@ -635,6 +638,10 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.9':
     resolution: {integrity: sha512-3Belt6tdc8bPgAtbcmdtNJlirVoTmEb5e2gC94PnkwEW9jI6CAHUeoG85tjWP5WquqfavoMtMwiG4P926ZKKuQ==}
+
+  '@marcbachmann/cel-js@6.3.4':
+    resolution: {integrity: sha512-ObOHvYavXc9ePrQrC5lyub+w5nnJxfQgEHEGK9ePeMWxslF9JC1H2IZCAP4YTdSgDqlJnMhCYb1PsvNMM9hPjw==}
+    engines: {node: '>=20.19.0'}
 
   '@pinojs/redact@0.4.0':
     resolution: {integrity: sha512-k2ENnmBugE/rzQfEcdWHcCY+/FM3VLzH9cYEsbdsoqrvzAKRhUZeRNhAZvB8OitQJ1TBed3yqWtdjzS6wJKBwg==}
@@ -2326,6 +2333,8 @@ snapshots:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
+
+  '@marcbachmann/cel-js@6.3.4': {}
 
   '@pinojs/redact@0.4.0': {}
 

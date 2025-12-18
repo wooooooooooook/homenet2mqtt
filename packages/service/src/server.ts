@@ -12,24 +12,12 @@ import {
   HomenetBridgeConfig,
   logger,
   eventBus,
-  LambdaConfig,
   normalizeConfig,
   normalizePortId,
   validateConfig,
 } from '@rs485-homenet/core';
 import { activityLogService } from './activity-log.service.js';
 import { logCollectorService } from './log-collector.service.js';
-
-// Define a custom YAML type for !lambda
-const LambdaType = new Type('!lambda', {
-  kind: 'scalar',
-  construct: (data: string): LambdaConfig => {
-    return { type: 'lambda', script: data };
-  },
-});
-
-// Create a schema that includes the custom LambdaType
-const HOMENET_BRIDGE_SCHEMA = yaml.DEFAULT_SCHEMA.extend([LambdaType]);
 
 dotenv.config();
 
@@ -80,7 +68,7 @@ const parseEnvList = (
   if (!raw.includes(',')) {
     logger.warn(
       `[service] ${source}에 단일 값이 입력되었습니다. 쉼표로 구분된 배열 형식(${source}=item1,item2)` +
-      ' 사용을 권장합니다.',
+        ' 사용을 권장합니다.',
     );
   }
 
@@ -899,7 +887,7 @@ app.post('/api/config/update', async (req, res) => {
     // 1. Parse new YAML snippet
     let newEntity: any;
     try {
-      newEntity = yaml.load(newEntityYaml, { schema: HOMENET_BRIDGE_SCHEMA });
+      newEntity = yaml.load(newEntityYaml);
     } catch (e) {
       return res.status(400).json({ error: 'Invalid YAML format' });
     }
@@ -919,7 +907,7 @@ app.post('/api/config/update', async (req, res) => {
     // 2. Read full config
     const configPath = path.join(CONFIG_DIR, targetConfigFile);
     const fileContent = await fs.readFile(configPath, 'utf8');
-    const loadedYamlFromFile = yaml.load(fileContent, { schema: HOMENET_BRIDGE_SCHEMA }) as {
+    const loadedYamlFromFile = yaml.load(fileContent) as {
       homenet_bridge: PersistableHomenetBridgeConfig;
     };
 
@@ -965,7 +953,6 @@ app.post('/api/config/update', async (req, res) => {
     // Note: This will strip comments and might alter formatting.
     const newFileContent = yaml.dump(loadedYamlFromFile, {
       // Dump the full object
-      schema: HOMENET_BRIDGE_SCHEMA,
       styles: { '!!int': 'hexadecimal' },
       noRefs: true,
       lineWidth: -1, // Try to avoid wrapping lines excessively
@@ -1014,7 +1001,7 @@ app.post('/api/entities/rename', async (req, res) => {
   try {
     const configPath = path.join(CONFIG_DIR, targetConfigFile);
     const fileContent = await fs.readFile(configPath, 'utf8');
-    const loadedYamlFromFile = yaml.load(fileContent, { schema: HOMENET_BRIDGE_SCHEMA }) as {
+    const loadedYamlFromFile = yaml.load(fileContent) as {
       homenet_bridge: PersistableHomenetBridgeConfig;
     };
 
@@ -1055,7 +1042,6 @@ app.post('/api/entities/rename', async (req, res) => {
     await fs.copyFile(configPath, backupPath);
 
     const newFileContent = yaml.dump(loadedYamlFromFile, {
-      schema: HOMENET_BRIDGE_SCHEMA,
       styles: { '!!int': 'hexadecimal' },
       noRefs: true,
       lineWidth: -1,
@@ -1119,7 +1105,7 @@ app.delete('/api/entities/:entityId', async (req, res) => {
   try {
     const configPath = path.join(CONFIG_DIR, targetConfigFile);
     const fileContent = await fs.readFile(configPath, 'utf8');
-    const loadedYamlFromFile = yaml.load(fileContent, { schema: HOMENET_BRIDGE_SCHEMA }) as {
+    const loadedYamlFromFile = yaml.load(fileContent) as {
       homenet_bridge: PersistableHomenetBridgeConfig;
     };
 
@@ -1159,7 +1145,6 @@ app.delete('/api/entities/:entityId', async (req, res) => {
 
     // Write new config
     const newFileContent = yaml.dump(loadedYamlFromFile, {
-      schema: HOMENET_BRIDGE_SCHEMA,
       styles: { '!!int': 'hexadecimal' },
       noRefs: true,
       lineWidth: -1,
@@ -1251,7 +1236,7 @@ app.use(
 // --- Bridge Management ---
 const loadConfigFile = async (configPath: string): Promise<HomenetBridgeConfig> => {
   const fileContent = await fs.readFile(configPath, 'utf8');
-  const loadedYaml = yaml.load(fileContent, { schema: HOMENET_BRIDGE_SCHEMA }) as {
+  const loadedYaml = yaml.load(fileContent) as {
     homenet_bridge: HomenetBridgeConfig;
   };
 
@@ -1291,7 +1276,7 @@ async function loadAndStartBridges(filenames: string[]) {
   }
 
   if (bridgeStartPromise) {
-    await bridgeStartPromise.catch(() => { });
+    await bridgeStartPromise.catch(() => {});
   }
 
   bridgeStartPromise = (async () => {

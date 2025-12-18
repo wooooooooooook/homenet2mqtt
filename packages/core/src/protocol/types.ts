@@ -20,13 +20,13 @@ export type EndianType = 'big' | 'little';
 export interface PacketDefaults {
   rx_header?: number[];
   rx_footer?: number[];
-  rx_checksum?: ChecksumType | { type: 'custom'; algorithm: string } | LambdaConfig;
-  rx_checksum2?: Checksum2Type | LambdaConfig;
+  rx_checksum?: ChecksumType | { type: 'custom'; algorithm: string } | string;
+  rx_checksum2?: Checksum2Type | string;
   rx_length?: number;
   tx_header?: number[];
   tx_footer?: number[];
-  tx_checksum?: ChecksumType | { type: 'custom'; algorithm: string } | LambdaConfig;
-  tx_checksum2?: Checksum2Type | LambdaConfig;
+  tx_checksum?: ChecksumType | { type: 'custom'; algorithm: string } | string;
+  tx_checksum2?: Checksum2Type | string;
   tx_delay?: number;
   tx_retry_cnt?: number;
   tx_timeout?: number;
@@ -87,11 +87,6 @@ export interface Extractor {
 }
 
 // New Uartex-style types
-
-export interface LambdaConfig {
-  type: 'lambda';
-  script: string;
-}
 
 export interface ProtocolConfig {
   packet_defaults?: PacketDefaults;

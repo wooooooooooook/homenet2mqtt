@@ -1,15 +1,15 @@
 import { Device } from '../device.js';
-import { DeviceConfig, ProtocolConfig, LambdaConfig } from '../types.js';
+import { DeviceConfig, ProtocolConfig } from '../types.js';
 import { StateSchema, StateNumSchema } from '../types.js';
-import { LambdaExecutor } from '../lambda-executor.js';
+import { CelExecutor } from '../cel-executor.js';
 import { calculateChecksum, ChecksumType } from '../utils/checksum.js';
 
 export class GenericDevice extends Device {
-  private lambdaExecutor: LambdaExecutor;
+  private celExecutor: CelExecutor;
 
   constructor(config: DeviceConfig, protocolConfig: ProtocolConfig) {
     super(config, protocolConfig);
-    this.lambdaExecutor = new LambdaExecutor();
+    this.celExecutor = new CelExecutor();
   }
 
   public parseData(packet: number[]): Record<string, any> | null {
@@ -28,11 +28,11 @@ export class GenericDevice extends Device {
       humidity_current: 'current_humidity',
     };
 
-    // Check for state lambdas
+    // Check for state expressions (formerly lambdas)
     for (const key in entityConfig) {
-      if (key.startsWith('state_') && entityConfig[key]?.type === 'lambda') {
-        const lambda = entityConfig[key] as LambdaConfig;
-        const result = this.lambdaExecutor.execute(lambda, {
+      if (key.startsWith('state_') && typeof entityConfig[key] === 'string') {
+        const script = entityConfig[key] as string;
+        const result = this.celExecutor.execute(script, {
           data: packet,
           x: null, // No previous value for state extraction usually
         });
@@ -72,9 +72,9 @@ export class GenericDevice extends Device {
     let commandPacket: number[] | null = null;
 
     if (commandConfig) {
-      if (commandConfig.type === 'lambda') {
-        const lambda = commandConfig as LambdaConfig;
-        const result = this.lambdaExecutor.execute(lambda, {
+      if (typeof commandConfig === 'string') {
+        const script = commandConfig as string;
+        const result = this.celExecutor.execute(script, {
           x: value,
           data: [], // No packet data for command construction
           state: this.getState() || {},
@@ -100,8 +100,29 @@ export class GenericDevice extends Device {
       const headerPart = Buffer.from(txHeader);
       const dataPart = Buffer.from(commandPacket);
       const checksumType = this.protocolConfig.packet_defaults.tx_checksum as ChecksumType;
-      const checksum = calculateChecksum(headerPart, dataPart, checksumType);
-      commandPacket.push(checksum);
+
+      const standardChecksums = new Set(['add', 'xor', 'add_no_header', 'xor_no_header', 'samsung_rx', 'samsung_tx', 'none']);
+
+      if (typeof checksumType === 'string') {
+        if (standardChecksums.has(checksumType)) {
+           const checksum = calculateChecksum(headerPart, dataPart, checksumType);
+           commandPacket.push(checksum);
+        } else {
+           // CEL Expression
+           // Pass full packet (header + cmd) as 'data' for checksum calculation
+           const fullData = [...txHeader, ...commandPacket];
+           const result = this.celExecutor.execute(checksumType, {
+               data: fullData,
+               len: fullData.length
+           });
+           if (typeof result === 'number') {
+               commandPacket.push(result);
+           } else if (Array.isArray(result)) {
+               // If returns array (like 2-byte checksum)
+               commandPacket.push(...result);
+           }
+        }
+      }
     }
 
     return commandPacket;

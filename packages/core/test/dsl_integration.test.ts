@@ -25,11 +25,10 @@ homenet_bridge:
       name: "Test Light"
       state:
         data: [0x01]
-      state_on: !lambda |-
-        if (data[0] === 0x01) return "ON";
-        return "";
-      command_on: !lambda |-
-        return [0x01, 0x02, 0x03, 0x04, 0x05];
+      state_on: >-
+        data[0] == 0x01 ? "ON" : ""
+      command_on: >-
+        [0x01, 0x02, 0x03, 0x04, 0x05]
 `;
     await fs.writeFile(tempConfigPath, yamlContent);
 

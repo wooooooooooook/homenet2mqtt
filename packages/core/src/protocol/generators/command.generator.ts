@@ -5,7 +5,6 @@ import {
   EntityConfig,
   CommandSchema,
   CommandLambdaConfig,
-  StateLambdaConfig,
 } from '../../domain/entities/base.entity.js';
 import { LightEntity } from '../../domain/entities/light.entity.js';
 import { ClimateEntity } from '../../domain/entities/climate.entity.js';
@@ -14,34 +13,24 @@ import { ButtonEntity } from '../../domain/entities/button.entity.js';
 import { SensorEntity } from '../../domain/entities/sensor.entity.js';
 import { FanEntity } from '../../domain/entities/fan.entity.js';
 import { SwitchEntity } from '../../domain/entities/switch.entity.js';
-import { BinarySensorEntity } from '../../domain/entities/binary-sensor.entity.js';
-import {
-  PacketDefaults,
-  ChecksumType,
-  Checksum2Type,
-  DecodeEncodeType,
-  EndianType,
-  ValueSource,
-  Extractor,
-  StateNumSchema,
-  StateSchema,
-  LambdaConfig,
-} from '../types.js';
+import { PacketDefaults, ChecksumType, Checksum2Type, StateNumSchema } from '../types.js';
 import { logger } from '../../utils/logger.js';
 import { EntityStateProvider } from '../packet-processor.js';
-import { hexToBytes, bytesToHex } from '../utils/common.js'; // Import utilities
 import { calculateChecksum, calculateChecksum2 } from '../utils/checksum.js';
-import { LambdaExecutor } from '../lambda-executor.js';
+import { CelExecutor } from '../cel-executor.js';
+import { Buffer } from 'buffer';
 
 export class CommandGenerator {
   private config: HomenetBridgeConfig;
   private stateProvider: EntityStateProvider;
-  private lambdaExecutor: LambdaExecutor;
+  private celExecutor: CelExecutor;
+
+  private readonly checksum2Types = new Set(['xor_add']);
 
   constructor(config: HomenetBridgeConfig, stateProvider: EntityStateProvider) {
     this.config = config;
     this.stateProvider = stateProvider;
-    this.lambdaExecutor = new LambdaExecutor();
+    this.celExecutor = new CelExecutor();
   }
 
   // --- Value Encoding/Decoding Logic ---
@@ -281,6 +270,7 @@ export class CommandGenerator {
 
     let commandSchema: CommandSchema | undefined;
 
+    // Entity type checks...
     if (entity.type === 'light') {
       const lightEntity = entity as LightEntity;
       if (commandName === 'command_on') commandSchema = lightEntity.command_on;
@@ -360,28 +350,27 @@ export class CommandGenerator {
       let checksum: number[];
 
       if (typeof packetDefaults.tx_checksum2 === 'string') {
-        checksum = calculateChecksum2(
-          headerPart,
-          dataPart,
-          packetDefaults.tx_checksum2 as Checksum2Type,
-        );
-      } else if ((packetDefaults.tx_checksum2 as any).type === 'lambda') {
-        // Lambda checksum2
-        const lambda = packetDefaults.tx_checksum2 as LambdaConfig;
-        const fullData = [...txHeader, ...commandData];
-        const result = this.lambdaExecutor.execute(lambda, {
-          data: fullData,
-          len: fullData.length,
-        });
+        const checksumOrScript = packetDefaults.tx_checksum2 as string;
 
-        // Validate result is array of 2 bytes
-        if (Array.isArray(result) && result.length === 2) {
-          checksum = result;
+        if (this.checksum2Types.has(checksumOrScript)) {
+          checksum = calculateChecksum2(headerPart, dataPart, checksumOrScript as Checksum2Type);
         } else {
-          logger.error(
-            `Lambda tx_checksum2 returned invalid result. Expected array of 2 bytes, got: ${JSON.stringify(result)}`,
-          );
-          checksum = [0, 0];
+          // CEL Expression
+          const fullData = [...txHeader, ...commandData];
+          const result = this.celExecutor.execute(checksumOrScript, {
+            data: fullData,
+            len: fullData.length,
+          });
+
+          // Validate result is array of 2 bytes
+          if (Array.isArray(result) && result.length === 2) {
+            checksum = result;
+          } else {
+            logger.error(
+              `CEL tx_checksum2 returned invalid result. Expected array of 2 bytes, got: ${JSON.stringify(result)}`,
+            );
+            checksum = [0, 0];
+          }
         }
       } else {
         logger.warn('Unknown tx_checksum2 type');
@@ -391,9 +380,6 @@ export class CommandGenerator {
       return [...txHeader, ...commandData, ...checksum, ...txFooter];
     }
 
-    // Fall back to default (no checksum)
-    // If tx_checksum is 'none' or undefined, and tx_checksum2 is undefined,
-    // we do not append any checksum byte.
     return [...txHeader, ...commandData, ...txFooter];
   }
 }
