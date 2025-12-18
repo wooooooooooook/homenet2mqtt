@@ -12,7 +12,10 @@ export class GenericDevice extends Device {
     this.celExecutor = new CelExecutor();
   }
 
-  public parseData(packet: number[]): Record<string, any> | null {
+  public parseData(
+    packet: number[],
+    states?: Map<string, Record<string, any>>,
+  ): Record<string, any> | null {
     if (!this.matchesPacket(packet)) {
       return null;
     }
@@ -35,6 +38,7 @@ export class GenericDevice extends Device {
         const result = this.celExecutor.execute(script, {
           data: packet,
           x: null, // No previous value for state extraction usually
+          states: states ? Object.fromEntries(states) : {}, // Pass global states if available
         });
 
         if (result !== undefined && result !== null && result !== '') {
@@ -64,7 +68,11 @@ export class GenericDevice extends Device {
     return hasUpdates ? updates : null;
   }
 
-  public constructCommand(commandName: string, value?: any): number[] | null {
+  public constructCommand(
+    commandName: string,
+    value?: any,
+    states?: Map<string, Record<string, any>>,
+  ): number[] | null {
     const entityConfig = this.config as any;
     const commandKey = `command_${commandName}`;
     const commandConfig = entityConfig[commandKey];
@@ -78,6 +86,7 @@ export class GenericDevice extends Device {
           x: value,
           data: [], // No packet data for command construction
           state: this.getState() || {},
+          states: states ? Object.fromEntries(states) : {}, // Pass global states
         });
 
         if (Array.isArray(result)) {
@@ -101,26 +110,34 @@ export class GenericDevice extends Device {
       const dataPart = Buffer.from(commandPacket);
       const checksumType = this.protocolConfig.packet_defaults.tx_checksum as ChecksumType;
 
-      const standardChecksums = new Set(['add', 'xor', 'add_no_header', 'xor_no_header', 'samsung_rx', 'samsung_tx', 'none']);
+      const standardChecksums = new Set([
+        'add',
+        'xor',
+        'add_no_header',
+        'xor_no_header',
+        'samsung_rx',
+        'samsung_tx',
+        'none',
+      ]);
 
       if (typeof checksumType === 'string') {
         if (standardChecksums.has(checksumType)) {
-           const checksum = calculateChecksum(headerPart, dataPart, checksumType);
-           commandPacket.push(checksum);
+          const checksum = calculateChecksum(headerPart, dataPart, checksumType);
+          commandPacket.push(checksum);
         } else {
-           // CEL Expression
-           // Pass full packet (header + cmd) as 'data' for checksum calculation
-           const fullData = [...txHeader, ...commandPacket];
-           const result = this.celExecutor.execute(checksumType, {
-               data: fullData,
-               len: fullData.length
-           });
-           if (typeof result === 'number') {
-               commandPacket.push(result);
-           } else if (Array.isArray(result)) {
-               // If returns array (like 2-byte checksum)
-               commandPacket.push(...result);
-           }
+          // CEL Expression
+          // Pass full packet (header + cmd) as 'data' for checksum calculation
+          const fullData = [...txHeader, ...commandPacket];
+          const result = this.celExecutor.execute(checksumType, {
+            data: fullData,
+            len: fullData.length,
+          });
+          if (typeof result === 'number') {
+            commandPacket.push(result);
+          } else if (Array.isArray(result)) {
+            // If returns array (like 2-byte checksum)
+            commandPacket.push(...result);
+          }
         }
       }
     }
