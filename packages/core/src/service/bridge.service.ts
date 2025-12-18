@@ -93,7 +93,7 @@ export class HomeNetBridge {
 
   async stop() {
     if (this.startPromise) {
-      await this.startPromise.catch(() => {});
+      await this.startPromise.catch(() => { });
     }
 
     for (const context of this.portContexts.values()) {
@@ -483,7 +483,6 @@ export class HomeNetBridge {
     this.config = this.options.configOverride ?? (await loadConfig(this.options.configPath));
     clearStateCache();
     this.commonMqttTopicPrefix = (this.options.mqttTopicPrefix || MQTT_TOPIC_PREFIX).trim();
-    logger.info('[core] MQTT 연결을 백그라운드에서 대기하며 시리얼 포트 연결을 진행합니다.');
 
     this.config.serials.forEach((serial, index) => {
       const normalizedPortId = normalizePortId(serial.portId, index);
@@ -517,7 +516,22 @@ export class HomeNetBridge {
       const serialPath = this.resolveSerialPath(serialConfig);
 
       const factory = this.options.serialFactory || createSerialPortConnection;
-      const port = await factory(serialPath, serialConfig);
+      logger.info({ serialPath, portId: normalizedPortId }, '[core] Connecting to serial port...');
+
+      let port: Duplex;
+      try {
+        port = await factory(serialPath, serialConfig);
+        logger.info(
+          { serialPath, portId: normalizedPortId },
+          '[core] Successfully connected to serial port',
+        );
+      } catch (err) {
+        logger.error(
+          { err, serialPath, portId: normalizedPortId },
+          '[core] Failed to connect to serial port',
+        );
+        throw err;
+      }
 
       const stateProvider = this.buildStateProvider(normalizedPortId);
       const packetProcessor = new PacketProcessor(this.config, stateProvider);

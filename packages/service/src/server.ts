@@ -133,6 +133,7 @@ let currentConfigs: HomenetBridgeConfig[] = [];
 
 let currentRawConfigs: HomenetBridgeConfig[] = [];
 let currentConfigErrors: (string | null)[] = [];
+let currentConfigStatuses: ('idle' | 'starting' | 'started' | 'error' | 'stopped')[] = [];
 let bridgeStatus: 'idle' | 'starting' | 'started' | 'stopped' | 'error' = 'idle';
 let bridgeError: string | null = null;
 let bridgeStartPromise: Promise<void> | null = null;
@@ -301,7 +302,8 @@ app.get('/api/bridge/info', async (_req, res) => {
       serials: serialTopics,
       mqttTopicPrefix: BASE_MQTT_PREFIX,
       topic: `${serialTopics[0]?.topic || `${BASE_MQTT_PREFIX}/homedevice1`}/raw`,
-      error: currentConfigErrors[configIndex],
+      error: currentConfigErrors[configIndex] || undefined,
+      status: currentConfigStatuses[configIndex] || 'idle',
     };
   });
 
@@ -1280,39 +1282,35 @@ async function loadAndStartBridges(filenames: string[]) {
       const mqttUsername = process.env.MQTT_USER?.trim() || undefined;
       const mqttPassword = process.env.MQTT_PASSWD?.trim() || undefined;
 
-      const startedBridges: BridgeInstance[] = [];
+      const newBridges: BridgeInstance[] = [];
+      const newConfigErrors: (string | null)[] = new Array(loadedConfigs.length).fill(null);
+      const newConfigStatuses: ('idle' | 'starting' | 'started' | 'error' | 'stopped')[] =
+        new Array(loadedConfigs.length).fill('starting');
 
+      // 1. Instantiate all bridges immediately
       for (let i = 0; i < loadedConfigs.length; i += 1) {
-        try {
-          const bridge = await createBridge(
-            resolvedPaths[i],
-            mqttUrl,
-            mqttUsername,
-            mqttPassword,
-            BASE_MQTT_PREFIX,
-            loadedConfigs[i],
-          );
+        const bridge = new HomeNetBridge({
+          configPath: resolvedPaths[i],
+          mqttUrl,
+          mqttUsername,
+          mqttPassword,
+          mqttTopicPrefix: BASE_MQTT_PREFIX,
+          configOverride: loadedConfigs[i],
+        });
 
-          startedBridges.push({
-            bridge,
-            configFile: filenames[i],
-            resolvedPath: resolvedPaths[i],
-            config: loadedConfigs[i],
-          });
-        } catch (err) {
-          logger.error(
-            { err, configFile: filenames[i] },
-            '[service] Failed to start bridge instance',
-          );
-          currentConfigErrors[i] =
-            err instanceof Error ? err.message : 'Unknown error during bridge start';
-        }
+        newBridges.push({
+          bridge,
+          configFile: filenames[i],
+          resolvedPath: resolvedPaths[i],
+          config: loadedConfigs[i],
+        });
       }
 
-      bridges = startedBridges;
+      bridges = newBridges;
+      currentConfigErrors = newConfigErrors;
+      currentConfigStatuses = newConfigStatuses;
 
-      // Init LogCollector with the new bridges
-      // We only pass successful bridges
+      // 2. Init LogCollector immediately
       const loadedConfigFiles = await Promise.all(
         resolvedPaths.map(async (p, idx) => ({
           name: filenames[idx],
@@ -1324,34 +1322,53 @@ async function loadAndStartBridges(filenames: string[]) {
         loadedConfigFiles,
       );
 
-      if (bridges.length > 0) {
-        bridgeStatus = 'started';
-        // If some failed, we might want to indicate partial success in global status,
-        // but 'started' is safer for UI compatibility. The individual errors will be shown.
-        if (bridges.length < loadedConfigs.length) {
-          bridgeError = 'Some bridges failed to start. Check details.';
-        } else {
-          bridgeError = null;
-        }
-        logger.info(
-          `[service] Bridges started: ${bridges.length}/${loadedConfigs.length} successful.`,
-        );
-      } else {
-        bridgeStatus = 'error';
-        bridgeError = 'All bridges failed to start.';
-        logger.error('[service] All bridges failed to start.');
-      }
+      // 3. Mark service as started effectively immediately, so API is available
+      bridgeStatus = 'started';
+      bridgeStartPromise = null; // Allow API access immediately
+
+      logger.info(
+        `[service] Bridge service initialized with ${currentConfigFiles.join(', ')}. Starting connections in background...`,
+      );
+
+      // 4. Start all bridges in background (non-blocking for API)
+      // We do not await this Promise.all, so the function returns and releases the lock.
+      Promise.all(
+        newBridges.map(async (instance, i) => {
+          try {
+            await instance.bridge.start();
+            currentConfigStatuses[i] = 'started';
+          } catch (err) {
+            logger.error(
+              { err, configFile: instance.configFile },
+              '[service] Failed to start bridge instance',
+            );
+            currentConfigStatuses[i] = 'error';
+            currentConfigErrors[i] =
+              err instanceof Error ? err.message : 'Unknown error during bridge start';
+          }
+        }),
+      ).catch((err) => {
+        // Should not happen as individual promises catch errors, but just in case
+        logger.error({ err }, '[service] Unexpected error in background startup');
+      });
     } catch (err) {
       bridgeStatus = 'error';
       bridgeError = err instanceof Error ? err.message : 'Unknown error during bridge start.';
       await stopAllBridges({ preserveStatus: true });
       logger.error({ err }, '[service] Failed to start bridge');
-    } finally {
       bridgeStartPromise = null;
     }
   })();
 
-  return bridgeStartPromise;
+  // We return a resolved promise immediately so the caller doesn't wait
+  // The actual initialization (loading config) is awaited above,
+  // but the connection phase (bridge.start) happens in background after bridgeStartPromise is cleared.
+  // Wait, the wrapper IIFE is async, so `bridgeStartPromise` is the Promise of that IIFE.
+  // We need to make sure `bridgeStartPromise` variable itself is cleared/resolved when we want API to follow.
+  // The current logic assigns the IIFE promise to `bridgeStartPromise`.
+  // To make it non-blocking for API check `if (bridgeStartPromise)`, we set `bridgeStartPromise = null` inside the IIFE.
+  // This is already done in step 3.
+  return Promise.resolve();
 }
 
 function resolveMqttUrl(queryValue: unknown, defaultValue?: string) {

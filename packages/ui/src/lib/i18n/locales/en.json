@@ -76,6 +76,7 @@
     "mqtt_label": "MQTT:",
     "mqtt_waiting": "Waiting for MQTT stream...",
     "bridge_error": "Bridge Error: {error}",
+    "port_error": "Port Error: {error}",
     "no_configured_ports": "No configured ports found.",
     "port_tabs_aria": "Select Port",
     "show_inactive_entities": "Show Inactive Entities",

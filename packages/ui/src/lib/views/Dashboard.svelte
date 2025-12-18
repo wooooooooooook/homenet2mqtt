@@ -28,7 +28,13 @@
     bridgeInfo: BridgeInfo | null;
     infoLoading: boolean;
     infoError: string;
-    portMetadata: Array<BridgeSerialInfo & { configFile: string; error?: string }>;
+    portMetadata: Array<
+      BridgeSerialInfo & {
+        configFile: string;
+        error?: string;
+        status?: 'idle' | 'starting' | 'started' | 'error' | 'stopped';
+      }
+    >;
     mqttUrl: string;
     entities: UnifiedEntity[];
     selectedPortId: string | null;
@@ -47,7 +53,13 @@
 
   const portIds = $derived.by<string[]>(() =>
     portMetadata.map(
-      (port: BridgeSerialInfo & { configFile: string; error?: string }) => port.portId,
+      (
+        port: BridgeSerialInfo & {
+          configFile: string;
+          error?: string;
+          status?: 'idle' | 'starting' | 'started' | 'error' | 'stopped';
+        },
+      ) => port.portId,
     ),
   );
   const activePortId = $derived.by<string | null>(() =>
@@ -64,6 +76,14 @@
         p.portId === portId,
     );
     return portStatus?.status ?? 'unknown';
+  }
+
+  function getPortErrorMessage(portId: string): string | undefined {
+    const portStatus = portStatuses.find(
+      (p: { portId: string; status: BridgeStatus | 'unknown'; message?: string }) =>
+        p.portId === portId,
+    );
+    return portStatus?.message;
   }
 
   function handleSelect(entityId: string, portId?: string) {
@@ -151,6 +171,15 @@
     <!-- Port-specific Details Section -->
     <div class="port-details-container">
       {#if activePortId}
+        <!-- Port Error Message -->
+        {#if getPortStatus(activePortId) === 'error' && getPortErrorMessage(activePortId)}
+          <div class="port-error">
+            <p class="error subtle">
+              {$t('dashboard.port_error', { values: { error: getPortErrorMessage(activePortId) } })}
+            </p>
+          </div>
+        {/if}
+
         <!-- Minimized Port Metadata -->
         {#each portMetadata.filter((p: BridgeSerialInfo & { configFile: string; error?: string }) => p.portId === activePortId) as port (port.portId)}
           <div class="port-meta-mini">
@@ -323,6 +352,10 @@
 
   .bridge-error {
     margin-top: 1rem;
+  }
+
+  .port-error {
+    margin-bottom: 0.5rem;
   }
 
   .error {

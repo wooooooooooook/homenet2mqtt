@@ -53,6 +53,7 @@ export type BridgeEntry = {
   mqttTopicPrefix: string;
   topic: string;
   error?: string;
+  status: 'idle' | 'starting' | 'started' | 'error' | 'stopped';
 };
 
 export type BridgeInfo = {

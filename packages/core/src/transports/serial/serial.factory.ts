@@ -10,14 +10,12 @@ export async function createSerialPortConnection(
   serialPath: string,
   serialConfig: SerialConfig,
 ): Promise<Duplex> {
-  logger.info({ serialPath, baudRate: serialConfig.baud_rate }, '[serial] 시리얼 포트 연결 시도');
-
   let port: Duplex;
   if (isTcpConnection(serialPath)) {
     const [host, tcpPort] = serialPath.split(':');
     const portNumber = Number(tcpPort);
 
-    const connectTcp = async (retries = 10, delayMs = 2000): Promise<net.Socket> => {
+    const connectTcp = async (retries = 3, delayMs = 2000): Promise<net.Socket> => {
       return new Promise((resolve, reject) => {
         const socket = net.createConnection({ host, port: portNumber });
 
@@ -31,7 +29,7 @@ export async function createSerialPortConnection(
           socket.destroy();
 
           if (retries > 0) {
-            logger.warn({ err, remainingRetries: retries }, '[serial] TCP 연결 실패, 재시도 중...');
+            logger.warn({ err, remainingRetries: retries }, '[serial] failed to connect TCP, retrying...');
             await new Promise((r) => setTimeout(r, delayMs));
             try {
               const newSocket = await connectTcp(retries - 1, delayMs);

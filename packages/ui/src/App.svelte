@@ -756,12 +756,19 @@
 
   const portMetadata = $derived.by(() => {
     if (!bridgeInfo?.bridges)
-      return [] as Array<BridgeSerialInfo & { configFile: string; error?: string }>;
+      return [] as Array<
+        BridgeSerialInfo & {
+          configFile: string;
+          error?: string;
+          status?: 'idle' | 'starting' | 'started' | 'error' | 'stopped';
+        }
+      >;
     return bridgeInfo.bridges.flatMap((bridge) =>
       bridge.serials.map((serial) => ({
         ...serial,
         configFile: bridge.configFile,
         error: bridge.error,
+        status: bridge.status,
       })),
     );
   });
@@ -966,7 +973,7 @@
   const portStatuses = $derived.by(() => {
     const defaultStatus = bridgeInfo?.status ?? 'idle';
     return portMetadata.map((port) => {
-      // If the bridge itself failed to start, mark it as error immediately.
+      // 1. If explicit startup error (from config loading/connect failure)
       if (port.error) {
         return {
           portId: port.portId,
@@ -975,16 +982,31 @@
         };
       }
 
-      const payload = bridgeStatusByPort.get(port.portId);
-      const normalized = ['idle', 'starting', 'started', 'stopped', 'error'].includes(
-        (payload || defaultStatus) as string,
+      // 2. If the bridge reports a specific status (e.g. 'starting', 'error') via API
+      if (port.status && port.status !== 'idle' && port.status !== 'started') {
+        return {
+          portId: port.portId,
+          status: port.status as BridgeStatus,
+          message: undefined,
+        };
+      }
+
+      // 3. Fallback to MQTT status if bridge claims to be 'started' or 'idle'
+      // If port.status is 'started', we trust it unless MQTT says otherwise (e.g. last will 'offline')
+      const mqttStatus = bridgeStatusByPort.get(port.portId);
+      const normalizedMqttStatus = ['idle', 'starting', 'started', 'stopped', 'error'].includes(
+        (mqttStatus || '') as string,
       )
-        ? ((payload || defaultStatus) as BridgeStatus)
-        : 'idle';
+        ? (mqttStatus as BridgeStatus)
+        : null;
+
+      // If we have an MQTT status, use it. Otherwise, use the API status (which might be 'started')
+      const finalStatus = normalizedMqttStatus || (port.status as BridgeStatus) || defaultStatus;
+
       return {
         portId: port.portId,
-        status: normalized as BridgeStatus,
-        message: payload || undefined,
+        status: finalStatus,
+        message: mqttStatus || undefined,
       };
     });
   });
