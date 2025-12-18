@@ -976,4 +976,37 @@
   .danger-zone h3 {
     color: #f87171;
   }
+
+  @media (max-width: 768px) {
+    .overlay {
+      padding: 0;
+      align-items: flex-end;
+    }
+
+    .modal {
+      width: 100%;
+      height: 100%;
+      max-width: none;
+      border-radius: 0;
+      border: none;
+      border-top: 1px solid #334155; /* Optional: adds a slight separation if partial height was used, but for fullscreen it might not be needed. Keeping border: none as per plan */
+    }
+
+    .modal-header {
+      padding: 1rem;
+    }
+
+    .modal-tabs {
+      padding: 0 1rem;
+      overflow-x: auto; /* Ensure tabs are scrollable if they overflow */
+    }
+
+    .modal-body {
+      padding: 1rem;
+    }
+
+    .manage-card {
+      padding: 1rem;
+    }
+  }
 </style>
