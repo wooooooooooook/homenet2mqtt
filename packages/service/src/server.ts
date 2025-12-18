@@ -339,6 +339,7 @@ app.get('/api/bridge/info', async (_req, res) => {
     status: bridgeStatus,
     error: bridgeError,
     topic: firstTopic,
+    allowConfigUpdate: process.env.ALLOW_CONFIG_UPDATE === 'true',
   });
 });
 
@@ -865,6 +866,21 @@ app.get('/api/config/raw/:entityId', (req, res) => {
 });
 
 app.post('/api/config/update', async (req, res) => {
+  // Security: Block config update by default to prevent RCE via lambda injection
+  // Set ALLOW_CONFIG_UPDATE=true to enable (use with caution)
+  const allowConfigUpdate = process.env.ALLOW_CONFIG_UPDATE === 'true';
+  if (!allowConfigUpdate) {
+    logger.warn(
+      { ip: req.ip, path: req.path },
+      '[service] Config update blocked (ALLOW_CONFIG_UPDATE is not enabled)',
+    );
+    return res.status(403).json({
+      error: 'CONFIG_UPDATE_DISABLED',
+      message:
+        '설정 업데이트는 보안상 기본값으로 비활성화되어 있습니다. 위험을 감수하고 이용하려면 ALLOW_CONFIG_UPDATE=true 환경 변수를 설정하세요.',
+    });
+  }
+
   const {
     entityId,
     yaml: newEntityYaml,

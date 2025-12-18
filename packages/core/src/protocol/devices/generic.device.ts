@@ -20,6 +20,14 @@ export class GenericDevice extends Device {
     const updates: Record<string, any> = {};
     let hasUpdates = false;
 
+    // Key mapping for lambda results to match HA discovery expectations
+    const keyMapping: Record<string, string> = {
+      temperature_target: 'target_temperature',
+      temperature_current: 'current_temperature',
+      humidity_target: 'target_humidity',
+      humidity_current: 'current_humidity',
+    };
+
     // Check for state lambdas
     for (const key in entityConfig) {
       if (key.startsWith('state_') && entityConfig[key]?.type === 'lambda') {
@@ -30,8 +38,11 @@ export class GenericDevice extends Device {
         });
 
         if (result !== undefined && result !== null && result !== '') {
-          // Remove 'state_' prefix
-          const stateKey = key.replace('state_', '');
+          // Remove 'state_' prefix and apply key mapping if needed
+          let stateKey = key.replace('state_', '');
+          if (keyMapping[stateKey]) {
+            stateKey = keyMapping[stateKey];
+          }
           updates[stateKey] = result;
           hasUpdates = true;
         }

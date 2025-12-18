@@ -130,7 +130,8 @@
       "save": "Save",
       "save_success": "Saved successfully (Backup: {backup})",
       "load_error": "Failed to load config.",
-      "save_error": "Failed to save."
+      "save_error": "Failed to save.",
+      "disabled_notice": "Config editing is disabled. (ALLOW_CONFIG_UPDATE=false)"
     },
     "packets": {
       "title": "Packet Log (RX/TX)",
@@ -192,7 +193,8 @@
     "SETTINGS_SAVE_FAILED": "Failed to save frontend settings.",
     "COMMANDS_LOAD_FAILED": "Failed to load commands.",
     "RENAME_EMPTY_NAME": "Please enter a new name.",
-    "RENAME_FAILED": "Failed to rename."
+    "RENAME_FAILED": "Failed to rename.",
+    "CONFIG_UPDATE_DISABLED": "Config update is disabled. Set ALLOW_CONFIG_UPDATE=true environment variable."
   },
   "toasts": {
     "command_sent": "{entity} Command Sent",

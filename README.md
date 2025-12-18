@@ -47,6 +47,7 @@ pnpm dev:down       # 개발용 컨테이너 정리
 | `LOG_LEVEL` | `pino` 로거 레벨 (`trace`~`fatal`) | `info` |
 | `PORT` | Express API 및 UI 프록시 포트 | `3000` |
 | `CONFIG_ROOT` | API에서 노출할 설정 디렉터리 | `packages/core/config` |
+| `ALLOW_CONFIG_UPDATE` | ⚠️ **보안 주의**: `true` 설정 시 API를 통한 설정 변경 허용 (Lambda 주입 RCE 위험) | `false` |
 | `VITE_API_URL` | UI 개발 서버에서 프록시할 API URL | `http://app:3000` |
 | `MQTT_TOPIC_PREFIX` | MQTT 토픽 접두사 (최종 토픽은 `${MQTT_TOPIC_PREFIX}/{portId}/{entityId}/...`) | `homenet2mqtt` |
 

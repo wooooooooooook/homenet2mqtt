@@ -130,7 +130,8 @@
       "save": "저장",
       "save_success": "저장 완료 (백업: {backup})",
       "load_error": "설정 정보를 불러올 수 없습니다.",
-      "save_error": "저장에 실패했습니다."
+      "save_error": "저장에 실패했습니다.",
+      "disabled_notice": "설정 수정이 비활성화되어 있습니다. (ALLOW_CONFIG_UPDATE=false)"
     },
     "packets": {
       "title": "패킷 로그 (RX/TX)",
@@ -192,7 +193,8 @@
     "SETTINGS_SAVE_FAILED": "프론트 설정을 저장하지 못했습니다.",
     "COMMANDS_LOAD_FAILED": "명령 목록을 불러오지 못했습니다.",
     "RENAME_EMPTY_NAME": "새 이름을 입력해주세요.",
-    "RENAME_FAILED": "이름 변경에 실패했습니다."
+    "RENAME_FAILED": "이름 변경에 실패했습니다.",
+    "CONFIG_UPDATE_DISABLED": "설정 수정이 비활성화되어 있습니다. ALLOW_CONFIG_UPDATE=true 환경 변수를 설정하세요."
   },
   "toasts": {
     "command_sent": "{entity} 명령 전송",

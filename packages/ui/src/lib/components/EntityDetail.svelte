@@ -11,6 +11,7 @@
     isOpen,
     isRenaming = false,
     renameError = null,
+    allowConfigUpdate = true,
   } = $props<{
     entity: UnifiedEntity;
     parsedPackets?: ParsedPacket[];
@@ -18,6 +19,7 @@
     isOpen: boolean;
     isRenaming?: boolean;
     renameError?: string | null;
+    allowConfigUpdate?: boolean;
   }>();
 
   const dispatch = createEventDispatcher<{
@@ -362,14 +364,24 @@
                 <div class="loading">{$t('entity_detail.config.loading')}</div>
               {:else}
                 <div class="config-editor-container">
-                  <textarea class="config-editor" bind:value={editingConfig} spellcheck="false"
+                  <textarea
+                    class="config-editor"
+                    bind:value={editingConfig}
+                    spellcheck="false"
+                    disabled={!allowConfigUpdate}
                   ></textarea>
                   <div class="config-actions">
-                    <button class="save-btn" onclick={saveConfig} disabled={isSaving}>
-                      {isSaving
-                        ? $t('entity_detail.config.saving')
-                        : $t('entity_detail.config.save')}
-                    </button>
+                    {#if allowConfigUpdate}
+                      <button class="save-btn" onclick={saveConfig} disabled={isSaving}>
+                        {isSaving
+                          ? $t('entity_detail.config.saving')
+                          : $t('entity_detail.config.save')}
+                      </button>
+                    {:else}
+                      <span class="save-message error"
+                        >{$t('entity_detail.config.disabled_notice')}</span
+                      >
+                    {/if}
                     {#if saveMessage}
                       <span class="save-message success">{saveMessage}</span>
                     {/if}
