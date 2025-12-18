@@ -1,4 +1,4 @@
-import { eventBus } from '@rs485-homenet/core';
+import { eventBus, type StateChangedEvent, type MqttMessageEvent } from '@rs485-homenet/core';
 
 export interface ActivityLog {
   timestamp: number;
@@ -35,7 +35,7 @@ export class ActivityLogService {
   }
 
   private subscribeToEvents() {
-    eventBus.on('state:changed', (event) => {
+    eventBus.on('state:changed', (event: StateChangedEvent) => {
       if (!event.changes || typeof event.changes !== 'object') return;
 
       Object.entries(event.changes).forEach(([key, value]) => {
@@ -59,13 +59,13 @@ export class ActivityLogService {
       });
     });
 
-    eventBus.on('mqtt-message', (event) => {
+    eventBus.on('mqtt-message', (event: MqttMessageEvent) => {
       if (event.topic.endsWith('/set')) {
         this.addLog(
           'log.command_received',
           {
             topic: event.topic,
-            message: event.message,
+            message: event.payload,
           },
           undefined, // portId unknown here usually
         );
