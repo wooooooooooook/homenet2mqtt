@@ -106,11 +106,7 @@
   <div class="view-header">
     <h1>{$t('settings.title')}</h1>
     <div class="lang-switcher">
-      <select
-        value={$locale}
-        onchange={handleLocaleChange}
-        disabled={isSaving || isLoading}
-      >
+      <select value={$locale} onchange={handleLocaleChange} disabled={isSaving || isLoading}>
         {#each $locales as l}
           <option value={l}>
             {l === 'ko' ? $t('common.korean') : $t('common.english')}

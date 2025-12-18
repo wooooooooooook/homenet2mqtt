@@ -9,3 +9,6 @@ coverage
 *.log
 logs
 pnpm-lock.yaml
+packages/core/config/frontend-setting.json
+packages/core/config/log_sharing.json
+packages/core/config/sim_commax.homenet_bridge.yaml
