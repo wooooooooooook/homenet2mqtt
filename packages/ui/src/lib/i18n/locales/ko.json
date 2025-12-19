@@ -206,7 +206,8 @@
     "SERIAL_PATH_REQUIRED": "시리얼 포트 경로를 입력해주세요.",
     "EXAMPLE_NOT_FOUND": "예제 설정 파일을 찾을 수 없습니다.",
     "EXAMPLE_READ_FAILED": "예제 설정 파일을 읽을 수 없습니다.",
-    "SERIAL_CONFIG_MISSING": "설정 파일에 serial 설정이 없습니다."
+    "SERIAL_CONFIG_MISSING": "설정 파일에 serial 설정이 없습니다.",
+    "SERIAL_TEST_FAILED": "시리얼 경로 테스트에 실패했습니다."
   },
   "setup_wizard": {
     "title": "초기 설정",
@@ -218,6 +219,11 @@
     "serial_path_label": "시리얼 포트 경로",
     "serial_path_placeholder": "/dev/ttyUSB0 또는 192.168.0.100:8899",
     "serial_path_hint": "RS485 장치 경로 또는 TCP 주소를 입력하세요.",
+    "serial_test_button": "시리얼 경로 테스트",
+    "serial_test_running": "시리얼 경로를 확인 중입니다...",
+    "serial_test_wait": "RAW 패킷을 수신하는 중입니다...",
+    "serial_test_empty": "아직 수신된 RAW 패킷이 없습니다. 배선을 확인하거나 다시 시도해주세요.",
+    "serial_test_error": "시리얼 경로를 읽는 데 실패했습니다. 다시 시도해주세요.",
     "validation_error": "예제와 시리얼 포트 경로를 모두 입력해주세요.",
     "step_config": "설정",
     "step_consent": "동의",

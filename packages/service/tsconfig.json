@@ -3,7 +3,11 @@
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": "src",
-    "declaration": false
+    "declaration": false,
+    "paths": {
+      "@rs485-homenet/core": ["../core/src/index.ts"],
+      "@rs485-homenet/core/*": ["../core/src/*"]
+    }
   },
   "include": ["src/**/*"]
 }
