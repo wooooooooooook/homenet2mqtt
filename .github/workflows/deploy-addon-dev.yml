@@ -1,6 +1,13 @@
 name: Deploy Addon Dev
 
+concurrency:
+  group: deploy-addon-dev-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
