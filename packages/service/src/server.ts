@@ -38,7 +38,9 @@ const resolveConfigRoot = (): string => {
 };
 
 const CONFIG_DIR = resolveConfigRoot();
+const EXAMPLES_DIR = path.resolve(__dirname, '../../core/config/examples');
 const FRONTEND_SETTINGS_FILE = path.join(CONFIG_DIR, 'frontend-setting.json');
+const INITIALIZED_FILE = path.join(CONFIG_DIR, '.initialized');
 type PersistableHomenetBridgeConfig = Omit<HomenetBridgeConfig, 'serials'> & {
   serials?: HomenetBridgeConfig['serials'];
 };
@@ -124,7 +126,7 @@ let currentConfigs: HomenetBridgeConfig[] = [];
 let currentRawConfigs: HomenetBridgeConfig[] = [];
 let currentConfigErrors: (string | null)[] = [];
 let currentConfigStatuses: ('idle' | 'starting' | 'started' | 'error' | 'stopped')[] = [];
-let bridgeStatus: 'idle' | 'starting' | 'started' | 'stopped' | 'error' = 'idle';
+let bridgeStatus: 'idle' | 'starting' | 'started' | 'stopped' | 'error' | 'setup' = 'idle';
 let bridgeError: string | null = null;
 let bridgeStartPromise: Promise<void> | null = null;
 
@@ -368,6 +370,66 @@ app.post('/api/log-sharing/consent', async (req, res) => {
   await logCollectorService.updateConsent(consent);
   const status = await logCollectorService.getPublicStatus();
   res.json(status);
+});
+
+// --- Setup API ---
+app.get('/api/setup/templates', async (_req, res) => {
+  try {
+    const files = await fs.readdir(EXAMPLES_DIR);
+    const templates = files
+      .filter((f) => /\.ya?ml$/.test(f))
+      .map((f) => ({
+        filename: f,
+      }));
+    res.json({ templates });
+  } catch (err) {
+    logger.error({ err }, '[service] Failed to list templates');
+    res.status(500).json({ error: 'Failed to list templates' });
+  }
+});
+
+app.post('/api/setup/initialize', async (req, res) => {
+  const { template } = req.body;
+  if (!template) {
+    return res.status(400).json({ error: 'Template filename required' });
+  }
+
+  // Security: Sanitize filename to prevent directory traversal
+  const sanitizedTemplate = path.basename(template);
+  if (sanitizedTemplate !== template) {
+    return res.status(400).json({ error: 'Invalid template filename' });
+  }
+
+  try {
+    const sourcePath = path.join(EXAMPLES_DIR, sanitizedTemplate);
+    // User requested "default.yaml" logic.
+    // We will save it as 'default.homenet_bridge.yaml' to match the auto-discovery pattern
+    // unless configured otherwise.
+    const targetFilename = 'default.homenet_bridge.yaml';
+    const targetPath = path.join(CONFIG_DIR, targetFilename);
+
+    // Verify source exists
+    await fs.access(sourcePath);
+
+    // Copy file
+    await fs.copyFile(sourcePath, targetPath);
+
+    // Create .initialized flag
+    await fs.writeFile(INITIALIZED_FILE, new Date().toISOString());
+
+    logger.info(
+      { template, target: targetFilename },
+      '[service] Initialized configuration from template',
+    );
+
+    // Start bridges
+    await loadAndStartBridges([targetFilename]);
+
+    res.json({ success: true });
+  } catch (err) {
+    logger.error({ err }, '[service] Failed to initialize');
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Setup failed' });
+  }
 });
 
 type StreamEvent =
@@ -1449,18 +1511,23 @@ server.listen(port, async () => {
         : (await fs.readdir(CONFIG_DIR)).filter((file) => /\.homenet_bridge\.ya?ml$/.test(file));
 
     if (availableConfigFiles.length === 0) {
-      throw new Error('No homenet_bridge configuration files found in config directory.');
+      // Check for .initialized flag to distinguish between "first run" and "deleted config"
+      // actually, "no config" is enough to trigger setup, but user asked for logic involving the flag.
+      // If we are here, it means no valid config files exist.
+      // We will enter setup mode.
+      logger.info('[service] No configuration files found. Entering setup mode.');
+      bridgeStatus = 'setup';
+    } else {
+      logger.info(
+        {
+          configFiles: availableConfigFiles.map((file) => path.basename(file)),
+          configRoot: CONFIG_DIR,
+        },
+        '[service] Starting bridge with configuration files',
+      );
+
+      await loadAndStartBridges(availableConfigFiles);
     }
-
-    logger.info(
-      {
-        configFiles: availableConfigFiles.map((file) => path.basename(file)),
-        configRoot: CONFIG_DIR,
-      },
-      '[service] Starting bridge with configuration files',
-    );
-
-    await loadAndStartBridges(availableConfigFiles);
   } catch (err) {
     logger.error({ err }, '[service] Initial bridge start failed');
     bridgeStatus = 'error';

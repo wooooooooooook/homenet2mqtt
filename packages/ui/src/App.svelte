@@ -23,6 +23,7 @@
   import Header from './lib/components/Header.svelte';
   import Dashboard from './lib/views/Dashboard.svelte';
   import Analysis from './lib/views/Analysis.svelte';
+  import Setup from './lib/views/Setup.svelte';
 
   import LogConsentModal from './lib/components/LogConsentModal.svelte';
   import EntityDetail from './lib/components/EntityDetail.svelte';
@@ -32,7 +33,7 @@
   const MAX_PACKETS = 1000;
 
   // -- State --
-  let activeView = $state<'dashboard' | 'analysis' | 'settings'>('dashboard');
+  let activeView = $state<'dashboard' | 'analysis' | 'settings' | 'setup'>('dashboard');
   // Entity selection uses a composite key: "portId:entityId" to distinguish entities across ports
   let selectedEntityKey = $state<string | null>(null);
   let isSidebarOpen = $state(false);
@@ -311,6 +312,14 @@
       const data = await apiRequest<BridgeInfo>('./api/bridge/info');
 
       bridgeInfo = data;
+
+      // Check for setup mode
+      if (data.status === 'setup') {
+        activeView = 'setup';
+        infoLoading = false;
+        return;
+      }
+
       bridgeStatusByPort = new Map();
       rawPackets = [];
       deviceStates.clear();
@@ -469,21 +478,6 @@
         statusMessage = 'mqtt.connected';
       } else if (state === 'subscribed') {
         connectionStatus = 'connected';
-        // params will be handled by translation component if we pass params separately,
-        // but currently Dashboard receives a single string.
-        // We can pre-interpolate here if we had access to $t inside script,
-        // OR we change statusMessage to be an object or use a convention.
-        // Given current architecture, let's keep it simple: pass a special string format or handle it in Dashboard.
-        // To support params like {topic}, we need to change how statusMessage is used.
-        // However, since we don't want to refactor Dashboard props too much right now,
-        // let's try to pass the key and rely on Dashboard to translate it.
-        // BUT 'subscribed' needs a param.
-        // Hack: We will store JSON string if params are needed, or handle it in Dashboard.
-        // Better: Dashboard uses $t(statusMessage)
-        // For params: statusMessage = JSON.stringify({ key: 'mqtt.subscribed', values: { topic: data.topic } })
-        // This is getting complicated for a simple status.
-        // Let's modify handleStatus to dispatch an object or simply use a dedicated store for status.
-        // For now, let's use the simplest approach compatible with Dashboard's string prop.
         statusMessage = JSON.stringify({ key: 'mqtt.subscribed', values: { topic: data.topic } });
       } else if (state === 'error') {
         connectionStatus = 'error';
@@ -1019,11 +1013,16 @@
   <div class="loading-screen">Loading resources...</div>
 {:else}
   <main class="app-container">
-    <Header on:toggleSidebar={() => (isSidebarOpen = !isSidebarOpen)} />
-    <div class="content-body">
-      <Sidebar bind:activeView isOpen={isSidebarOpen} on:close={() => (isSidebarOpen = false)} />
+    {#if activeView !== 'setup'}
+      <Header on:toggleSidebar={() => (isSidebarOpen = !isSidebarOpen)} />
+    {/if}
 
-      <section class="main-content">
+    <div class="content-body">
+      {#if activeView !== 'setup'}
+        <Sidebar bind:activeView isOpen={isSidebarOpen} on:close={() => (isSidebarOpen = false)} />
+      {/if}
+
+      <section class="main-content" class:setup-content={activeView === 'setup'}>
         {#if activeView === 'dashboard'}
           <Dashboard
             {bridgeInfo}
@@ -1073,6 +1072,8 @@
             on:toastChange={(e) => updateToastSetting(e.detail.key, e.detail.value)}
             on:localeChange={(e) => updateLocaleSetting(e.detail.value)}
           />
+        {:else if activeView === 'setup'}
+          <Setup />
         {/if}
       </section>
     </div>
@@ -1132,10 +1133,22 @@
     height: calc(100vh - 65px); /* Header height */
   }
 
+  .setup-content {
+    margin-left: 0 !important;
+    max-width: 100% !important;
+    padding: 0;
+    height: 100vh;
+  }
+
   @media (min-width: 769px) {
     .main-content {
       margin-left: 250px; /* Sidebar width */
       max-width: calc(100% - 250px);
+    }
+
+    .setup-content {
+      margin-left: 0;
+      max-width: 100%;
     }
   }
 

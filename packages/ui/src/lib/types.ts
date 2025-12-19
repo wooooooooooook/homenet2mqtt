@@ -38,7 +38,7 @@ export interface ActivityLog {
   portId?: string;
 }
 
-export type BridgeStatus = 'idle' | 'starting' | 'started' | 'stopped' | 'error';
+export type BridgeStatus = 'idle' | 'starting' | 'started' | 'stopped' | 'error' | 'setup';
 
 export type BridgeSerialInfo = {
   portId: string;
