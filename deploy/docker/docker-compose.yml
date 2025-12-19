@@ -1,63 +1,29 @@
 services:
-  simulator:
-    build:
-      context: ../..
-      dockerfile: deploy/docker/simulator.Dockerfile
-    container_name: rs485-simulator
+  homenet2mqtt:
+    image: nubiz/homenet2mqtt:latest
+    container_name: homenet2mqtt
     environment:
-      SIMULATOR_LINK_PATH: /simshare/rs485-sim-tty
-      SIMULATOR_INTERVAL_MS: '1000'
-    volumes:
-      - simshare:/simshare
-    restart: unless-stopped
-
-  app:
-    build:
-      context: ../..
-      dockerfile: deploy/docker/app.Dockerfile
-    container_name: rs485-core
-    environment:
-      SERIAL_PORT: 192.168.0.83:8888
-      MQTT_URL: mqtt://mq:1883
+      # 설정 파일 목록 (쉼표로 구분)
+      CONFIG_FILES: default.homenet_bridge.yaml,
+      # MQTT 브로커 URL
+      MQTT_URL: mqtt://localhost:1883
+      # 웹 UI 포트
       PORT: '3000'
+      # 로그 레벨 (debug, info, warn, error)
+      LOG_LEVEL: info
+      # MQTT 인증 설정
+      MQTT_NEED_LOGIN: 'false'
+      MQTT_USER: ''
+      MQTT_PASSWD: ''
+      MQTT_TOPIC_PREFIX: homenet2mqtt
     volumes:
-      - simshare:/simshare
+      # 설정 파일 볼륨
+      - ./h2m-config:/config
+      # 시리얼 포트 접근 (필요한 경우 주석 해제)
+      # - /dev/ttyUSB0:/dev/ttyUSB0
     ports:
       - '3000:3000'
-    depends_on:
-      simulator:
-        condition: service_started
-      mq:
-        condition: service_started
     restart: unless-stopped
+    # 시리얼 포트 사용 시 privileged 모드 필요
+    # privileged: true
 
-  mq:
-    image: eclipse-mosquitto:2
-    container_name: rs485-mqtt
-    ports:
-      - '1883:1883'
-    volumes:
-      - mosquitto_data:/mosquitto/data
-      - mosquitto_log:/mosquitto/log
-      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
-    restart: unless-stopped
-
-  homeassistant:
-    image: ghcr.io/home-assistant/home-assistant:stable
-    container_name: home-assistant
-    ports:
-      - '8123:8123'
-    volumes:
-      - homeassistant_config:/config
-    environment:
-      - TZ=UTC
-    depends_on:
-      mq:
-        condition: service_started
-    restart: unless-stopped
-
-volumes:
-  mosquitto_data:
-  mosquitto_log:
-  homeassistant_config:
-  simshare:

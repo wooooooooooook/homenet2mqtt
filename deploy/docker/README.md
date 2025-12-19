@@ -1,20 +1,69 @@
 # Docker 배포 가이드
 
-`deploy/docker/docker-compose.yml` 또는 `docker-compose.dev.yml`을 이용해 브릿지, MQTT 브로커, Home Assistant, 시뮬레이터를 기동할 수 있습니다. `CONFIG_ROOT` 볼륨을 비워서 올리면 서비스가 초기 설정 마법사 모드로 시작되어 예제 설정을 선택할 수 있습니다.
+Docker Hub의 `nubiz/homenet2mqtt` 이미지를 사용하여 빌드 없이 바로 배포할 수 있습니다.
+
+## 빠른 시작
+
+1. 아래 `docker-compose.yml`을 원하는 디렉토리에 저장합니다.
+2. `./h2m-config` 폴더를 생성하고 설정 파일을 넣습니다.
+3. `docker compose up -d` 실행
+
+```yaml
+services:
+  homenet2mqtt:
+    image: nubiz/homenet2mqtt:latest
+    container_name: homenet2mqtt
+    environment:
+      CONFIG_FILES: default.homenet_bridge.yaml
+      MQTT_URL: mqtt://localhost:1883
+      PORT: '3000'
+      LOG_LEVEL: info
+      MQTT_NEED_LOGIN: 'false'
+      MQTT_USER: ''
+      MQTT_PASSWD: ''
+      MQTT_TOPIC_PREFIX: homenet2mqtt
+    volumes:
+      - ./h2m-config:/config
+      # - /dev/ttyUSB0:/dev/ttyUSB0  # 시리얼 포트
+    ports:
+      - '3000:3000'
+    restart: unless-stopped
+    # privileged: true  # 시리얼 포트 사용 시
+```
 
 ## 초기화 절차
-1. `docker compose up -d`로 컨테이너를 최초 기동합니다. `CONFIG_ROOT`(기본 `/app/packages/core/config`)에 `default.homenet_bridge.yaml`과 `.initialized`가 모두 없으면 `/api/config/examples`가 예제 목록을 반환합니다.
-2. UI 또는 API로 원하는 예제 파일명을 `/api/config/examples/select`에 전달하면 `CONFIG_DIR/default.homenet_bridge.yaml`으로 복사되고 `.initialized` 플래그와 `.restart-required`가 생성됩니다.
-3. 서비스 프로세스가 종료되면 Compose의 `restart: unless-stopped` 정책에 따라 컨테이너가 자동 재시작되며, 새로 생성된 `default.homenet_bridge.yaml`로 브릿지가 기동됩니다.
-4. 추가 설정 파일을 사용하려면 컨테이너 재시작 후 `CONFIG_FILES`(혹은 레거시 `CONFIG_FILE`) 환경 변수를 지정하여 원하는 YAML 목록을 넘기면 됩니다. 환경 변수를 비워두면 자동으로 `default.homenet_bridge.yaml`이 로딩되며, 기본 번들 예시는 `packages/core/config/commax.homenet_bridge.yaml`이고 추가 샘플은 `packages/core/config/examples/`에 있습니다.
 
-## 설정 파일 우선순위
-| 상황 | 우선순위 |
-| --- | --- |
-| `.initialized` 없음 | 1) `CONFIG_DIR/default.homenet_bridge.yaml` → 2) `CONFIG_FILES`/`CONFIG_FILE` → 3) `CONFIG_DIR` 내 기타 `*.homenet_bridge.yaml` |
-| `.initialized` 존재 | 1) `CONFIG_FILES`/`CONFIG_FILE` → 2) `CONFIG_DIR` 내 모든 `*.homenet_bridge.yaml`(기본/레거시 포함) |
+1. **최초 실행**: 컨테이너가 처음 시작되면 `./h2m-config` 폴더에 기본 설정 파일과 예제 파일이 자동으로 복사됩니다.
+   - `default.homenet_bridge.yaml` - 기본 설정 파일
+   - `examples/` - 예제 설정 파일들 (kocom, commax 등)
+2. **설정 편집**: `./h2m-config` 폴더의 설정 파일을 사용자 환경에 맞게 수정합니다.
+3. **재시작**: `docker compose restart`로 새로운 설정을 적용합니다.
+
+## 환경변수
+
+| 변수 | 기본값 | 설명 |
+| --- | --- | --- |
+| `CONFIG_FILES` | `default.homenet_bridge.yaml` | 설정 파일 목록 (쉼표로 구분) |
+| `CONFIG_ROOT` | `/config` | 설정 파일 경로 |
+| `MQTT_URL` | `mqtt://localhost:1883` | MQTT 브로커 URL |
+| `MQTT_NEED_LOGIN` | `false` | MQTT 인증 사용 여부 |
+| `MQTT_USER` | (빈 값) | MQTT 사용자명 |
+| `MQTT_PASSWD` | (빈 값) | MQTT 비밀번호 |
+| `MQTT_TOPIC_PREFIX` | `homenet2mqtt` | MQTT 토픽 접두사 |
+| `LOG_LEVEL` | `info` | 로그 레벨 |
+| `PORT` | `3000` | 웹 UI 포트 |
+
+## 시리얼 포트 사용
+
+RS485 어댑터 사용 시:
+
+```yaml
+volumes:
+  - /dev/ttyUSB0:/dev/ttyUSB0
+privileged: true
+```
 
 ## 참고
-- 예제 경로: `packages/core/config/examples/`
-- 기본 설정 파일: `default.homenet_bridge.yaml`(초기 예제 선택 시 생성, 기본 번들은 `packages/core/config/commax.homenet_bridge.yaml`)
-- API는 `http://<HOST>:3000/api/...` 형태로 접근하며, 초기화 단계에서는 `/api/bridge/info`가 `CONFIG_INITIALIZATION_REQUIRED` 오류를 반환합니다.
+
+- 웹 UI: `http://<HOST>:3000`
+- 예제 설정: `./h2m-config/examples/`
