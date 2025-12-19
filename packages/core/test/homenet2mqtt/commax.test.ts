@@ -4,7 +4,7 @@ import { COMMAX_PACKETS } from '../../../simulator/src/commax';
 
 describe('HomeNet to MQTT - Commax Protocol', () => {
   it('should process light packets', async () => {
-    const { stateManager } = await setupTest('commax.homenet_bridge.yaml');
+    const { stateManager } = await setupTest('commax.yaml');
 
     // Light Breaker (ON) - Index 4
     processPacket(stateManager, COMMAX_PACKETS[4]);
@@ -27,7 +27,7 @@ describe('HomeNet to MQTT - Commax Protocol', () => {
   });
 
   it('should process other device packets', async () => {
-    const { stateManager } = await setupTest('commax.homenet_bridge.yaml');
+    const { stateManager } = await setupTest('commax.yaml');
 
     // Test heating or other devices if available
     if (COMMAX_PACKETS[10]) {

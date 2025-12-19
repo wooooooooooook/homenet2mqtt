@@ -4,7 +4,7 @@ import { KOCOM_PACKETS } from '../../../simulator/src/kocom';
 
 describe('HomeNet to MQTT - Kocom Protocol', () => {
   it('should process Kocom packets and publish state', async () => {
-    const { stateManager } = await setupTest('kocom.homenet_bridge.yaml');
+    const { stateManager } = await setupTest('kocom.yaml');
 
     // Room 0 Light 1 (ON) - Index 1
     processPacket(stateManager, KOCOM_PACKETS[1]);

@@ -106,7 +106,7 @@ describe('HomeNetBridge', () => {
     const { HomeNetBridge } = await import('../src/service/bridge.service.js');
 
     const bridge = new HomeNetBridge({
-      configPath: 'homenet_bridge.yaml',
+      configPath: 'test.yaml',
       mqttUrl: 'mqtt://localhost',
     });
 
@@ -152,7 +152,7 @@ homenet_bridge:
 `);
 
     const bridge = new HomeNetBridge({
-      configPath: 'homenet_bridge.yaml',
+      configPath: 'test.yaml',
       mqttUrl: 'mqtt://example',
     });
     await bridge.start();

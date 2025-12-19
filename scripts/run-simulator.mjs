@@ -33,7 +33,7 @@ async function main() {
   const linkPath = process.env.SIMULATOR_LINK_PATH ?? DEFAULT_LINK_PATH;
 
   const configPath =
-    process.env.CONFIG_PATH ?? 'packages/core/config/commax.homenet_bridge.yaml';
+    process.env.CONFIG_PATH ?? 'packages/core/config/examples/commax.yaml';
   const config = await loadYamlConfig(configPath);
   const checksumType = config.homenet_bridge.packet_defaults.tx_checksum;
 

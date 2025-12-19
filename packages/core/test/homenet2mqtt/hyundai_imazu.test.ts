@@ -4,7 +4,7 @@ import { HYUNDAI_IMAZU_PACKETS } from '../../../simulator/src/hyundai_imazu';
 
 describe('HomeNet to MQTT - Hyundai Imazu Protocol', () => {
   it('should process light packets', async () => {
-    const { stateManager } = await setupTest('hyundai_imazu.homenet_bridge.yaml');
+    const { stateManager } = await setupTest('hyundai_imazu.yaml');
 
     // Room 1 Light 2 (ON) - Index 4
     processPacket(stateManager, HYUNDAI_IMAZU_PACKETS[4]);
@@ -27,7 +27,7 @@ describe('HomeNet to MQTT - Hyundai Imazu Protocol', () => {
   });
 
   it('should process additional device packets', async () => {
-    const { stateManager } = await setupTest('hyundai_imazu.homenet_bridge.yaml');
+    const { stateManager } = await setupTest('hyundai_imazu.yaml');
 
     // Test other devices if available (heating, etc.)
     if (HYUNDAI_IMAZU_PACKETS[10]) {

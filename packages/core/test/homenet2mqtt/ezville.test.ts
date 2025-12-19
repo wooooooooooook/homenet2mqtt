@@ -4,7 +4,7 @@ import { EZVILLE_PACKETS } from '../../../simulator/src/ezville';
 
 describe('HomeNet to MQTT - Ezville Protocol', () => {
   it('should process Ezville packets and publish state', async () => {
-    const { stateManager } = await setupTest('ezville.homenet_bridge.yaml');
+    const { stateManager } = await setupTest('ezville.yaml');
 
     // light_1_0 (ON) - Index 4
     // Note: The simulator labels this as light_1_0, but the config/logic maps it to light_1_1

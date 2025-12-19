@@ -1446,10 +1446,12 @@ server.listen(port, async () => {
     const availableConfigFiles =
       configFilesFromEnv.length > 0
         ? configFilesFromEnv
-        : (await fs.readdir(CONFIG_DIR)).filter((file) => /\.homenet_bridge\.ya?ml$/.test(file));
+        : (await fs.readdir(CONFIG_DIR)).filter(
+            (file) => /\.ya?ml$/.test(file) && file !== 'frontend-setting.json',
+          );
 
     if (availableConfigFiles.length === 0) {
-      throw new Error('No homenet_bridge configuration files found in config directory.');
+      throw new Error('No configuration files found in config directory.');
     }
 
     logger.info(

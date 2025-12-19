@@ -4,7 +4,7 @@ import { CVNET_PACKETS } from '../../../simulator/src/cvnet';
 
 describe('HomeNet to MQTT - CVNet Protocol', () => {
   it('should process CVNet packets and publish state', async () => {
-    const { stateManager } = await setupTest('cvnet.homenet_bridge.yaml');
+    const { stateManager } = await setupTest('cvnet.yaml');
 
     // Room 0 Light 1 (ON)
     processPacket(stateManager, CVNET_PACKETS[1]);

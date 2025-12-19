@@ -4,7 +4,7 @@ import { SAMSUNG_SDS_PACKETS } from '../../../simulator/src/samsung_sds';
 
 describe('HomeNet to MQTT - Samsung SDS Protocol', () => {
   it('should process light packets', async () => {
-    const { stateManager } = await setupTest('samsung_sds.homenet_bridge.yaml');
+    const { stateManager } = await setupTest('samsung_sds.yaml');
 
     // Light 1 ON - AC protocol - Index 1
     // 참고: AC 79 00 GR PT -> B0 79 RN BM PT 형태
@@ -26,7 +26,7 @@ describe('HomeNet to MQTT - Samsung SDS Protocol', () => {
   });
 
   it('should process ventilator packets', async () => {
-    const { stateManager } = await setupTest('samsung_sds.homenet_bridge.yaml');
+    const { stateManager } = await setupTest('samsung_sds.yaml');
 
     // Ventilator OFF - C2 protocol - Index 14
     // 참고: C2 4E 00 00 00 PT -> B0 4E XX MM YY PT 형태
@@ -39,7 +39,7 @@ describe('HomeNet to MQTT - Samsung SDS Protocol', () => {
   });
 
   it('should process heating packets', async () => {
-    const { stateManager } = await setupTest('samsung_sds.homenet_bridge.yaml');
+    const { stateManager } = await setupTest('samsung_sds.yaml');
 
     // Room heater state - AE protocol - Index 18
     // 참고: AE 7C GR 00 00 00 00 PT -> B0 7C GR TG XX YY FF 32 형태

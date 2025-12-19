@@ -15,12 +15,12 @@ const CONFIG_DIR = path.resolve(__dirname, 'config');
 const OUTPUT_DIR = path.resolve(__dirname, '../../packages/simulator/src');
 
 const MANUFACTURERS = [
-  // { id: 'cvnet', file: 'cvnet.homenet_bridge.yaml' },
-  { id: 'ezville', file: 'ezville.homenet_bridge.yaml' },
-  // { id: 'hyundai_imazu', file: 'hyundai_imazu.homenet_bridge.yaml' },
-  { id: 'kocom', file: 'kocom.homenet_bridge.yaml' },
-  // { id: 'commax', file: 'commax.homenet_bridge.yaml' },
-  // { id: 'samsung_sds', file: 'samsung_sds.homenet_bridge.yaml' },
+  // { id: 'cvnet', file: 'cvnet.yaml' },
+  { id: 'ezville', file: 'ezville.yaml' },
+  // { id: 'hyundai_imazu', file: 'hyundai_imazu.yaml' },
+  { id: 'kocom', file: 'kocom.yaml' },
+  // { id: 'commax', file: 'commax.yaml' },
+  // { id: 'samsung_sds', file: 'samsung_sds.yaml' },
 ];
 
 function calculateChecksum(header, data, type) {
