@@ -16,7 +16,7 @@
     </button>
 
     <div class="logo">
-      <img src="/logo.png" alt="Homenet2MQTT" class="logo-icon" />
+      <img src="./logo.png" alt="Homenet2MQTT" class="logo-icon" />
       <span class="logo-text">Homenet2MQTT</span>
     </div>
 
