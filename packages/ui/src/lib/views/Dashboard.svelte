@@ -120,6 +120,8 @@
     </div>
   {:else if bridgeInfo.error === 'CONFIG_INITIALIZATION_REQUIRED'}
     <SetupWizard oncomplete={() => window.location.reload()} />
+  {:else if bridgeInfo.restartRequired}
+    <SetupWizard oncomplete={() => window.location.reload()} />
   {:else}
     <!-- Minimized Metadata Section with MQTT Status -->
     <div class="viewer-meta-mini">

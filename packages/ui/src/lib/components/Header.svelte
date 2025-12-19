@@ -16,7 +16,7 @@
     </button>
 
     <div class="logo">
-      <span class="logo-icon">H</span>
+      <img src="/logo.png" alt="Homenet2MQTT" class="logo-icon" />
       <span class="logo-text">Homenet2MQTT</span>
     </div>
 
@@ -60,13 +60,8 @@
   .logo-icon {
     width: 32px;
     height: 32px;
-    background: linear-gradient(135deg, #2563eb, #7c3aed);
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    color: white;
+    border-radius: 4px;
+    object-fit: contain;
   }
 
   .logo-text {

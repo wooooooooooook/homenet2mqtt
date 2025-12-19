@@ -66,6 +66,7 @@ export type BridgeInfo = {
   error?: string | null;
   topic: string;
   allowConfigUpdate?: boolean;
+  restartRequired?: boolean;
 };
 
 export type CommandInfo = {

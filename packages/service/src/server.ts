@@ -161,11 +161,12 @@ const applySerialPathToConfig = (configObject: unknown, serialPath: string): boo
   return updated;
 };
 
-const triggerRestart = () => {
-  setTimeout(() => {
-    logger.info('[service] Restarting process to apply configuration changes');
-    process.exit(0);
-  }, 300);
+const triggerRestart = async () => {
+  // .restart-required 파일만 생성하고 종료하지 않음
+  // HA 애드온에서는 run.sh가 이 파일을 감지하여 재시작 처리
+  // 개발 환경에서는 수동으로 컨테이너 재시작 필요
+  await fs.writeFile(CONFIG_RESTART_FLAG, new Date().toISOString(), 'utf-8');
+  logger.info('[service] Restart required. Please restart the addon/container to apply changes.');
 };
 
 const normalizeTopicParts = (topic: string) => topic.split('/').filter(Boolean);
@@ -411,6 +412,9 @@ app.get('/api/bridge/info', async (_req, res) => {
 
   const firstTopic = bridgesInfo[0]?.topic ?? `${BASE_MQTT_PREFIX}/homedevice1/raw`;
 
+  // .restart-required 파일 존재 여부 확인
+  const restartRequired = await fileExists(CONFIG_RESTART_FLAG);
+
   res.json({
     configFiles: currentConfigFiles,
     bridges: bridgesInfo,
@@ -419,6 +423,7 @@ app.get('/api/bridge/info', async (_req, res) => {
     error: bridgeError,
     topic: firstTopic,
     allowConfigUpdate: process.env.ALLOW_CONFIG_UPDATE === 'true',
+    restartRequired,
   });
 });
 
@@ -455,6 +460,13 @@ app.post('/api/log-sharing/consent', async (req, res) => {
     return res.status(400).json({ error: 'consent must be boolean' });
   }
   await logCollectorService.updateConsent(consent);
+
+  // 로그 동의 완료 시 .initialized 마커 생성 (초기화 프로세스 완료)
+  if (!(await fileExists(CONFIG_INIT_MARKER))) {
+    await fs.writeFile(CONFIG_INIT_MARKER, new Date().toISOString(), 'utf-8');
+    logger.info('[service] Initialization complete, .initialized marker created');
+  }
+
   const status = await logCollectorService.getPublicStatus();
   res.json(status);
 });
@@ -991,7 +1003,7 @@ app.post('/api/config/examples/select', async (req, res) => {
       restartScheduled: true,
     });
 
-    triggerRestart();
+    await triggerRestart();
   } catch (error) {
     logger.error({ err: error }, '[service] Failed to select example config');
     res.status(500).json({ error: '기본 설정 생성에 실패했습니다.' });
@@ -1686,6 +1698,12 @@ server.listen(port, async () => {
     );
 
     await loadAndStartBridges(uniqueConfigFiles);
+
+    // 브리지 시작 성공 후 .restart-required 파일 삭제
+    if (await fileExists(CONFIG_RESTART_FLAG)) {
+      await fs.unlink(CONFIG_RESTART_FLAG).catch(() => { });
+      logger.info('[service] Cleared .restart-required flag');
+    }
 
     if (shouldPersistInitMarker && !(await fileExists(CONFIG_INIT_MARKER))) {
       await fs.writeFile(CONFIG_INIT_MARKER, new Date().toISOString(), 'utf-8');

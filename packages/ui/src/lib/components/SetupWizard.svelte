@@ -38,13 +38,29 @@
     loading = true;
     error = '';
     try {
-      const res = await fetch('./api/config/examples');
-      if (!res.ok) throw new Error('Failed to load examples');
-      const data = await res.json();
+      // 예제 목록과 로그 동의 상태를 동시에 확인
+      const [configRes, consentRes] = await Promise.all([
+        fetch('./api/config/examples'),
+        fetch('./api/log-sharing/status'),
+      ]);
+
+      if (!configRes.ok) throw new Error('Failed to load examples');
+      const data = await configRes.json();
       examples = data.examples || [];
       if (examples.length > 0) {
         selectedExample = examples[0];
       }
+
+      // 로그 동의가 이미 완료된 경우 바로 complete 화면으로
+      if (consentRes.ok) {
+        const consentStatus = await consentRes.json();
+        if (consentStatus.asked) {
+          currentStep = 'complete';
+          loading = false;
+          return;
+        }
+      }
+
       // 사용자가 직접 설정 파일을 지정한 경우 1단계 건너뛰기
       if (data.hasCustomConfig) {
         currentStep = 'consent';
@@ -107,7 +123,7 @@
     } finally {
       consentSubmitting = false;
       currentStep = 'complete';
-      oncomplete?.();
+      // oncomplete은 호출하지 않음 - complete 화면에서 재시작 안내 표시
     }
   }
 
