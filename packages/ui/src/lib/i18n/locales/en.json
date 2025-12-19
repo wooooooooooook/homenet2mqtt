@@ -206,7 +206,8 @@
     "SERIAL_PATH_REQUIRED": "Serial port path is required.",
     "EXAMPLE_NOT_FOUND": "Example configuration file not found.",
     "EXAMPLE_READ_FAILED": "Failed to read example configuration file.",
-    "SERIAL_CONFIG_MISSING": "Serial configuration is missing from the config file."
+    "SERIAL_CONFIG_MISSING": "Serial configuration is missing from the config file.",
+    "SERIAL_TEST_FAILED": "Failed to test the serial path."
   },
   "setup_wizard": {
     "title": "Initial Setup",
@@ -218,6 +219,11 @@
     "serial_path_label": "Serial Port Path",
     "serial_path_placeholder": "/dev/ttyUSB0 or 192.168.0.100:8899",
     "serial_path_hint": "Enter the RS485 device path or TCP address.",
+    "serial_test_button": "Test serial path",
+    "serial_test_running": "Testing serial path...",
+    "serial_test_wait": "Listening for raw packets...",
+    "serial_test_empty": "No raw packets received yet. Check the wiring or try again.",
+    "serial_test_error": "Failed to read from the serial path. Please try again.",
     "validation_error": "Please select an example and enter a serial port path.",
     "step_config": "Config",
     "step_consent": "Consent",

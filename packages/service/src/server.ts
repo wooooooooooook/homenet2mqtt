@@ -18,6 +18,8 @@ import {
   StateChangedEvent,
   MqttMessageEvent,
 } from '@rs485-homenet/core';
+import type { SerialConfig } from '@rs485-homenet/core/config/types';
+import { createSerialPortConnection } from '@rs485-homenet/core/transports/serial/serial.factory';
 import { activityLogService } from './activity-log.service.js';
 import { logCollectorService } from './log-collector.service.js';
 import { RateLimiter } from './utils/rate-limiter.js';
@@ -97,6 +99,61 @@ const parseEnvList = (
 
   return { source, values };
 };
+
+const collectSerialPackets = async (
+  serialPath: string,
+  serialConfig: SerialConfig,
+  options?: { maxPackets?: number; timeoutMs?: number },
+): Promise<string[]> => {
+  const maxPackets = options?.maxPackets ?? 5;
+  const timeoutMs = options?.timeoutMs ?? 5000;
+  const packets: string[] = [];
+  const port = await createSerialPortConnection(serialPath, serialConfig);
+
+  return new Promise<string[]>((resolve, reject) => {
+    let finished = false;
+
+    const cleanup = () => {
+      if (finished) return;
+      finished = true;
+      port.off('data', onData);
+      port.off('error', onError);
+      port.destroy();
+    };
+
+    const timeout = setTimeout(() => {
+      cleanup();
+      resolve(packets);
+    }, timeoutMs);
+
+    const resolveWithTimeout = (value: string[]) => {
+      clearTimeout(timeout);
+      cleanup();
+      resolve(value);
+    };
+
+    const rejectWithTimeout = (error: Error) => {
+      clearTimeout(timeout);
+      cleanup();
+      reject(error);
+    };
+
+    const onData = (data: Buffer) => {
+      packets.push(data.toString('hex'));
+      if (packets.length >= maxPackets) {
+        resolveWithTimeout(packets);
+      }
+    };
+
+    const onError = (err: Error) => {
+      rejectWithTimeout(err);
+    };
+
+    port.on('data', onData);
+    port.once('error', onError);
+  });
+};
+
 const envConfigFiles = (() => {
   const parsed = parseEnvList('CONFIG_FILES', 'CONFIG_FILE', '설정 파일');
   if (parsed.values.length > 0) {
@@ -161,6 +218,15 @@ const applySerialPathToConfig = (configObject: unknown, serialPath: string): boo
   return updated;
 };
 
+const extractSerialConfig = (config: HomenetBridgeConfig): SerialConfig | null => {
+  if (Array.isArray(config.serials) && config.serials.length > 0) {
+    return config.serials[0];
+  }
+
+  const legacySerial = (config as { serial?: SerialConfig }).serial;
+  return legacySerial ?? null;
+};
+
 const triggerRestart = async () => {
   // .restart-required 파일만 생성하고 종료하지 않음
   // HA 애드온에서는 run.sh가 이 파일을 감지하여 재시작 처리
@@ -185,6 +251,7 @@ const MAX_PACKET_HISTORY = 1000;
 // Security: Rate Limiters
 const commandRateLimiter = new RateLimiter(10000, 20); // 20 requests per 10 seconds
 const configRateLimiter = new RateLimiter(60000, 5); // 5 requests per minute
+const serialTestRateLimiter = new RateLimiter(30000, 4); // 4 requests per 30 seconds
 
 eventBus.on('command-packet', (packet: unknown) => {
   commandPacketHistory.push(packet);
@@ -520,7 +587,7 @@ const rebuildPortMappings = () => {
   const nextMap = new Map<string, string>();
 
   currentConfigs.forEach((config) => {
-    config.serials?.forEach((serial, index) => {
+    config.serials?.forEach((serial: SerialConfig, index: number) => {
       const portId = normalizePortId(serial.portId, index);
       nextMap.set(portId, portId);
     });
@@ -944,6 +1011,75 @@ app.get('/api/config/examples', async (_req, res) => {
   } catch (error) {
     logger.error({ err: error }, '[service] Failed to list example configs');
     res.status(500).json({ error: '예제 설정을 불러오지 못했습니다.' });
+  }
+});
+
+app.post('/api/config/examples/test-serial', async (req, res) => {
+  if (!serialTestRateLimiter.check(req.ip || 'unknown')) {
+    logger.warn({ ip: req.ip }, '[service] Serial test rate limit exceeded');
+    return res.status(429).json({ error: 'Too many requests' });
+  }
+
+  try {
+    const { filename, serialPath } = req.body || {};
+
+    if (typeof filename !== 'string' || filename.includes('/') || filename.includes('\\')) {
+      return res.status(400).json({ error: 'INVALID_FILENAME' });
+    }
+
+    if (typeof serialPath !== 'string' || !serialPath.trim()) {
+      return res.status(400).json({ error: 'SERIAL_PATH_REQUIRED' });
+    }
+
+    const examples = await listExampleConfigs();
+    if (!examples.includes(filename)) {
+      return res.status(404).json({ error: 'EXAMPLE_NOT_FOUND' });
+    }
+
+    const sourcePath = path.join(EXAMPLES_DIR, filename);
+    let parsedConfig: unknown;
+
+    try {
+      const rawContent = await fs.readFile(sourcePath, 'utf-8');
+      parsedConfig = yaml.load(rawContent);
+    } catch (error) {
+      logger.error({ err: error, sourcePath }, '[service] Failed to read example config for test');
+      return res.status(500).json({ error: 'EXAMPLE_READ_FAILED' });
+    }
+
+    const serialPathValue = serialPath.trim();
+
+    if (!applySerialPathToConfig(parsedConfig, serialPathValue)) {
+      return res.status(400).json({ error: 'SERIAL_CONFIG_MISSING' });
+    }
+
+    const bridgeConfig =
+      (parsedConfig as Record<string, unknown>).homenet_bridge ||
+      (parsedConfig as Record<string, unknown>).homenetBridge ||
+      parsedConfig;
+
+    const normalized = normalizeConfig(
+      JSON.parse(JSON.stringify(bridgeConfig)) as HomenetBridgeConfig,
+    );
+    const serialConfig = extractSerialConfig(normalized);
+
+    if (!serialConfig) {
+      return res.status(400).json({ error: 'SERIAL_CONFIG_MISSING' });
+    }
+
+    const packets = await collectSerialPackets(serialPathValue, serialConfig, {
+      maxPackets: 10,
+      timeoutMs: 6000,
+    });
+
+    res.json({
+      ok: true,
+      portId: normalizePortId(serialConfig.portId || 'raw', 0),
+      packets,
+    });
+  } catch (error) {
+    logger.error({ err: error }, '[service] Failed to test serial path during setup');
+    res.status(500).json({ error: 'SERIAL_TEST_FAILED' });
   }
 });
 
