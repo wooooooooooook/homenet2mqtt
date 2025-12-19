@@ -12,6 +12,10 @@
   let submitting = $state(false);
   let consentSubmitting = $state(false);
   let error = $state('');
+  let testingSerial = $state(false);
+  let testError = $state('');
+  let testPackets = $state<string[]>([]);
+  let hasTested = $state(false);
   let currentStep = $state<WizardStep>('config');
   let currentLocale = $state('ko');
 
@@ -32,6 +36,15 @@
   // Load examples on mount
   $effect(() => {
     loadExamples();
+  });
+
+  // Reset test result when input changes
+  $effect(() => {
+    serialPath;
+    selectedExample;
+    testError = '';
+    testPackets = [];
+    hasTested = false;
   });
 
   async function loadExamples() {
@@ -61,8 +74,8 @@
         }
       }
 
-      // 사용자가 직접 설정 파일을 지정한 경우 1단계 건너뛰기
-      if (data.hasCustomConfig) {
+      // 초기화가 이미 끝났거나 사용자가 직접 설정 파일을 지정한 경우에만 1단계 건너뛰기
+      if (!data.requiresInitialization && data.hasCustomConfig) {
         currentStep = 'consent';
       }
     } catch (err) {
@@ -107,6 +120,49 @@
       error = $t('setup_wizard.submit_error');
     } finally {
       submitting = false;
+    }
+  }
+
+  async function handleSerialTest() {
+    if (!selectedExample || !serialPath.trim()) {
+      testError = $t('setup_wizard.validation_error');
+      return;
+    }
+
+    testingSerial = true;
+    testError = '';
+    hasTested = true;
+    testPackets = [];
+
+    try {
+      const res = await fetch('./api/config/examples/test-serial', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          filename: selectedExample,
+          serialPath: serialPath.trim(),
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        const errorKey = data.error || 'UNKNOWN_ERROR';
+        testError = $t(`errors.${errorKey}`, {
+          default: data.error || $t('setup_wizard.serial_test_error'),
+        });
+        return;
+      }
+
+      testPackets = Array.isArray(data.packets) ? data.packets : [];
+
+      if (testPackets.length === 0) {
+        testError = $t('setup_wizard.serial_test_empty');
+      }
+    } catch (err) {
+      testError = $t('setup_wizard.serial_test_error');
+    } finally {
+      testingSerial = false;
     }
   }
 
@@ -195,6 +251,44 @@
             disabled={submitting}
           />
           <p class="field-hint">{$t('setup_wizard.serial_path_hint')}</p>
+          <div class="test-actions">
+            <button
+              type="button"
+              class="secondary-btn"
+              onclick={handleSerialTest}
+              disabled={
+                submitting ||
+                testingSerial ||
+                !selectedExample ||
+                !serialPath.trim()
+              }
+            >
+              {testingSerial
+                ? $t('setup_wizard.serial_test_running')
+                : $t('setup_wizard.serial_test_button')}
+            </button>
+            {#if testError}
+              <p class="field-hint error-hint">{testError}</p>
+            {/if}
+          </div>
+          {#if hasTested}
+            <div class="serial-test-result">
+              {#if testingSerial}
+                <p class="field-hint">{$t('setup_wizard.serial_test_wait')}</p>
+              {:else if testPackets.length > 0}
+                <div class="result-list">
+                  {#each testPackets as packet, index}
+                    <div class="result-row">
+                      <span class="badge">#{index + 1}</span>
+                      <code>{packet}</code>
+                    </div>
+                  {/each}
+                </div>
+              {:else if !testError}
+                <p class="field-hint muted">{$t('setup_wizard.serial_test_empty')}</p>
+              {/if}
+            </div>
+          {/if}
         </div>
 
         {#if error}
@@ -423,6 +517,61 @@
     font-size: 0.8rem;
     color: #94a3b8;
     margin: 0.5rem 0 0 0;
+  }
+
+  .test-actions {
+    margin-top: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .test-actions .secondary-btn {
+    align-self: flex-start;
+  }
+
+  .serial-test-result {
+    margin-top: 0.75rem;
+    padding: 0.75rem;
+    border-radius: 8px;
+    border: 1px solid rgba(148, 163, 184, 0.3);
+    background: rgba(15, 23, 42, 0.7);
+  }
+
+  .result-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .result-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #e2e8f0;
+    font-family: 'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+    word-break: break-all;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.15rem 0.5rem;
+    border-radius: 9999px;
+    border: 1px solid rgba(59, 130, 246, 0.4);
+    background: rgba(59, 130, 246, 0.15);
+    color: #93c5fd;
+    font-weight: 700;
+    font-size: 0.8rem;
+  }
+
+  .error-hint {
+    color: #fca5a5;
+  }
+
+  .muted {
+    color: #94a3b8;
   }
 
   .error-message {
