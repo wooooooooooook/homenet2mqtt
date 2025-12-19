@@ -135,8 +135,7 @@
       "save": "Save",
       "save_success": "Saved successfully (Backup: {backup})",
       "load_error": "Failed to load config.",
-      "save_error": "Failed to save.",
-      "disabled_notice": "Config editing is disabled. (ALLOW_CONFIG_UPDATE=false)"
+      "save_error": "Failed to save."
     },
     "packets": {
       "title": "Packet Log (RX/TX)",
@@ -199,7 +198,6 @@
     "COMMANDS_LOAD_FAILED": "Failed to load commands.",
     "RENAME_EMPTY_NAME": "Please enter a new name.",
     "RENAME_FAILED": "Failed to rename.",
-    "CONFIG_UPDATE_DISABLED": "Config update is disabled. Set ALLOW_CONFIG_UPDATE=true environment variable.",
     "CONFIG_INITIALIZATION_REQUIRED": "Initial setup is required.",
     "INITIALIZATION_NOT_ALLOWED": "Initialization has already been completed.",
     "INVALID_FILENAME": "Invalid filename.",
