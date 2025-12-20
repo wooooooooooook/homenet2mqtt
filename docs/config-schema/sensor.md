@@ -6,7 +6,7 @@
 - `state`: 이 센서 값이 포함된 패킷을 식별하는 서명.
 
 ## 옵션 필드
-- `state_number`: 수치를 추출하기 위한 [`StateNumSchema`](./lambda.md#stateschema와-statenumschema-필드).
+- `state_number`: 수치를 추출하기 위한 [`StateNumSchema`](./schemas.md#statenumschema).
 - `command_update`: 값을 새로 요청하는 명령.
 
 ## 예제: 엘리베이터 층수 표시

@@ -27,7 +27,7 @@ homenet_bridge:
   - `match`: 값 비교(`true`, 숫자/문자열, `/regex/`, `{eq|gt|gte|lt|lte}` 오브젝트).
   - `debounce_ms`: 동일 조건 반복을 무시할 시간(ms/`1s` 등 단위 문자열 허용).
 - `type: packet`
-  - `match`: [`StateSchema`](./config-schema/lambda.md#stateschema와-statenumschema-필드) 형태(`data`, `mask`, `offset`, `inverted`). `data`/`mask`로 패킷 바이트를 매칭한다.
+  - `match`: [`StateSchema`](./config-schema/schemas.md#stateschema) 형태(`data`, `mask`, `offset`, `inverted`). `data`/`mask`로 패킷 바이트를 매칭한다.
 - `type: schedule`
   - `every`: 주기 실행 간격(ms 또는 `1s`/`5m`).
   - `cron`: UTC 기준 5필드 cron(`"0 7 * * *"`). `every`와 병행 가능.

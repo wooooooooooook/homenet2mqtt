@@ -8,7 +8,7 @@
 ## 옵션 필드 (상태)
 - 범위: `max_value`, `min_value`, `step` — UI 슬라이더/스핀박스 범위를 정의.
 - 증감 상태: `state_increment`, `state_decrement`, `state_to_min`, `state_to_max` — 증감 버튼이 있는 장치의 이벤트 패킷을 감지.
-- 현재 값: `state_number` — [`StateNumSchema`](./lambda.md#stateschema와-statenumschema-필드)로 실제 수치를 읽음.
+- 현재 값: `state_number` — [`StateNumSchema`](./schemas.md#statenumschema)로 실제 수치를 읽음.
 
 ## 옵션 필드 (명령)
 - 값 설정: `command_number` — 입력값을 패킷에 삽입하거나 람다로 조합.

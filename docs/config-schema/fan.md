@@ -7,7 +7,7 @@
 
 ## 옵션 필드 (상태)
 - 전원 상태: `state_on`, `state_off`.
-- 속도(백분율): `state_speed` 또는 `state_percentage` — [`StateNumSchema`](./lambda.md#stateschema와-statenumschema-필드).
+- 속도(백분율): `state_speed` 또는 `state_percentage` — [`StateNumSchema`](./schemas.md#statenumschema).
 - 프리셋: `preset_modes`(문자열 배열), `state_preset_mode`.
 - 회전: `state_oscillating`(좌우 회전 여부), `state_direction`(정/역회전).
 
@@ -47,4 +47,4 @@ fan:
 ## 작성 체크리스트
 1. 속도 값 단위가 퍼센트인지 단계형(1~3단)인지 장비별로 확인하고 `value_encode`나 매핑을 맞춥니다.
 2. 프리셋 모드를 쓸 경우 `preset_modes` 배열을 노출해야 UI에서 선택할 수 있습니다.
-3. 회전/방향과 속도 명령이 한 패킷에 묶인 장비는 [`CommandLambdaConfig`](./lambda.md#commandlambdaconfig)로 여러 값을 삽입합니다.
+3. 회전/방향과 속도 명령이 한 패킷에 묶인 장비는 [`CommandLambdaConfig`](./schemas.md#commandlambdaconfig)로 여러 값을 삽입합니다.
