@@ -65,7 +65,6 @@ export type BridgeInfo = {
   status: BridgeStatus;
   error?: string | null;
   topic: string;
-  allowConfigUpdate?: boolean;
   restartRequired?: boolean;
 };
 

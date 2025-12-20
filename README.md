@@ -47,9 +47,10 @@ pnpm dev:down       # 개발용 컨테이너 정리
 | `LOG_LEVEL` | `pino` 로거 레벨 (`trace`~`fatal`) | `info` |
 | `PORT` | Express API 및 UI 프록시 포트 | `3000` |
 | `CONFIG_ROOT` | API에서 노출할 설정 디렉터리 | `packages/core/config` |
-| `ALLOW_CONFIG_UPDATE` | ⚠️ **보안 주의**: `true` 설정 시 API를 통한 설정 변경 허용 (악의적인 자동화/명령 주입 위험) | `false` |
 | `VITE_API_URL` | UI 개발 서버에서 프록시할 API URL | `http://app:3000` |
 | `MQTT_TOPIC_PREFIX` | MQTT 토픽 접두사 (최종 토픽은 `${MQTT_TOPIC_PREFIX}/{portId}/{entityId}/...`) | `homenet2mqtt` |
+
+> ALLOW_CONFIG_UPDATE 플래그는 폐지되었습니다. 설정 편집 API는 항상 활성화되므로, 운영 환경에서는 네트워크 접근 제어와 백업 절차를 반드시 적용하세요.
 
 시뮬레이터 전용 변수: `SIMULATOR_DEVICE`(기본 `commax`), `SIMULATOR_INTERVAL_MS`, `SIMULATOR_PROTOCOL`, `SIMULATOR_LINK_PATH`. 도커 개발 스택은 `SYSTEM_TYPE` 값을 시뮬레이터와 코어에 동시에 전달합니다.
 

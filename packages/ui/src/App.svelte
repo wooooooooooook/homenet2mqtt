@@ -1065,7 +1065,6 @@
         isOpen={!!selectedEntityKey}
         parsedPackets={selectedEntityParsedPackets}
         commandPackets={selectedEntityCommandPackets}
-        allowConfigUpdate={bridgeInfo?.allowConfigUpdate ?? false}
         onClose={() => (selectedEntityKey = null)}
         onExecute={(cmd, value) => executeCommand(cmd, value)}
         isRenaming={renamingEntityId === selectedEntity.id}
