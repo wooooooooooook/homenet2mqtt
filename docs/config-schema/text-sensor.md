@@ -4,7 +4,7 @@
 
 ## 필수/옵션 필드
 - `state`: 이 엔티티에 해당하는 패킷 서명. 생략하면 람다만으로 값을 추출할 때 사용합니다.
-- `state_text`: 문자열을 추출하는 [`StateSchema`](./lambda.md#stateschema와-statenumschema-필드) 또는 CEL 표현식.
+- `state_text`: 문자열을 추출하는 [`StateSchema`](./schemas.md#stateschema) 또는 CEL 표현식.
 
 ## 예제: 엘리베이터 방향 해석
 `kocom_thinks.homenet_bridge.yaml`은 패킷 오프셋 8 바이트를 확인해 방향을 한글 문자열로 치환합니다.【F:packages/core/config/examples/kocom_thinks.homenet_bridge.yaml†L717-L728】
@@ -26,6 +26,6 @@ text_sensor:
 ```
 
 ## 작성 체크리스트
-1. 문자열 매핑이 단순할 경우 `valueMappings`가 포함된 [`StateLambdaConfig`](./lambda.md#statelambdaconfig)를 활용해 가독성을 높입니다.
+1. 문자열 매핑이 단순할 경우 `valueMappings`가 포함된 [`StateLambdaConfig`](./schemas.md#statelambdaconfig)를 활용해 가독성을 높입니다.
 2. 디스플레이용 내부 센서는 `internal: true`와 함께 사용해 MQTT 발표를 제한할 수 있습니다.
 3. 길이가 긴 메시지를 다룰 땐 `state_text` 대신 `text` 엔티티를 검토해 입력/출력 모두 지원하도록 합니다.

@@ -9,7 +9,7 @@
 - `state`: 상태 패킷 서명.
 - `initial_option`: 장치 초기화 시 기본 선택값.
 - `restore_value`: 재시작 시 마지막 값을 복원할지 여부(Boolean).
-- `state_select`: 패킷을 옵션 문자열로 해석하는 [`CommandSchema`](./lambda.md#commandschema-필드) 또는 CEL 표현식(문자열 반환).
+- `state_select`: 패킷을 옵션 문자열로 해석하는 [`StateSchema`](./schemas.md#stateschema) 또는 CEL 표현식(문자열 반환).
 
 ## 옵션 필드 (명령)
 - `command_select`: 선택된 옵션을 장치에 반영하는 명령. 입력 문자열을 바이트로 치환하려면 람다를 사용합니다.
@@ -36,4 +36,4 @@ select:
 ## 작성 체크리스트
 1. 옵션 문자열은 소문자/스네이크 케이스 등 일관된 형식을 유지해 자동화 스크립트와 충돌하지 않도록 합니다.
 2. 장치가 부팅 시 특정 기본값을 요구하면 `initial_option`을 지정해 초기 패킷 전송 없이도 UI 상태를 맞춥니다.
-3. 상태 해석이 복잡하면 [`StateLambdaConfig`](./lambda.md#statelambdaconfig)와 매핑 테이블을 활용해 가독성을 높입니다.
+3. 상태 해석이 복잡하면 [`StateLambdaConfig`](./schemas.md#statelambdaconfig)와 매핑 테이블을 활용해 가독성을 높입니다.

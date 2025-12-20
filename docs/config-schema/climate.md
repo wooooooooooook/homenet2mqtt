@@ -7,7 +7,7 @@
 
 ## 옵션 필드 (상태)
 - 모드 감지: `state_off`, `state_heat`, `state_cool`, `state_fan_only`, `state_dry`, `state_auto`.
-- 온도: `state_temperature_current`(현재), `state_temperature_target`(설정값) — [`StateNumSchema`](./lambda.md#stateschema와-statenumschema-필드).
+- 온도: `state_temperature_current`(현재), `state_temperature_target`(설정값) — [`StateNumSchema`](./schemas.md#statenumschema).
 - 습도: `state_humidity_current`, `state_humidity_target` — `StateNumSchema`.
 - 동작 상태: `state_action_idle`, `state_action_heating`, `state_action_cooling`, `state_action_drying`, `state_action_fan`.
 - 스윙: `state_swing_off`, `state_swing_both`, `state_swing_vertical`, `state_swing_horizontal`.
@@ -56,4 +56,4 @@ climate:
 ## 작성 체크리스트
 1. 장비가 지원하는 모드만 선택해 `state_*`와 `command_*`를 채우고, 사용하지 않는 모드는 생략합니다.
 2. 온도·습도는 장치마다 정밀도/엔디언/디코딩 방식이 다르므로 `StateNumSchema`의 `precision`·`decode`를 맞춥니다.
-3. 여러 모드를 한 패킷에서 다룰 때는 `mask`로 비트를 분리하거나 [`CommandLambdaConfig`](./lambda.md#commandlambdaconfig)를 사용해 조건별 패킷을 조립합니다.
+3. 여러 모드를 한 패킷에서 다룰 때는 `mask`로 비트를 분리하거나 [`CommandLambdaConfig`](./schemas.md#commandlambdaconfig)를 사용해 조건별 패킷을 조립합니다.
