@@ -1,6 +1,7 @@
 v1.0.4
 - fix: ezville, kocom, cvnet설정의 CEL문법오류수정. 기존설정파일은 자동으로 업데이트 되지 않으니 .initialized 파일을 삭제후 업데이트하여 새로 설정파일을 구성해야합니다.
-- fix: discovery_always, discovery_linked_id 옵션으로 활성화된 엔티티가 UI에서 활성화되지 않은 문제 수정
+  - 그 밖에 commax, samsung_sds에서 button 엔티티 오류 수정이 있었으므로 button 엔티티를 사용중이라면 .initialized 파일을 삭제후 업데이트하여 새로 설정파일을 구성해야합니다.
+- fix: discovery_always, discovery_linked_id 옵션으로 활성화된 엔티티가 UI에서 활성화되지 않는 문제 수정
 
 v1.0.3
 - fix: ezville설정파일에 CEL문법오류가있어 수정했습니다. 기존설정파일은 자동으로 업데이트 되지 않으니 .initialized 파일을 삭제후 업데이트하여 새로 설정파일을 구성해야합니다.
