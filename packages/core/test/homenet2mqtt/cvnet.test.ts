@@ -1,12 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { setupTest, processPacket, publishMock } from './utils';
+import { setupTest, processPacket, executeCommand } from './utils';
 import { CVNET_PACKETS } from '../../../simulator/src/cvnet';
+import { Buffer } from 'buffer';
 
 describe('HomeNet to MQTT - CVNet Protocol', () => {
   it('should process CVNet packets and publish state', async () => {
-    const { stateManager } = await setupTest('cvnet.homenet_bridge.yaml');
+    const ctx = await setupTest('cvnet.homenet_bridge.yaml');
+    const { stateManager, publishMock } = ctx;
 
-    // Room 0 Light 1 (ON)
+    // Room 0 Light 1 (ON) - Index 1
     processPacket(stateManager, CVNET_PACKETS[1]);
 
     expect(publishMock).toHaveBeenCalledWith(
@@ -15,7 +17,7 @@ describe('HomeNet to MQTT - CVNet Protocol', () => {
       expect.objectContaining({ retain: true }),
     );
 
-    // Room 0 Light 1 (OFF)
+    // Room 0 Light 1 (OFF) - Index 2
     processPacket(stateManager, CVNET_PACKETS[2]);
 
     expect(publishMock).toHaveBeenCalledWith(
@@ -65,15 +67,30 @@ describe('HomeNet to MQTT - CVNet Protocol', () => {
     );
 
     // Elevator Floors (Base State - just to check parsing) - Index 36
-    // Note: Elevator floor packet might not produce a state update if value hasn't changed or if logic differs
-    // But let's try processing it.
     processPacket(stateManager, CVNET_PACKETS[36]);
-    // Expectation depends on what this packet actually contains and how it's mapped.
-    // Based on cvnet.ts: [0xf7, 0x20, 0x01, 0x22, 0x81, 0x00, 0xc4, 0xaa]
-    // Config says state_number offset 2, length 1. 0x01 is the byte at offset 2 (0-indexed from body start?)
-    // Wait, packet structure in simulator includes header?
-    // CVNet header is empty in config? Let's check config.
-    // cvnet.homenet_bridge.yaml: rx_header: [0xF7] ? No, let's check config file if needed.
-    // Assuming standard processing.
+  });
+
+  it('should generate command packets', async () => {
+    const ctx = await setupTest('cvnet.homenet_bridge.yaml');
+
+    // Command ON for room_0_light_1
+    // Data: [0x20, 0x21, 0x01, 0x11, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+    // Checksum: Add (no header) -> 0x54
+    // Header: F7, Footer: AA
+    await executeCommand(ctx, 'room_0_light_1', 'on', null);
+    const expectedLight = Buffer.from([
+      0xf7, 0x20, 0x21, 0x01, 0x11, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x54, 0xaa,
+    ]);
+    expect(ctx.mockSerialPort.write).toHaveBeenCalledWith(expectedLight);
+
+    // Command ON for fan_1
+    // Data: [0x20, 0x71, 0x01, 0x11, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00]
+    // Checksum: Add (no header) -> 0xA6
+    // Header: F7, Footer: AA
+    await executeCommand(ctx, 'fan_1', 'on', null);
+    const expectedFan = Buffer.from([
+      0xf7, 0x20, 0x71, 0x01, 0x11, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0xa6, 0xaa,
+    ]);
+    expect(ctx.mockSerialPort.write).toHaveBeenCalledWith(expectedFan);
   });
 });
