@@ -1,5 +1,6 @@
 <script lang="ts">
   import { t, locale } from 'svelte-i18n';
+  import Button from './Button.svelte';
 
   let { configRoot = '', oncomplete }: { configRoot?: string; oncomplete?: () => void } = $props();
 
@@ -252,16 +253,16 @@
           />
           <p class="field-hint">{$t('setup_wizard.serial_path_hint')}</p>
           <div class="test-actions">
-            <button
+            <Button
               type="button"
-              class="secondary-btn"
+              variant="secondary"
               onclick={handleSerialTest}
-              disabled={submitting || testingSerial || !selectedExample || !serialPath.trim()}
+              isLoading={testingSerial}
+              disabled={submitting || !selectedExample || !serialPath.trim()}
+              class="wizard-test-btn"
             >
-              {testingSerial
-                ? $t('setup_wizard.serial_test_running')
-                : $t('setup_wizard.serial_test_button')}
-            </button>
+              {$t('setup_wizard.serial_test_button')}
+            </Button>
             {#if testError}
               <p class="field-hint error-hint">{testError}</p>
             {/if}
@@ -290,17 +291,16 @@
           <div class="error-message">{error}</div>
         {/if}
 
-        <button
+        <Button
           type="submit"
-          class="submit-btn"
-          disabled={submitting || !selectedExample || !serialPath.trim()}
+          variant="primary"
+          isLoading={submitting}
+          fullWidth={true}
+          disabled={!selectedExample || !serialPath.trim()}
+          class="wizard-submit-btn"
         >
-          {#if submitting}
-            {$t('setup_wizard.submitting')}
-          {:else}
-            {$t('setup_wizard.next')}
-          {/if}
-        </button>
+          {$t('setup_wizard.next')}
+        </Button>
       </form>
     {:else if currentStep === 'consent'}
       <div class="consent-section">
@@ -323,20 +323,24 @@
         </div>
 
         <div class="consent-actions">
-          <button
+          <Button
+            type="button"
+            variant="secondary"
             onclick={() => handleConsent(false)}
             disabled={consentSubmitting}
-            class="secondary-btn"
+            class="wizard-btn-flex"
           >
             {$t('settings.log_sharing.consent_modal.decline')}
-          </button>
-          <button
+          </Button>
+          <Button
+            type="button"
+            variant="primary"
             onclick={() => handleConsent(true)}
             disabled={consentSubmitting}
-            class="submit-btn"
+            class="wizard-btn-flex"
           >
             {$t('settings.log_sharing.consent_modal.accept')}
-          </button>
+          </Button>
         </div>
       </div>
     {:else if currentStep === 'complete'}
@@ -350,6 +354,7 @@
 </div>
 
 <style>
+  /* ... existing styles ... */
   .setup-wizard {
     display: flex;
     justify-content: center;
@@ -521,7 +526,8 @@
     gap: 0.35rem;
   }
 
-  .test-actions .secondary-btn {
+  /* Styling for Button component when used in test-actions */
+  :global(.wizard-test-btn) {
     align-self: flex-start;
   }
 
@@ -580,52 +586,11 @@
     margin-bottom: 1.5rem;
   }
 
-  .submit-btn {
-    width: 100%;
-    padding: 0.875rem 1.5rem;
-    border: none;
-    border-radius: 8px;
-    background: linear-gradient(135deg, #3b82f6, #2563eb);
-    color: white;
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition:
-      transform 0.2s,
-      box-shadow 0.2s;
-  }
-
-  .submit-btn:hover:not(:disabled) {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
-  }
-
-  .submit-btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    transform: none;
-  }
-
-  .secondary-btn {
-    padding: 0.875rem 1.5rem;
-    border: 1px solid rgba(148, 163, 184, 0.3);
-    border-radius: 8px;
-    background: transparent;
-    color: #94a3b8;
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .secondary-btn:hover:not(:disabled) {
-    background: rgba(148, 163, 184, 0.1);
-    color: #f1f5f9;
-  }
-
-  .secondary-btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
+  /* Style tweaks for Button component variants to match wizard style if needed,
+     but default Button styles are close enough. */
+  :global(.wizard-submit-btn) {
+    padding: 0.875rem 1.5rem !important; /* Larger hit area */
+    font-size: 1rem !important;
   }
 
   .consent-section {
@@ -678,8 +643,9 @@
     gap: 1rem;
   }
 
-  .consent-actions .submit-btn {
+  :global(.wizard-btn-flex) {
     flex: 1;
+    padding: 0.875rem 1.5rem !important;
   }
 
   .loading-state,
