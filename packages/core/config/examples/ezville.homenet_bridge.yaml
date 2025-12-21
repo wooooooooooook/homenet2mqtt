@@ -569,9 +569,9 @@ homenet_bridge:
       state:
         data: [0x36, 0x1f, 0x81]
       state_temperature_target: >-
-        (data[11] & 0x7F) + ((data[11] & 0x80) ? 0.5 : 0.0)
+        bitAnd(data[11], 0x7F) + (bitAnd(data[11], 0x80) != 0 ? 0.5 : 0.0)
       state_temperature_current: >-
-        (data[12] & 0x7F) + ((data[12] & 0x80) ? 0.5 : 0.0)
+        bitAnd(data[12], 0x7F) + (bitAnd(data[12], 0x80) != 0 ? 0.5 : 0.0)
       state_off:
         offset: 5
         data: [0x00]
@@ -612,9 +612,9 @@ homenet_bridge:
       state:
         data: [0x36, 0x1f, 0x81]
       state_temperature_target: >-
-        (data[13] & 0x7F) + ((data[13] & 0x80) ? 0.5 : 0.0)
+        bitAnd(data[13], 0x7F) + (bitAnd(data[13], 0x80) != 0 ? 0.5 : 0.0)
       state_temperature_current: >-
-        (data[14] & 0x7F) + ((data[14] & 0x80) ? 0.5 : 0.0)
+        bitAnd(data[14], 0x7F) + (bitAnd(data[14], 0x80) != 0 ? 0.5 : 0.0)
       state_off:
         offset: 5
         data: [0x00]
@@ -655,9 +655,9 @@ homenet_bridge:
       state:
         data: [0x36, 0x1f, 0x81]
       state_temperature_target: >-
-        (data[15] & 0x7F) + ((data[15] & 0x80) ? 0.5 : 0.0)
+        bitAnd(data[15], 0x7F) + (bitAnd(data[15], 0x80) != 0 ? 0.5 : 0.0)
       state_temperature_current: >-
-        (data[16] & 0x7F) + ((data[16] & 0x80) ? 0.5 : 0.0)
+        bitAnd(data[16], 0x7F) + (bitAnd(data[16], 0x80) != 0 ? 0.5 : 0.0)
       state_off:
         offset: 5
         data: [0x00]
