@@ -360,11 +360,22 @@ const loadFrontendSettings = async (): Promise<FrontendSettings> => {
 // --- Express Middleware & Setup ---
 app.disable('x-powered-by');
 app.use((_req, res, next) => {
+  // 보안 헤더 설정
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  // Referrer 정보 노출 최소화
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  // CSP: 스크립트 및 스타일 인라인 허용 (Svelte 호환), WebSocket 허용
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' ws: wss:;",
+  );
+  // 민감한 브라우저 기능 비활성화
+  res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
   next();
 });
-app.use(express.json());
+// Payload 크기 제한 설정 (DoS 방지)
+app.use(express.json({ limit: '1mb' }));
 
 // --- API Endpoints ---
 app.get('/api/packets/command/history', (_req, res) => {
