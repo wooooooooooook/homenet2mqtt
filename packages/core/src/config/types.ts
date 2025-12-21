@@ -48,7 +48,6 @@ export interface AutomationTriggerSchedule {
 
 export interface AutomationTriggerStartup {
   type: 'startup';
-  delay?: number | string;
   guard?: AutomationGuard;
 }
 
@@ -88,19 +87,12 @@ export interface AutomationActionScript {
   code: string;
 }
 
-export interface AutomationActionSendPacketAck {
-  match: StateSchema;
-  retry?: number;
-  timeout?: number;
-  interval?: number;
-}
-
 export interface AutomationActionSendPacket {
   action: 'send_packet';
   data: number[] | string;
   checksum?: boolean;
   portId?: string;
-  ack?: AutomationActionSendPacketAck;
+  ack?: number[] | string;
 }
 
 export type AutomationAction =

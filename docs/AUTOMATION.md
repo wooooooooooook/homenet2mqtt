@@ -1,94 +1,117 @@
-# Automation 블록 사양
+# 자동화 (Automation) 가이드
 
-`homenet_bridge.automation`은 수신 상태/패킷/주기/시동 이벤트를 감지해 MQTT 발행이나 장치 명령을 실행하는 규칙 엔진이다. 기존 엔티티 설정에서 사용하는 `StateSchema`/`CommandSchema`와 CEL 표현식을 재사용하며, 모든 예시는 `homenet_bridge` 최상위 키 안에서 작성한다.
+HomenetBridge는 상태 변경, 패킷 수신, 스케줄 또는 시스템 시작과 같은 이벤트에 따라 자동으로 작업을 수행할 수 있는 자동화 기능을 제공합니다.
 
-## 기본 구조
+## 트리거 (Triggers)
+
+자동화를 실행하는 조건입니다.
+
+### 상태 트리거 (State Trigger)
+특정 엔티티의 상태가 변경되고 조건이 일치할 때 실행됩니다.
 ```yaml
-homenet_bridge:
-  automation:
-    - id: automation_1            # 필수, 전역 유니크
-      name: "자동화1"             # 선택
-      description: "설명"         # 선택
-      trigger:                    # 하나 이상
-        - type: state | packet | schedule | startup
-          ...                     # 트리거별 세부 필드
-          guard: "data[0] == 1"   # 선택, CEL 표현식이 true 일 때만 then 실행
-      then:                       # 필수, guard 통과 시 순차 실행
-        - action: command | publish | log | delay | send_packet
-          ...                     # 액션별 세부 필드
-      else: []                    # 선택, guard=false 일 때 실행
-      enabled: true               # 기본값
+trigger:
+  - type: state
+    entity_id: light_1
+    property: state_on  # 선택사항. 생략 시 전체 상태 객체 비교
+    match: true         # 값 또는 조건 객체 { gt: 10, lt: 20 }
+    debounce_ms: 100    # 선택사항. 기본값: 0 (즉시 실행)
 ```
 
-### 트리거
-- `type: state`
-  - `entity_id`: 엔티티 `id`.
-  - `property`: 상태 필드명(`state_on` 등). 생략 시 전체 상태 객체를 전달.
-  - `match`: 값 비교(`true`, 숫자/문자열, `/regex/`, `{eq|gt|gte|lt|lte}` 오브젝트).
-  - `debounce_ms`: 동일 조건 반복을 무시할 시간(ms/`1s` 등 단위 문자열 허용).
-- `type: packet`
-  - `match`: [`StateSchema`](./config-schema/schemas.md#stateschema) 형태(`data`, `mask`, `offset`, `inverted`). `data`/`mask`로 패킷 바이트를 매칭한다.
-- `type: schedule`
-  - `every`: 주기 실행 간격(ms 또는 `1s`/`5m`).
-  - `cron`: UTC 기준 5필드 cron(`"0 7 * * *"`). `every`와 병행 가능.
-- `type: startup`
-  - 브릿지 초기화 완료 후 한 번 실행.
-  - `delay`: 실행 전 대기 시간(ms 또는 `5s` 등 단위 문자열). 선택 사항.
-
-### 액션
-- `action: command`
-  - `target`: `id(<entity>).command_<name>(<value?>)` 형태 문자열. 값은 생략하거나 `input`으로 별도 전달 가능.
-  - `input`: 명령에 전달할 값(숫자/문자열/객체).
-  - `low_priority`: `true`로 설정 시 일반 명령 큐가 비어있을 때만 실행(기본값 `false`). 단, `schedule` 트리거에 의한 명령은 기본값이 `true`로 자동 설정됨.
-- `action: publish`
-  - `topic`: 임의 MQTT 토픽.
-  - `payload`: 문자열, 숫자, 객체(JSON 직렬화됨).
-  - `retain`: MQTT retain 플래그.
-- `action: log`
-  - `level`: `trace|debug|info|warn|error`(기본 `info`).
-  - `message`: 로그 메시지.
-- `action: delay`
-  - `milliseconds`: 대기 시간(ms 또는 `500ms`/`2s`).
-- `action: send_packet`
-  - `data`: 전송할 데이터. `number[]` 또는 CEL 표현식(숫자 배열 반환) 사용 가능.
-  - `checksum`: `true`일 경우 설정된 알고리즘으로 체크섬을 계산하여 추가 (기본값 `true`).
-  - `portId`: 전송할 포트 ID (선택). 기본값은 자동화 설정의 `portId` 또는 실행 컨텍스트의 포트.
-  - `ack`: 응답 대기 및 재시도 설정 (선택).
-    - `match`: 응답 패킷 매칭 규칙 ([`StateSchema`](./config-schema/schemas.md#stateschema)).
-    - `retry`: 재시도 횟수 (기본 5회).
-    - `timeout`: 응답 대기 시간(ms, 기본 2000ms).
-    - `interval`: 재시도 간격(ms, 기본 125ms).
-
-### Guard 및 CEL 컨텍스트
-`guard`나 `send_packet.data` 등의 CEL 표현식에서는 다음 변수에 접근할 수 있습니다.
-- `trigger`: 트리거 이벤트 정보 (`trigger.state.value` 등).
-- `state`: 트리거된 엔티티의 상태 객체 (state 트리거인 경우).
-- `data`: 수신된 패킷 배열 (packet 트리거인 경우).
-- `states`: 전체 엔티티 상태 맵.
-
-> **주의**: 기존의 `id()` 헬퍼 함수는 CEL 환경에서 지원되지 않습니다.
-
-### 예시
+### 패킷 트리거 (Packet Trigger)
+정의된 스키마와 일치하는 원본(Raw) 패킷이 수신될 때 실행됩니다.
 ```yaml
-homenet_bridge:
-  automation:
-    - id: automation_light_follow
-      name: "복도 센서 연동"
-      trigger:
-        - type: state
-          entity_id: light_1
-          property: state_on
-          match: true
-      then:
-        - action: command
-          target: id(light_2).command_on()
-    - id: automation_ping
-      description: "5분마다 상태 핑"
-      trigger:
-        - type: schedule
-          every: 5m
-      then:
-        - action: publish
-          topic: homenet/bridge/ping
-          payload: "alive"
+trigger:
+  - type: packet
+    match:
+      data: [0xAA, 0x55]
+      offset: 0
+```
+
+### 스케줄 트리거 (Schedule Trigger)
+주기적으로 또는 특정 시각(Cron)에 실행됩니다.
+```yaml
+trigger:
+  - type: schedule
+    every: 5m      # 5분마다 실행
+    # 또는
+    cron: '0 0 * * *' # 매일 자정에 실행
+```
+
+### 시작 트리거 (Startup Trigger)
+애플리케이션이 시작될 때(부팅 시) 실행됩니다. `delay` 옵션은 제거되었으므로, 지연 실행이 필요한 경우 `action` 단계에서 `delay`를 사용해야 합니다.
+```yaml
+trigger:
+  - type: startup
+```
+
+## 액션 (Actions)
+
+트리거 조건이 충족되었을 때 수행할 작업입니다.
+
+### 명령 (Command)
+엔티티에 제어 명령을 보냅니다.
+```yaml
+action: command
+target: id(light_1).command_on()
+# 또는
+target: id(climate_1).command_target_temp(24)
+low_priority: true # 선택사항. 기본값: false (일반 우선순위)
+# true로 설정 시, 일반 큐가 비어있을 때만 명령이 전송됩니다. (Polling 등 중요도가 낮은 명령에 사용)
+```
+
+### 발행 (Publish - MQTT)
+MQTT 토픽으로 메시지를 발행합니다.
+```yaml
+action: publish
+topic: homenet/event
+payload: "something happened"
+retain: true # 선택사항. 기본값: false
+```
+
+### 패킷 전송 (Send Packet - Raw)
+장치로 직접 원본 패킷을 전송합니다. `ack` 옵션을 사용하여 응답 패킷을 기다릴 수 있습니다.
+```yaml
+action: send_packet
+data: [0x02, 0x01, 0xFF]
+# 또는 CEL 사용
+data: "[0x02, x, 0xFF]" # x 변수 사용 가능 (문맥에 따라)
+checksum: false # 선택사항. 기본값: true (설정된 체크섬 알고리즘 자동 적용)
+
+# 응답 대기 (ACK) 설정
+# 단순 배열 또는 CEL 표현식을 사용하여 수신될 응답 패킷을 정의합니다.
+ack: [0x06]
+# 또는
+# ack: "data[0] == 0x06"
+```
+
+### 지연 (Delay)
+일정 시간 동안 대기합니다.
+```yaml
+action: delay
+milliseconds: 1000 # 또는 '1s'
+```
+
+### 로그 (Log)
+시스템 로그에 메시지를 기록합니다. 디버깅 용도로 유용합니다.
+```yaml
+action: log
+level: info # trace, debug, info, warn, error. 기본값: info
+message: "자동화가 실행되었습니다."
+```
+
+## 가드 (Guards - 조건)
+
+트리거 또는 자동화 전체에 `guard` 조건을 추가하여 특정 상황에서만 실행되도록 제한할 수 있습니다. 가드는 CEL 표현식을 사용합니다.
+
+```yaml
+automation:
+  - id: auto_light
+    trigger:
+      - type: state
+        entity_id: sensor_lux
+    # 조도 센서 값이 100 미만일 때만 실행
+    guard: "states['sensor_lux']['illuminance'] < 100"
+    then:
+      - action: command
+        target: id(light_1).command_on()
 ```

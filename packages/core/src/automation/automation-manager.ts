@@ -160,16 +160,11 @@ export class AutomationManager {
           this.setupScheduleTrigger(automation, trigger);
         }
         if (trigger.type === 'startup') {
-          const delay =
-            typeof trigger.delay === 'number'
-              ? trigger.delay
-              : trigger.delay
-                ? parseDuration(trigger.delay)
-                : 0;
+          // Immediately schedule execution (to avoid blocking sync flow)
           setTimeout(
             () =>
               this.runAutomation(automation, trigger, { type: 'startup', timestamp: Date.now() }),
-            delay,
+            0,
           );
         }
       }
@@ -402,10 +397,7 @@ export class AutomationManager {
 
     if (this.commandSender) {
       await this.commandSender(targetPortId, packetData, {
-        ackMatch: action.ack?.match,
-        retry: action.ack?.retry,
-        timeout: action.ack?.timeout,
-        interval: action.ack?.interval,
+        ackMatch: action.ack,
       });
     } else {
       logger.warn(
