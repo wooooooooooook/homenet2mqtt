@@ -566,7 +566,12 @@ export class HomeNetBridge {
         mqttTopicPrefix,
         states, // Pass the shared states map to StateManager
       );
-      const commandManager = new CommandManager(port, this.config, normalizedPortId);
+      const commandManager = new CommandManager(
+        port,
+        this.config,
+        normalizedPortId,
+        packetProcessor,
+      );
       const mqttSubscriber = new MqttSubscriber(
         this._mqttClient,
         normalizedPortId,
@@ -604,7 +609,16 @@ export class HomeNetBridge {
         packetProcessor,
         commandManager,
         mqttPublisher,
-        (portId, data) => this.sendRawPacket(portId, data),
+        normalizedPortId,
+        (portId, packet, options) => {
+          const context =
+            (portId ? this.portContexts.get(portId) : undefined) || this.getDefaultContext();
+          if (!context) {
+            logger.warn('[core] Cannot send packet: serial port not initialized');
+            return Promise.resolve();
+          }
+          return context.commandManager.sendRaw(packet, options);
+        },
       );
       automationManager.start();
 
