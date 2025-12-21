@@ -1,5 +1,6 @@
 <script lang="ts">
   import { t } from 'svelte-i18n';
+  import Button from './Button.svelte';
 
   let { onclose } = $props<{ onclose: () => void }>();
 
@@ -56,12 +57,22 @@
     </div>
 
     <div class="actions">
-      <button onclick={() => handleConsent(false)} disabled={isConsenting} class="secondary">
+      <Button
+        variant="secondary"
+        onclick={() => handleConsent(false)}
+        disabled={isConsenting}
+        class="action-btn"
+      >
         {$t('settings.log_sharing.consent_modal.decline')}
-      </button>
-      <button onclick={() => handleConsent(true)} disabled={isConsenting} class="primary">
+      </Button>
+      <Button
+        variant="primary"
+        onclick={() => handleConsent(true)}
+        disabled={isConsenting}
+        class="action-btn"
+      >
         {$t('settings.log_sharing.consent_modal.accept')}
-      </button>
+      </Button>
     </div>
   </div>
 </div>
@@ -137,37 +148,7 @@
     gap: 1rem;
   }
 
-  button {
-    padding: 0.75rem 1.5rem;
-    border-radius: 0.5rem;
-    border: none;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .primary {
-    background: #3b82f6;
-    color: white;
-  }
-
-  .primary:hover:not(:disabled) {
-    background: #2563eb;
-  }
-
-  .secondary {
-    background: transparent;
-    color: #94a3b8;
-    border: 1px solid #475569;
-  }
-
-  .secondary:hover:not(:disabled) {
-    background: #334155;
-    color: white;
+  :global(.action-btn) {
+    padding: 0.75rem 1.5rem !important;
   }
 </style>

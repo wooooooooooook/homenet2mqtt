@@ -6,6 +6,9 @@
     disabled = false,
     isLoading = false,
     ariaLabel = undefined,
+    type = undefined,
+    fullWidth = false,
+    class: className = '',
     children,
     onclick,
   } = $props<{
@@ -13,14 +16,19 @@
     disabled?: boolean;
     isLoading?: boolean;
     ariaLabel?: string;
+    type?: 'button' | 'submit' | 'reset';
+    fullWidth?: boolean;
+    class?: string;
     children?: Snippet;
     onclick?: (e: MouseEvent) => void;
   }>();
 </script>
 
 <button
-  class={`btn ${variant}`}
+  {type}
+  class={`btn ${variant} ${className}`}
   class:loading={isLoading}
+  class:full-width={fullWidth}
   {onclick}
   disabled={disabled || isLoading}
   aria-label={ariaLabel}
@@ -50,6 +58,10 @@
     transition: all 0.2s;
     font-family: inherit;
     font-size: 0.95rem;
+  }
+
+  .full-width {
+    width: 100%;
   }
 
   /* Primary Blue */
