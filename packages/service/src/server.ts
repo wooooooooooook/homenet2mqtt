@@ -362,8 +362,6 @@ app.use((_req, res, next) => {
   // 보안 헤더 설정
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
-  // HSTS: 1년, 서브도메인 포함 (HTTPS 강제)
-  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   // Referrer 정보 노출 최소화
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   // CSP: 스크립트 및 스타일 인라인 허용 (Svelte 호환), WebSocket 허용
