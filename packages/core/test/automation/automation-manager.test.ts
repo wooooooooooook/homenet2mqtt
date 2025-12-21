@@ -481,4 +481,45 @@ describe('AutomationManager', () => {
       priority: 'normal',
     });
   });
+
+  it('should handle send_packet action with new ACK format (array)', async () => {
+    const config: HomenetBridgeConfig = {
+      ...baseConfig,
+      automation: [
+        {
+          id: 'send_packet_ack_test',
+          trigger: [{ type: 'startup' }],
+          then: [
+            {
+              action: 'send_packet',
+              data: [0x01, 0x02],
+              ack: [0x06], // New simple format
+            },
+          ],
+        },
+      ],
+    };
+
+    const mockSender = vi.fn().mockResolvedValue(undefined);
+
+    automationManager = new AutomationManager(
+      config,
+      packetProcessor as any,
+      commandManager as any,
+      mqttPublisher as any,
+      undefined,
+      mockSender, // inject mock sender
+    );
+    automationManager.start();
+
+    await vi.runAllTimersAsync();
+
+    expect(mockSender).toHaveBeenCalledWith(
+      undefined, // portId
+      expect.arrayContaining([0x01, 0x02]), // data (might have checksum appended depending on defaults, but here defaults are empty/undefined so likely just data)
+      expect.objectContaining({
+        ackMatch: [0x06],
+      }),
+    );
+  });
 });
