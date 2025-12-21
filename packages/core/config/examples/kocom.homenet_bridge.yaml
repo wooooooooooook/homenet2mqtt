@@ -350,7 +350,7 @@ homenet_bridge:
   button:
     - name: 'Elevator Call'
       icon: 'mdi:elevator'
-      command_on:
+      command_press:
         data:
           [
             0x30,

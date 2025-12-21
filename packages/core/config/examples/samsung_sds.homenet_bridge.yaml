@@ -19,7 +19,7 @@ homenet_bridge:
   button:
     - name: 'Gas Valve Close'
       icon: 'mdi:gas-burner'
-      command_on:
+      command_press:
         data: [0xAB, 0x78, 0x00]
         ack: [0x78]
 

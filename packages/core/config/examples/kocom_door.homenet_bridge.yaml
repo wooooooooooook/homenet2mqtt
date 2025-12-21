@@ -44,7 +44,7 @@ homenet_bridge:
   button:
     - name: 'Call Common'
       icon: 'mdi:phone'
-      command_on:
+      command_press:
         data:
           [
             0xAA,
@@ -71,7 +71,7 @@ homenet_bridge:
 
     - name: 'Open Common'
       icon: 'mdi:door-sliding-open'
-      command_on:
+      command_press:
         data:
           [
             0xAA,
@@ -98,7 +98,7 @@ homenet_bridge:
 
     - name: 'Call'
       icon: 'mdi:phone'
-      command_on:
+      command_press:
         data:
           [
             0xAA,
@@ -125,7 +125,7 @@ homenet_bridge:
 
     - name: 'Open'
       icon: 'mdi:door-sliding-open'
-      command_on:
+      command_press:
         data:
           [
             0xAA,

@@ -46,11 +46,11 @@ homenet_bridge:
   button:
     - name: 'Door Open Common'
       icon: 'mdi:door-sliding-open'
-      command_on:
+      command_press:
         data: [0x61, 0x00, 0x00]
     - name: 'Door Open'
       icon: 'mdi:door-sliding-open'
-      command_on:
+      command_press:
         data: [0xB4, 0x00, 0x00]
 
   switch:

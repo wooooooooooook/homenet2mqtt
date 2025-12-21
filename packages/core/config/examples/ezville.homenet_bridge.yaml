@@ -195,7 +195,8 @@ homenet_bridge:
         data: [0x30, 0x01, 0x81]
       accuracy_decimals: 2
       unit_of_measurement: 'm³'
-      command_update: [0x30, 0x01, 0x01, 0x00]
+      command_update: 
+        data: [0x30, 0x01, 0x01, 0x00]
       state_number:
         offset: 9
         length: 3
@@ -208,7 +209,8 @@ homenet_bridge:
         data: [0x30, 0x02, 0x81]
       accuracy_decimals: 2
       unit_of_measurement: 'm³'
-      command_update: [0x30, 0x02, 0x01, 0x00]
+      command_update: 
+        data: [0x30, 0x02, 0x01, 0x00]
       state_number:
         offset: 9
         length: 3
@@ -707,7 +709,7 @@ homenet_bridge:
   button:
     - name: 'Elevator Call'
       icon: 'mdi:elevator'
-      command_on:
+      command_press:
         data: [0x33, 0x01, 0x81, 0x03, 0x00, 0x24, 0x00]
 
 automation:

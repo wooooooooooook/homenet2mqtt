@@ -448,7 +448,7 @@ homenet_bridge:
     - id: 'elevator_call'
       name: 'Elevator Call'
       icon: 'mdi:elevator'
-      command_on:
+      command_press:
         data: [0xA0, 0x01, 0x01, 0x00, 0x08, 0x15, 0x00]
         ack: [0x23]
 

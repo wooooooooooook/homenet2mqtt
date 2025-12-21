@@ -148,11 +148,6 @@ export class MqttSubscriber {
     if (targetEntity) {
       // Refine commandName based on entity type and payload
 
-      // Button: PRESS -> on (Commonly mapped to command_on)
-      if (targetEntity.type === 'button' && commandName === 'press') {
-        commandName = 'on';
-      }
-
       // Climate Mode: mode -> payload (e.g., off, heat, cool)
       if (targetEntity.type === 'climate' && commandName === 'mode') {
         commandName = String(commandValue).toLowerCase();
