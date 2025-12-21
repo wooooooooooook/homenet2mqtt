@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { setupTest, processPacket, publishMock } from './utils';
+import { setupTest, processPacket, publishMock, executeCommand } from './utils';
 import { COMMAX_PACKETS } from '../../../simulator/src/commax';
 
 describe('HomeNet to MQTT - Commax Protocol', () => {
@@ -24,6 +24,24 @@ describe('HomeNet to MQTT - Commax Protocol', () => {
         expect.objectContaining({ retain: true }),
       );
     }
+  });
+
+  it('should generate command packets', async () => {
+    const ctx = await setupTest('commax.homenet_bridge.yaml');
+
+    // Command ON for light_1
+    // Expected: [0x31, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x33] (Sum 0x33)
+    await executeCommand(ctx, 'light_1', 'on', null);
+
+    const expectedOn = Buffer.from([0x31, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x33]);
+    expect(ctx.mockSerialPort.write).toHaveBeenCalledWith(expectedOn);
+
+    // Command OFF for light_1
+    // Expected: [0x31, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x32] (Sum 0x32)
+    await executeCommand(ctx, 'light_1', 'off', null);
+
+    const expectedOff = Buffer.from([0x31, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x32]);
+    expect(ctx.mockSerialPort.write).toHaveBeenCalledWith(expectedOff);
   });
 
   it('should process other device packets', async () => {
