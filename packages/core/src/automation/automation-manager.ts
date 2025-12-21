@@ -7,6 +7,7 @@ import type {
   AutomationActionDelay,
   AutomationActionLog,
   AutomationActionPublish,
+  AutomationActionSendPacket,
   AutomationConfig,
   AutomationGuard,
   AutomationTrigger,
@@ -32,6 +33,8 @@ interface TriggerContext {
   timestamp: number;
 }
 
+type PacketSender = (portId: string | undefined, data: number[]) => void;
+
 export class AutomationManager {
   private readonly automationList: AutomationConfig[];
   private readonly packetProcessor: PacketProcessor;
@@ -53,6 +56,7 @@ export class AutomationManager {
     packetProcessor: PacketProcessor,
     commandManager: CommandManager,
     mqttPublisher: MqttPublisher,
+    private readonly packetSender?: PacketSender,
   ) {
     this.automationList = (config.automation || []).filter(
       (automation) => automation.enabled !== false,
@@ -320,6 +324,22 @@ export class AutomationManager {
       return this.executeLogAction(action as AutomationActionLog, context);
     if (action.action === 'delay') return this.executeDelayAction(action as AutomationActionDelay);
     if (action.action === 'script') return this.executeScriptAction(action, context);
+    if (action.action === 'send_packet')
+      return this.executeSendPacketAction(action as AutomationActionSendPacket);
+  }
+
+  private async executeSendPacketAction(action: AutomationActionSendPacket) {
+    if (!action.data || !Array.isArray(action.data)) {
+      logger.warn({ action }, '[automation] send_packet action requires data array');
+      return;
+    }
+    if (this.packetSender) {
+      this.packetSender(action.portId, action.data);
+    } else {
+      logger.warn(
+        '[automation] send_packet action cannot be executed: packetSender not available',
+      );
+    }
   }
 
   private async executeCommandAction(action: AutomationActionCommand, context: TriggerContext) {

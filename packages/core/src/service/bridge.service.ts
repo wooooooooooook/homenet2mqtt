@@ -113,8 +113,9 @@ export class HomeNetBridge {
   /**
    * Send a raw packet directly to the serial port without ACK waiting
    */
-  sendRawPacket(portId: string, packet: number[]): boolean {
-    const context = this.portContexts.get(portId) || this.getDefaultContext();
+  sendRawPacket(portId: string | undefined, packet: number[]): boolean {
+    const context =
+      (portId ? this.portContexts.get(portId) : undefined) || this.getDefaultContext();
     if (!context) {
       logger.warn('[core] Cannot send packet: serial port not initialized');
       return false;
@@ -603,6 +604,7 @@ export class HomeNetBridge {
         packetProcessor,
         commandManager,
         mqttPublisher,
+        (portId, data) => this.sendRawPacket(portId, data),
       );
       automationManager.start();
 

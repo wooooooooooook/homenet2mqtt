@@ -87,12 +87,19 @@ export interface AutomationActionScript {
   code: string;
 }
 
+export interface AutomationActionSendPacket {
+  action: 'send_packet';
+  data: number[];
+  portId?: string;
+}
+
 export type AutomationAction =
   | AutomationActionCommand
   | AutomationActionPublish
   | AutomationActionLog
   | AutomationActionDelay
-  | AutomationActionScript;
+  | AutomationActionScript
+  | AutomationActionSendPacket;
 
 export interface AutomationConfig {
   id: string;
