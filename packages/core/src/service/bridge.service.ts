@@ -113,8 +113,9 @@ export class HomeNetBridge {
   /**
    * Send a raw packet directly to the serial port without ACK waiting
    */
-  sendRawPacket(portId: string, packet: number[]): boolean {
-    const context = this.portContexts.get(portId) || this.getDefaultContext();
+  sendRawPacket(portId: string | undefined, packet: number[]): boolean {
+    const context =
+      (portId ? this.portContexts.get(portId) : undefined) || this.getDefaultContext();
     if (!context) {
       logger.warn('[core] Cannot send packet: serial port not initialized');
       return false;
@@ -564,7 +565,12 @@ export class HomeNetBridge {
         mqttTopicPrefix,
         states, // Pass the shared states map to StateManager
       );
-      const commandManager = new CommandManager(port, this.config, normalizedPortId);
+      const commandManager = new CommandManager(
+        port,
+        this.config,
+        normalizedPortId,
+        packetProcessor,
+      );
       const mqttSubscriber = new MqttSubscriber(
         this._mqttClient,
         normalizedPortId,
@@ -602,6 +608,16 @@ export class HomeNetBridge {
         packetProcessor,
         commandManager,
         mqttPublisher,
+        normalizedPortId,
+        (portId, packet, options) => {
+          const context =
+            (portId ? this.portContexts.get(portId) : undefined) || this.getDefaultContext();
+          if (!context) {
+            logger.warn('[core] Cannot send packet: serial port not initialized');
+            return Promise.resolve();
+          }
+          return context.commandManager.sendRaw(packet, options);
+        },
       );
       automationManager.start();
 

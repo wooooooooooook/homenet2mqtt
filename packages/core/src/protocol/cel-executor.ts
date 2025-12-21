@@ -13,6 +13,7 @@ export class CelExecutor {
     this.env.registerVariable('data', 'list'); // list(int)
     this.env.registerVariable('state', 'map');
     this.env.registerVariable('states', 'map');
+    this.env.registerVariable('trigger', 'map');
 
     // Helper: BCD to Int
     this.env.registerFunction('bcd_to_int(int): int', (bcd: bigint) => {
@@ -84,6 +85,10 @@ export class CelExecutor {
 
       if (contextData.states) {
         safeContext.states = contextData.states;
+      }
+
+      if (contextData.trigger) {
+        safeContext.trigger = contextData.trigger;
       }
 
       const res = this.env.evaluate(script, safeContext);

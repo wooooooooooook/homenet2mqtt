@@ -3,12 +3,24 @@ import { Duplex } from 'stream';
 import { HomenetBridgeConfig } from '../config/types.js';
 import { EntityConfig } from '../domain/entities/base.entity.js';
 import { logger } from '../utils/logger.js';
+import { PacketProcessor } from '../protocol/packet-processor.js';
+import { StateSchema } from '../protocol/types.js';
+import { matchesPacket } from '../utils/packet-matching.js';
 import { eventBus } from './event-bus.js';
 
+interface RetryConfig {
+  attempts: number;
+  timeout: number;
+  interval: number;
+}
+
 interface CommandJob {
-  entity: EntityConfig;
+  entity?: EntityConfig; // Optional to support raw commands
+  ackMatch?: StateSchema; // For raw commands
   packet: number[];
   attemptsLeft: number;
+  retryConfig: RetryConfig;
+  packetMatcher?: (packet: number[]) => void;
   timer: NodeJS.Timeout | null;
   resolve: () => void;
   reject: (reason?: any) => void;
@@ -22,18 +34,32 @@ export class CommandManager {
   private serialPort: Duplex;
   private config: HomenetBridgeConfig;
   private ackListeners: Map<string, () => void> = new Map();
+  private packetAckListeners: Set<(packet: number[]) => void> = new Set();
   private portId: string;
+  private packetProcessor?: PacketProcessor;
 
-  constructor(serialPort: Duplex, config: HomenetBridgeConfig, portId: string) {
+  constructor(
+    serialPort: Duplex,
+    config: HomenetBridgeConfig,
+    portId: string,
+    packetProcessor?: PacketProcessor,
+  ) {
     this.serialPort = serialPort;
     this.config = config;
     this.portId = portId;
+    this.packetProcessor = packetProcessor;
 
     // Listen for state updates to resolve pending commands
     eventBus.on('state:changed', ({ entityId, portId }) => {
       if (portId && portId !== this.portId) return;
       this.handleAck(entityId);
     });
+
+    if (this.packetProcessor) {
+      this.packetProcessor.on('packet', (packet: number[]) => {
+        this.handlePacketAck(packet);
+      });
+    }
   }
 
   public send(
@@ -46,6 +72,7 @@ export class CommandManager {
       const job: CommandJob = {
         entity,
         packet,
+        retryConfig,
         attemptsLeft: (retryConfig.attempts ?? 5) + 1,
         timer: null,
         resolve,
@@ -61,8 +88,53 @@ export class CommandManager {
     });
   }
 
-  private getRetryConfig(entity: EntityConfig) {
+  public sendRaw(
+    packet: number[],
+    options?: {
+      priority?: 'normal' | 'low';
+      ackMatch?: StateSchema;
+      retry?: number;
+      timeout?: number;
+      interval?: number;
+    },
+  ): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const defaults = this.config.packet_defaults || {};
+      const retryConfig = {
+        attempts: options?.retry ?? defaults.tx_retry_cnt ?? 5,
+        timeout: options?.timeout ?? defaults.tx_timeout ?? 2000,
+        interval: options?.interval ?? defaults.tx_delay ?? 125,
+      };
+
+      const job: CommandJob = {
+        ackMatch: options?.ackMatch,
+        packet,
+        retryConfig,
+        attemptsLeft: options?.ackMatch ? retryConfig.attempts + 1 : 1,
+        timer: null,
+        resolve,
+        reject,
+        isSettled: false,
+      };
+
+      if (options?.priority === 'low') {
+        this.lowPriorityQueue.push(job);
+      } else {
+        this.queue.push(job);
+      }
+      this.processQueue();
+    });
+  }
+
+  private getRetryConfig(entity?: EntityConfig) {
     const defaults = this.config.packet_defaults || {};
+    if (!entity) {
+      return {
+        attempts: defaults.tx_retry_cnt ?? 5,
+        timeout: defaults.tx_timeout ?? 2000,
+        interval: defaults.tx_delay ?? 125,
+      };
+    }
     const overrides = entity.packet_parameters || {};
 
     return {
@@ -97,8 +169,7 @@ export class CommandManager {
 
   private executeJob(job: CommandJob): Promise<void> {
     return new Promise((resolve, reject) => {
-      const retryConfig = this.getRetryConfig(job.entity);
-      job.attemptsLeft = retryConfig.attempts + 1;
+      const retryConfig = job.retryConfig;
       const totalAttempts = job.attemptsLeft;
       let attemptNumber = 0;
 
@@ -110,14 +181,14 @@ export class CommandManager {
           job.isSettled = true;
           logger.warn(
             {
-              entity: job.entity.name,
+              entity: job.entity?.name ?? 'raw',
               attempts: totalAttempts,
               timeout: retryConfig.timeout,
               interval: retryConfig.interval,
             },
             `[CommandManager] Command failed: sent ${totalAttempts} times but no ACK received`,
           );
-          this.removeAckListener(job.entity.id);
+          this.cleanupListeners(job);
           return resolve(); // Resolve instead of reject to avoid throwing error
         }
 
@@ -128,23 +199,34 @@ export class CommandManager {
           job.isSettled = true;
           if (job.timer) clearTimeout(job.timer);
           logger.info(
-            { entity: job.entity.name },
+            { entity: job.entity?.name ?? 'raw' },
             `[CommandManager] Command succeeded: ACK received`,
           );
-          this.removeAckListener(job.entity.id);
+          this.cleanupListeners(job);
           resolve();
         };
 
-        this.setAckListener(job.entity.id, onAck);
+        this.setupListener(job, onAck);
 
         logger.info(
-          { entity: job.entity.name },
+          { entity: job.entity?.name ?? 'raw' },
           `[CommandManager] Trying to send command (${attemptNumber}/${totalAttempts})`,
         );
         this.serialPort.write(Buffer.from(job.packet));
 
+        // If no ACK required (raw command without match, or entity without retry), resolve immediately?
+        // Logic for entity: it always waits if retryConfig.attempts > 0?
+        // Actually, if retryConfig.attempts is 0, we still send once. Do we wait for ACK?
+        // Existing logic: waits for ACK until timeout.
+        // For sendRaw without ackMatch, attemptsLeft should be 1, and we should NOT wait for ACK?
+        if (!job.entity && !job.ackMatch) {
+          job.isSettled = true;
+          resolve();
+          return;
+        }
+
         job.timer = setTimeout(() => {
-          this.removeAckListener(job.entity.id);
+          this.cleanupListeners(job);
           if (job.isSettled) return;
           setTimeout(attempt, retryConfig.interval);
         }, retryConfig.timeout);
@@ -152,6 +234,28 @@ export class CommandManager {
 
       attempt();
     });
+  }
+
+  private setupListener(job: CommandJob, callback: () => void) {
+    if (job.entity) {
+      this.setAckListener(job.entity.id, callback);
+    } else if (job.ackMatch) {
+      const matcher = (packet: number[]) => {
+        if (job.ackMatch && matchesPacket(job.ackMatch, packet)) {
+          callback();
+        }
+      };
+      job.packetMatcher = matcher;
+      this.packetAckListeners.add(matcher);
+    }
+  }
+
+  private cleanupListeners(job: CommandJob) {
+    if (job.entity) {
+      this.removeAckListener(job.entity.id);
+    } else if (job.packetMatcher) {
+      this.packetAckListeners.delete(job.packetMatcher);
+    }
   }
 
   private setAckListener(entityId: string, callback: () => void) {
@@ -166,6 +270,12 @@ export class CommandManager {
     const listener = this.ackListeners.get(entityId);
     if (listener) {
       listener();
+    }
+  }
+
+  private handlePacketAck(packet: number[]) {
+    for (const listener of this.packetAckListeners) {
+      listener(packet);
     }
   }
 }

@@ -7,6 +7,7 @@ import type {
   AutomationActionDelay,
   AutomationActionLog,
   AutomationActionPublish,
+  AutomationActionSendPacket,
   AutomationConfig,
   AutomationGuard,
   AutomationTrigger,
@@ -24,6 +25,13 @@ import { MqttPublisher } from '../transports/mqtt/publisher.js';
 import { parseDuration } from '../utils/duration.js';
 import { findEntityById } from '../utils/entities.js';
 import { logger } from '../utils/logger.js';
+import { matchesPacket } from '../utils/packet-matching.js';
+import {
+  calculateChecksumFromBuffer,
+  calculateChecksum2FromBuffer,
+  ChecksumType,
+  Checksum2Type,
+} from '../protocol/utils/checksum.js';
 
 interface TriggerContext {
   type: AutomationTrigger['type'];
@@ -31,6 +39,19 @@ interface TriggerContext {
   packet?: number[];
   timestamp: number;
 }
+
+// Updated PacketSender signature to match CommandManager.sendRaw capabilities
+type CommandSender = (
+  portId: string | undefined,
+  packet: number[],
+  options?: {
+    priority?: 'normal' | 'low';
+    ackMatch?: any;
+    retry?: number;
+    timeout?: number;
+    interval?: number;
+  },
+) => Promise<void>;
 
 export class AutomationManager {
   private readonly automationList: AutomationConfig[];
@@ -53,6 +74,8 @@ export class AutomationManager {
     packetProcessor: PacketProcessor,
     commandManager: CommandManager,
     mqttPublisher: MqttPublisher,
+    private readonly contextPortId?: string,
+    private readonly commandSender?: CommandSender,
   ) {
     this.automationList = (config.automation || []).filter(
       (automation) => automation.enabled !== false,
@@ -232,26 +255,7 @@ export class AutomationManager {
   }
 
   private matchesPacket(trigger: AutomationTriggerPacket, packet: number[]) {
-    const match = trigger.match as StateSchema;
-    if (!match.data || !Array.isArray(match.data)) return false;
-    const offset = match.offset ?? 0;
-    let matched = true;
-    for (let i = 0; i < match.data.length; i++) {
-      const expected = match.data[i];
-      const packetByte = packet[offset + i];
-      if (packetByte === undefined) {
-        matched = false;
-        break;
-      }
-      const mask = Array.isArray(match.mask) ? match.mask[i] : match.mask;
-      const maskedPacket = mask !== undefined ? packetByte & mask : packetByte;
-      const maskedExpected = mask !== undefined ? expected & mask : expected;
-      if (maskedPacket !== maskedExpected) {
-        matched = false;
-        break;
-      }
-    }
-    return match.inverted ? !matched : matched;
+    return matchesPacket(trigger.match as StateSchema, packet);
   }
 
   private matchesStateTrigger(trigger: AutomationTriggerState, state: Record<string, any>) {
@@ -302,7 +306,7 @@ export class AutomationManager {
     logger.info({ automation: automation.id, trigger: trigger.type }, '[automation] Executing');
     for (const action of actions) {
       try {
-        await this.executeAction(action, context);
+        await this.executeAction(action, context, automation.portId);
       } catch (error) {
         logger.error(
           { error, automation: automation.id, action: action.action },
@@ -319,13 +323,95 @@ export class AutomationManager {
     return Boolean(result);
   }
 
-  private async executeAction(action: AutomationAction, context: TriggerContext) {
+  private async executeAction(
+    action: AutomationAction,
+    context: TriggerContext,
+    automationPortId?: string,
+  ) {
     if (action.action === 'command') return this.executeCommandAction(action, context);
     if (action.action === 'publish') return this.executePublishAction(action, context);
     if (action.action === 'log')
       return this.executeLogAction(action as AutomationActionLog, context);
     if (action.action === 'delay') return this.executeDelayAction(action as AutomationActionDelay);
     if (action.action === 'script') return this.executeScriptAction(action, context);
+    if (action.action === 'send_packet')
+      return this.executeSendPacketAction(
+        action as AutomationActionSendPacket,
+        context,
+        automationPortId,
+      );
+  }
+
+  private async executeSendPacketAction(
+    action: AutomationActionSendPacket,
+    context: TriggerContext,
+    automationPortId?: string,
+  ) {
+    let packetData: number[] = [];
+
+    if (Array.isArray(action.data)) {
+      packetData = action.data;
+    } else if (typeof action.data === 'string') {
+      // Evaluate CEL
+      const result = this.celExecutor.execute(action.data, this.buildContext(context));
+      if (Array.isArray(result)) {
+        packetData = result.map((n) => Number(n));
+      } else {
+        logger.warn(
+          { action, result },
+          '[automation] send_packet CEL expression must return number array',
+        );
+        return;
+      }
+    } else {
+      logger.warn({ action }, '[automation] send_packet data invalid type');
+      return;
+    }
+
+    // Append Checksum if requested (default true)
+    if (action.checksum !== false) {
+      const defaults = this.config.packet_defaults || {};
+      const checksumType = defaults.tx_checksum;
+      const checksum2Type = defaults.tx_checksum2;
+      const buffer = Buffer.from(packetData);
+
+      if (checksumType && checksumType !== 'none') {
+        if (typeof checksumType === 'string') {
+          const cs = calculateChecksumFromBuffer(
+            buffer,
+            checksumType as ChecksumType,
+            0,
+            packetData.length,
+          );
+          packetData.push(cs);
+        }
+      } else if (checksum2Type) {
+        if (typeof checksum2Type === 'string') {
+          const cs = calculateChecksum2FromBuffer(
+            buffer,
+            checksum2Type as Checksum2Type,
+            0,
+            packetData.length,
+          );
+          packetData.push(cs[0], cs[1]);
+        }
+      }
+    }
+
+    const targetPortId = action.portId || automationPortId || this.contextPortId;
+
+    if (this.commandSender) {
+      await this.commandSender(targetPortId, packetData, {
+        ackMatch: action.ack?.match,
+        retry: action.ack?.retry,
+        timeout: action.ack?.timeout,
+        interval: action.ack?.interval,
+      });
+    } else {
+      logger.warn(
+        '[automation] send_packet action cannot be executed: commandSender not available',
+      );
+    }
   }
 
   private async executeCommandAction(action: AutomationActionCommand, context: TriggerContext) {

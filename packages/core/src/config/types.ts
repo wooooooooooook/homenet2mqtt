@@ -88,17 +88,34 @@ export interface AutomationActionScript {
   code: string;
 }
 
+export interface AutomationActionSendPacketAck {
+  match: StateSchema;
+  retry?: number;
+  timeout?: number;
+  interval?: number;
+}
+
+export interface AutomationActionSendPacket {
+  action: 'send_packet';
+  data: number[] | string;
+  checksum?: boolean;
+  portId?: string;
+  ack?: AutomationActionSendPacketAck;
+}
+
 export type AutomationAction =
   | AutomationActionCommand
   | AutomationActionPublish
   | AutomationActionLog
   | AutomationActionDelay
-  | AutomationActionScript;
+  | AutomationActionScript
+  | AutomationActionSendPacket;
 
 export interface AutomationConfig {
   id: string;
   name?: string;
   description?: string;
+  portId?: string;
   trigger: AutomationTrigger[];
   guard?: AutomationGuard;
   then: AutomationAction[];
