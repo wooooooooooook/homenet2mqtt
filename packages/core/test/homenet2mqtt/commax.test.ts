@@ -1,10 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { setupTest, processPacket, publishMock, executeCommand } from './utils';
+import { setupTest, processPacket, executeCommand } from './utils';
 import { COMMAX_PACKETS } from '../../../simulator/src/commax';
 
 describe('HomeNet to MQTT - Commax Protocol', () => {
   it('should process light packets', async () => {
-    const { stateManager } = await setupTest('commax.homenet_bridge.yaml');
+    const ctx = await setupTest('commax.homenet_bridge.yaml');
+    const { stateManager, publishMock } = ctx;
 
     // Light Breaker (ON) - Index 4
     processPacket(stateManager, COMMAX_PACKETS[4]);
@@ -42,6 +43,20 @@ describe('HomeNet to MQTT - Commax Protocol', () => {
 
     const expectedOff = Buffer.from([0x31, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x32]);
     expect(ctx.mockSerialPort.write).toHaveBeenCalledWith(expectedOff);
+
+    // Command Speed 1 for fan_1
+    // Data: [0x78, 0x01, 0x02, 0x01, 0x00, 0x00, 0x00]
+    // Checksum: 0x78+0x01+0x02+0x01 = 0x7C
+    await executeCommand(ctx, 'fan_1', 'speed', 1);
+    const expectedFan = Buffer.from([0x78, 0x01, 0x02, 0x01, 0x00, 0x00, 0x00, 0x7c]);
+    expect(ctx.mockSerialPort.write).toHaveBeenCalledWith(expectedFan);
+
+    // Command Temperature 25 for heater_1
+    // Data: [0x04, 0x01, 0x03, 0x25, 0x00, 0x00, 0x00] (25 -> BCD 0x25)
+    // Checksum: 0x04+0x01+0x03+0x25 = 0x2D
+    await executeCommand(ctx, 'heater_1', 'temperature', 25);
+    const expectedTemp = Buffer.from([0x04, 0x01, 0x03, 0x25, 0x00, 0x00, 0x00, 0x2d]);
+    expect(ctx.mockSerialPort.write).toHaveBeenCalledWith(expectedTemp);
   });
 
   it('should process other device packets', async () => {

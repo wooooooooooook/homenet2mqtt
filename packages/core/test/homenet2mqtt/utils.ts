@@ -1,4 +1,4 @@
-import { vi } from 'vitest';
+import { vi, Mock } from 'vitest';
 import { Buffer } from 'buffer';
 import * as path from 'path';
 import { access } from 'fs/promises';
@@ -10,12 +10,6 @@ import { clearStateCache } from '../../src/state/store';
 import { CommandManager } from '../../src/service/command.manager';
 import { HomenetBridgeConfig } from '../../src/config/types';
 import { findEntityById } from '../../src/utils/entities';
-
-// Mock MqttPublisher
-export const publishMock = vi.fn();
-export const mqttPublisherMock = {
-  publish: publishMock,
-} as unknown as MqttPublisher;
 
 // Mock Bridge for PacketProcessor (EntityStateProvider)
 export const bridgeMock = {
@@ -30,6 +24,7 @@ export interface TestContext {
   portId: string;
   config: HomenetBridgeConfig;
   mockSerialPort: any;
+  publishMock: Mock;
 }
 
 const DEFAULT_TOPIC_PREFIX = 'homenet2mqtt/homedevice1';
@@ -66,6 +61,12 @@ export async function setupTest(configPath: string): Promise<TestContext> {
     destroy: vi.fn(),
   } as any;
 
+  // Create fresh Mock Publisher for each test
+  const publishMock = vi.fn();
+  const mqttPublisherMock = {
+    publish: publishMock,
+  } as unknown as MqttPublisher;
+
   const packetProcessor = new PacketProcessor(config, bridgeMock);
   const stateManager = new StateManager(
     portId,
@@ -77,7 +78,15 @@ export async function setupTest(configPath: string): Promise<TestContext> {
 
   const commandManager = new CommandManager(mockSerialPort, config, portId, packetProcessor);
 
-  return { packetProcessor, stateManager, commandManager, portId, config, mockSerialPort };
+  return {
+    packetProcessor,
+    stateManager,
+    commandManager,
+    portId,
+    config,
+    mockSerialPort,
+    publishMock,
+  };
 }
 
 export function processPacket(stateManager: StateManager, packet: Buffer | number[]) {
