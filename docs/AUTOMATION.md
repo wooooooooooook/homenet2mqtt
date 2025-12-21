@@ -12,7 +12,7 @@ homenet_bridge:
       trigger:                    # 하나 이상
         - type: state | packet | schedule | startup
           ...                     # 트리거별 세부 필드
-          guard: "data[0] == 1"   # 선택, CEL 표현식이 true 일 때만 then 실행
+          guard: "states['s1']['v'] > 10" # 선택, CEL 표현식이 true 일 때만 then 실행
       then:                       # 필수, guard 통과 시 순차 실행
         - action: command | publish | log | delay
           ...                     # 액션별 세부 필드
@@ -51,11 +51,16 @@ homenet_bridge:
   - `milliseconds`: 대기 시간(ms 또는 `500ms`/`2s`).
 
 ### Guard (CEL 표현식)
-`guard`는 CEL(Common Expression Language)로 평가되며, 현재 다음 변수에 접근할 수 있습니다.
-- `state`: 트리거된 엔티티의 상태 객체 (state 트리거인 경우).
-- `data`: 수신된 패킷 배열 (packet 트리거인 경우).
+`guard`는 CEL(Common Expression Language)로 평가되며, 자동화 실행 여부를 결정하는 추가 조건입니다.
 
-> **주의**: 기존의 `id()`, `states` 등의 헬퍼 함수는 CEL 환경에서 지원되지 않습니다.
+**사용 가능한 변수:**
+- `states`: 전체 엔티티의 상태 맵 (Map). `states['entity_id']['property']` 형태로 접근하여 다른 기기의 상태를 참조할 수 있습니다.
+
+**사용 가능한 함수 (Side Effects):**
+- `log(message)`: 로그를 출력합니다. (항상 `true` 반환)
+- `command(entity_id, command_name, value)`: 다른 엔티티에 명령을 전송합니다. (항상 `true` 반환)
+
+> **참고**: `state` (트리거된 엔티티 상태) 및 `data` (수신 패킷) 변수는 현재 Guard 표현식 내에서 직접 사용할 수 없습니다. `states`를 통해 전역 상태를 참조하거나, 트리거의 `match` 조건을 활용하세요.
 
 ### 예시
 ```yaml
