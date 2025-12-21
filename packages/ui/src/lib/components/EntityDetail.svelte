@@ -270,11 +270,14 @@
             class="entity-id-btn"
             onclick={handleCopyId}
             title={$t('entity_detail.copy_id') || 'Click to copy ID'}
-            aria-label={$t('entity_detail.copy_id_aria', { values: { id: entity.id } }) || `Copy ID ${entity.id}`}
+            aria-label={$t('entity_detail.copy_id_aria', { values: { id: entity.id } }) ||
+              `Copy ID ${entity.id}`}
           >
             <span class="entity-id">{entity.id}</span>
             {#if idCopied}
-              <span class="copy-feedback" transition:fade={{ duration: 200 }}>{$t('common.copied') || 'Copied!'}</span>
+              <span class="copy-feedback" transition:fade={{ duration: 200 }}
+                >{$t('common.copied') || 'Copied!'}</span
+              >
             {/if}
           </button>
         </div>
@@ -418,7 +421,12 @@
                 </div>
               </div>
               <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-              <div class="log-list unified-list" role="log" tabindex="0" aria-label={$t('entity_detail.packets.title')}>
+              <div
+                class="log-list unified-list"
+                role="log"
+                tabindex="0"
+                aria-label={$t('entity_detail.packets.title')}
+              >
                 {#if mergedPackets.length === 0}
                   <div class="no-data">{$t('entity_detail.packets.no_packets')}</div>
                 {:else}
