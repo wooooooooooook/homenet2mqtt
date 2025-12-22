@@ -20,7 +20,6 @@ export class PacketParser {
   private buffer: Buffer = Buffer.alloc(0);
   private lastRxTime: number = 0;
   private defaults: PacketDefaults;
-  private celExecutor?: CelExecutor;
   private headerBuffer: Buffer | null = null;
   private footerBuffer: Buffer | null = null;
 
@@ -49,10 +48,7 @@ export class PacketParser {
   }
 
   private getExecutor(): CelExecutor {
-    if (!this.celExecutor) {
-      this.celExecutor = new CelExecutor();
-    }
-    return this.celExecutor;
+    return CelExecutor.shared();
   }
 
   /**

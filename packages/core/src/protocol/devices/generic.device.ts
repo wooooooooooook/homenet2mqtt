@@ -12,17 +12,12 @@ import { logger } from '../../utils/logger.js';
 import { Buffer } from 'buffer';
 
 export class GenericDevice extends Device {
-  private celExecutor?: CelExecutor;
-
   constructor(config: DeviceConfig, protocolConfig: ProtocolConfig) {
     super(config, protocolConfig);
   }
 
   private getExecutor(): CelExecutor {
-    if (!this.celExecutor) {
-      this.celExecutor = new CelExecutor();
-    }
-    return this.celExecutor;
+    return CelExecutor.shared();
   }
 
   public parseData(
