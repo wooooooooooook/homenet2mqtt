@@ -67,7 +67,7 @@
               sampleSize: stats.sampleSize,
             }
           : null;
-        const response = await fetch('/api/logs/packet/start', {
+        const response = await fetch('./api/logs/packet/start', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ uiStats: statsPayload }),
