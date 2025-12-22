@@ -463,6 +463,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 1rem;
   }
 
   h1 {
@@ -548,6 +549,7 @@
     display: inline-block;
     width: 50px;
     height: 28px;
+    flex-shrink: 0;
   }
 
   .switch input {
@@ -705,5 +707,37 @@
 
   .btn-icon.danger:hover {
     background: rgba(248, 113, 113, 0.3);
+  }
+
+  @media (max-width: 480px) {
+    .view-header {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .lang-switcher {
+      width: 100%;
+    }
+
+    .lang-switcher select {
+      width: 100%;
+    }
+
+    .card {
+      padding: 1rem;
+    }
+
+    .setting {
+      padding: 0.75rem 0;
+      gap: 0.75rem;
+    }
+
+    .setting-title {
+      font-size: 0.95rem;
+    }
+
+    .setting-desc {
+      font-size: 0.85rem;
+    }
   }
 </style>

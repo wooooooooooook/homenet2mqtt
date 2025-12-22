@@ -34,7 +34,7 @@
     if (isRecording) {
       // Stop recording
       try {
-        const response = await fetch('/api/logs/packet/stop', { method: 'POST' });
+        const response = await fetch('./api/logs/packet/stop', { method: 'POST' });
         const data = await response.json();
         if (data.success && data.result) {
           recordedFile = data.result;
@@ -100,7 +100,7 @@
 
     // Create a temporary link to force download
     const link = document.createElement('a');
-    link.href = `/api/logs/packet/download/${recordedFile.filename}`;
+    link.href = `./api/logs/packet/download/${recordedFile.filename}`;
     link.download = recordedFile.filename;
     document.body.appendChild(link);
     link.click();
@@ -117,7 +117,7 @@
   async function copyLogContent() {
     if (!recordedFile) return;
     try {
-      const response = await fetch(`/api/logs/packet/download/${recordedFile.filename}`);
+      const response = await fetch(`./api/logs/packet/download/${recordedFile.filename}`);
       if (!response.ok) throw new Error('Failed to fetch log');
       const text = await response.text();
       await navigator.clipboard.writeText(text);
@@ -131,7 +131,7 @@
     if (!confirm($t('analysis.raw_log.delete_confirm'))) return;
 
     try {
-      const response = await fetch(`/api/logs/packet/${recordedFile.filename}`, {
+      const response = await fetch(`./api/logs/packet/${recordedFile.filename}`, {
         method: 'DELETE',
       });
       if (response.ok) {
@@ -237,6 +237,13 @@
     margin-bottom: 2rem;
   }
 
+  @media (max-width: 480px) {
+    .log-section {
+      padding: 0.75rem;
+      border-radius: 8px;
+    }
+  }
+
   .log-header {
     display: flex;
     justify-content: space-between;
@@ -273,6 +280,17 @@
     border-bottom: 1px solid rgba(148, 163, 184, 0.05);
     align-items: center;
     color: #cbd5e1;
+  }
+
+  @media (max-width: 480px) {
+    .log-item {
+      gap: 0.5rem;
+      padding: 0.4rem 0.3rem;
+    }
+
+    .interval {
+      width: 45px;
+    }
   }
 
   .log-item:last-child {
@@ -359,6 +377,16 @@
     padding: 1.5rem;
     margin-bottom: 1rem;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+  }
+
+  @media (max-width: 480px) {
+    .save-dialog {
+      padding: 1rem;
+    }
+    .actions {
+      flex-direction: column;
+      align-items: stretch;
+    }
   }
 
   .save-content h3 {

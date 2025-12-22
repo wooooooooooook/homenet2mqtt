@@ -1139,7 +1139,7 @@
   @media (max-width: 768px) {
     .main-content {
       margin-left: 0;
-      padding: 1rem;
+      padding: 0.75rem;
       width: 100%;
     }
   }

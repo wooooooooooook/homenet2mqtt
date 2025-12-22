@@ -230,6 +230,12 @@
     flex-wrap: wrap;
   }
 
+  @media (max-width: 480px) {
+    .viewer-meta-mini {
+      padding: 0.5rem 0.75rem;
+    }
+  }
+
   .mqtt-info {
     display: flex;
     align-items: center;
@@ -308,6 +314,13 @@
     border: 1px solid rgba(148, 163, 184, 0.1);
     box-sizing: border-box;
     width: 100%;
+  }
+
+  @media (max-width: 480px) {
+    .port-meta-mini {
+      padding: 0.75rem;
+      gap: 1rem;
+    }
   }
 
   .meta-item {

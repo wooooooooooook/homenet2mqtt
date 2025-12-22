@@ -27,11 +27,6 @@
 {/if}
 
 <aside class="sidebar" class:open={isOpen}>
-  <div class="logo">
-    <img src="/logo.png" alt="Homenet2MQTT" class="logo-icon" />
-    <span class="logo-text">Homenet2MQTT</span>
-  </div>
-
   <nav>
     <button
       class="nav-item"
@@ -71,11 +66,10 @@
     display: flex;
     flex-direction: column;
     padding: 1.5rem;
-    height: 100vh;
+    height: calc(100vh - 65px);
     box-sizing: border-box;
     position: fixed;
     left: 0;
-    top: 0;
     z-index: 50;
     transition: transform 0.3s ease-in-out;
   }
@@ -93,27 +87,6 @@
     border: none;
     padding: 0;
     cursor: pointer;
-  }
-
-  .logo {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    margin-bottom: 2.5rem;
-    padding: 0 0.5rem;
-  }
-
-  .logo-icon {
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    object-fit: contain;
-  }
-
-  .logo-text {
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: #e2e8f0;
   }
 
   nav {

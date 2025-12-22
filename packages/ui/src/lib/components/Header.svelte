@@ -123,15 +123,11 @@
 
   @media (max-width: 768px) {
     .header {
-      padding: 0 1rem;
+      padding: 0 0.75rem;
     }
 
     .mobile-menu-btn {
       display: block;
-    }
-
-    .logo-text {
-      display: none;
     }
   }
 </style>

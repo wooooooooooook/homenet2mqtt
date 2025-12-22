@@ -177,4 +177,12 @@
     font-style: italic;
     font-size: 0.9rem;
   }
+  @media (max-width: 480px) {
+    .card-header {
+      padding: 0.75rem 1rem;
+    }
+    .card-body {
+      padding: 1rem;
+    }
+  }
 </style>

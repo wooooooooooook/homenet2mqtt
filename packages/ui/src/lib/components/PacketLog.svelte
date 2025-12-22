@@ -102,6 +102,13 @@
     margin-bottom: 2rem;
   }
 
+  @media (max-width: 480px) {
+    .log-section {
+      padding: 0.75rem;
+      border-radius: 8px;
+    }
+  }
+
   .log-header {
     display: flex;
     justify-content: space-between;
@@ -162,6 +169,13 @@
     border-bottom: 1px solid rgba(148, 163, 184, 0.05);
     align-items: center;
     color: #cbd5e1;
+  }
+
+  @media (max-width: 480px) {
+    .log-item {
+      gap: 0.5rem;
+      padding: 0.4rem 0.3rem;
+    }
   }
 
   .log-item:last-child {

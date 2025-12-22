@@ -121,4 +121,10 @@
   :global(.activity-list .virtual-list-container) {
     height: 100%;
   }
+
+  @media (max-width: 480px) {
+    .recent-activity-container {
+      padding: 0.75rem;
+    }
+  }
 </style>
