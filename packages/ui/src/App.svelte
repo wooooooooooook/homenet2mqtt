@@ -841,7 +841,9 @@
 
     // Convert to array, filter only those with state, and sort
     const allEntities = Array.from(entities.values());
-    const filtered = showInactiveEntities ? allEntities : allEntities.filter((entity) => entity.isActive);
+    const filtered = showInactiveEntities
+      ? allEntities
+      : allEntities.filter((entity) => entity.isActive);
     return filtered.sort((a, b) => a.displayName.localeCompare(b.displayName));
   });
 
