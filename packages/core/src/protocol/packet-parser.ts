@@ -20,7 +20,6 @@ export class PacketParser {
   private buffer: Buffer = Buffer.alloc(0);
   private lastRxTime: number = 0;
   private defaults: PacketDefaults;
-  private celExecutor: CelExecutor;
   private headerBuffer: Buffer | null = null;
   private footerBuffer: Buffer | null = null;
 
@@ -40,13 +39,16 @@ export class PacketParser {
    */
   constructor(defaults: PacketDefaults) {
     this.defaults = defaults;
-    this.celExecutor = new CelExecutor();
     if (this.defaults.rx_header && this.defaults.rx_header.length > 0) {
       this.headerBuffer = Buffer.from(this.defaults.rx_header);
     }
     if (this.defaults.rx_footer && this.defaults.rx_footer.length > 0) {
       this.footerBuffer = Buffer.from(this.defaults.rx_footer);
     }
+  }
+
+  private getExecutor(): CelExecutor {
+    return CelExecutor.shared();
   }
 
   /**
@@ -307,7 +309,7 @@ export class PacketParser {
           return calculated === checksumByte;
         } else {
           // CEL Expression
-          const result = this.celExecutor.execute(checksumOrScript, {
+          const result = this.getExecutor().execute(checksumOrScript, {
             data: buffer.subarray(0, dataEnd), // Pass Buffer directly to avoid array spread
             len: dataEnd,
           });
@@ -341,7 +343,7 @@ export class PacketParser {
           );
         } else {
           // CEL Expression for 2-byte checksum
-          const result = this.celExecutor.execute(checksumOrScript, {
+          const result = this.getExecutor().execute(checksumOrScript, {
             data: buffer.subarray(0, checksumStart), // Pass Buffer directly to avoid array spread
             len: checksumStart,
           });

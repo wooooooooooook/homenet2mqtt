@@ -3,7 +3,15 @@ import { Buffer } from 'buffer';
 import { logger } from '../utils/logger.js';
 
 export class CelExecutor {
+  private static sharedInstance?: CelExecutor;
   private env: Environment;
+
+  public static shared(): CelExecutor {
+    if (!CelExecutor.sharedInstance) {
+      CelExecutor.sharedInstance = new CelExecutor();
+    }
+    return CelExecutor.sharedInstance;
+  }
 
   constructor() {
     this.env = new Environment();

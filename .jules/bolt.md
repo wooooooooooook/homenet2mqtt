@@ -9,3 +9,7 @@
 ## 2025-12-20 - [PacketParser Checksum Sweep]
 **Learning:** `PacketParser` Strategy C (variable length sweep) was O(N²) because it recalculated the full checksum for every candidate length. For standard checksums (add/xor), this can be O(N) using incremental updates.
 **Action:** When scanning data streams for variable length packets, always look for rolling/incremental checksum opportunities to avoid O(N²) complexity.
+
+## 2024-12-21 - [Singleton Pattern for Heavy Stateless Components]
+**Learning:** `CelExecutor` relies on `cel-js` which has a high initialization cost (creating `Environment`). Since CEL execution is context-driven (stateless per execution), creating an instance per device (N=50+) is wasteful.
+**Action:** Use a Singleton pattern (shared static instance) for heavy, stateless utility classes instead of instantiating them per consumer, especially when the utility is used pervasively across the system. This provides O(1) memory usage regardless of N consumers.
