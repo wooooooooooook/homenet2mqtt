@@ -245,10 +245,50 @@ const server = createServer(app);
 const wss = new WebSocketServer({ server, path: '/api/packets/stream' });
 const port = process.env.PORT ? Number(process.env.PORT) : 3000;
 
-// --- Packet History Cache ---
-const commandPacketHistory: unknown[] = [];
-const parsedPacketHistory: unknown[] = [];
+// --- Packet History Cache with Dictionary Encoding ---
+// 패킷 사전: payload → packetId (중복 payload 메모리 절약)
+const packetDictionary = new Map<string, string>();
+const packetDictionaryReverse = new Map<string, string>(); // packetId → payload
+let packetIdCounter = 0;
+
+// 압축된 로그 구조 (payload 대신 packetId 참조)
+type CompactCommandPacket = {
+  packetId: string;   // 사전 참조
+  entity: string;
+  entityId: string;
+  command: string;
+  value?: unknown;
+  timestamp: string;
+  portId?: string;
+};
+
+type CompactParsedPacket = {
+  packetId: string;   // 사전 참조
+  entityId: string;
+  state: unknown;
+  timestamp: string;
+  portId?: string;
+};
+
+const commandPacketHistory: CompactCommandPacket[] = [];
+const parsedPacketHistory: CompactParsedPacket[] = [];
 const MAX_PACKET_HISTORY = 500000; // ~24 hours at 5 packets/sec
+
+// 패킷을 사전에 등록하거나 기존 ID 반환
+function getOrCreatePacketId(payload: string): string {
+  const existing = packetDictionary.get(payload);
+  if (existing) return existing;
+
+  const id = `p${++packetIdCounter}`;
+  packetDictionary.set(payload, id);
+  packetDictionaryReverse.set(id, payload);
+  return id;
+}
+
+// 사전에서 payload 조회
+function getPayloadById(packetId: string): string | undefined {
+  return packetDictionaryReverse.get(packetId);
+}
 
 // Security: Rate Limiters
 const commandRateLimiter = new RateLimiter(10000, 20); // 20 requests per 10 seconds
@@ -257,14 +297,40 @@ const serialTestRateLimiter = new RateLimiter(30000, 4); // 4 requests per 30 se
 const latencyTestRateLimiter = new RateLimiter(60000, 3); // 3 requests per minute
 
 eventBus.on('command-packet', (packet: unknown) => {
-  commandPacketHistory.push(packet);
+  const pkt = packet as { packet?: string; entity?: string; entityId?: string; command?: string; value?: unknown; timestamp?: string; portId?: string };
+  if (!pkt.packet) return;
+
+  const packetId = getOrCreatePacketId(pkt.packet);
+  const compact: CompactCommandPacket = {
+    packetId,
+    entity: pkt.entity || '',
+    entityId: pkt.entityId || '',
+    command: pkt.command || '',
+    value: pkt.value,
+    timestamp: pkt.timestamp || new Date().toISOString(),
+    portId: pkt.portId,
+  };
+
+  commandPacketHistory.push(compact);
   if (commandPacketHistory.length > MAX_PACKET_HISTORY) {
     commandPacketHistory.shift();
   }
 });
 
 eventBus.on('parsed-packet', (packet: unknown) => {
-  parsedPacketHistory.push(packet);
+  const pkt = packet as { packet?: string; entityId?: string; state?: unknown; timestamp?: string; portId?: string };
+  if (!pkt.packet) return;
+
+  const packetId = getOrCreatePacketId(pkt.packet);
+  const compact: CompactParsedPacket = {
+    packetId,
+    entityId: pkt.entityId || '',
+    state: pkt.state,
+    timestamp: pkt.timestamp || new Date().toISOString(),
+    portId: pkt.portId,
+  };
+
+  parsedPacketHistory.push(compact);
   if (parsedPacketHistory.length > MAX_PACKET_HISTORY) {
     parsedPacketHistory.shift();
   }
@@ -379,12 +445,39 @@ app.use((_req, res, next) => {
 app.use(express.json({ limit: '1mb' }));
 
 // --- API Endpoints ---
-app.get('/api/packets/command/history', (_req, res) => {
-  res.json(commandPacketHistory);
+// 패킷 사전 조회 API
+app.get('/api/packets/dictionary', (_req, res) => {
+  const dict: Record<string, string> = {};
+  packetDictionaryReverse.forEach((payload, id) => {
+    dict[id] = payload;
+  });
+  res.json(dict);
 });
 
+// 명령 패킷 히스토리 (복원된 형식)
+app.get('/api/packets/command/history', (_req, res) => {
+  const restored = commandPacketHistory.map((compact) => ({
+    entity: compact.entity,
+    entityId: compact.entityId,
+    command: compact.command,
+    value: compact.value,
+    packet: getPayloadById(compact.packetId) || '',
+    timestamp: compact.timestamp,
+    portId: compact.portId,
+  }));
+  res.json(restored);
+});
+
+// 파싱된 패킷 히스토리 (복원된 형식)
 app.get('/api/packets/parsed/history', (_req, res) => {
-  res.json(parsedPacketHistory);
+  const restored = parsedPacketHistory.map((compact) => ({
+    entityId: compact.entityId,
+    packet: getPayloadById(compact.packetId) || '',
+    state: compact.state,
+    timestamp: compact.timestamp,
+    portId: compact.portId,
+  }));
+  res.json(restored);
 });
 
 app.get('/api/activity/recent', (_req, res) => {
