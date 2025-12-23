@@ -7,6 +7,7 @@ import type {
   AutomationActionDelay,
   AutomationActionLog,
   AutomationActionPublish,
+  AutomationActionScript,
   AutomationActionSendPacket,
   AutomationConfig,
   AutomationGuard,
@@ -15,6 +16,7 @@ import type {
   AutomationTriggerSchedule,
   AutomationTriggerState,
   HomenetBridgeConfig,
+  ScriptConfig,
 } from '../config/types.js';
 import type { StateSchema } from '../protocol/types.js';
 import { PacketProcessor } from '../protocol/packet-processor.js';
@@ -33,8 +35,10 @@ import {
   Checksum2Type,
 } from '../protocol/utils/checksum.js';
 
+type TriggerContextType = AutomationTrigger['type'] | 'command' | 'script';
+
 interface TriggerContext {
-  type: AutomationTrigger['type'];
+  type: TriggerContextType;
   state?: Record<string, any>;
   packet?: number[];
   timestamp: number;
@@ -67,6 +71,7 @@ export class AutomationManager {
     handler: (...args: any[]) => void;
   }[] = [];
   private readonly states = new Map<string, Record<string, any>>();
+  private readonly scripts = new Map<string, ScriptConfig>();
   private isStarted = false;
 
   constructor(
@@ -83,6 +88,7 @@ export class AutomationManager {
     this.packetProcessor = packetProcessor;
     this.commandManager = commandManager;
     this.mqttPublisher = mqttPublisher;
+    (config.scripts || []).forEach((script) => this.scripts.set(script.id, script));
 
     // Register CEL functions (exceptions to "pure function" rule)
     // IMPORTANT: When testing with vitest mocks, logger might be a spy object.
@@ -106,6 +112,42 @@ export class AutomationManager {
     );
   }
 
+  private normalizeCommandName(commandName: string) {
+    return commandName.startsWith('command_') ? commandName : `command_${commandName}`;
+  }
+
+  private getCommandSchema(entity: any, commandName: string) {
+    const normalized = this.normalizeCommandName(commandName);
+    const schema = (entity as any)[normalized] as any;
+    return { normalized, schema };
+  }
+
+  public async runScript(
+    scriptId: string,
+    context: TriggerContext,
+    stack: string[] = [],
+  ): Promise<void> {
+    const script = this.scripts.get(scriptId);
+
+    if (!script) {
+      logger.warn({ script: scriptId }, '[automation] 정의되지 않은 script를 호출했습니다.');
+      return;
+    }
+
+    if (stack.includes(scriptId)) {
+      logger.warn({ script: scriptId }, '[automation] script가 순환 호출되어 실행을 중단합니다.');
+      return;
+    }
+
+    const nextStack = [...stack, scriptId];
+    const scriptContext: TriggerContext = { ...context, type: 'script', timestamp: Date.now() };
+
+    logger.info({ script: scriptId }, '[automation] Script 실행 시작');
+    for (const action of script.actions) {
+      await this.executeAction(action, scriptContext, this.contextPortId, nextStack);
+    }
+  }
+
   private async runCommandFromCel(entityId: string, command: string, value: any) {
     const entity = findEntityById(this.config, entityId);
     if (!entity) {
@@ -115,7 +157,19 @@ export class AutomationManager {
     // Handle BigInt from CEL
     const safeValue = typeof value === 'bigint' ? Number(value) : value;
 
-    const packet = this.packetProcessor.constructCommandPacket(entity, command, safeValue);
+    const normalizedCommand = this.normalizeCommandName(command);
+    const { schema } = this.getCommandSchema(entity, normalizedCommand);
+
+    if (schema && typeof schema === 'object' && (schema as any).script) {
+      await this.runScript((schema as any).script, { type: 'command', timestamp: Date.now() });
+      return;
+    }
+
+    const packet = this.packetProcessor.constructCommandPacket(
+      entity,
+      normalizedCommand,
+      safeValue,
+    );
     if (!packet) {
       logger.warn({ entityId, command }, '[automation] CEL command: Failed to construct packet');
       return;
@@ -301,7 +355,7 @@ export class AutomationManager {
     logger.info({ automation: automation.id, trigger: trigger.type }, '[automation] Executing');
     for (const action of actions) {
       try {
-        await this.executeAction(action, context, automation.portId);
+        await this.executeAction(action, context, automation.portId, []);
       } catch (error) {
         logger.error(
           { error, automation: automation.id, action: action.action },
@@ -322,13 +376,14 @@ export class AutomationManager {
     action: AutomationAction,
     context: TriggerContext,
     automationPortId?: string,
+    scriptStack: string[] = [],
   ) {
-    if (action.action === 'command') return this.executeCommandAction(action, context);
+    if (action.action === 'command') return this.executeCommandAction(action, context, scriptStack);
     if (action.action === 'publish') return this.executePublishAction(action, context);
     if (action.action === 'log')
       return this.executeLogAction(action as AutomationActionLog, context);
     if (action.action === 'delay') return this.executeDelayAction(action as AutomationActionDelay);
-    if (action.action === 'script') return this.executeScriptAction(action, context);
+    if (action.action === 'script') return this.executeScriptAction(action, context, scriptStack);
     if (action.action === 'send_packet')
       return this.executeSendPacketAction(
         action as AutomationActionSendPacket,
@@ -406,7 +461,11 @@ export class AutomationManager {
     }
   }
 
-  private async executeCommandAction(action: AutomationActionCommand, context: TriggerContext) {
+  private async executeCommandAction(
+    action: AutomationActionCommand,
+    context: TriggerContext,
+    scriptStack: string[] = [],
+  ) {
     const parsed = this.parseCommandTarget(action.target, action.input);
     if (!parsed) return;
 
@@ -416,11 +475,14 @@ export class AutomationManager {
       return;
     }
 
-    const packet = this.packetProcessor.constructCommandPacket(
-      entity,
-      parsed.command,
-      parsed.value,
-    );
+    const { normalized, schema } = this.getCommandSchema(entity, parsed.command);
+
+    if (schema && typeof schema === 'object' && (schema as any).script) {
+      await this.runScript((schema as any).script, context, scriptStack);
+      return;
+    }
+
+    const packet = this.packetProcessor.constructCommandPacket(entity, normalized, parsed.value);
     if (!packet) {
       logger.warn({ target: action.target }, '[automation] Failed to construct command packet');
       return;
@@ -428,11 +490,8 @@ export class AutomationManager {
 
     let isLowPriority = action.low_priority;
     if (isLowPriority === undefined) {
-      const commandKey = `command_${parsed.command}`;
-      const schema = (entity as any)[commandKey];
-      if (schema && typeof schema === 'object' && schema.low_priority) {
-        isLowPriority = true;
-      }
+      const schemaLowPriority = schema && typeof schema === 'object' ? (schema as any).low_priority : undefined;
+      if (schemaLowPriority) isLowPriority = true;
     }
 
     await this.commandManager.send(entity, packet, {
@@ -456,10 +515,24 @@ export class AutomationManager {
     await new Promise((resolve) => setTimeout(resolve, duration));
   }
 
-  private async executeScriptAction(action: { code: string }, context: TriggerContext) {
-    logger.warn(
-      '[automation] Script action is not supported with CEL executor (no side effects). Ignoring.',
-    );
+  private async executeScriptAction(
+    action: AutomationActionScript,
+    context: TriggerContext,
+    scriptStack: string[],
+  ) {
+    if (action.script) {
+      await this.runScript(action.script, context, scriptStack);
+      return;
+    }
+
+    if (action.code) {
+      logger.warn(
+        '[automation] Script code 실행은 지원되지 않습니다. script ID를 사용하세요.',
+      );
+      return;
+    }
+
+    logger.warn('[automation] script action에 실행할 script가 지정되지 않았습니다.');
   }
 
   private parseCommandTarget(

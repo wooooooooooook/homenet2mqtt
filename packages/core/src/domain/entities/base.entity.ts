@@ -10,6 +10,7 @@ export interface CommandSchema {
   endian?: EndianType;
   multiply_factor?: number;
   low_priority?: boolean;
+  script?: string;
 }
 
 export interface EntityConfig {
