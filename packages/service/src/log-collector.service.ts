@@ -42,7 +42,7 @@ export class LogCollectorService {
   private packetCount = 0;
   private config: LogConfig = { consent: null, uid: null };
 
-  constructor() {}
+  constructor() { }
 
   async init(bridges: HomeNetBridge[], configFiles: ConfigFileContent[] = []) {
     this.bridges = bridges;
@@ -86,7 +86,7 @@ export class LogCollectorService {
       await this.saveConfig();
 
       // Remove legacy file after successful migration
-      await fs.unlink(LEGACY_CONSENT_FILE).catch(() => {});
+      await fs.unlink(LEGACY_CONSENT_FILE).catch(() => { });
     } catch (e: any) {
       if (e.code !== 'ENOENT') {
         logger.error({ err: e }, '[LogCollector] Failed to migrate legacy config');
@@ -183,15 +183,27 @@ export class LogCollectorService {
 
     try {
       const logs = logBuffer.getLogs();
+      // KST (UTC+9) 타임스탬프 생성
+      const kstTimestamp = new Date().toLocaleString('ko-KR', {
+        timeZone: 'Asia/Seoul',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+      });
+
       const payload = {
+        timestamp: kstTimestamp,
         uid: this.config.uid,
         architecture: process.arch,
         version: await this.getAddonVersion(),
         isRunningOnHASupervisor,
-        packets: this.packetBuffer,
-        logs: logs,
         configs: this.configFiles,
-        timestamp: Date.now(),
+        logs: logs,
+        packets: this.packetBuffer,
       };
 
       const response = await fetch(LOG_COLLECTOR_URL, {

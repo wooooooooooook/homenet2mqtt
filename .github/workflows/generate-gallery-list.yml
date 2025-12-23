@@ -26,7 +26,7 @@ jobs:
           node-version: '20'
 
       - name: Install js-yaml
-        run: npm install js-yaml
+        run: npm install -g js-yaml
 
       - name: Generate list.json
         run: |
