@@ -144,7 +144,6 @@
     }
   },
   "entity_detail": {
-    "title_aria": "엔티티 상세 정보",
     "close_aria": "모달 닫기",
     "tabs": {
       "status": "상태 & 명령",

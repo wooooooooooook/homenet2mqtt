@@ -6,5 +6,13 @@
         "ts",
         "js"
     ],
-    "translationKeyMatcher": "/(?:\\$t|t\\))\\(['\"]([^'\"]+)['\"]/g"
+    "translationKeyMatcher": "/(?:\\$t|t\\))\\(['\"]([^'\"]+)['\"]/g",
+    "excludeKey": [
+        "errors.",
+        "logs.",
+        "mqtt.",
+        "analysis.",
+        "common.",
+        "setup_wizard."
+    ]
 }

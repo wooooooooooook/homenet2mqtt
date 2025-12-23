@@ -144,7 +144,6 @@
     }
   },
   "entity_detail": {
-    "title_aria": "Entity Details",
     "close_aria": "Close Modal",
     "tabs": {
       "status": "Status & Commands",
