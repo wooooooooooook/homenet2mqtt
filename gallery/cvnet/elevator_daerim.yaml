@@ -29,8 +29,8 @@ entities:
       state:
         data: [0x20, 0x01, 0xE1, 0x81]
       state_number:
-        offset: 5
-        length: 2
+        offset: 11
+        length: 1
         decode: ascii
 
   button:
