@@ -84,6 +84,10 @@ export class HomeNetBridge {
     this.options = options;
   }
 
+  private normalizeCommandName(commandName: string) {
+    return commandName.startsWith('command_') ? commandName : `command_${commandName}`;
+  }
+
   async start() {
     if (!this.startPromise) {
       this.startPromise = this.initialize();
@@ -217,10 +221,28 @@ export class HomeNetBridge {
       return { success: false, error: `Entity ${entityId} not found` };
     }
 
+    const commandKey = this.normalizeCommandName(commandName);
+    const commandSchema = (targetEntity as any)[commandKey];
+
+    if (commandSchema && typeof commandSchema === 'object' && (commandSchema as any).script) {
+      const automationManager = context.automationManager;
+
+      if (!automationManager) {
+        return { success: false, error: 'Automation manager not initialized' };
+      }
+
+      await automationManager.runScript((commandSchema as any).script, {
+        type: 'command',
+        timestamp: Date.now(),
+      });
+
+      return { success: true };
+    }
+
     // Construct command packet using packetProcessor (same as subscriber)
     const commandPacket = context.packetProcessor.constructCommandPacket(
       targetEntity,
-      commandName,
+      commandKey,
       value,
     );
 
@@ -571,6 +593,24 @@ export class HomeNetBridge {
         normalizedPortId,
         packetProcessor,
       );
+      const automationManager = new AutomationManager(
+        this.config,
+        packetProcessor,
+        commandManager,
+        mqttPublisher,
+        normalizedPortId,
+        (portId, packet, options) => {
+          const context =
+            (portId ? this.portContexts.get(portId) : undefined) || this.getDefaultContext();
+          if (!context) {
+            logger.warn('[core] Cannot send packet: serial port not initialized');
+            return Promise.resolve();
+          }
+          return context.commandManager.sendRaw(packet, options);
+        },
+      );
+      automationManager.start();
+
       const mqttSubscriber = new MqttSubscriber(
         this._mqttClient,
         normalizedPortId,
@@ -578,6 +618,7 @@ export class HomeNetBridge {
         packetProcessor,
         commandManager,
         mqttTopicPrefix,
+        automationManager,
       );
 
       // Set up subscriptions
@@ -602,24 +643,6 @@ export class HomeNetBridge {
       } else {
         this.client.on('connect', () => discoveryManager.discover());
       }
-
-      const automationManager = new AutomationManager(
-        this.config,
-        packetProcessor,
-        commandManager,
-        mqttPublisher,
-        normalizedPortId,
-        (portId, packet, options) => {
-          const context =
-            (portId ? this.portContexts.get(portId) : undefined) || this.getDefaultContext();
-          if (!context) {
-            logger.warn('[core] Cannot send packet: serial port not initialized');
-            return Promise.resolve();
-          }
-          return context.commandManager.sendRaw(packet, options);
-        },
-      );
-      automationManager.start();
 
       // Intercept write for logging
       const originalWrite = port.write.bind(port);

@@ -7,12 +7,14 @@ import { PacketProcessor } from '../../protocol/packet-processor.js';
 import { eventBus } from '../../service/event-bus.js';
 import { CommandManager } from '../../service/command.manager.js';
 import { ENTITY_TYPE_KEYS, findEntityById } from '../../utils/entities.js';
+import { AutomationManager } from '../../automation/automation-manager.js';
 
 export class MqttSubscriber {
   private mqttClient: MqttClient;
   private config: HomenetBridgeConfig;
   private packetProcessor: PacketProcessor;
   private commandManager: CommandManager;
+  private automationManager?: AutomationManager;
   private externalHandlers: Map<string, (message: Buffer) => void> = new Map();
   private portId: string;
   private topicPrefix: string;
@@ -24,6 +26,7 @@ export class MqttSubscriber {
     packetProcessor: PacketProcessor,
     commandManager: CommandManager,
     topicPrefix: string,
+    automationManager?: AutomationManager,
   ) {
     this.mqttClient = mqttClient;
     this.portId = portId;
@@ -31,6 +34,7 @@ export class MqttSubscriber {
     this.packetProcessor = packetProcessor;
     this.commandManager = commandManager;
     this.topicPrefix = topicPrefix;
+    this.automationManager = automationManager;
 
     this.mqttClient.client.on('message', (topic, message) =>
       this.handleMqttMessage(topic, message),
@@ -69,6 +73,10 @@ export class MqttSubscriber {
         logger.info({ topic }, '[mqtt-subscriber] Subscribed to external topic');
       }
     });
+  }
+
+  private normalizeCommandName(commandName: string) {
+    return commandName.startsWith('command_') ? commandName : `command_${commandName}`;
   }
 
   private async handleMqttMessage(topic: string, message: Buffer) {
@@ -172,6 +180,24 @@ export class MqttSubscriber {
           );
           return;
         }
+      }
+
+      const commandKey = this.normalizeCommandName(commandName);
+      const commandSchema = (targetEntity as any)[commandKey];
+
+      if (commandSchema && typeof commandSchema === 'object' && (commandSchema as any).script) {
+        if (this.automationManager) {
+          await this.automationManager.runScript((commandSchema as any).script, {
+            type: 'command',
+            timestamp: Date.now(),
+          });
+        } else {
+          logger.warn(
+            { entityId, command: commandKey },
+            '[mqtt-subscriber] automationManager가 없어 script 실행을 건너뜁니다.',
+          );
+        }
+        return;
       }
 
       const commandPacket = this.packetProcessor.constructCommandPacket(

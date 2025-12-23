@@ -117,8 +117,10 @@ export class GenericDevice extends Device {
     states?: Map<string, Record<string, any>>,
   ): number[] | null {
     const entityConfig = this.config as any;
-    const commandKey = `command_${commandName}`;
-    const commandConfig = entityConfig[commandKey];
+    const normalizedCommandName = commandName.startsWith('command_')
+      ? commandName
+      : `command_${commandName}`;
+    const commandConfig = entityConfig[normalizedCommandName];
 
     let commandData: number[] | null = null;
 

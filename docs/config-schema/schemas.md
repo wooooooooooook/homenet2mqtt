@@ -39,3 +39,7 @@
 ## CEL과의 연계
 - `state*`, `command*` 필드는 모두 [CEL 가이드](../CEL_GUIDE.md)의 표현식으로 대체할 수 있습니다.
 - `automation` 트리거/액션에서 패킷 매칭은 `StateSchema` 규칙을, 명령 실행은 `CommandSchema` 규칙을 그대로 따릅니다. 자세한 예제는 [AUTOMATION.md](../AUTOMATION.md)를 참고하세요.
+
+## Scripts 블록
+자동화 액션 배열을 재사용하기 위한 `scripts` 블록을 설정 파일에 추가할 수 있습니다. 정의 방법과 활용 예시는
+[SCRIPTS.md](../SCRIPTS.md)를 참고하세요.

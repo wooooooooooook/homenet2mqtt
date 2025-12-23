@@ -113,9 +113,13 @@ export class PacketProcessor extends EventEmitter {
 
   public constructCommandPacket(
     entity: EntityConfig,
-    commandName: string,
+    commandNameInput: string,
     value?: number | string,
   ): number[] | null {
+    const commandName = commandNameInput.startsWith('command_')
+      ? commandNameInput.slice('command_'.length)
+      : commandNameInput;
+
     // Try to find the registered device
     let device = this.protocolManager.getDevice(entity.id);
 

@@ -99,6 +99,14 @@ level: info # trace, debug, info, warn, error. 기본값: info
 message: "자동화가 실행되었습니다."
 ```
 
+### 스크립트 실행 (Script)
+사전에 정의한 `scripts` 블록의 액션 시퀀스를 실행합니다. 설정 방법은 [SCRIPTS.md](./SCRIPTS.md)를 참고하세요.
+
+```yaml
+action: script
+script: warm_start
+```
+
 ## 가드 (Guards - 조건)
 
 트리거 또는 자동화 전체에 `guard` 조건을 추가하여 특정 상황에서만 실행되도록 제한할 수 있습니다. 가드는 CEL 표현식을 사용합니다.

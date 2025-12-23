@@ -84,7 +84,8 @@ export interface AutomationActionDelay {
 
 export interface AutomationActionScript {
   action: 'script';
-  code: string;
+  script?: string;
+  code?: string;
 }
 
 export interface AutomationActionSendPacket {
@@ -113,6 +114,12 @@ export interface AutomationConfig {
   then: AutomationAction[];
   else?: AutomationAction[];
   enabled?: boolean;
+}
+
+export interface ScriptConfig {
+  id: string;
+  description?: string;
+  actions: AutomationAction[];
 }
 
 export interface SerialConfig {
@@ -148,4 +155,5 @@ export interface HomenetBridgeConfig {
   text?: TextEntity[];
   binary_sensor?: BinarySensorEntity[];
   automation?: AutomationConfig[];
+  scripts?: ScriptConfig[];
 }

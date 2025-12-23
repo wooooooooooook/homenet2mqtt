@@ -65,6 +65,10 @@ export function normalizeConfig(config: HomenetBridgeConfig) {
     });
   });
 
+  if (!config.scripts) {
+    config.scripts = [];
+  }
+
   if (config.automation && Array.isArray(config.automation)) {
     config.automation.forEach((auto) => {
       if (!auto.trigger) return;
@@ -209,6 +213,38 @@ export function validateConfig(
       }
     });
   });
+
+  if (config.scripts !== undefined) {
+    if (!Array.isArray(config.scripts)) {
+      errors.push('scripts 항은 배열이어야 합니다.');
+    } else {
+      const scriptIds = new Set<string>();
+      config.scripts.forEach((script, index) => {
+        if (!script || typeof script !== 'object') {
+          errors.push(`scripts[${index}]는 객체여야 합니다.`);
+          return;
+        }
+
+        if (typeof script.id !== 'string' || !script.id.trim()) {
+          errors.push(`scripts[${index}]에 유효한 id(문자열)가 필요합니다.`);
+        } else if (scriptIds.has(script.id)) {
+          errors.push(`scripts 항목의 id는 고유해야 합니다. 중복된 id: ${script.id}`);
+        } else {
+          scriptIds.add(script.id);
+        }
+
+        if (!Array.isArray(script.actions) || script.actions.length === 0) {
+          errors.push(`scripts[${index}]에는 최소 1개의 action이 필요합니다.`);
+        } else {
+          script.actions.forEach((action, actionIndex) => {
+            if (!action || typeof action !== 'object' || typeof (action as any).action !== 'string') {
+              errors.push(`scripts[${index}].actions[${actionIndex}]에 유효한 action 필드가 필요합니다.`);
+            }
+          });
+        }
+      });
+    }
+  }
 
   if (errors.length > 0) {
     throw new Error(`설정 검증에 실패했습니다:\n- ${errors.join('\n- ')}`);
