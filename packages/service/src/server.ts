@@ -628,6 +628,10 @@ app.post('/api/log-sharing/consent', async (req, res) => {
 });
 
 // --- Raw Packet Text Logging API ---
+app.get('/api/logs/packet/status', (_req, res) => {
+  res.json(rawPacketLogger.getStatus());
+});
+
 app.post('/api/logs/packet/start', (req, res) => {
   try {
     // Gather Metadata
@@ -1728,6 +1732,267 @@ app.post('/api/entities/rename', async (req, res) => {
   } catch (error) {
     logger.error({ err: error }, '[service] Failed to rename entity');
     res.status(500).json({ error: error instanceof Error ? error.message : 'Rename failed' });
+  }
+});
+
+app.patch('/api/entities/:entityId/discovery-always', async (req, res) => {
+  if (!configRateLimiter.check(req.ip || 'unknown')) {
+    logger.warn({ ip: req.ip }, '[service] Toggle discovery_always rate limit exceeded');
+    return res.status(429).json({ error: 'Too many requests' });
+  }
+
+  const { entityId } = req.params;
+  const { enabled, portId } = req.body as { enabled?: boolean; portId?: string };
+
+  if (typeof enabled !== 'boolean') {
+    return res.status(400).json({ error: 'enabled (boolean) is required' });
+  }
+
+  // Find config by portId if provided, otherwise fallback to finding by entityId
+  const configIndex = portId ? findConfigIndexByPortId(portId) : findConfigIndexForEntity(entityId);
+  if (configIndex === -1) {
+    return res.status(404).json({ error: 'Entity not found in any loaded config' });
+  }
+
+  const targetConfigFile = currentConfigFiles[configIndex];
+
+  try {
+    const configPath = path.join(CONFIG_DIR, targetConfigFile);
+    const fileContent = await fs.readFile(configPath, 'utf8');
+    const loadedYamlFromFile = yaml.load(fileContent) as {
+      homenet_bridge: PersistableHomenetBridgeConfig;
+    };
+
+    if (!loadedYamlFromFile.homenet_bridge) {
+      throw new Error('Invalid config file structure');
+    }
+
+    const normalizedConfig = normalizeConfig(
+      loadedYamlFromFile.homenet_bridge as HomenetBridgeConfig,
+    );
+
+    let targetEntity: any | null = null;
+    for (const type of ENTITY_TYPE_KEYS) {
+      const list = normalizedConfig[type] as any[] | undefined;
+      if (!Array.isArray(list)) continue;
+      const found = list.find((entry) => entry.id === entityId);
+      if (found) {
+        targetEntity = found;
+        break;
+      }
+    }
+
+    if (!targetEntity) {
+      return res.status(404).json({ error: 'Entity not found in current config' });
+    }
+
+    // Update or remove discovery_always based on enabled flag
+    if (enabled) {
+      targetEntity.discovery_always = true;
+    } else {
+      delete targetEntity.discovery_always;
+    }
+
+    loadedYamlFromFile.homenet_bridge = stripLegacyKeysBeforeSave(normalizedConfig);
+
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const backupPath = `${configPath}.${timestamp}.bak`;
+    await fs.copyFile(configPath, backupPath);
+
+    const newFileContent = dumpConfigToYaml(loadedYamlFromFile);
+
+    await fs.writeFile(configPath, newFileContent, 'utf8');
+
+    currentRawConfigs[configIndex] = normalizedConfig;
+    currentConfigs[configIndex] = normalizedConfig;
+    rebuildPortMappings();
+
+    logger.info(
+      `[service] Entity ${entityId} discovery_always set to ${enabled}. Backup created at ${path.basename(backupPath)}`,
+    );
+
+    res.json({
+      success: true,
+      entityId,
+      discoveryAlways: enabled,
+      backup: path.basename(backupPath),
+    });
+  } catch (error) {
+    logger.error({ err: error }, '[service] Failed to toggle discovery_always');
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Update failed' });
+  }
+});
+
+// --- Gallery API ---
+app.post('/api/gallery/apply', async (req, res) => {
+  if (!configRateLimiter.check(req.ip || 'unknown')) {
+    return res.status(429).json({ error: 'Too many requests' });
+  }
+
+  try {
+    const { portId, yamlContent, fileName } = req.body;
+
+    if (!portId || !yamlContent) {
+      return res.status(400).json({ error: 'portId and yamlContent are required' });
+    }
+
+    // Find the config file for this portId
+    let targetConfigFile: string | null = null;
+    let configIndex = -1;
+
+    for (let i = 0; i < currentConfigs.length; i++) {
+      const config = currentConfigs[i];
+      if (!config?.serials) continue;
+
+      for (let j = 0; j < config.serials.length; j++) {
+        const pId = normalizePortId(config.serials[j].portId, j);
+        if (pId === portId) {
+          targetConfigFile = currentConfigFiles[i];
+          configIndex = i;
+          break;
+        }
+      }
+      if (targetConfigFile) break;
+    }
+
+    if (!targetConfigFile || configIndex === -1) {
+      return res.status(404).json({ error: 'Port not found', portId });
+    }
+
+    // Parse the gallery YAML content
+    const galleryYaml = yaml.load(yamlContent) as {
+      meta?: Record<string, unknown>;
+      entities?: Record<string, unknown[]>;
+      automation?: unknown[];
+    };
+
+    if (!galleryYaml) {
+      return res.status(400).json({ error: 'Invalid YAML content' });
+    }
+
+    // Read the current config file
+    const configPath = path.join(CONFIG_DIR, targetConfigFile);
+    const fileContent = await fs.readFile(configPath, 'utf8');
+    const loadedYamlFromFile = yaml.load(fileContent) as {
+      homenet_bridge: PersistableHomenetBridgeConfig;
+    };
+
+    if (!loadedYamlFromFile.homenet_bridge) {
+      return res.status(500).json({ error: 'Invalid config file structure' });
+    }
+
+    const normalizedConfig = normalizeConfig(
+      loadedYamlFromFile.homenet_bridge as HomenetBridgeConfig,
+    );
+
+    let addedEntities = 0;
+    let addedAutomations = 0;
+
+    // Add entities from gallery snippet
+    if (galleryYaml.entities) {
+      for (const [entityType, entities] of Object.entries(galleryYaml.entities)) {
+        if (!Array.isArray(entities)) continue;
+
+        const typeKey = entityType as keyof HomenetBridgeConfig;
+        if (!ENTITY_TYPE_KEYS.includes(typeKey)) {
+          logger.warn(`[gallery] Unknown entity type: ${entityType}`);
+          continue;
+        }
+
+        // Initialize array if not exists
+        if (!normalizedConfig[typeKey]) {
+          (normalizedConfig as any)[typeKey] = [];
+        }
+
+        const targetList = normalizedConfig[typeKey] as unknown[];
+
+        for (const entity of entities) {
+          if (!entity || typeof entity !== 'object') continue;
+
+          const entityObj = entity as Record<string, unknown>;
+          const entityId = entityObj.id as string | undefined;
+
+          // Check for existing entity with same ID
+          const existingIndex = targetList.findIndex(
+            (e: any) => e.id === entityId
+          );
+
+          if (existingIndex !== -1) {
+            // For now, we'll overwrite. Future: handle conflict resolution from UI
+            targetList[existingIndex] = entityObj;
+            logger.info(`[gallery] Updated existing entity: ${entityId}`);
+          } else {
+            targetList.push(entityObj);
+            logger.info(`[gallery] Added new entity: ${entityId}`);
+          }
+          addedEntities++;
+        }
+      }
+    }
+
+    // Add automations from gallery snippet
+    if (galleryYaml.automation && Array.isArray(galleryYaml.automation)) {
+      if (!normalizedConfig.automation) {
+        (normalizedConfig as any).automation = [];
+      }
+
+      const automationList = (normalizedConfig as any).automation as unknown[];
+
+      for (const automation of galleryYaml.automation) {
+        if (!automation || typeof automation !== 'object') continue;
+
+        const automationObj = automation as Record<string, unknown>;
+        const automationId = automationObj.id as string | undefined;
+
+        if (automationId) {
+          // Check for existing automation with same ID
+          const existingIndex = automationList.findIndex(
+            (a: any) => a.id === automationId
+          );
+
+          if (existingIndex !== -1) {
+            automationList[existingIndex] = automationObj;
+            logger.info(`[gallery] Updated existing automation: ${automationId}`);
+          } else {
+            automationList.push(automationObj);
+            logger.info(`[gallery] Added new automation: ${automationId}`);
+          }
+        } else {
+          automationList.push(automationObj);
+          logger.info('[gallery] Added automation without ID');
+        }
+        addedAutomations++;
+      }
+    }
+
+    // Create backup
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const backupPath = `${configPath}.${timestamp}.bak`;
+    await fs.copyFile(configPath, backupPath);
+
+    // Write updated config
+    loadedYamlFromFile.homenet_bridge = stripLegacyKeysBeforeSave(normalizedConfig);
+    const newFileContent = dumpConfigToYaml(loadedYamlFromFile);
+    await fs.writeFile(configPath, newFileContent, 'utf8');
+
+    // Update in-memory configs
+    currentRawConfigs[configIndex] = normalizedConfig;
+    currentConfigs[configIndex] = normalizedConfig;
+    rebuildPortMappings();
+
+    logger.info(
+      `[gallery] Applied snippet from ${fileName || 'unknown'}. Added ${addedEntities} entities, ${addedAutomations} automations. Backup: ${path.basename(backupPath)}`
+    );
+
+    res.json({
+      success: true,
+      addedEntities,
+      addedAutomations,
+      backup: path.basename(backupPath),
+    });
+  } catch (error) {
+    logger.error({ err: error }, '[gallery] Failed to apply gallery snippet');
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Apply failed' });
   }
 });
 

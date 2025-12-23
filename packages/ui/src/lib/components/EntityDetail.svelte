@@ -39,6 +39,9 @@
   let effectiveRenameError = $state('');
   let idCopied = $state(false);
 
+  let isTogglingDiscoveryAlways = $state(false);
+  let forceActiveError = $state<string | null>(null);
+
   let commandInputs = $state<Record<string, any>>({});
 
   let showRx = $state(true);
@@ -208,6 +211,40 @@
       window.location.reload(); // Reload to refresh entity list since it's a major change
     } catch (e) {
       alert(e instanceof Error ? e.message : $t('entity_detail.manage.delete.error'));
+    }
+  }
+
+  async function handleToggleDiscoveryAlways(e: Event) {
+    const target = e.target as HTMLInputElement;
+    const newValue = target.checked;
+
+    isTogglingDiscoveryAlways = true;
+    forceActiveError = null;
+
+    try {
+      const res = await fetch(`./api/entities/${entity.id}/discovery-always`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          enabled: newValue,
+          portId: entity.portId,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || $t('entity_detail.manage.force_active.error'));
+      }
+
+      // Update local entity state (for UI reactivity)
+      entity.discoveryAlways = newValue;
+    } catch (err) {
+      forceActiveError =
+        err instanceof Error ? err.message : $t('entity_detail.manage.force_active.error');
+      // Revert checkbox state on error
+      target.checked = !newValue;
+    } finally {
+      isTogglingDiscoveryAlways = false;
     }
   }
 
@@ -492,16 +529,40 @@
               {/if}
             </div>
 
-            <div class="section manage-card">
-              <h3>{$t('entity_detail.manage.revoke.title')}</h3>
-              <p class="subtle">
-                {@html $t('entity_detail.manage.revoke.desc')}
-              </p>
-              <Button variant="secondary" onclick={handleRevokeDiscovery}>
-                {$t('entity_detail.manage.revoke.button')}
-              </Button>
-            </div>
+            {#if entity.isActive}
+              <div class="section manage-card">
+                <h3>{$t('entity_detail.manage.revoke.title')}</h3>
+                <p class="subtle">
+                  {@html $t('entity_detail.manage.revoke.desc')}
+                </p>
+                <Button variant="secondary" onclick={handleRevokeDiscovery}>
+                  {$t('entity_detail.manage.revoke.button')}
+                </Button>
+              </div>
+            {/if}
 
+            {#if !entity.isActive || entity.discoveryAlways}
+              <div class="section manage-card">
+                <div class="toggle-row">
+                  <div class="toggle-info">
+                    <h3>{$t('entity_detail.manage.force_active.title')}</h3>
+                    <p class="subtle">{$t('entity_detail.manage.force_active.desc')}</p>
+                  </div>
+                  <label class="toggle-switch">
+                    <input
+                      type="checkbox"
+                      checked={entity.discoveryAlways ?? false}
+                      onchange={handleToggleDiscoveryAlways}
+                      disabled={isTogglingDiscoveryAlways}
+                    />
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+                {#if forceActiveError}
+                  <div class="rename-error">{forceActiveError}</div>
+                {/if}
+              </div>
+            {/if}
             <div class="section manage-card danger-zone">
               <h3>{$t('entity_detail.manage.delete.title')}</h3>
               <p class="subtle">
@@ -985,6 +1046,76 @@
 
   .danger-zone h3 {
     color: #f87171;
+  }
+
+  .toggle-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .toggle-info {
+    flex: 1;
+  }
+
+  .toggle-info h3 {
+    margin-bottom: 0.25rem;
+  }
+
+  .toggle-info .subtle {
+    margin-bottom: 0;
+  }
+
+  .toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 52px;
+    height: 28px;
+    flex-shrink: 0;
+  }
+
+  .toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #475569;
+    transition: 0.3s;
+    border-radius: 28px;
+  }
+
+  .toggle-slider:before {
+    position: absolute;
+    content: '';
+    height: 20px;
+    width: 20px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: 0.3s;
+    border-radius: 50%;
+  }
+
+  .toggle-switch input:checked + .toggle-slider {
+    background-color: #10b981;
+  }
+
+  .toggle-switch input:checked + .toggle-slider:before {
+    transform: translateX(24px);
+  }
+
+  .toggle-switch input:disabled + .toggle-slider {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 
   @media (max-width: 768px) {

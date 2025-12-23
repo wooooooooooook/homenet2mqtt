@@ -91,7 +91,10 @@
       "deleted": "로그가 삭제되었습니다",
       "ha_app_download_warning": "Home Assistant 앱에서는 다운로드가 지원되지 않을 수 있습니다. 웹 브라우저를 이용해주세요.",
       "desc": "RS485 장치에서 수신된 raw 패킷 목록을 interval과 함께 표시합니다.",
-      "empty": "실시간 Raw 패킷 로그를 확인하려면 로깅을 시작해주세요."
+      "empty": "실시간 Raw 패킷 로그를 확인하려면 로깅을 시작해주세요.",
+      "collected_packets": "수집된 패킷: {count}",
+      "recording_duration": "녹화 시간: {duration}",
+      "auto_stopped_limit": "녹화 제한(20분 또는 10,000개 패킷)에 도달하여 녹화가 자동 중단되었습니다."
     },
     "stats": {
       "title": "패킷 간격 분석",
@@ -106,7 +109,8 @@
     "language": "언어",
     "english": "English",
     "korean": "한국어",
-    "close": "닫기"
+    "close": "닫기",
+    "copied": "복사됨!"
   },
   "header": {
     "toggle_menu": "메뉴 열기",
@@ -116,8 +120,51 @@
   "sidebar": {
     "dashboard": "대시보드",
     "analysis": "분석",
+    "gallery": "갤러리",
     "settings": "설정",
     "close_aria": "사이드바 닫기"
+  },
+  "gallery": {
+    "title": "설정 갤러리",
+    "subtitle": "커뮤니티에서 공유하는 설정 스니펫을 탐색하고 적용하세요.",
+    "loading": "갤러리를 불러오는 중...",
+    "load_error": "갤러리를 불러오지 못했습니다.",
+    "retry": "다시 시도",
+    "search_placeholder": "검색...",
+    "filter_all": "전체",
+    "filter_entities": "엔티티",
+    "filter_automation": "자동화",
+    "no_items": "검색 결과가 없습니다.",
+    "vendor": "제조사",
+    "type": "타입",
+    "version": "버전",
+    "author": "작성자",
+    "entities": "엔티티",
+    "automations": "자동화",
+    "tags": "태그",
+    "view_details": "상세보기",
+    "preview": {
+      "title": "스니펫 미리보기",
+      "yaml_content": "YAML 내용",
+      "contents": "포함된 항목",
+      "entity_count": "{type} {count}개",
+      "automation_count": "자동화 {count}개",
+      "conflict_detected": "충돌 감지",
+      "conflict_desc": "ID '{id}'인 기존 항목이 있습니다.",
+      "no_conflict": "충돌 없음",
+      "diff_title": "변경 사항 비교",
+      "apply_options": "적용 옵션",
+      "option_overwrite": "덮어쓰기",
+      "option_skip": "건너뛰기",
+      "option_rename": "새 ID로 추가",
+      "new_id_placeholder": "새 ID 입력",
+      "select_port": "적용할 포트 선택",
+      "apply": "적용",
+      "applying": "적용 중...",
+      "success": "스니펫이 적용되었습니다.",
+      "error": "적용에 실패했습니다.",
+      "cancel": "취소"
+    }
   },
   "dashboard": {
     "loading_bridge": "브리지 정보를 불러오는 중입니다...",
@@ -145,6 +192,8 @@
   },
   "entity_detail": {
     "close_aria": "모달 닫기",
+    "copy_id": "ID 복사",
+    "copy_id_aria": "ID {id} 복사",
     "tabs": {
       "status": "상태 & 명령",
       "config": "설정 (YAML)",
@@ -188,6 +237,12 @@
         "confirm": "정말로 이 엔티티의 디스커버리 정보를 회수하시겠습니까?\\n(상태 패킷이 수신되면 다시 등록됩니다)",
         "success": "디스커버리 정보가 회수되었습니다.",
         "error": "실패했습니다."
+      },
+      "force_active": {
+        "title": "강제 활성화",
+        "desc": "디스커버리를 상태수신과 관계없이 항상 발행합니다. 경우에 따라 HA에서 사용불가로 표시될 수도 있습니다.",
+        "saving": "저장 중...",
+        "error": "설정 변경에 실패했습니다."
       },
       "delete": {
         "title": "엔티티 삭제",
