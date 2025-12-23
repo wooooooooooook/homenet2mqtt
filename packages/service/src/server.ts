@@ -1726,6 +1726,94 @@ app.post('/api/entities/rename', async (req, res) => {
   }
 });
 
+app.patch('/api/entities/:entityId/discovery-always', async (req, res) => {
+  if (!configRateLimiter.check(req.ip || 'unknown')) {
+    logger.warn({ ip: req.ip }, '[service] Toggle discovery_always rate limit exceeded');
+    return res.status(429).json({ error: 'Too many requests' });
+  }
+
+  const { entityId } = req.params;
+  const { enabled, portId } = req.body as { enabled?: boolean; portId?: string };
+
+  if (typeof enabled !== 'boolean') {
+    return res.status(400).json({ error: 'enabled (boolean) is required' });
+  }
+
+  // Find config by portId if provided, otherwise fallback to finding by entityId
+  const configIndex = portId ? findConfigIndexByPortId(portId) : findConfigIndexForEntity(entityId);
+  if (configIndex === -1) {
+    return res.status(404).json({ error: 'Entity not found in any loaded config' });
+  }
+
+  const targetConfigFile = currentConfigFiles[configIndex];
+
+  try {
+    const configPath = path.join(CONFIG_DIR, targetConfigFile);
+    const fileContent = await fs.readFile(configPath, 'utf8');
+    const loadedYamlFromFile = yaml.load(fileContent) as {
+      homenet_bridge: PersistableHomenetBridgeConfig;
+    };
+
+    if (!loadedYamlFromFile.homenet_bridge) {
+      throw new Error('Invalid config file structure');
+    }
+
+    const normalizedConfig = normalizeConfig(
+      loadedYamlFromFile.homenet_bridge as HomenetBridgeConfig,
+    );
+
+    let targetEntity: any | null = null;
+    for (const type of ENTITY_TYPE_KEYS) {
+      const list = normalizedConfig[type] as any[] | undefined;
+      if (!Array.isArray(list)) continue;
+      const found = list.find((entry) => entry.id === entityId);
+      if (found) {
+        targetEntity = found;
+        break;
+      }
+    }
+
+    if (!targetEntity) {
+      return res.status(404).json({ error: 'Entity not found in current config' });
+    }
+
+    // Update or remove discovery_always based on enabled flag
+    if (enabled) {
+      targetEntity.discovery_always = true;
+    } else {
+      delete targetEntity.discovery_always;
+    }
+
+    loadedYamlFromFile.homenet_bridge = stripLegacyKeysBeforeSave(normalizedConfig);
+
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const backupPath = `${configPath}.${timestamp}.bak`;
+    await fs.copyFile(configPath, backupPath);
+
+    const newFileContent = dumpConfigToYaml(loadedYamlFromFile);
+
+    await fs.writeFile(configPath, newFileContent, 'utf8');
+
+    currentRawConfigs[configIndex] = normalizedConfig;
+    currentConfigs[configIndex] = normalizedConfig;
+    rebuildPortMappings();
+
+    logger.info(
+      `[service] Entity ${entityId} discovery_always set to ${enabled}. Backup created at ${path.basename(backupPath)}`,
+    );
+
+    res.json({
+      success: true,
+      entityId,
+      discoveryAlways: enabled,
+      backup: path.basename(backupPath),
+    });
+  } catch (error) {
+    logger.error({ err: error }, '[service] Failed to toggle discovery_always');
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Update failed' });
+  }
+});
+
 app.post('/api/entities/:entityId/revoke-discovery', (req, res) => {
   if (!configRateLimiter.check(req.ip || 'unknown')) {
     return res.status(429).json({ error: 'Too many requests' });

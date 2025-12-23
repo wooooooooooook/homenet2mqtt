@@ -195,6 +195,12 @@
         "success": "Discovery information revoked.",
         "error": "Failed to revoke."
       },
+      "force_active": {
+        "title": "Force Active",
+        "desc": "Always publish discovery regardless of state reception. May appear as unavailable in HA in some cases.",
+        "saving": "Saving...",
+        "error": "Failed to update setting."
+      },
       "delete": {
         "title": "Delete Entity",
         "desc": "Permanently removes this entity from the configuration file.<br /><strong>This action cannot be undone.</strong>",
