@@ -50,6 +50,23 @@ const LEGACY_DEFAULT_CONFIG_FILENAME = 'default.yaml';
 const CONFIG_INIT_MARKER = path.join(CONFIG_DIR, '.initialized');
 const CONFIG_RESTART_FLAG = path.join(CONFIG_DIR, '.restart-required');
 const EXAMPLES_DIR = path.resolve(__dirname, '../../core/config/examples');
+
+let BACKUP_DIR = path.join(CONFIG_DIR, 'backups'); // Default fallback
+
+const initializeBackupDir = async () => {
+  BACKUP_DIR = path.join(CONFIG_DIR, 'backups');
+  await fs.mkdir(BACKUP_DIR, { recursive: true });
+  logger.info(`[service] Using backup directory: ${BACKUP_DIR}`);
+};
+
+const saveBackup = async (configPath: string, config: any, reason: string) => {
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const backupFilename = `${path.basename(configPath)}.${timestamp}.${reason}.bak`;
+  const backupPath = path.join(BACKUP_DIR, backupFilename);
+  const backupYaml = dumpConfigToYaml(config);
+  await fs.writeFile(backupPath, backupYaml, 'utf-8');
+  return backupPath;
+};
 type PersistableHomenetBridgeConfig = Omit<HomenetBridgeConfig, 'serials'> & {
   serials?: HomenetBridgeConfig['serials'];
 };
@@ -92,7 +109,7 @@ const parseEnvList = (
   if (!raw.includes(',')) {
     logger.warn(
       `[service] ${source}에 단일 값이 입력되었습니다. 쉼표로 구분된 배열 형식(${source}=item1,item2)` +
-        ' 사용을 권장합니다.',
+      ' 사용을 권장합니다.',
     );
   }
 
@@ -380,7 +397,7 @@ const normalizeFrontendSettings = (value: Partial<FrontendSettings> | null | und
           : DEFAULT_FRONTEND_SETTINGS.logRetention!.autoSaveEnabled,
       retentionCount:
         typeof value?.logRetention?.retentionCount === 'number' &&
-        value.logRetention.retentionCount > 0
+          value.logRetention.retentionCount > 0
           ? value.logRetention.retentionCount
           : DEFAULT_FRONTEND_SETTINGS.logRetention!.retentionCount,
     },
@@ -1465,6 +1482,22 @@ app.post('/api/config/examples/select', async (req, res) => {
     const updatedYaml = dumpConfigToYaml(parsedConfig, { lineWidth: 120 });
 
     await fs.mkdir(CONFIG_DIR, { recursive: true });
+
+    // Backup existing default config if it exists
+    if (await fileExists(targetPath)) {
+      try {
+        const existingContent = await fs.readFile(targetPath, 'utf-8');
+        const existingConfig = yaml.load(existingContent);
+        if (existingConfig && typeof existingConfig === 'object') {
+          const backupPath = await saveBackup(targetPath, existingConfig, 'init_overwrite');
+          logger.info(`[service] Backed up existing config to ${path.basename(backupPath)}`);
+        }
+      } catch (err) {
+        logger.warn({ err }, '[service] Failed to backup existing config during init');
+        // Retrieve raw content for raw backup fallback?
+        // For now just log warning, as dumpConfigToYaml requires valid object
+      }
+    }
     await fs.writeFile(targetPath, updatedYaml, 'utf-8');
     await fs.writeFile(CONFIG_INIT_MARKER, new Date().toISOString(), 'utf-8');
     await fs.writeFile(CONFIG_RESTART_FLAG, 'restart', 'utf-8');
@@ -1586,6 +1619,9 @@ app.post('/api/config/update', async (req, res) => {
       loadedYamlFromFile.homenet_bridge as HomenetBridgeConfig,
     );
 
+    // 4. Backup
+    const backupPath = await saveBackup(configPath, loadedYamlFromFile, 'entity_update');
+
     // 3. Find and update entity
     let found = false;
     for (const type of ENTITY_TYPE_KEYS) {
@@ -1608,12 +1644,8 @@ app.post('/api/config/update', async (req, res) => {
     // However, the original structure of `loadedYamlFromFile` (with `homenet_bridge` key)
     // needs to be preserved for dumping. So we will update the `loadedYamlFromFile.homenet_bridge`
     // with the content of `normalizedFullConfig` before dumping.
-    loadedYamlFromFile.homenet_bridge = stripLegacyKeysBeforeSave(normalizedFullConfig); // Update the original object with normalized content
-
-    // 4. Backup
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const backupPath = `${configPath}.${timestamp}.bak`;
-    await fs.copyFile(configPath, backupPath);
+    // Update the original object with normalized content for saving
+    loadedYamlFromFile.homenet_bridge = stripLegacyKeysBeforeSave(normalizedFullConfig);
 
     // 5. Write new config
     // Note: This will strip comments and might alter formatting.
@@ -1694,6 +1726,8 @@ app.post('/api/entities/rename', async (req, res) => {
       return res.status(404).json({ error: 'Entity not found in current config' });
     }
 
+    const backupPath = await saveBackup(configPath, loadedYamlFromFile, 'entity_rename');
+
     const trimmedName = newName.trim();
     const uniqueId = targetEntity.unique_id || `homenet_${entityId}`;
     targetEntity.name = trimmedName;
@@ -1702,10 +1736,6 @@ app.post('/api/entities/rename', async (req, res) => {
     }
 
     loadedYamlFromFile.homenet_bridge = stripLegacyKeysBeforeSave(normalizedConfig);
-
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const backupPath = `${configPath}.${timestamp}.bak`;
-    await fs.copyFile(configPath, backupPath);
 
     const newFileContent = dumpConfigToYaml(loadedYamlFromFile);
 
@@ -1786,6 +1816,9 @@ app.patch('/api/entities/:entityId/discovery-always', async (req, res) => {
       return res.status(404).json({ error: 'Entity not found in current config' });
     }
 
+    // Backup
+    const backupPath = await saveBackup(configPath, loadedYamlFromFile, 'entity_discovery_toggle');
+
     // Update or remove discovery_always based on enabled flag
     if (enabled) {
       targetEntity.discovery_always = true;
@@ -1794,10 +1827,6 @@ app.patch('/api/entities/:entityId/discovery-always', async (req, res) => {
     }
 
     loadedYamlFromFile.homenet_bridge = stripLegacyKeysBeforeSave(normalizedConfig);
-
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const backupPath = `${configPath}.${timestamp}.bak`;
-    await fs.copyFile(configPath, backupPath);
 
     const newFileContent = dumpConfigToYaml(loadedYamlFromFile);
 
@@ -2106,6 +2135,9 @@ app.post('/api/gallery/apply', async (req, res) => {
       loadedYamlFromFile.homenet_bridge as HomenetBridgeConfig,
     );
 
+    // Create backup
+    const backupPath = await saveBackup(configPath, loadedYamlFromFile, 'gallery_apply');
+
     let addedEntities = 0;
     let updatedEntities = 0;
     let skippedEntities = 0;
@@ -2247,10 +2279,6 @@ app.post('/api/gallery/apply', async (req, res) => {
       }
     }
 
-    // Create backup
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const backupPath = `${configPath}.${timestamp}.bak`;
-    await fs.copyFile(configPath, backupPath);
 
     // Write updated config
     loadedYamlFromFile.homenet_bridge = stripLegacyKeysBeforeSave(normalizedConfig);
@@ -2336,6 +2364,9 @@ app.delete('/api/entities/:entityId', async (req, res) => {
       loadedYamlFromFile.homenet_bridge as HomenetBridgeConfig,
     );
 
+    // Backup
+    const backupPath = await saveBackup(configPath, loadedYamlFromFile, 'entity_delete');
+
     let found = false;
     for (const type of ENTITY_TYPE_KEYS) {
       const list = normalizedConfig[type] as any[];
@@ -2355,11 +2386,6 @@ app.delete('/api/entities/:entityId', async (req, res) => {
 
     // Update the original object structure with the modified data
     loadedYamlFromFile.homenet_bridge = stripLegacyKeysBeforeSave(normalizedConfig);
-
-    // Backup
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const backupPath = `${configPath}.${timestamp}.bak`;
-    await fs.copyFile(configPath, backupPath);
 
     // Write new config
     const newFileContent = dumpConfigToYaml(loadedYamlFromFile);
@@ -2494,7 +2520,7 @@ async function loadAndStartBridges(filenames: string[]) {
   }
 
   if (bridgeStartPromise) {
-    await bridgeStartPromise.catch(() => {});
+    await bridgeStartPromise.catch(() => { });
   }
 
   bridgeStartPromise = (async () => {
@@ -2657,6 +2683,9 @@ function resolveMqttUrl(queryValue: unknown, defaultValue?: string) {
 server.listen(port, async () => {
   logger.info(`Service listening on port ${port}`);
   try {
+    // Initialize backup directory
+    await initializeBackupDir();
+
     // Initialize log cache service with saved settings
     const frontendSettings = await loadFrontendSettings();
     await logRetentionService.init(frontendSettings.logRetention);
@@ -2720,7 +2749,7 @@ server.listen(port, async () => {
 
     // 브리지 시작 성공 후 .restart-required 파일 삭제
     if (await fileExists(CONFIG_RESTART_FLAG)) {
-      await fs.unlink(CONFIG_RESTART_FLAG).catch(() => {});
+      await fs.unlink(CONFIG_RESTART_FLAG).catch(() => { });
       logger.info('[service] Cleared .restart-required flag');
     }
 
