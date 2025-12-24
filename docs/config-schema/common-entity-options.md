@@ -8,7 +8,7 @@
 |---|---|---|---|
 | `name` | string | 엔티티의 표시 이름입니다. (예: `거실 전등 1`) | **필수** |
 | `id` | string | 시스템 내부 및 MQTT 토픽에 사용되는 고유 ID입니다. 지정하지 않으면 `name`을 기반으로 자동 생성됩니다. (예: `living_room_light_1`) | 선택 |
-| `unique_id` | string | Home Assistant에서 엔티티를 고유하게 식별하기 위한 ID입니다. 지정하지 않으면 `homenet_{portId}_{id}` 형식으로 자동 생성됩니다. | 선택 |
+| `unique_id` | string | Home Assistant에서 엔티티를 고유하게 식별하기 위한 ID입니다. 지정하지 않으면 `homenet_{portId}_{id}` 형식으로 자동 생성되며, 중복이 감지되면 충돌을 피하기 위해 접미사(`_2`, `_3` 등)가 자동으로 추가됩니다. | 선택 |
 
 ## Home Assistant 연동 설정
 
