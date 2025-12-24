@@ -123,3 +123,35 @@ automation:
       - action: command
         target: id(light_1).command_on()
 ```
+
+## 실행 모드 (Mode)
+
+자동화가 이미 실행 중일 때 새 트리거가 발동되면 어떻게 처리할지 지정합니다.
+
+| Mode | 동작 |
+|------|------|
+| `parallel` | 병렬 실행 (기본값) |
+| `single` | 이미 실행 중이면 새 트리거 무시 |
+| `restart` | 이미 실행 중이면 취소하고 새로 시작 |
+| `queued` | 큐에 넣고 순차 실행 |
+
+```yaml
+automation:
+  - id: elevator_call_response
+    mode: restart  # 새 트리거 시 이전 실행 취소
+    trigger:
+      - type: packet
+        match:
+          data: [0xAD, 0x41, 0x00, 0x6C]
+    then:
+      - action: send_packet
+        data: [0xB0, 0x2F, 0x01, 0x1E]
+      - action: delay
+        milliseconds: 20s
+      - action: command
+        target: id(elevator_call).command_off()
+```
+
+> [!TIP]
+> `restart` 모드는 딜레이가 있는 자동화에서 유용합니다. 새 트리거가 발동되면 이전 딜레이가 취소되고 처음부터 다시 시작합니다.
+

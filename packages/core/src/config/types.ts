@@ -104,10 +104,13 @@ export type AutomationAction =
   | AutomationActionScript
   | AutomationActionSendPacket;
 
+export type AutomationMode = 'parallel' | 'single' | 'restart' | 'queued';
+
 export interface AutomationConfig {
   id: string;
   name?: string;
   description?: string;
+  mode?: AutomationMode;
   portId?: string;
   trigger: AutomationTrigger[];
   guard?: AutomationGuard;

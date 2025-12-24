@@ -72,6 +72,8 @@ export class AutomationManager {
   }[] = [];
   private readonly states = new Map<string, Record<string, any>>();
   private readonly scripts = new Map<string, ScriptConfig>();
+  private readonly runningAutomations = new Map<string, AbortController>();
+  private readonly automationQueues = new Map<string, Array<() => Promise<void>>>();
   private isStarted = false;
 
   constructor(
@@ -347,20 +349,94 @@ export class AutomationManager {
     trigger: AutomationTrigger,
     context: TriggerContext,
   ) {
-    const guardResult =
-      this.evaluateGuard(trigger.guard, context) && this.evaluateGuard(automation.guard, context);
-    const actions = guardResult ? automation.then : automation.else;
-    if (!actions || actions.length === 0) return;
+    const mode = automation.mode || 'parallel';
+    const automationId = automation.id;
 
-    logger.info({ automation: automation.id, trigger: trigger.type }, '[automation] Executing');
-    for (const action of actions) {
-      try {
-        await this.executeAction(action, context, automation.portId, []);
-      } catch (error) {
-        logger.error(
-          { error, automation: automation.id, action: action.action },
-          '[automation] Action failed',
-        );
+    // Handle mode-specific behavior
+    if (mode === 'single') {
+      if (this.runningAutomations.has(automationId)) {
+        logger.debug({ automation: automationId }, '[automation] Skipped (single mode, already running)');
+        return;
+      }
+    } else if (mode === 'restart') {
+      const existing = this.runningAutomations.get(automationId);
+      if (existing) {
+        logger.debug({ automation: automationId }, '[automation] Aborting previous run (restart mode)');
+        existing.abort();
+      }
+    } else if (mode === 'queued') {
+      if (this.runningAutomations.has(automationId)) {
+        // Add to queue and return
+        const queue = this.automationQueues.get(automationId) || [];
+        queue.push(() => this.executeAutomation(automation, trigger, context));
+        this.automationQueues.set(automationId, queue);
+        logger.debug({ automation: automationId, queueLength: queue.length }, '[automation] Queued');
+        return;
+      }
+    }
+    // parallel mode: just run without any checks
+
+    await this.executeAutomation(automation, trigger, context);
+  }
+
+  private async executeAutomation(
+    automation: AutomationConfig,
+    trigger: AutomationTrigger,
+    context: TriggerContext,
+  ) {
+    const automationId = automation.id;
+    const mode = automation.mode || 'parallel';
+    const abortController = new AbortController();
+
+    // Track running automation (except parallel mode)
+    if (mode !== 'parallel') {
+      this.runningAutomations.set(automationId, abortController);
+    }
+
+    try {
+      const guardResult =
+        this.evaluateGuard(trigger.guard, context) && this.evaluateGuard(automation.guard, context);
+      const actions = guardResult ? automation.then : automation.else;
+      if (!actions || actions.length === 0) return;
+
+      logger.info({ automation: automationId, trigger: trigger.type, mode }, '[automation] Executing');
+      for (const action of actions) {
+        // Check if aborted
+        if (abortController.signal.aborted) {
+          logger.debug({ automation: automationId }, '[automation] Aborted');
+          return;
+        }
+
+        try {
+          await this.executeAction(action, context, automation.portId, [], abortController.signal);
+        } catch (error) {
+          if ((error as Error).name === 'AbortError') {
+            logger.debug({ automation: automationId }, '[automation] Aborted during action');
+            return;
+          }
+          logger.error(
+            { error, automation: automationId, action: action.action },
+            '[automation] Action failed',
+          );
+        }
+      }
+    } finally {
+      // Clean up tracking
+      if (mode !== 'parallel') {
+        this.runningAutomations.delete(automationId);
+      }
+
+      // Process queue for queued mode
+      if (mode === 'queued') {
+        const queue = this.automationQueues.get(automationId);
+        if (queue && queue.length > 0) {
+          const next = queue.shift()!;
+          if (queue.length === 0) {
+            this.automationQueues.delete(automationId);
+          }
+          // Run next in queue
+          next();
+        }
       }
     }
   }
@@ -377,12 +453,13 @@ export class AutomationManager {
     context: TriggerContext,
     automationPortId?: string,
     scriptStack: string[] = [],
+    signal?: AbortSignal,
   ) {
     if (action.action === 'command') return this.executeCommandAction(action, context, scriptStack);
     if (action.action === 'publish') return this.executePublishAction(action, context);
     if (action.action === 'log')
       return this.executeLogAction(action as AutomationActionLog, context);
-    if (action.action === 'delay') return this.executeDelayAction(action as AutomationActionDelay);
+    if (action.action === 'delay') return this.executeDelayAction(action as AutomationActionDelay, signal);
     if (action.action === 'script') return this.executeScriptAction(action, context, scriptStack);
     if (action.action === 'send_packet')
       return this.executeSendPacketAction(
@@ -511,9 +588,26 @@ export class AutomationManager {
     logger[level]({ trigger: context.type }, `[automation] ${action.message}`);
   }
 
-  private async executeDelayAction(action: AutomationActionDelay) {
+  private async executeDelayAction(action: AutomationActionDelay, signal?: AbortSignal) {
     const duration = parseDuration(action.milliseconds as any) ?? 0;
-    await new Promise((resolve) => setTimeout(resolve, duration));
+    await new Promise<void>((resolve, reject) => {
+      const timeoutId = setTimeout(resolve, duration);
+      if (signal) {
+        if (signal.aborted) {
+          clearTimeout(timeoutId);
+          const error = new Error('Aborted');
+          error.name = 'AbortError';
+          reject(error);
+          return;
+        }
+        signal.addEventListener('abort', () => {
+          clearTimeout(timeoutId);
+          const error = new Error('Aborted');
+          error.name = 'AbortError';
+          reject(error);
+        }, { once: true });
+      }
+    });
   }
 
   private async executeScriptAction(
