@@ -3,7 +3,7 @@ import { MqttClient } from './mqtt.client.js';
 import { HomenetBridgeConfig } from '../../config/types.js';
 import { EntityConfig } from '../../domain/entities/base.entity.js';
 import { logger } from '../../utils/logger.js';
-import { PacketProcessor } from '../../protocol/packet-processor.js';
+import { PacketProcessor, EntityStateProvider } from '../../protocol/packet-processor.js';
 import { eventBus } from '../../service/event-bus.js';
 import { CommandManager } from '../../service/command.manager.js';
 import { ENTITY_TYPE_KEYS, findEntityById } from '../../utils/entities.js';
@@ -15,6 +15,7 @@ export class MqttSubscriber {
   private packetProcessor: PacketProcessor;
   private commandManager: CommandManager;
   private automationManager?: AutomationManager;
+  private stateProvider?: EntityStateProvider;
   private externalHandlers: Map<string, (message: Buffer) => void> = new Map();
   private portId: string;
   private topicPrefix: string;
@@ -27,6 +28,7 @@ export class MqttSubscriber {
     commandManager: CommandManager,
     topicPrefix: string,
     automationManager?: AutomationManager,
+    stateProvider?: EntityStateProvider,
   ) {
     this.mqttClient = mqttClient;
     this.portId = portId;
@@ -35,6 +37,7 @@ export class MqttSubscriber {
     this.commandManager = commandManager;
     this.topicPrefix = topicPrefix;
     this.automationManager = automationManager;
+    this.stateProvider = stateProvider;
 
     this.mqttClient.client.on('message', (topic, message) =>
       this.handleMqttMessage(topic, message),
@@ -187,9 +190,12 @@ export class MqttSubscriber {
 
       if (commandSchema && typeof commandSchema === 'object' && (commandSchema as any).script) {
         if (this.automationManager) {
+          // Include entity state in context for CEL script access
+          const entityState = this.stateProvider?.getEntityState(entityId) || {};
           await this.automationManager.runScript((commandSchema as any).script, {
             type: 'command',
             timestamp: Date.now(),
+            state: entityState,
           });
         } else {
           logger.warn(

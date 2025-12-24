@@ -97,7 +97,7 @@ export class HomeNetBridge {
 
   async stop() {
     if (this.startPromise) {
-      await this.startPromise.catch(() => {});
+      await this.startPromise.catch(() => { });
     }
 
     for (const context of this.portContexts.values()) {
@@ -232,9 +232,12 @@ export class HomeNetBridge {
         return { success: false, error: 'Automation manager not initialized' };
       }
 
+      // Include entity state in context for CEL script access
+      const entityState = context.stateManager.getEntityState(entityId) || {};
       await automationManager.runScript((commandSchema as any).script, {
         type: 'command',
         timestamp: Date.now(),
+        state: entityState,
       });
 
       return { success: true };
@@ -620,6 +623,7 @@ export class HomeNetBridge {
         commandManager,
         mqttTopicPrefix,
         automationManager,
+        stateProvider,
       );
 
       // Set up subscriptions

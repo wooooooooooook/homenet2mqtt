@@ -108,8 +108,9 @@ export class CelExecutor {
       const safeContext: Record<string, any> = {};
 
       if (contextData.x !== undefined && contextData.x !== null) {
-        // Ensure integer
-        safeContext.x = BigInt(Math.floor(Number(contextData.x)));
+        // Ensure integer, handle NaN case (e.g., when x is a string like 'heat')
+        const numValue = Number(contextData.x);
+        safeContext.x = Number.isNaN(numValue) ? 0n : BigInt(Math.floor(numValue));
       } else {
         safeContext.x = 0n; // Default for when x is not provided (e.g. state parsing)
       }
@@ -129,12 +130,13 @@ export class CelExecutor {
         safeContext.data = [];
       }
 
-      if (contextData.state) {
-        safeContext.state = contextData.state;
-      }
+      // Always provide state (default to empty object for safe access in CEL)
+      safeContext.state = contextData.state || {};
 
       if (contextData.states) {
         safeContext.states = contextData.states;
+      } else {
+        safeContext.states = {};
       }
 
       if (contextData.trigger) {
@@ -146,7 +148,10 @@ export class CelExecutor {
       // Post-process result: Convert BigInt back to Number, List to Array
       return this.convertResult(res);
     } catch (error) {
-      logger.error({ error, script }, '[CEL] Execution failed');
+      // Improve error logging - extract message from Error object
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      logger.error({ error: errorMessage, stack: errorStack, script }, '[CEL] Execution failed');
       return null;
     }
   }
