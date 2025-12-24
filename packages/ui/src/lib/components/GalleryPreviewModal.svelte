@@ -45,7 +45,7 @@
     id: string;
   }
 
-  const GALLERY_FILE_API = '/api/gallery/file';
+  const GALLERY_FILE_API = './api/gallery/file';
 
   let {
     item,
