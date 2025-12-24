@@ -1730,7 +1730,8 @@ app.post('/api/entities/rename', async (req, res) => {
     const backupPath = await saveBackup(configPath, loadedYamlFromFile, 'entity_rename');
 
     const trimmedName = newName.trim();
-    const uniqueId = targetEntity.unique_id || `homenet_${entityId}`;
+    const portId = normalizedConfig.serial?.portId ?? 'default';
+    const uniqueId = targetEntity.unique_id || `homenet_${portId}_${entityId}`;
     targetEntity.name = trimmedName;
     if (!targetEntity.unique_id) {
       targetEntity.unique_id = uniqueId;
