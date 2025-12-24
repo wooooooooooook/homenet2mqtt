@@ -81,16 +81,17 @@ export class LogRetentionService {
   // Packet dictionary reference (shared with server.ts)
   private packetDictionary: Map<string, string>;
   private packetDictionaryReverse: Map<string, string>;
+  private packetIdCounter = 0;
 
   constructor(
     configDir: string,
-    packetDictionary: Map<string, string>,
-    packetDictionaryReverse: Map<string, string>,
+    packetDictionary?: Map<string, string>,
+    packetDictionaryReverse?: Map<string, string>,
   ) {
     this.configDir = configDir;
     this.logsSubDir = path.join(configDir, 'cache-logs');
-    this.packetDictionary = packetDictionary;
-    this.packetDictionaryReverse = packetDictionaryReverse;
+    this.packetDictionary = packetDictionary || new Map<string, string>();
+    this.packetDictionaryReverse = packetDictionaryReverse || new Map<string, string>();
   }
 
   public isEnabled(): boolean {
@@ -165,6 +166,14 @@ export class LogRetentionService {
       timestamp: log.timestamp,
       portId: log.portId,
     }));
+  }
+
+  public getPacketDictionary(): Record<string, string> {
+    const dict: Record<string, string> = {};
+    this.packetDictionaryReverse.forEach((payload, id) => {
+      dict[id] = payload;
+    });
+    return dict;
   }
 
   public async updateSettings(
@@ -256,6 +265,17 @@ export class LogRetentionService {
     this.activityLogs = [];
   }
 
+  private getOrCreatePacketId(packet: string): string {
+    let packetId = this.packetDictionary.get(packet);
+    if (!packetId) {
+      // Use monotonic counter to ensure uniqueness even after pruning
+      packetId = `p${++this.packetIdCounter}`;
+      this.packetDictionary.set(packet, packetId);
+      this.packetDictionaryReverse.set(packetId, packet);
+    }
+    return packetId;
+  }
+
   private cleanupOldLogs(): void {
     if (!this.enabled) return;
 
@@ -292,6 +312,30 @@ export class LogRetentionService {
     if (removed > 0) {
       logger.debug(`[LogRetention] Cleaned up ${removed} old log entries`);
     }
+
+    this.pruneDictionary();
+  }
+
+  private pruneDictionary(): void {
+    const usedPacketIds = new Set<string>();
+
+    // Collect all used packet IDs
+    this.parsedPacketLogs.forEach((log) => usedPacketIds.add(log.packetId));
+    this.commandPacketLogs.forEach((log) => usedPacketIds.add(log.packetId));
+
+    // Remove unused entries from dictionary
+    let removedCount = 0;
+    for (const [packetId, payload] of this.packetDictionaryReverse.entries()) {
+      if (!usedPacketIds.has(packetId)) {
+        this.packetDictionaryReverse.delete(packetId);
+        this.packetDictionary.delete(payload);
+        removedCount++;
+      }
+    }
+
+    if (removedCount > 0) {
+      logger.debug(`[LogRetention] Pruned ${removedCount} unused packet dictionary entries`);
+    }
   }
 
   // Event handlers
@@ -307,13 +351,7 @@ export class LogRetentionService {
     };
     if (!pkt.packet) return;
 
-    // Get or create packet ID (use existing dictionary from server.ts)
-    let packetId = this.packetDictionary.get(pkt.packet);
-    if (!packetId) {
-      packetId = `p${this.packetDictionary.size + 1}`;
-      this.packetDictionary.set(pkt.packet, packetId);
-      this.packetDictionaryReverse.set(packetId, pkt.packet);
-    }
+    const packetId = this.getOrCreatePacketId(pkt.packet);
 
     this.parsedPacketLogs.push({
       packetId,
@@ -338,13 +376,7 @@ export class LogRetentionService {
     };
     if (!pkt.packet) return;
 
-    // Get or create packet ID
-    let packetId = this.packetDictionary.get(pkt.packet);
-    if (!packetId) {
-      packetId = `p${this.packetDictionary.size + 1}`;
-      this.packetDictionary.set(pkt.packet, packetId);
-      this.packetDictionaryReverse.set(packetId, pkt.packet);
-    }
+    const packetId = this.getOrCreatePacketId(pkt.packet);
 
     this.commandPacketLogs.push({
       packetId,

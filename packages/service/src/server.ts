@@ -264,57 +264,11 @@ const server = createServer(app);
 const wss = new WebSocketServer({ server, path: '/api/packets/stream' });
 const port = process.env.PORT ? Number(process.env.PORT) : 3000;
 
-// --- Packet History Cache with Dictionary Encoding ---
-// 패킷 사전: payload → packetId (중복 payload 메모리 절약)
-const packetDictionary = new Map<string, string>();
-const packetDictionaryReverse = new Map<string, string>(); // packetId → payload
-let packetIdCounter = 0;
-
-// 압축된 로그 구조 (payload 대신 packetId 참조)
-type CompactCommandPacket = {
-  packetId: string; // 사전 참조
-  entity: string;
-  entityId: string;
-  command: string;
-  value?: unknown;
-  timestamp: string;
-  portId?: string;
-};
-
-type CompactParsedPacket = {
-  packetId: string; // 사전 참조
-  entityId: string;
-  state: unknown;
-  timestamp: string;
-  portId?: string;
-};
-
-// Packet history is now managed by LogRetentionService
-// Keep dictionary here as it's shared with LogRetentionService
-
-// 패킷을 사전에 등록하거나 기존 ID 반환
-function getOrCreatePacketId(payload: string): string {
-  const existing = packetDictionary.get(payload);
-  if (existing) return existing;
-
-  const id = `p${++packetIdCounter}`;
-  packetDictionary.set(payload, id);
-  packetDictionaryReverse.set(id, payload);
-  return id;
-}
-
-// 사전에서 payload 조회
-function getPayloadById(packetId: string): string | undefined {
-  return packetDictionaryReverse.get(packetId);
-}
-
 // Security: Rate Limiters
 const commandRateLimiter = new RateLimiter(10000, 20); // 20 requests per 10 seconds
 const configRateLimiter = new RateLimiter(60000, 20); // 20 requests per minute
 const serialTestRateLimiter = new RateLimiter(60000, 20); // 20 requests per minute
 const latencyTestRateLimiter = new RateLimiter(60000, 10); // 10 requests per minute
-
-// Removed duplicate packet history event handlers - now handled by LogRetentionService
 
 type BridgeInstance = {
   bridge: HomeNetBridge;
@@ -448,11 +402,7 @@ app.use(express.json({ limit: '1mb' }));
 // --- API Endpoints ---
 // 패킷 사전 조회 API
 app.get('/api/packets/dictionary', (_req, res) => {
-  const dict: Record<string, string> = {};
-  packetDictionaryReverse.forEach((payload, id) => {
-    dict[id] = payload;
-  });
-  res.json(dict);
+  res.json(logRetentionService.getPacketDictionary());
 });
 
 // 명령 패킷 히스토리 (LogRetentionService에서 가져옴)
@@ -1075,11 +1025,7 @@ const registerGlobalEventHandlers = () => {
 
 activityLogService.addLog('log.service_started');
 const rawPacketLogger = new RawPacketLoggerService(CONFIG_DIR);
-const logRetentionService = new LogRetentionService(
-  CONFIG_DIR,
-  packetDictionary,
-  packetDictionaryReverse,
-);
+const logRetentionService = new LogRetentionService(CONFIG_DIR);
 
 const registerPacketStream = () => {
   wss.on('connection', (socket: WebSocket, req: IncomingMessage) => {
