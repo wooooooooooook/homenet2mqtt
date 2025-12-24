@@ -135,7 +135,7 @@
     applyError = null;
 
     try {
-      const response = await fetch('/api/gallery/check-conflicts', {
+      const response = await fetch('./api/gallery/check-conflicts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -214,7 +214,7 @@
     applySuccess = false;
 
     try {
-      const response = await fetch('/api/gallery/apply', {
+      const response = await fetch('./api/gallery/apply', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -432,7 +432,8 @@
             <div class="conflict-item">
               <div class="conflict-header">
                 <span class="conflict-id">
-                  {formatItemLabel(conflict.type, conflict.entityType)} {conflict.id}
+                  {formatItemLabel(conflict.type, conflict.entityType)}
+                  {conflict.id}
                 </span>
                 <button class="toggle-diff-btn" onclick={() => toggleDiff(conflict.id)}>
                   {expandedDiffs.has(conflict.id) ? '▲' : '▼'}
@@ -504,7 +505,8 @@
           <ul class="new-items-list">
             {#each newItems as newItem}
               <li>
-                {formatItemLabel(newItem.type, newItem.entityType)} {newItem.id}
+                {formatItemLabel(newItem.type, newItem.entityType)}
+                {newItem.id}
               </li>
             {/each}
           </ul>
