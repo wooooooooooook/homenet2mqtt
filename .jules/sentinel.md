@@ -1,14 +1,7 @@
-## 2025-12-18 - Unauthenticated RCE via !lambda
-**Vulnerability:** The application executes `!lambda` scripts using `node:vm` which is not a security boundary. Since there is no authentication on the `/api/config/update` endpoint, anyone can inject malicious code.
-**Learning:** In "Addon" architectures, relying solely on network ingress for security creates a fragile defense. The application itself has no defense against a compromised or misconfigured network layer.
-**Prevention:** Proper authentication middleware is required. Blocking `!lambda` via API breaks potential functionality but would mitigate RCE.
-
-## 2024-05-21 - Unprotected Resource Intensive Operations
-**Vulnerability:** The `/api/bridge/:portId/latency-test` endpoint triggers a long-running (up to 200s), state-modifying process without authentication or rate limiting. This allows for trivial Denial of Service and Race Conditions.
-**Learning:** Endpoints that trigger physical device interaction or complex state machines must be strictly rate-limited, even in local/trusted networks, to prevent state corruption and resource exhaustion.
-**Prevention:** Apply specific `RateLimiter` instances to all side-effecting or heavy-computation endpoints.
-
-## 2025-12-22 - Missing Rate Limiting on Config Operations
-**Vulnerability:** Several state-modifying endpoints (`rename`, `revoke-discovery`, `delete entity`, `log-consent`) lacked rate limiting. While individually low-risk, they allowed unrestricted file system writes (backups) and resource consumption.
-**Learning:** Even "administrative" or "rarely used" endpoints must be protected against abuse. Relying on obscurity or "it's just a config tool" is insufficient.
-**Prevention:** Apply `RateLimiter` middleware consistently to ALL state-modifying endpoints (POST/PUT/DELETE/PATCH), grouping them by function (e.g., `configRateLimiter`).
+## 2024-05-24 - [Memory Leak in Packet Dictionary]
+**Vulnerability:** The `LogRetentionService` and `server.ts` maintained a `packetDictionary` map that grew indefinitely with every unique packet payload received. In a long-running service, especially with devices sending timestamped or encrypted data, this would lead to an Out-Of-Memory (OOM) crash (Denial of Service).
+**Learning:** Shared mutable state (like the `packetDictionary` Map) passed between modules can obscure ownership and make cleanup logic difficult to implement safely. Specifically, `server.ts` owned the map but `LogRetentionService` populated it, and neither took responsibility for pruning it.
+**Prevention:**
+1.  **Clear Ownership:** Assign ownership of data structures to the service that primarily manages them (`LogRetentionService`).
+2.  **Lifecycle Management:** Implement pruning/cleanup logic for any unbounded collection (Map/Set/Array) that receives external input.
+3.  **Monotonic Counters:** When generating IDs for items that might be pruned, use a monotonic counter instead of `size + 1` to avoid ID collisions if items are removed.

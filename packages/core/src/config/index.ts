@@ -26,6 +26,18 @@ function normalizeSerialConfig(serial: SerialConfig): SerialConfig {
 }
 
 export function normalizeConfig(config: HomenetBridgeConfig) {
+  const normalizedSerial = config.serial ? normalizeSerialConfig(config.serial) : undefined;
+  if (normalizedSerial) {
+    config.serial = normalizedSerial;
+    config.serials = [normalizedSerial];
+  } else {
+    // 비정상 입력을 대비해 기본 구조만 유지하고, 검증 단계에서 에러를 던집니다.
+    config.serials = [];
+  }
+
+  const portId = normalizedSerial?.portId ?? 'default';
+  const usedUniqueIds = new Set<string>();
+
   ENTITY_TYPE_KEYS.forEach((type) => {
     const entities = config[type] as Array<Record<string, unknown>> | undefined;
     if (!entities) return;
@@ -51,15 +63,47 @@ export function normalizeConfig(config: HomenetBridgeConfig) {
       if (entity && typeof entity === 'object') {
         const idValue = (entity as any).id;
         const uniqueIdValue = (entity as any).unique_id;
+        const trimmedUniqueId =
+          typeof uniqueIdValue === 'string' ? uniqueIdValue.trim() : undefined;
+        const legacyDefault =
+          typeof idValue === 'string' && idValue.trim().length > 0 ? `homenet_${idValue}` : '';
         const needsUniqueId =
-          typeof uniqueIdValue !== 'string' || uniqueIdValue.trim().length === 0;
+          typeof trimmedUniqueId !== 'string' || trimmedUniqueId.length === 0;
 
         if (needsUniqueId && typeof idValue === 'string' && idValue.trim()) {
-          (entity as any).unique_id = `homenet_${idValue}`;
+          (entity as any).unique_id = `homenet_${portId}_${idValue}`;
           logger.trace(
             { entity: idValue, unique_id: (entity as any).unique_id },
             '[config] Added default unique_id',
           );
+        } else if (trimmedUniqueId === legacyDefault && typeof idValue === 'string') {
+          (entity as any).unique_id = `homenet_${portId}_${idValue}`;
+          logger.info(
+            { entity: idValue, unique_id: (entity as any).unique_id },
+            '[config] Updated legacy unique_id with portId prefix',
+          );
+        } else if (trimmedUniqueId) {
+          (entity as any).unique_id = trimmedUniqueId;
+        }
+
+        const candidateUniqueId = (entity as any).unique_id;
+        if (typeof candidateUniqueId === 'string' && candidateUniqueId.trim().length > 0) {
+          let uniqueCandidate = candidateUniqueId;
+          let suffix = 2;
+          while (usedUniqueIds.has(uniqueCandidate)) {
+            uniqueCandidate = `${candidateUniqueId}_${suffix}`;
+            suffix += 1;
+          }
+
+          if (uniqueCandidate !== candidateUniqueId) {
+            logger.warn(
+              { entity: idValue, unique_id: uniqueCandidate },
+              '[config] Detected duplicate unique_id, applied suffix to avoid conflict',
+            );
+            (entity as any).unique_id = uniqueCandidate;
+          }
+
+          usedUniqueIds.add((entity as any).unique_id);
         }
       }
     });
@@ -100,15 +144,6 @@ export function normalizeConfig(config: HomenetBridgeConfig) {
       pd.tx_timeout = parseDuration(pd.tx_timeout as any);
     }
     logger.debug({ packet_defaults: pd }, '[config] Normalized packet_defaults');
-  }
-
-  const normalizedSerial = config.serial ? normalizeSerialConfig(config.serial) : undefined;
-  if (normalizedSerial) {
-    config.serial = normalizedSerial;
-    config.serials = [normalizedSerial];
-  } else {
-    // 비정상 입력을 대비해 기본 구조만 유지하고, 검증 단계에서 에러를 던집니다.
-    config.serials = [];
   }
 
   return config;

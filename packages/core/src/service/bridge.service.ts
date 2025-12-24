@@ -163,7 +163,8 @@ export class HomeNetBridge {
     if (!trimmedName) {
       return { success: false, error: 'New name must not be empty' };
     }
-    const ensuredUniqueId = uniqueId || entity.unique_id || `homenet_${entity.id}`;
+    const portId = this.config.serials?.[0]?.portId ?? 'default';
+    const ensuredUniqueId = uniqueId || entity.unique_id || `homenet_${portId}_${entity.id}`;
 
     entity.name = trimmedName;
     if (!entity.unique_id) {
