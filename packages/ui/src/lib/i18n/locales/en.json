@@ -166,7 +166,7 @@
       "applying": "Applying...",
       "checking": "Checking conflicts...",
       "success": "Snippet applied successfully.",
-      "success_with_backup": "Snippet applied successfully. Backup file has been created.",
+      "success_with_backup": "Snippet applied successfully. Backup file has been created. Please restart the addon to apply changes.",
       "error": "Failed to apply snippet.",
       "cancel": "Cancel",
       "confirm_title": "Confirm Apply",

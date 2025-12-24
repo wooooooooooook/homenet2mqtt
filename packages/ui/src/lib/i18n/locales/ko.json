@@ -166,7 +166,7 @@
       "applying": "적용 중...",
       "checking": "충돌 확인 중...",
       "success": "스니펫이 적용되었습니다.",
-      "success_with_backup": "스니펫이 적용되었습니다. 백업 파일이 생성되었습니다.",
+      "success_with_backup": "스니펫이 적용되었습니다. 백업 파일이 생성되었습니다. 적용을 위해 애드온을 재시작해주세요.",
       "error": "적용에 실패했습니다.",
       "cancel": "취소",
       "confirm_title": "스니펫 적용 확인",
