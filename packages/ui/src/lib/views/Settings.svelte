@@ -219,7 +219,12 @@
   };
 
   const downloadCacheFile = (filename: string) => {
-    window.open(`./api/logs/cache/download/${filename}`, '_blank');
+    const link = document.createElement('a');
+    link.href = `./api/logs/cache/download/${filename}`;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const deleteCacheFile = async (filename: string) => {
