@@ -43,6 +43,7 @@
   let forceActiveError = $state<string | null>(null);
 
   let commandInputs = $state<Record<string, any>>({});
+  let executingCommands = $state(new Set<string>());
 
   let showRx = $state(true);
   let showTx = $state(true);
@@ -98,6 +99,22 @@
 
     renameLocalError = null;
     onRename?.(trimmed);
+  }
+
+  function handleExecute(cmd: CommandInfo, value?: any) {
+    const key = `${cmd.entityId}-${cmd.commandName}`;
+    if (executingCommands.has(key)) return;
+
+    executingCommands.add(key);
+    executingCommands = new Set(executingCommands); // Trigger reactivity
+
+    onExecute?.(cmd, value);
+
+    // Optimistic loading state for UX feedback
+    setTimeout(() => {
+      executingCommands.delete(key);
+      executingCommands = new Set(executingCommands);
+    }, 500);
   }
 
   onMount(() => {
@@ -396,20 +413,35 @@
                             step={cmd.step}
                             bind:value={commandInputs[`${cmd.entityId}_${cmd.commandName}`]}
                           />
-                          <button
+                          <Button
+                            variant="primary"
                             onclick={() =>
-                              onExecute?.(cmd, commandInputs[`${cmd.entityId}_${cmd.commandName}`])}
-                            aria-label={$t('entity_detail.status.send_aria', {
+                              handleExecute(
+                                cmd,
+                                commandInputs[`${cmd.entityId}_${cmd.commandName}`],
+                              )}
+                            isLoading={executingCommands.has(
+                              `${cmd.entityId}-${cmd.commandName}`,
+                            )}
+                            ariaLabel={$t('entity_detail.status.send_aria', {
                               values: { command: cmd.displayName },
                             })}
                           >
                             {$t('entity_detail.status.send')}
-                          </button>
+                          </Button>
                         </div>
                       {:else}
-                        <button class="action-btn" onclick={() => onExecute?.(cmd)}>
+                        <Button
+                          variant="secondary"
+                          fullWidth
+                          class="cmd-btn"
+                          onclick={() => handleExecute(cmd)}
+                          isLoading={executingCommands.has(
+                            `${cmd.entityId}-${cmd.commandName}`,
+                          )}
+                        >
                           {cmd.displayName}
-                        </button>
+                        </Button>
                       {/if}
                     </div>
                   {/each}
@@ -796,27 +828,12 @@
     gap: 1rem;
   }
 
-  .action-btn {
-    width: 100%;
-    height: 60px;
-    box-sizing: border-box;
-    padding: 0.75rem;
-    background: #334155;
-    border: 1px solid #475569;
-    color: #fff;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: 500;
-    transition: all 0.2s;
-  }
-
-  .action-btn:hover {
-    background: #475569;
-  }
+  /* .action-btn class is replaced by Button component, but might be used by other parts, so keeping it or removing if unused */
+  /* Replaced by Button component usage, so this style block is less relevant for the buttons but kept for safety if used elsewhere or similar structures */
 
   .input-group {
     display: flex;
-    height: 60px;
+    height: 60px; /* Match standard button height */
     box-sizing: border-box;
     gap: 0.5rem;
     background: #334155;
@@ -840,7 +857,7 @@
     color: #fff;
     padding: 0.25rem 0.5rem;
     border-radius: 4px;
-    width: 40px;
+    width: 60px;
     font-size: 0.9rem;
   }
 
@@ -849,22 +866,15 @@
     border-color: #38bdf8;
   }
 
-  .input-group button {
-    background: #0ea5e9;
-    border: none;
-    color: white;
+  /* Button overrides for specific layout needs in input group */
+  :global(.input-group .btn) {
     padding: 0.25rem 0.75rem;
-    border-radius: 4px;
-    cursor: pointer;
     font-size: 0.85rem;
-    font-weight: 500;
-    transition: background-color 0.2s;
-    white-space: nowrap;
-    flex-shrink: 0;
+    height: auto;
   }
 
-  .input-group button:hover {
-    background: #0284c7;
+  :global(.cmd-btn) {
+     height: 60px; /* Ensure full height for grid items */
   }
 
   .config-editor-container {
