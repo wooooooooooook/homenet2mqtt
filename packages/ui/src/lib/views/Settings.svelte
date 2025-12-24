@@ -100,6 +100,7 @@
   let cacheStats = $state<LogRetentionStats | null>(null);
   let cacheFiles = $state<SavedLogFile[]>([]);
   let isCacheSaving = $state(false);
+  let downloadError = $state<string | null>(null);
 
   const fetchCacheSettings = async () => {
     try {
@@ -219,7 +220,20 @@
   };
 
   const downloadCacheFile = (filename: string) => {
-    window.open(`./api/logs/cache/download/${filename}`, '_blank');
+    downloadError = null;
+    const isHAAppName = navigator.userAgent.includes('Home Assistant');
+    const link = document.createElement('a');
+    link.href = `./api/logs/cache/download/${filename}`;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    if (isHAAppName) {
+      setTimeout(() => {
+        downloadError = $t('analysis.raw_log.ha_app_download_warning');
+      }, 500);
+    }
   };
 
   const deleteCacheFile = async (filename: string) => {
@@ -477,6 +491,9 @@
               </div>
             {/each}
           </div>
+          {#if downloadError}
+            <div class="setting-desc warning">{downloadError}</div>
+          {/if}
         </div>
       {:else if cacheSettings.autoSaveEnabled}
         <div class="setting sub-setting">
@@ -577,6 +594,10 @@
   .setting-desc {
     color: #94a3b8;
     font-size: 0.9rem;
+  }
+
+  .setting-desc.warning {
+    color: #facc15;
   }
 
   .switch {
