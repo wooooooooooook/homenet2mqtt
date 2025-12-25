@@ -47,12 +47,7 @@
     const reversedPackets = [...rawPackets].reverse();
     if (!normalizedFilter) return reversedPackets;
     return reversedPackets.filter((packet) => {
-      const haystack = [
-        packet.payload,
-        packet.topic,
-        packet.portId ?? '',
-        packet.direction ?? 'RX',
-      ]
+      const haystack = [packet.payload, packet.topic, packet.portId ?? '', packet.direction ?? 'RX']
         .join(' ')
         .toLowerCase();
       return haystack.includes(normalizedFilter);
