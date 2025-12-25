@@ -46,6 +46,26 @@ RUN rm -rf packages/ui \
 # We use 'install --prod' instead of 'prune --prod' because the latter can incorrectly remove workspace dependencies
 RUN pnpm install --prod --frozen-lockfile
 
+# Final cleanup of node_modules to remove unnecessary files
+# Removes: maps, TS sources, docs, licenses, C/C++ sources/headers (after build), and build artifacts
+RUN find node_modules -type f \( \
+  -name "*.map" -o \
+  -name "*.ts" -o \
+  -name "*.md" -o \
+  -name "LICENSE" -o \
+  -name "README.md" -o \
+  -name "*.txt" -o \
+  -name "*.log" -o \
+  -name "*.tlog" -o \
+  -name "*.obj" -o \
+  -name "*.c" -o \
+  -name "*.h" -o \
+  -name "*.cpp" -o \
+  -name "*.html" -o \
+  -name "*.yml" -o \
+  -name "*.yaml" \
+  \) -delete
+
 # Stage 2: Runner
 # node:20-alpine is used for a smaller runtime image
 FROM node:20-alpine AS runner
