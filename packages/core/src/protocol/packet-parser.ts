@@ -196,20 +196,40 @@ export class PacketParser {
           const checksumType = this.defaults.rx_checksum;
           const isStandard1Byte =
             typeof checksumType === 'string' &&
-            ['add', 'xor', 'add_no_header', 'xor_no_header'].includes(checksumType);
+            [
+              'add',
+              'xor',
+              'add_no_header',
+              'xor_no_header',
+              'samsung_rx',
+              'samsung_tx',
+            ].includes(checksumType);
 
           const startLen = Math.max(minLen, this.lastScannedLength + 1);
 
           if (isStandard1Byte) {
+            const typeStr = checksumType as string;
+            const isSamsungRx = typeStr === 'samsung_rx';
+            const isSamsungTx = typeStr === 'samsung_tx';
+            const isAdd = typeStr.startsWith('add');
+            // Samsung types also skip header (like _no_header types)
+            const isNoHeader = typeStr.includes('no_header') || isSamsungRx || isSamsungTx;
+
             // Optimization: Incremental checksum calculation
             // Instead of re-calculating the full checksum for every candidate length,
             // we update the checksum incrementally as we advance the length.
             let runningChecksum = 0;
-            const startIdx = (checksumType as string).includes('no_header') ? headerLen : 0;
+
+            // Samsung RX starts with 0xB0, others 0
+            if (isSamsungRx) {
+              runningChecksum = 0xb0;
+            }
+
+            const startIdx = isNoHeader ? headerLen : 0;
             const initialDataEnd = startLen - checksumLen;
 
             // Calculate initial checksum for the starting packet length
-            if ((checksumType as string).startsWith('add')) {
+            if (isAdd) {
               for (let i = startIdx; i < initialDataEnd; i++) {
                 runningChecksum += this.buffer[i];
               }
@@ -227,15 +247,28 @@ export class PacketParser {
                 // Packet length increased by 1, so data section extended by 1.
                 // The new data byte is at `len - 1 - checksumLen`.
                 const newByte = this.buffer[len - 1 - checksumLen];
-                if ((checksumType as string).startsWith('add')) {
+                if (isAdd) {
                   runningChecksum += newByte;
                 } else {
                   runningChecksum ^= newByte;
                 }
               }
 
+              // Apply final modifiers for Samsung types
+              let finalChecksum = runningChecksum;
+              if (isSamsungTx) {
+                finalChecksum ^= 0x80;
+              } else if (isSamsungRx) {
+                // Check first byte of data (if it exists)
+                // Data region is [startIdx, len - checksumLen)
+                const currentDataEnd = len - checksumLen;
+                if (currentDataEnd > startIdx && this.buffer[startIdx] < 0x7c) {
+                  finalChecksum ^= 0x80;
+                }
+              }
+
               const expected = this.buffer[len - 1];
-              if ((runningChecksum & 0xff) === expected) {
+              if ((finalChecksum & 0xff) === expected) {
                 const packet = this.buffer.subarray(0, len);
                 packets.push(packet); // Push Buffer directly
                 this.buffer = this.buffer.subarray(len);
