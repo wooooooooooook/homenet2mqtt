@@ -2079,8 +2079,14 @@ app.post('/api/gallery/check-conflicts', async (req, res) => {
           const actual = packetDefaults[field];
 
           if (expected !== undefined) {
-            // For arrays, compare stringified versions
-            const normalizeValue = (v: unknown) => (Array.isArray(v) ? JSON.stringify(v) : v);
+            // Normalize values: treat empty arrays, null, and undefined as equivalent (empty/default)
+            const normalizeValue = (v: unknown): string | unknown => {
+              // Empty array, null, or undefined are all considered "empty"
+              if (v === null || v === undefined) return '__EMPTY__';
+              if (Array.isArray(v) && v.length === 0) return '__EMPTY__';
+              if (Array.isArray(v)) return JSON.stringify(v);
+              return v;
+            };
             if (normalizeValue(expected) !== normalizeValue(actual)) {
               compatibility.compatible = false;
               compatibility.mismatches.push({
