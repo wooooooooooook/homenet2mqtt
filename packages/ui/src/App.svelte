@@ -825,7 +825,7 @@
    * 각 엔티티는 고유한 ID, 표시 이름, 타입, 관련 명령 및 포트 ID를 가집니다.
    * 포트 ID는 명령에 명시된 값 또는 `configFile`을 통해 `configPortMap`에서 매핑된 값으로 결정됩니다.
    */
-  const unifiedEntities = $derived.by<UnifiedEntity[]>(() => {
+  const allUnifiedEntities = $derived.by<UnifiedEntity[]>(() => {
     // 복합 키: portId:entityId 형태로 관리하여 같은 entityId가 다른 포트에서 올 때 구분
     const entities = new Map<string, UnifiedEntity>();
 
@@ -903,12 +903,21 @@
       entity.isActive = isActive;
     }
 
-    // Convert to array, filter only those with state, and sort
-    const allEntities = Array.from(entities.values());
+    return Array.from(entities.values());
+  });
+
+  const unifiedEntities = $derived.by<UnifiedEntity[]>(() => {
     const filtered = showInactiveEntities
-      ? allEntities
-      : allEntities.filter((entity) => entity.isActive);
+      ? allUnifiedEntities
+      : allUnifiedEntities.filter((entity) => entity.isActive);
     return filtered.sort((a, b) => a.displayName.localeCompare(b.displayName));
+  });
+
+  const hasInactiveEntities = $derived.by<boolean>(() => {
+    if (!activePortId) return false;
+    return allUnifiedEntities.some(
+      (e) => (!e.portId || e.portId === activePortId) && !e.isActive,
+    );
   });
 
   const entitiesByPort = $derived.by<Record<string, UnifiedEntity[]>>(() => {
@@ -1092,6 +1101,7 @@
             entities={dashboardEntities}
             selectedPortId={activePortId}
             showInactive={showInactiveEntities}
+            {hasInactiveEntities}
             activityLogs={filteredActivityLogs}
             {connectionStatus}
             {statusMessage}

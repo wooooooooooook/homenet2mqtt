@@ -217,6 +217,7 @@
       "empty": "No recent activity."
     },
     "no_devices_found": "No devices detected or commands configured for the selected port.",
+    "hint_inactive_performance": "Deleting inactive entities can improve performance",
     "entity_card": {
       "no_status": "No status info"
     }

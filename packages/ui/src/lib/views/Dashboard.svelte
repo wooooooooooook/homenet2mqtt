@@ -10,6 +10,7 @@
   import EntityCard from '../components/EntityCard.svelte';
   import RecentActivity from '../components/RecentActivity.svelte';
   import SetupWizard from '../components/SetupWizard.svelte';
+  import HintBubble from '$lib/components/HintBubble.svelte';
   import { t } from 'svelte-i18n';
 
   let {
@@ -21,6 +22,7 @@
     entities,
     selectedPortId,
     showInactive,
+    hasInactiveEntities = false,
     activityLogs,
     connectionStatus = 'idle' as 'idle' | 'connecting' | 'connected' | 'error',
     statusMessage = null,
@@ -43,6 +45,7 @@
     entities: UnifiedEntity[];
     selectedPortId: string | null;
     showInactive: boolean;
+    hasInactiveEntities?: boolean;
     activityLogs: ActivityLog[];
     connectionStatus?: 'idle' | 'connecting' | 'connected' | 'error';
     statusMessage?: StatusMessage | null;
@@ -69,6 +72,7 @@
   // App.svelte에서 이미 dashboardEntities로 포트별 필터링을 완료하여 전달하므로,
   // 여기서는 전달받은 entities를 그대로 사용합니다.
   const visibleEntities = $derived.by<UnifiedEntity[]>(() => entities);
+  let hintDismissed = $state(false);
 
   // portStatuses에서 해당 포트의 상태를 가져오는 헬퍼 함수
   function getPortStatus(portId: string): BridgeStatus | 'unknown' {
@@ -155,11 +159,18 @@
           {/each}
         {/if}
       </div>
-      <label class="toggle-switch">
-        <input type="checkbox" checked={showInactive} onchange={() => onToggleInactive?.()} />
-        <span class="slider"></span>
-        {$t('dashboard.show_inactive_entities')}
-      </label>
+      <div class="toggle-container" style="position: relative;">
+        {#if hasInactiveEntities && !hintDismissed}
+          <HintBubble onDismiss={() => (hintDismissed = true)}>
+            {$t('dashboard.hint_inactive_performance')}
+          </HintBubble>
+        {/if}
+        <label class="toggle-switch">
+          <input type="checkbox" checked={showInactive} onchange={() => onToggleInactive?.()} />
+          <span class="slider"></span>
+          {$t('dashboard.show_inactive_entities')}
+        </label>
+      </div>
     </div>
 
     <!-- Port-specific Details Section -->
