@@ -107,6 +107,47 @@ action: script
 script: warm_start
 ```
 
+### 조건문 (If)
+CEL 표현식을 평가하여 조건에 따라 다른 액션을 실행합니다.
+```yaml
+- action: if
+  condition: "states['sensor_temp']['value'] < 18"
+  then:
+    - action: command
+      target: id(heater_1).command_on()
+  else:  # 선택사항
+    - action: command
+      target: id(heater_1).command_off()
+```
+
+### 반복문 (Repeat)
+액션을 여러 번 반복 실행합니다.
+
+**고정 횟수 반복:**
+```yaml
+- action: repeat
+  count: 3
+  actions:
+    - action: send_packet
+      data: [0x01, 0x02]
+    - action: delay
+      milliseconds: 100
+```
+
+**조건 기반 반복 (while):**
+```yaml
+- action: repeat
+  while: "states['switch_1']['power'] == 'on'"
+  max: 10  # 안전을 위한 최대 횟수 (필수, 기본값: 100)
+  actions:
+    - action: send_packet
+      data: [0x01, 0x02]
+    - action: delay
+      milliseconds: 500
+```
+
+> **주의**: `while`을 사용할 때는 반드시 `max`를 지정하거나 루프 내에서 조건이 변경되도록 해야 합니다. 무한 루프를 방지하기 위해 최대 반복 횟수가 제한됩니다.
+
 ## 가드 (Guards - 조건)
 
 트리거 또는 자동화 전체에 `guard` 조건을 추가하여 특정 상황에서만 실행되도록 제한할 수 있습니다. 가드는 CEL 표현식을 사용합니다.

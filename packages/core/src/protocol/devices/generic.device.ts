@@ -58,7 +58,7 @@ export class GenericDevice extends Device {
     const updates: Record<string, any> = {};
     let hasUpdates = false;
 
-    // Key mapping for lambda results to match HA discovery expectations
+    // Key mapping for CEL results to match HA discovery expectations
     const keyMapping: Record<string, string> = {
       temperature_target: 'target_temperature',
       temperature_current: 'current_temperature',
@@ -66,7 +66,7 @@ export class GenericDevice extends Device {
       humidity_current: 'current_humidity',
     };
 
-    // Check for state expressions (formerly lambdas)
+    // Check for state expressions (formerly CEL)
     for (const key in entityConfig) {
       if (key.startsWith('state_') && typeof entityConfig[key] === 'string') {
         const script = entityConfig[key] as string;
@@ -88,12 +88,7 @@ export class GenericDevice extends Device {
       }
     }
 
-    // Fallback to schema-based extraction if no lambda matched or as addition
-    if (entityConfig.state && entityConfig.state.data) {
-      // Check if packet contains the data pattern
-      // This is a simplification. Uartex has complex matching logic.
-      // For this refactor, we might need to implement a robust matcher.
-    }
+
 
     return hasUpdates ? updates : null;
   }
