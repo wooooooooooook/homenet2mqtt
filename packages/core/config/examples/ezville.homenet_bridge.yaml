@@ -752,10 +752,8 @@ automation:
     trigger:
       - type: schedule
         every: 1m
-    action:
-      - type: command
-        id: total_water_usage
-        command: command_update
-      - type: command
-        id: total_gas_usage
-        command: command_update
+    actions:
+      - action: command
+        target: id(total_water_usage).command_update()
+      - action: command
+        target: id(total_gas_usage).command_update()

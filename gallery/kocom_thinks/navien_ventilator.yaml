@@ -42,7 +42,6 @@ automation:
     trigger:
       - type: schedule
         every: 2h
-    action:
-      - type: command
-        id: navien_ventilator
-        command: command_update
+    actions:
+      - action: command
+        target: id(navien_ventilator).command_update()

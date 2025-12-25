@@ -219,19 +219,14 @@ automation:
     trigger:
       - type: schedule
         every: 2h
-    action:
-      - type: command
-        id: livingroom_heater
-        command: command_update
-      - type: command
-        id: bedroom_heater
-        command: command_update
-      - type: command
-        id: room_1_heater
-        command: command_update
-      - type: command
-        id: room_2_heater
-        command: command_update
-      - type: command
-        id: livingroom_2_heater
-        command: command_update
+    actions:
+      - action: command
+        target: id(livingroom_heater).command_update()
+      - action: command
+        target: id(bedroom_heater).command_update()
+      - action: command
+        target: id(room_1_heater).command_update()
+      - action: command
+        target: id(room_2_heater).command_update()
+      - action: command
+        target: id(livingroom_2_heater).command_update()

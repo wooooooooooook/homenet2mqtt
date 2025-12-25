@@ -33,7 +33,6 @@ automation:
     trigger:
       - type: schedule
         every: 2h
-    action:
-      - type: command
-        id: gas_burner_lock
-        command: command_update
+    actions:
+      - action: command
+        target: id(gas_burner_lock).command_update()

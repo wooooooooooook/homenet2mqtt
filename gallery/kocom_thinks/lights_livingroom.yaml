@@ -65,7 +65,6 @@ automation:
     trigger:
       - type: schedule
         every: 2h
-    action:
-      - type: command
-        id: livingroom_light_1
-        command: command_update
+    actions:
+      - action: command
+        target: id(livingroom_light_1).command_update()
