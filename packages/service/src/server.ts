@@ -49,8 +49,9 @@ const LEGACY_DEFAULT_CONFIG_FILENAME = 'default.yaml';
 const CONFIG_INIT_MARKER = path.join(CONFIG_DIR, '.initialized');
 const CONFIG_RESTART_FLAG = path.join(CONFIG_DIR, '.restart-required');
 const EXAMPLES_DIR = path.resolve(__dirname, '../../core/config/examples');
-const GALLERY_DIR = path.resolve(process.cwd(), 'gallery');
-const GALLERY_LIST_FILE = path.join(GALLERY_DIR, 'list.json');
+const GALLERY_RAW_BASE_URL =
+  'https://raw.githubusercontent.com/wooooooooooook/RS485-HomeNet-to-MQTT-bridge/main/gallery';
+const GALLERY_LIST_URL = `${GALLERY_RAW_BASE_URL}/list.json`;
 
 let BACKUP_DIR = path.join(CONFIG_DIR, 'backups'); // Default fallback
 
@@ -1808,15 +1809,19 @@ app.patch('/api/entities/:entityId/discovery-always', async (req, res) => {
 app.get('/api/gallery/list', async (_req, res) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   try {
-    const listExists = await fileExists(GALLERY_LIST_FILE);
-    if (!listExists) {
-      return res.status(404).json({ error: 'Gallery list not found' });
+    const response = await fetch(GALLERY_LIST_URL);
+    if (!response.ok) {
+      logger.warn(
+        { status: response.status },
+        '[gallery] Failed to fetch gallery list from GitHub',
+      );
+      return res.status(response.status).json({ error: 'Gallery list not found' });
     }
 
-    const listContent = await fs.readFile(GALLERY_LIST_FILE, 'utf8');
+    const listContent = await response.text();
     res.type('application/json').send(listContent);
   } catch (error) {
-    logger.error({ err: error }, '[gallery] Failed to load gallery list');
+    logger.error({ err: error }, '[gallery] Failed to load gallery list from GitHub');
     res
       .status(500)
       .json({ error: error instanceof Error ? error.message : 'Failed to load gallery list' });
@@ -1830,20 +1835,31 @@ app.get('/api/gallery/file', async (req, res) => {
       return res.status(400).json({ error: 'path query parameter is required' });
     }
 
-    const resolvedPath = path.resolve(GALLERY_DIR, filePath);
-    if (!resolvedPath.startsWith(`${GALLERY_DIR}${path.sep}`)) {
+    // Security: only allow paths within gallery directory (no .. traversal)
+    const normalizedPath = filePath.replace(/\\/g, '/');
+    if (normalizedPath.includes('..') || normalizedPath.startsWith('/')) {
       return res.status(400).json({ error: 'Invalid gallery path' });
     }
 
-    const isYaml = resolvedPath.endsWith('.yaml') || resolvedPath.endsWith('.yml');
+    const isYaml = normalizedPath.endsWith('.yaml') || normalizedPath.endsWith('.yml');
     if (!isYaml) {
       return res.status(400).json({ error: 'Only YAML gallery files are supported' });
     }
 
-    const fileContent = await fs.readFile(resolvedPath, 'utf8');
+    const fileUrl = `${GALLERY_RAW_BASE_URL}/${normalizedPath}`;
+    const response = await fetch(fileUrl);
+    if (!response.ok) {
+      logger.warn(
+        { status: response.status, path: normalizedPath },
+        '[gallery] Failed to fetch gallery file from GitHub',
+      );
+      return res.status(response.status).json({ error: 'Gallery file not found' });
+    }
+
+    const fileContent = await response.text();
     res.type('text/yaml').send(fileContent);
   } catch (error) {
-    logger.error({ err: error }, '[gallery] Failed to load gallery file');
+    logger.error({ err: error }, '[gallery] Failed to load gallery file from GitHub');
     res
       .status(500)
       .json({ error: error instanceof Error ? error.message : 'Failed to load gallery file' });

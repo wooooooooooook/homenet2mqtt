@@ -5,9 +5,9 @@
 ## 갤러리 데이터 제공 경로
 
 - 갤러리 목록: `/api/gallery/list`
-- 스니펫 파일: `/api/gallery/file?path=<gallery/...yaml>`
+- 스니펫 파일: `/api/gallery/file?path=<vendor/file.yaml>`
 
-서비스는 저장소의 `gallery/` 디렉터리에서 파일을 읽어 위 API로 제공하며, UI는 이 엔드포인트를 통해 목록과 YAML을 로드합니다.
+서비스는 GitHub 저장소(`https://raw.githubusercontent.com/wooooooooooook/RS485-HomeNet-to-MQTT-bridge/main/gallery/`)에서 파일을 가져와 위 API로 프록시합니다. 이를 통해 갤러리 업데이트가 GitHub에 push되면 자동으로 반영됩니다.
 
 ## 스니펫 구성
 

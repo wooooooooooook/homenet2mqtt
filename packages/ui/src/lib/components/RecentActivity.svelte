@@ -38,12 +38,7 @@
 <div class="recent-activity-container">
   <h4 id="recent-activity-title">{$t('dashboard.recent_activity.title')}</h4>
   <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-  <div
-    class="activity-list"
-    role="log"
-    aria-labelledby="recent-activity-title"
-    tabindex="0"
-  >
+  <div class="activity-list" role="log" aria-labelledby="recent-activity-title" tabindex="0">
     {#if activities.length === 0}
       <p>{$t('dashboard.recent_activity.empty')}</p>
     {:else}
