@@ -1,5 +1,8 @@
 x-dev-base: &dev-base
-  image: node:20-slim
+  image: rs485-dev-base:latest
+  build:
+    context: .
+    dockerfile: Dockerfile.dev
   working_dir: /workspace
   environment:
     PNPM_HOME: /root/.local/share/pnpm
@@ -50,19 +53,21 @@ services:
     container_name: rs485-simulator-dev
     environment:
       SIMULATOR_LINK_PATH: /simshare/rs485-sim-tty
-      SIMULATOR_INTERVAL_MS: '500'
-      SIMULATOR_PROTOCOL: 'tcp'
-      SIMULATOR_DEVICE: ${SYSTEM_TYPE}
-      CONFIG_PATH: packages/core/config/examples/${SYSTEM_TYPE}.homenet_bridge.yaml
+      SIMULATOR_INTERVAL_MS: '100'
+      SIMULATOR_PROTOCOL: 'serial'
+      SIMULATOR_PORT_PATH: '/tmp/ttyRS485'
+      SIMULATOR_DEVICE: samsung_sds
     volumes:
       - ../../:/workspace
       - pnpm-store:/root/.local/share/pnpm
       - simulator_node_modules:/workspace/node_modules
       - simshare:/simshare
-      - /dev/pts:/dev/pts
     command: >
       bash -lc "
         set -euo pipefail
+        # Start socat to listen on TCP 8888 and link to PTY
+        nohup socat TCP-LISTEN:8888,fork PTY,link=/tmp/ttyRS485,raw,echo=0,mode=666,b9600,inpck=0 > /tmp/socat.log 2>&1 &
+        
         corepack enable
         pnpm install --filter @rs485-homenet/simulator... --no-frozen-lockfile
         pnpm --filter @rs485-homenet/simulator build
@@ -78,11 +83,10 @@ services:
     container_name: rs485-app-dev
     environment:
       MQTT_URL: mqtt://mq:1883
-      SERIAL_PATH_WAIT_TIMEOUT_MS: '6000'
+      SERIAL_PATH_WAIT_TIMEOUT_MS: '10000'
       PORT: '3000'
       CONFIG_ROOT: /workspace/deploy/.configs
-      CONFIG_FILES: cvnet.homenet_bridge.yaml
-      # CONFIG_FILES: ${SYSTEM_TYPE}.homenet_bridge.yaml,sim_commax.homenet_bridge.yaml
+      CONFIG_FILES: samsung_sds.homenet_bridge.yaml
       LOG_LEVEL: info
       MQTT_TOPIC_PREFIX: homenet
     volumes:
@@ -96,8 +100,21 @@ services:
     command: >
       bash -lc "
         set -euo pipefail
+        # Connect to simulator via TCP and expose as PTY
+        nohup socat PTY,link=/dev/ttyRS485,raw,echo=0,mode=666,b9600,inpck=0 TCP:simulator:8888,retry=10,interval=1 > /tmp/socat.log 2>&1 &
+        
         corepack enable
-        pnpm install --filter @rs485-homenet/service... --filter @rs485-homenet/core... --no-frozen-lockfile
+        # Use frozen lockfile for faster install
+        pnpm install --filter @rs485-homenet/service... --filter @rs485-homenet/core... --filter @rs485-homenet/ui... --frozen-lockfile
+
+        # Pre-build packages to avoid race conditions and speed up startup
+        echo '[app] Building core...'
+        pnpm --filter @rs485-homenet/core build
+        echo '[app] Building service...'
+        pnpm --filter @rs485-homenet/service build
+        
+        # Start dev servers
+        echo '[app] Starting dev servers...'
         pnpm --filter @rs485-homenet/core dev | pnpm pino-pretty &
         pnpm --filter @rs485-homenet/service dev | pnpm pino-pretty
       "

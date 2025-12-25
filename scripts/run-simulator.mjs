@@ -1,7 +1,6 @@
 import { mkdir, rm, symlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
-import { loadYamlConfig } from '../packages/core/dist/config/yaml-loader.js';
 
 const DEFAULT_LINK_PATH = '/simshare/rs485-sim-tty';
 
@@ -32,11 +31,6 @@ async function main() {
   const intervalMs = ensureNumber(process.env.SIMULATOR_INTERVAL_MS, 1000);
   const linkPath = process.env.SIMULATOR_LINK_PATH ?? DEFAULT_LINK_PATH;
 
-  const configPath =
-    process.env.CONFIG_PATH ?? 'packages/core/config/commax.homenet_bridge.yaml';
-  const config = await loadYamlConfig(configPath);
-  const checksumType = config.homenet_bridge.packet_defaults.tx_checksum;
-
   const simulatorProtocol = process.env.SIMULATOR_PROTOCOL || 'pty';
   const device = process.env.SIMULATOR_DEVICE || 'commax';
 
@@ -47,20 +41,36 @@ async function main() {
       intervalMs,
       packets: device === 'commax' ? COMMAX_TEST_PACKETS : undefined,
       device,
-      checksumType,
+      baudRate: 9600,
       port: 8888
     });
-    console.log(`[simulator] TCP Mode started on port 8888 (device=${device})`);
+    console.log(`[simulator] TCP Mode started on port 8888 (device=${device}, baudRate=9600)`);
+  } else if (simulatorProtocol === 'serial') {
+    const { createExternalPortSimulator } = await import('../packages/simulator/dist/index.js');
+    const portPath = process.env.SIMULATOR_PORT_PATH;
+    if (!portPath) {
+      throw new Error('SIMULATOR_PORT_PATH must be defined for serial protocol');
+    }
+
+    // Determine parity based on device
+    const parity = device.startsWith('samsung') ? 'even' : 'none';
+
+    simulator = createExternalPortSimulator({
+      device,
+      baudRate: 9600,
+      portPath,
+      parity
+    });
+    console.log(`[simulator] External Serial Mode started on ${portPath} (device=${device}, baudRate=9600, parity=${parity})`);
   } else {
     simulator = createSimulator({
-      intervalMs,
+      intervalMs: 1,
       packets: device === 'commax' ? COMMAX_TEST_PACKETS : undefined,
       device,
-      checksumType,
     });
     await exposePty(simulator.ptyPath, linkPath);
     console.log(
-      `[simulator] PTY 노출: 실제=${simulator.ptyPath}, 링크=${linkPath} (interval=${intervalMs}ms)`
+      `[simulator] PTY 노출: 실제=${simulator.ptyPath}, 링크=${linkPath} (Byte Mode: 1ms)`
     );
   }
 
