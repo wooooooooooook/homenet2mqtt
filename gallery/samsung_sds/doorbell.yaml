@@ -1,0 +1,294 @@
+meta:
+  name: "현관문세트"
+  name_en: "Doorbell Set"
+  description: "현관문세트를 사용하는 삼성 SDS 엘레베이터 설정입니다."
+  description_en: "Samsung SDS doorbell set."
+  version: "1.0.0"
+  author: "wooooooooooook"
+  tags: ["doorbell", "switch", "samsung", "sds"]
+
+entities:
+  binary_sensor:
+    - id: 'doorbell_private'
+      name: '개인현관벨'
+      icon: 'mdi:bell-ring'
+      state:
+        data: [0x30]
+        mask: [0xF0]
+      state_on:
+        data: [0x31, 0x00]
+      state_off:
+        data: [0x3E, 0x01]
+        mask: [0xFF, 0x01]
+
+    - id: 'doorbell_public'
+      name: '공용현관벨'
+      icon: 'mdi:bell-ring'
+      state:
+        data: [0x30]
+        mask: [0xF0]
+      state_on:
+        data: [0x32, 0x00]
+      state_off:
+        data: [0x3E, 0x06]
+        mask: [0xFF, 0x06]
+
+  switch:
+    - id: 'doorbell_auto_open_public'
+      name: '공용현관벨 자동열기'
+      icon: 'mdi:door-open'
+      optimistic: true
+
+    - id: 'doorbell_auto_open_private'
+      name: '개인현관벨 자동열기'
+      icon: 'mdi:door-open'
+      optimistic: true
+
+  # 상태 관리용 text
+  text:
+    - id: 'door_state'
+      name: '현관문 상태'
+      internal: true
+      optimistic: true
+      initial_value: 'D_IDLE'
+
+automation:
+  # ===== 패킷 응답 처리 =====
+  # 0x5A 수신 시 초기화 응답
+  - id: 'response_init'
+    trigger:
+      - type: packet
+        match:
+          data: [0xA4, 0x5A]
+          mask: [0xFF, 0xFF]
+    then:
+      - action: send_packet
+        data: [0xB0, 0x5A, 0x00]
+        checksum: true
+
+  # 0x41 수신 시 상태에 따라 응답
+  - id: 'response_query'
+    trigger:
+      - type: packet
+        match:
+          data: [0xA4, 0x41]
+          mask: [0xFF, 0xFF]
+    then:
+      - action: if
+        condition: "states['door_state']['state'] == 'D_IDLE'"
+        then:
+          - action: send_packet
+            data: [0xB0, 0x41, 0x00]
+            checksum: true
+        else:
+          - action: if
+            condition: "states['door_state']['state'] == 'D_CALL'"
+            then:
+              - action: send_packet
+                data: [0xB0, 0x36, 0x01]  # 개인현관 통화
+                checksum: true
+              - action: command
+                target: id(door_state).command_set('D_CALLED')
+            else:
+              - action: if
+                condition: "states['door_state']['state'] == 'D_CALL_P'"
+                then:
+                  - action: send_packet
+                    data: [0xB0, 0x36, 0x02]  # 공용현관 통화
+                    checksum: true
+                  - action: command
+                    target: id(door_state).command_set('D_CALLED')
+                else:
+                  - action: if
+                    condition: "states['door_state']['state'] == 'D_OPEN'"
+                    then:
+                      - action: send_packet
+                        data: [0xB0, 0x3B, 0x00]  # 개인현관 문열기
+                        checksum: true
+                      - action: command
+                        target: id(door_state).command_set('D_OPENED')
+                    else:
+                      - action: if
+                        condition: "states['door_state']['state'] == 'D_OPEN_P'"
+                        then:
+                          - action: send_packet
+                            data: [0xB0, 0x3B, 0x06]  # 공용현관 문열기
+                            checksum: true
+                          - action: command
+                            target: id(door_state).command_set('D_OPENED')
+                        else:
+                          # D_BELL, D_CALLED, D_OPENED 상태일 때
+                          - action: send_packet
+                            data: [0xB0, 0x42, 0x00]
+                            checksum: true
+
+  # 0x42 수신 시 응답
+  - id: 'response_block'
+    trigger:
+      - type: packet
+        match:
+          data: [0xA4, 0x42]
+          mask: [0xFF, 0xFF]
+    then:
+      - action: send_packet
+        data: [0xB0, 0x41, 0x00]
+        checksum: true
+
+  # 0x32 수신 시 응답 (공용현관벨 관련)
+  - id: 'response_public'
+    trigger:
+      - type: packet
+        match:
+          data: [0xA4, 0x32]
+          mask: [0xFF, 0xFF]
+    then:
+      - action: send_packet
+        data: [0xB0, 0x32, 0x00]
+        checksum: true
+
+  # 0x31 수신 시 응답 (개인현관벨 관련)
+  - id: 'response_private'
+    trigger:
+      - type: packet
+        match:
+          data: [0xA4, 0x31]
+          mask: [0xFF, 0xFF]
+    then:
+      - action: send_packet
+        data: [0xB0, 0x31, 0x00]
+        checksum: true
+
+  # 0x36 수신 시 응답 (통화 확인)
+  - id: 'response_call_ack'
+    trigger:
+      - type: packet
+        match:
+          data: [0xA4, 0x36]
+          mask: [0xFF, 0xFF]
+    then:
+      - action: send_packet
+        data: [0xB0, 0x42, 0x00]
+        checksum: true
+
+  # 0x38 수신 시 응답 (비디오 열기)
+  - id: 'response_video_open'
+    trigger:
+      - type: packet
+        match:
+          data: [0xA4, 0x38]
+          mask: [0xFF, 0xFF]
+    then:
+      - action: send_packet
+        data: [0xB0, 0x42, 0x00]
+        checksum: true
+
+  # 0x35 수신 시 응답 (비디오 연결)
+  - id: 'response_video_connect'
+    trigger:
+      - type: packet
+        match:
+          data: [0xA4, 0x35]
+          mask: [0xFF, 0xFF]
+    then:
+      - action: send_packet
+        data: [0xB0, 0x35, 0x00]
+        checksum: true
+
+  # 0x3B 수신 시 응답 (문열기 확인)
+  - id: 'response_open_ack'
+    trigger:
+      - type: packet
+        match:
+          data: [0xA4, 0x3B]
+          mask: [0xFF, 0xFF]
+    then:
+      - action: send_packet
+        data: [0xB0, 0x42, 0x00]
+        checksum: true
+
+  # 0x3E 수신 시 응답 (종료) - 수신된 data[1] 값을 그대로 응답
+  # 개인현관: 0x01, 공용현관: 0x06
+  - id: 'response_end_private'
+    trigger:
+      - type: packet
+        match:
+          data: [0xA4, 0x3E, 0x01]
+    then:
+      - action: send_packet
+        data: [0xB0, 0x3E, 0x01]
+        checksum: true
+
+  - id: 'response_end_public'
+    trigger:
+      - type: packet
+        match:
+          data: [0xA4, 0x3E, 0x06]
+    then:
+      - action: send_packet
+        data: [0xB0, 0x3E, 0x06]
+        checksum: true
+
+  # ===== 벨 울림 감지 시 상태 변경 =====
+  # 개인현관벨 울림 시 상태를 D_BELL로 변경 및 자동문열기 시퀀스 시작
+  - id: 'doorbell_private_ring'
+    mode: restart
+    trigger:
+      - type: state
+        entity: doorbell_private
+        to: 'on'
+    then:
+      - action: command
+        target: id(door_state).command_set('D_BELL')
+      - action: if
+        condition: "states['doorbell_auto_open_private']['state'] == 'on'"
+        then:
+          - action: delay
+            milliseconds: 2s
+          - action: command
+            target: id(door_state).command_set('D_CALL')
+          - action: delay
+            milliseconds: 3s
+          - action: command
+            target: id(door_state).command_set('D_OPEN')
+
+  # 개인현관벨 종료 시 상태를 D_IDLE로 변경
+  - id: 'doorbell_private_end'
+    trigger:
+      - type: state
+        entity: doorbell_private
+        to: 'off'
+    then:
+      - action: command
+        target: id(door_state).command_set('D_IDLE')
+
+  # 공용현관벨 울림 시 상태를 D_BELL로 변경 및 자동문열기 시퀀스 시작
+  - id: 'doorbell_public_ring'
+    mode: restart
+    trigger:
+      - type: state
+        entity: doorbell_public
+        to: 'on'
+    then:
+      - action: command
+        target: id(door_state).command_set('D_BELL')
+      - action: if
+        condition: "states['doorbell_auto_open_public']['state'] == 'on'"
+        then:
+          - action: delay
+            milliseconds: 2s
+          - action: command
+            target: id(door_state).command_set('D_CALL_P')
+          - action: delay
+            milliseconds: 3s
+          - action: command
+            target: id(door_state).command_set('D_OPEN_P')
+
+  # 공용현관벨 종료 시 상태를 D_IDLE로 변경
+  - id: 'doorbell_public_end'
+    trigger:
+      - type: state
+        entity: doorbell_public
+        to: 'off'
+    then:
+      - action: command
+        target: id(door_state).command_set('D_IDLE')

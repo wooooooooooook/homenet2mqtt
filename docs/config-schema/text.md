@@ -3,7 +3,8 @@
 문자열을 송수신하는 장치는 `text` 엔티티를 사용합니다. `type`은 `text`이며 공통 필드(`id`, `name`, `packet_parameters`, `device_class`, `icon`)를 함께 지정할 수 있습니다.
 
 ## 필수 필드
-- `command_text`: 입력된 문자열을 패킷으로 변환하여 장치로 전송하는 방법 (CEL 표현식 또는 스키마).
+- **실제 장치 연동 시**: `command_text` - 입력된 문자열을 패킷으로 변환하여 장치로 전송하는 방법 (CEL 표현식 또는 스키마).
+- **가상 상태 관리 시**: `optimistic: true` - 패킷 없이 상태만 관리.
 
 ## 옵션 필드
 - `state`: 이 텍스트 상태가 포함된 패킷을 식별하는 서명.
@@ -11,6 +12,8 @@
 - `min_length`, `max_length`: 사용자 입력값의 최소/최대 길이 (UI에서 검증).
 - `pattern`: 입력값 검증을 위한 정규식 문자열.
 - `mode`: 입력 UI 모드 (`text` 또는 `password`).
+- `optimistic`: `true`로 설정하면 패킷 전송 없이 상태만 관리하는 가상 텍스트로 동작.
+- `initial_value`: 초기 상태 문자열 값 (`optimistic: true`와 함께 사용).
 
 ## 예제 1: 스키마 기반 (ASCII 전송)
 입력받은 문자열을 ASCII로 인코딩하여 패킷의 특정 위치에 삽입합니다.
@@ -38,8 +41,36 @@ text:
       [0x01, 0x02] + bytes(xstr) + [0x03]
 ```
 
+## 예제 3: 가상 상태 관리 (Optimistic Text)
+패킷 없이 자동화의 상태 머신(State Machine) 구현에 활용할 수 있습니다.
+```yaml
+text:
+  - id: door_state
+    name: "현관문 상태"
+    internal: true        # HA Discovery 및 대시보드에서 숨김
+    optimistic: true      # 패킷 전송 없이 상태만 관리
+    initial_value: "IDLE" # 초기 상태
+
+automation:
+  - id: set_door_state
+    trigger:
+      - type: state
+        entity_id: doorbell
+        property: state
+        match: 'on'
+    then:
+      - action: command
+        target: id(door_state).command_set('RINGING')
+```
+
+### 사용 사례
+- **자동화 상태 머신**: 복잡한 시퀀스에서 현재 단계를 추적
+- **내부 플래그**: 조건부 로직 실행을 위한 상태 저장
+- **장치 시뮬레이션**: 테스트 목적의 가상 장치 상태 관리
+
 ## 작성 체크리스트
 1. 입력 길이를 장치 버퍼 크기보다 짧게 설정해 오버플로를 방지합니다.
 2. `command_text`에서 `value_encode: ascii`를 사용할 경우 `length`를 충분히 지정했는지 확인하세요.
 3. 비밀번호 입력은 `mode: password`로 표시만 가리고, 전송 데이터는 평문/암호화 여부를 장치 사양에 맞춰 설정합니다.
 4. 텍스트 인코딩이 특수하면 CEL 표현식에서 직접 바이트 배열을 생성해 반환합니다.
+5. 가상 상태 관리 용도로 사용 시 `internal: true`를 함께 설정하면 HA에 노출되지 않습니다.

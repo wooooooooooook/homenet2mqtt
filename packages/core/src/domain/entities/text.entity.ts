@@ -13,4 +13,5 @@ export interface TextEntity extends EntityConfig {
   mode?: 'text' | 'password';
   command_text?: CommandSchema;
   command_update?: CommandSchema;
+  initial_value?: string;
 }

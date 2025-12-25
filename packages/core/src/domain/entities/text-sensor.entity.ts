@@ -7,4 +7,5 @@ export interface TextSensorEntity extends EntityConfig {
   type: 'text_sensor';
   state?: StateSchema;
   state_text?: StateSchema;
+  initial_value?: string;
 }

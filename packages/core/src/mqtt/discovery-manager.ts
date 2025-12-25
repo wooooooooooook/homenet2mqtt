@@ -233,6 +233,12 @@ export class DiscoveryManager {
       return;
     }
 
+    // Skip internal entities - they should not be discovered by Home Assistant
+    if (entity.internal === true) {
+      logger.debug({ id: entity.id }, '[DiscoveryManager] Skipping internal entity');
+      return;
+    }
+
     const discoveryKey = `${this.portId}:${entity.id}`;
 
     if (this.discoveryPublished.has(discoveryKey) && !force) {

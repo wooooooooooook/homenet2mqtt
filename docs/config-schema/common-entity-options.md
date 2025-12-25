@@ -89,6 +89,28 @@ switch:
     optimistic: true  # 가상 스위치로 동작 (패킷 전송 없음)
 ```
 
+## 내부 엔티티 (`internal`)
+
+Home Assistant Discovery와 H2M 대시보드에서 해당 엔티티를 숨깁니다. 자동화의 상태 관리 등 내부 용도로만 사용되는 엔티티에 유용합니다.
+
+- **타입**: `boolean`
+- **기본값**: `false`
+- **설명**: `true`로 설정하면 해당 엔티티가 Home Assistant에 등록되지 않으며, H2M 대시보드의 명령 목록에도 표시되지 않습니다. MQTT를 통한 상태 발행은 정상적으로 이루어지며, 자동화에서 `states['entity_id']`로 접근할 수 있습니다.
+
+```yaml
+text:
+  - id: "door_state"
+    name: "현관문 상태"
+    internal: true      # HA Discovery 및 H2M 대시보드에서 숨김
+    optimistic: true    # 패킷 없이 상태 설정 가능
+    initial_value: "IDLE"  # 초기 상태
+```
+
+### 사용 사례
+- 자동화의 상태 머신 (State Machine) 구현
+- 내부 플래그 및 변수 저장
+- 복잡한 시퀀스 제어를 위한 임시 상태 저장
+
 ## 디바이스 정의 및 영역 매핑
 
 엔티티별로 다른 디바이스 메타데이터를 사용하거나 영역을 미리 지정하려면 최상위 `devices` 블록과 엔티티의 `device`, `area` 필드를 함께 사용합니다.

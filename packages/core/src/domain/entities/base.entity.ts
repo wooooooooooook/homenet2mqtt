@@ -28,4 +28,5 @@ export interface EntityConfig {
   discovery_always?: boolean;
   discovery_linked_id?: string;
   optimistic?: boolean;
+  internal?: boolean;
 }

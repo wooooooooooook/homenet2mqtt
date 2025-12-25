@@ -3,17 +3,34 @@ import { DeviceConfig, ProtocolConfig } from '../types.js';
 import { TextEntity } from '../../domain/entities/text.entity.js';
 
 export class TextDevice extends GenericDevice {
+  private optimisticValue: string | null = null;
+
   constructor(config: TextEntity, protocolConfig: ProtocolConfig) {
     super(config, protocolConfig);
+
+    // Set initial value for optimistic mode
+    const entityConfig = config as TextEntity;
+    if (entityConfig.initial_value !== undefined) {
+      this.optimisticValue = entityConfig.initial_value;
+    }
   }
 
   public parseData(packet: number[]): Record<string, any> | null {
+    // For optimistic text without state config, return current optimistic value
+    const entityConfig = this.config as TextEntity;
+    if (entityConfig.optimistic && !entityConfig.state) {
+      // Return optimistic value if set
+      if (this.optimisticValue !== null) {
+        return { text: this.optimisticValue };
+      }
+      return null;
+    }
+
     if (!this.matchesPacket(packet)) {
       return null;
     }
 
     const updates = super.parseData(packet) || {};
-    const entityConfig = this.config as TextEntity;
 
     // Parse text value from state_text schema
     if (!updates.text && entityConfig.state_text) {
@@ -51,36 +68,60 @@ export class TextDevice extends GenericDevice {
   }
 
   public constructCommand(commandName: string, value?: any): number[] | null {
+    const entityConfig = this.config as TextEntity;
+
     const cmd = super.constructCommand(commandName, value);
     if (cmd) return cmd;
 
-    const entityConfig = this.config as TextEntity;
+    // Handle text 'set' command
+    if (commandName === 'set' && value !== undefined) {
+      // For optimistic text, update internal state
+      this.optimisticValue = String(value);
 
-    // Handle text command with string value
-    if (commandName === 'set' && entityConfig.command_text?.data && value !== undefined) {
-      const command = [...entityConfig.command_text.data];
+      // If command_text is defined, construct packet
+      if (entityConfig.command_text?.data) {
+        const command = [...entityConfig.command_text.data];
 
-      // If there's a value offset, insert the text as ASCII bytes
-      const valueOffset = (entityConfig.command_text as any).value_offset;
-      if (valueOffset !== undefined) {
-        const maxLength =
-          (entityConfig.command_text as any).length || entityConfig.max_length || 16;
-        const textStr = String(value);
+        // If there's a value offset, insert the text as ASCII bytes
+        const valueOffset = (entityConfig.command_text as any).value_offset;
+        if (valueOffset !== undefined) {
+          const maxLength =
+            (entityConfig.command_text as any).length || entityConfig.max_length || 16;
+          const textStr = String(value);
 
-        // Insert text bytes into command
-        for (let i = 0; i < Math.min(textStr.length, maxLength); i++) {
-          command[valueOffset + i] = textStr.charCodeAt(i);
+          // Insert text bytes into command
+          for (let i = 0; i < Math.min(textStr.length, maxLength); i++) {
+            command[valueOffset + i] = textStr.charCodeAt(i);
+          }
+
+          // Pad with null bytes if needed
+          for (let i = textStr.length; i < maxLength; i++) {
+            command[valueOffset + i] = 0x00;
+          }
         }
 
-        // Pad with null bytes if needed
-        for (let i = textStr.length; i < maxLength; i++) {
-          command[valueOffset + i] = 0x00;
-        }
+        return command;
       }
 
-      return command;
+      // Return empty array for optimistic-only text
+      return [];
     }
 
+    return null;
+  }
+
+  public getOptimisticState(commandName: string, value?: any): Record<string, any> | null {
+    if (commandName === 'set' && value !== undefined) {
+      return { text: String(value) };
+    }
+    return null;
+  }
+
+  public getInitialState(): Record<string, any> | null {
+    const entityConfig = this.config as TextEntity;
+    if (entityConfig.initial_value !== undefined) {
+      return { text: entityConfig.initial_value };
+    }
     return null;
   }
 }
