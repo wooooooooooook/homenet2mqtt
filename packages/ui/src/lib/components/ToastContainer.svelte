@@ -18,23 +18,21 @@
   };
 </script>
 
-{#if toasts.length > 0}
-  <div class="toast-container">
-    {#each toasts as toast (toast.id)}
-      <button
-        class={`toast ${toast.type}`}
-        onclick={() => handleDismiss(toast.id)}
-        onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && handleDismiss(toast.id)}
-      >
-        <div class="toast-header">
-          <div class="toast-title">{toast.title}</div>
-          <div class="toast-time">{formatTimestamp(toast.timestamp)}</div>
-        </div>
-        <div class="toast-message">{toast.message}</div>
-      </button>
-    {/each}
-  </div>
-{/if}
+<div class="toast-container" role="region" aria-label="Notifications" aria-live="polite">
+  {#each toasts as toast (toast.id)}
+    <button
+      class={`toast ${toast.type}`}
+      onclick={() => handleDismiss(toast.id)}
+      onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && handleDismiss(toast.id)}
+    >
+      <div class="toast-header">
+        <div class="toast-title">{toast.title}</div>
+        <div class="toast-time">{formatTimestamp(toast.timestamp)}</div>
+      </div>
+      <div class="toast-message">{toast.message}</div>
+    </button>
+  {/each}
+</div>
 
 <style>
   .toast-container {
