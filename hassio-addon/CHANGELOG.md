@@ -1,3 +1,11 @@
+v1.3.0
+- feat: automation action에 choose, wait_until, repeat 등 더 많은 로직을 구현할수 있게되었습니다.
+  - [자동화 설정 가이드](https://github.com/wooooooooooook/RS485-HomeNet-to-MQTT-bridge/blob/main/docs/AUTOMATION.md#)
+  - 엔티티에 optimistic옵션을 추가하여 switch,text엔티티를 자동화 변수로 사용하는등 유연한 사용이 가능해졌습니다.
+- feat: 강화된 자동화를 기반으로 [uartex](https://github.com/eigger/espcomponents/tree/master/components/uartex)에 구현되어있던 코콤, 현대통신, 삼성SDS 현관문을 업데이트하였습니다.
+  - 갤러리에서 설정을 다운받아 적용할 수 있습니다. (작동할지 테스트는 안되었습니다. 되면 제보부탁드립니다.)
+- etc: 도커 이미지 다이어트, 성능개선, UI 수정 등..
+
 v1.2.0
 - feat: 설정 갤러리 기능 추가.
   - 설정 스니펫을 다운받아 적용할 수 있는 기능을 추가하였습니다. 현재는 기본파일내용 그대로이므로 업데이트할 것은 없습니다.
