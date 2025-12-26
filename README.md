@@ -84,7 +84,7 @@ RS485 기반의 월패드(홈넷) 신호를 MQTT 메시지로 변환하여 Home 
 - 애드온 구성(또는 Docker 환경 변수)의 `CONFIG_FILES`에 파일 이름들을 쉼표로 구분하여 입력한 후 재시작합니다.
 
 - [Config 작성법 (상세 스키마)](https://github.com/wooooooooooook/RS485-HomeNet-to-MQTT-bridge/tree/main/docs/config-schema)
-- [Home Assistant Discovery 상세 가이드](docs/HOMEASSISTANT_DISCOVERY.md)
+- [Home Assistant 연동 및 Discovery 설정](docs/config-schema/common-entity-options.md#home-assistant-연동-설정)
 - [기기별 설정 예시](docs/ENTITY_EXAMPLES.md)
 - [CEL (Common Expression Language) 가이드](docs/CEL_GUIDE.md)
 
