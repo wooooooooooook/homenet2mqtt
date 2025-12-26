@@ -123,7 +123,10 @@ export class GenericDevice extends Device {
       if (typeof commandConfig === 'string') {
         const script = commandConfig as string;
         // Get current entity state from global states map, fallback to instance state
-        const entityState = states?.get(this.config.id) || this.getState() || {};
+        const entityState = {
+          value: null,
+          ...(states?.get(this.config.id) || this.getState() || {}),
+        };
         const result = this.getExecutor().execute(script, {
           x: value,
           data: [], // No packet data for command construction
