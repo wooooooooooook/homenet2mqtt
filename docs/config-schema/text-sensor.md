@@ -10,6 +10,18 @@
   - **CEL (추천)**: `data[8] == 1 ? "상승" : "하강"` 과 같이 로직으로 문자열 반환.
   - **스키마**: [`StateSchema`](./schemas.md#stateschema)를 사용하여 특정 위치의 ASCII 문자를 읽음.
 
+## MQTT 디스커버리 메시지 구성
+- 토픽: `homeassistant/text_sensor/<unique_id>/config`
+- 공통 필드
+  - `name`, `default_entity_id`, `unique_id`
+  - `state_topic`: `${MQTT_TOPIC_PREFIX}/${id}/state`
+  - `availability`: `${MQTT_TOPIC_PREFIX}/bridge/status`
+  - `device`: `devices` 설정 또는 브리지 기본 정보
+  - 선택: `suggested_area`, `device_class`, `unit_of_measurement`, `state_class`, `icon`
+- 텍스트 센서 전용
+  - `value_template`: `{{ value_json.text }}`
+  - 텍스트 센서는 읽기 전용이라 `command_topic`이 없습니다.
+
 ## 예제 1: 스키마 기반 (ASCII 추출)
 패킷의 특정 오프셋에서 ASCII 문자열을 직접 읽어옵니다.
 ```yaml

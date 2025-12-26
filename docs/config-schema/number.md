@@ -20,6 +20,20 @@
   - `multiply_factor`: 값에 곱할 배수 (기본값: 1)
   - `value_encode`: 인코딩 방식 (`none`, `bcd`, `ascii`, `signed_byte_half_degree`, 기본값: `none`)
 
+## MQTT 디스커버리 메시지 구성
+- 토픽: `homeassistant/number/<unique_id>/config`
+- 공통 필드
+  - `name`, `default_entity_id`, `unique_id`
+  - `state_topic`: `${MQTT_TOPIC_PREFIX}/${id}/state`
+  - `availability`: `${MQTT_TOPIC_PREFIX}/bridge/status`
+  - `device`: `devices` 설정 또는 브리지 기본 정보
+  - 선택: `suggested_area`, `device_class`, `unit_of_measurement`, `state_class`, `icon`
+- 숫자 입력 전용
+  - `command_topic`: `${MQTT_TOPIC_PREFIX}/${id}/set`
+  - `value_template`: `{{ value_json.value }}`
+  - 선택: `min`/`max`/`step` (각각 `min_value`/`max_value`/`step`에서 매핑)
+  - `mode`: `slider`
+
 ## 예제: 난방 설정값 슬라이더 (예시)
 ```yaml
 number:

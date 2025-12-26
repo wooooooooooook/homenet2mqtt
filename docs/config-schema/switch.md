@@ -10,6 +10,19 @@ On/Off 토글 장치는 `switch` 엔티티를 사용합니다. `type`은 `switch
 ## 옵션 필드
 - 동작 모드: `optimistic` (true 설정 시 즉시 상태 반영 및 가상 스위치 지원)
 
+## MQTT 디스커버리 메시지 구성
+- 토픽: `homeassistant/switch/<unique_id>/config`
+- 공통 필드
+  - `name`, `default_entity_id`, `unique_id`
+  - `state_topic`: `${MQTT_TOPIC_PREFIX}/${id}/state`
+  - `availability`: `${MQTT_TOPIC_PREFIX}/bridge/status`
+  - `device`: `devices` 설정 또는 브리지 기본 정보
+  - 선택: `suggested_area`, `device_class`, `unit_of_measurement`, `state_class`, `icon`
+- 스위치 전용
+  - `command_topic`: `${MQTT_TOPIC_PREFIX}/${id}/set`
+  - `value_template`: `{{ value_json.state }}`
+  - `payload_on`: `ON`, `payload_off`: `OFF`
+
 ## 예제: 도어 호출 스위치
 `hyundai_door.homenet_bridge.yaml`은 호출 스위치에 온/오프 패킷을 배치하고 상태 비트로 켜짐 여부를 확인합니다.【F:packages/core/config/hyundai_door.homenet_bridge.yaml†L52-L69】
 

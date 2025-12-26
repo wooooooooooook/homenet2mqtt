@@ -10,6 +10,18 @@
   - `state_number`: [`StateNumSchema`](./schemas.md#statenumschema)로 바이트를 숫자로 변환.
   - `state_value`: CEL 표현식으로 숫자를 반환.
 
+## MQTT 디스커버리 메시지 구성
+- 토픽: `homeassistant/sensor/<unique_id>/config`
+- 공통 필드
+  - `name`, `default_entity_id`, `unique_id`
+  - `state_topic`: `${MQTT_TOPIC_PREFIX}/${id}/state`
+  - `availability`: `${MQTT_TOPIC_PREFIX}/bridge/status`
+  - `device`: `devices` 설정 또는 브리지 기본 정보
+  - 선택: `suggested_area`, `device_class`, `unit_of_measurement`, `state_class`, `icon`
+- 센서 전용
+  - `value_template`: `{{ value_json.value }}`
+  - 센서는 읽기 전용이라 `command_topic`이 없습니다.
+
 ## 예제 1: 스키마 기반 (StateNumSchema)
 ```yaml
 sensor:

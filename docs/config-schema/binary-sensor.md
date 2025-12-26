@@ -14,6 +14,18 @@
 2.  **CEL 방식**: `state_state` 필드를 사용합니다.
     - `state_state`: 패킷 데이터를 분석해 `'ON'` 또는 `'OFF'` 문자열을 반환하는 CEL 표현식입니다.
 
+## MQTT 디스커버리 메시지 구성
+- 토픽: `homeassistant/binary_sensor/<unique_id>/config`
+- 공통 필드
+  - `name`, `default_entity_id`, `unique_id`
+  - `state_topic`: `${MQTT_TOPIC_PREFIX}/${id}/state`
+  - `availability`: `${MQTT_TOPIC_PREFIX}/bridge/status`
+  - `device`: `devices` 설정 또는 브리지 기본 정보
+  - 선택: `suggested_area`, `device_class`, `unit_of_measurement`, `state_class`, `icon`
+- 바이너리 센서 전용
+  - `value_template`: `{{ value_json.state }}`
+  - 선택: `payload_on`, `payload_off` (설정 파일의 `payload_on/off` 값을 사용)
+
 ## 예제: 도어벨 패킷 매칭
 `hyundai_door.homenet_bridge.yaml`에서는 헤더·푸터를 전역으로 설정하고, 오프셋 0 바이트를 확인해 벨 상태를 판별합니다.【F:packages/core/config/hyundai_door.homenet_bridge.yaml†L17-L38】
 

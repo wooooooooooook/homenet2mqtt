@@ -47,6 +47,36 @@ fan:
 - **명령(`command_preset_mode`)**: 사용자가 UI에서 선택한 문자열(`xstr`)을 인자로 받아 바이트 배열을 반환해야 합니다.
   - ⚠️ 문자열 비교 시 `x`가 아닌 **`xstr`** 변수를 사용합니다. (예: `xstr == "Turbo"`)
 
+## MQTT 디스커버리 메시지 구성
+- 토픽: `homeassistant/fan/<unique_id>/config`
+- 공통 필드
+  - `name`, `default_entity_id`, `unique_id`
+  - `state_topic`: `${MQTT_TOPIC_PREFIX}/${id}/state`
+  - `availability`: `${MQTT_TOPIC_PREFIX}/bridge/status`
+  - `device`: `devices` 설정 또는 브리지 기본 정보
+  - 선택: `suggested_area`, `device_class`, `unit_of_measurement`, `state_class`, `icon`
+- 팬 기본 제어/상태
+  - `command_topic`: `${MQTT_TOPIC_PREFIX}/${id}/set`
+  - `state_value_template`: `{{ value_json.state }}`
+  - `payload_on`: `ON`, `payload_off`: `OFF`
+- 속도/퍼센트 지원 시
+  - `percentage_state_topic`: `${MQTT_TOPIC_PREFIX}/${id}/state`
+  - `percentage_command_topic`: `${MQTT_TOPIC_PREFIX}/${id}/percentage/set`
+  - `percentage_value_template`: `{{ value_json.percentage | default(value_json.speed) }}`
+  - `speed_range_min`: `1`, `speed_range_max`: `100`
+- 프리셋 모드 지원 시
+  - `preset_modes`
+  - `preset_mode_command_topic`: `${MQTT_TOPIC_PREFIX}/${id}/preset_mode/set`
+  - `preset_mode_state_topic`: `${MQTT_TOPIC_PREFIX}/${id}/state`
+  - `preset_mode_value_template`: `{{ value_json.preset_mode }}`
+- 회전/방향 지원 시
+  - `oscillation_state_topic`: `${MQTT_TOPIC_PREFIX}/${id}/state`
+  - `oscillation_command_topic`: `${MQTT_TOPIC_PREFIX}/${id}/oscillation/set`
+  - `oscillation_value_template`: `{{ value_json.oscillating }}`
+  - `direction_state_topic`: `${MQTT_TOPIC_PREFIX}/${id}/state`
+  - `direction_command_topic`: `${MQTT_TOPIC_PREFIX}/${id}/direction/set`
+  - `direction_value_template`: `{{ value_json.direction }}`
+
 ## 예제: 속도 제어
 `cvnet.homenet_bridge.yaml`은 온/오프 패킷과 별도로 `command_speed`에서 목표 속도(`x`)를 삽입하고, `state_speed`로 현재 속도를 읽습니다.
 

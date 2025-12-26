@@ -15,6 +15,19 @@
 - `optimistic`: `true`로 설정하면 패킷 전송 없이 상태만 관리하는 가상 텍스트로 동작.
 - `initial_value`: 초기 상태 문자열 값 (`optimistic: true`와 함께 사용).
 
+## MQTT 디스커버리 메시지 구성
+- 토픽: `homeassistant/text/<unique_id>/config`
+- 공통 필드
+  - `name`, `default_entity_id`, `unique_id`
+  - `state_topic`: `${MQTT_TOPIC_PREFIX}/${id}/state`
+  - `availability`: `${MQTT_TOPIC_PREFIX}/bridge/status`
+  - `device`: `devices` 설정 또는 브리지 기본 정보
+  - 선택: `suggested_area`, `device_class`, `unit_of_measurement`, `state_class`, `icon`
+- 텍스트 입력 전용
+  - `command_topic`: `${MQTT_TOPIC_PREFIX}/${id}/set`
+  - `value_template`: `{{ value_json.text }}`
+  - 선택: `min`/`max`/`pattern`/`mode` (각각 `min_length`/`max_length`/`pattern`/`mode`에서 매핑)
+
 ## 예제 1: 스키마 기반 (ASCII 전송)
 입력받은 문자열을 ASCII로 인코딩하여 패킷의 특정 위치에 삽입합니다.
 ```yaml
