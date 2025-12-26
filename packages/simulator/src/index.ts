@@ -1,4 +1,3 @@
-
 import { spawnSync } from 'node:child_process';
 import { createServer } from 'node:net';
 import { setInterval as createInterval, clearInterval } from 'node:timers';
@@ -26,7 +25,14 @@ type PtyModule = typeof pty & {
   open: (options: { cols?: number; rows?: number; encoding?: string | null }) => any;
 };
 
-export type DeviceType = 'commax' | 'samsung_sds' | 'samsung_sds_captured' | 'cvnet' | 'ezville' | 'hyundai_imazu' | 'kocom';
+export type DeviceType =
+  | 'commax'
+  | 'samsung_sds'
+  | 'samsung_sds_captured'
+  | 'cvnet'
+  | 'ezville'
+  | 'hyundai_imazu'
+  | 'kocom';
 
 export interface SimulatorOptions {
   intervalMs?: number;
@@ -46,20 +52,32 @@ export interface Simulator {
 
 function getPacketsForDevice(device: DeviceType): readonly (Buffer | Uint8Array | number[])[] {
   switch (device) {
-    case 'commax': return COMMAX_PACKETS;
-    case 'samsung_sds': return SAMSUNG_SDS_PACKETS;
-    case 'samsung_sds_captured': return SAMSUNG_SDS_CAPTURED_PACKETS;
-    case 'cvnet': return CVNET_PACKETS;
-    case 'ezville': return EZVILLE_PACKETS;
-    case 'hyundai_imazu': return HYUNDAI_IMAZU_PACKETS;
-    case 'kocom': return KOCOM_PACKETS;
-    default: return DEFAULT_PACKETS;
+    case 'commax':
+      return COMMAX_PACKETS;
+    case 'samsung_sds':
+      return SAMSUNG_SDS_PACKETS;
+    case 'samsung_sds_captured':
+      return SAMSUNG_SDS_CAPTURED_PACKETS;
+    case 'cvnet':
+      return CVNET_PACKETS;
+    case 'ezville':
+      return EZVILLE_PACKETS;
+    case 'hyundai_imazu':
+      return HYUNDAI_IMAZU_PACKETS;
+    case 'kocom':
+      return KOCOM_PACKETS;
+    default:
+      return DEFAULT_PACKETS;
   }
 }
 
 function normalizePackets(packets: readonly (Buffer | Uint8Array | number[])[]): Buffer[] {
   if (packets.length === 0) throw new Error('패킷 목록이 비어 있습니다.');
-  return packets.map((packet) => Buffer.isBuffer(packet) ? packet : Buffer.from(packet instanceof Uint8Array ? packet : (packet as number[])));
+  return packets.map((packet) =>
+    Buffer.isBuffer(packet)
+      ? packet
+      : Buffer.from(packet instanceof Uint8Array ? packet : (packet as number[])),
+  );
 }
 
 class PacketStreamer {
@@ -72,7 +90,7 @@ class PacketStreamer {
   constructor(
     packets: Buffer[],
     baudRate: number,
-    private writer: (data: Buffer) => void
+    private writer: (data: Buffer) => void,
   ) {
     this.allBytes = Buffer.concat(packets);
     // 11 bits per byte (8-E-1) for typical RS485 devices in this project
@@ -103,7 +121,7 @@ class PacketStreamer {
 
     if (now >= this.nextSendTime) {
       const timeDiff = now - this.nextSendTime;
-      const count = Number((timeDiff / this.nsPerByte) + 1n);
+      const count = Number(timeDiff / this.nsPerByte + 1n);
       const safeCount = Math.min(count, 1024);
 
       if (safeCount > 0) {
@@ -131,7 +149,9 @@ export interface TcpSimulator extends Simulator {
   readonly port: number;
 }
 
-export function createTcpSimulator(options: SimulatorOptions & { port?: number } = {}): TcpSimulator {
+export function createTcpSimulator(
+  options: SimulatorOptions & { port?: number } = {},
+): TcpSimulator {
   const { baudRate = 9600, packets: userPackets, port = 8888, device = 'commax' } = options;
   const packets = userPackets ?? getPacketsForDevice(device);
   const normalizedPackets = normalizePackets(packets);
@@ -147,17 +167,25 @@ export function createTcpSimulator(options: SimulatorOptions & { port?: number }
 
   const streamer = new PacketStreamer(normalizedPackets, baudRate, (data) => {
     for (const client of clients) {
-      try { client.write(data); } catch (e) { }
+      try {
+        client.write(data);
+      } catch (e) {}
     }
   });
 
   return {
-    get running() { return streamer.running; },
+    get running() {
+      return streamer.running;
+    },
     ptyPath: `tcp://0.0.0.0:${port}`,
     port,
     start: () => streamer.start(),
     stop: () => streamer.stop(),
-    dispose: () => { streamer.stop(); for (const client of clients) client.destroy(); server.close(); }
+    dispose: () => {
+      streamer.stop();
+      for (const client of clients) client.destroy();
+      server.close();
+    },
   };
 }
 
@@ -170,21 +198,35 @@ export function createSimulator(options: SimulatorOptions = {}): Simulator {
   const writer = terminal as unknown as { write(data: string | Buffer): void };
   const ptyPath = terminal.pty ?? terminal.ptsName ?? (terminal as any)._pty;
 
-  if (spawnSync('stty', ['-F', ptyPath, 'raw', '-echo']).status !== 0) console.warn('RAW 모드 전환 실패');
+  if (spawnSync('stty', ['-F', ptyPath, 'raw', '-echo']).status !== 0)
+    console.warn('RAW 모드 전환 실패');
 
   const streamer = new PacketStreamer(normalizedPackets, baudRate, (data) => writer.write(data));
 
   return {
-    get running() { return streamer.running; },
+    get running() {
+      return streamer.running;
+    },
     ptyPath,
     start: () => streamer.start(),
     stop: () => streamer.stop(),
-    dispose: () => { streamer.stop(); terminal.destroy(); }
+    dispose: () => {
+      streamer.stop();
+      terminal.destroy();
+    },
   };
 }
 
-export function createExternalPortSimulator(options: SimulatorOptions & { portPath: string }): Simulator {
-  const { baudRate = 9600, packets: userPackets, device = 'commax', portPath, parity = 'none' } = options;
+export function createExternalPortSimulator(
+  options: SimulatorOptions & { portPath: string },
+): Simulator {
+  const {
+    baudRate = 9600,
+    packets: userPackets,
+    device = 'commax',
+    portPath,
+    parity = 'none',
+  } = options;
   const packets = userPackets ?? getPacketsForDevice(device);
   const normalizedPackets = normalizePackets(packets);
 
@@ -192,7 +234,7 @@ export function createExternalPortSimulator(options: SimulatorOptions & { portPa
     path: portPath,
     baudRate,
     parity,
-    autoOpen: false
+    autoOpen: false,
   });
 
   port.open((err) => {
@@ -206,11 +248,16 @@ export function createExternalPortSimulator(options: SimulatorOptions & { portPa
   });
 
   return {
-    get running() { return streamer.running; },
+    get running() {
+      return streamer.running;
+    },
     ptyPath: portPath,
     start: () => streamer.start(),
     stop: () => streamer.stop(),
-    dispose: () => { streamer.stop(); if (port.isOpen) port.close(); }
+    dispose: () => {
+      streamer.stop();
+      if (port.isOpen) port.close();
+    },
   };
 }
 
@@ -233,10 +280,14 @@ async function main() {
 
   console.log(JSON.stringify({ ptyPath: simulator.ptyPath }));
   simulator.start();
-  const handleExit = () => { simulator.dispose(); process.exit(0); };
+  const handleExit = () => {
+    simulator.dispose();
+    process.exit(0);
+  };
   process.on('SIGINT', handleExit);
   process.on('SIGTERM', handleExit);
 }
 
-const isDirectExecution = process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url;
+const isDirectExecution =
+  process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url;
 if (isDirectExecution) main();
