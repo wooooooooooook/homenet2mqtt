@@ -34,7 +34,9 @@ entities:
         # Header(F7) is omitted in standard parsing usually, but index calculations assume F7 is x[0]
         data: [0x0D, 0x01, 0x34, 0x01, 0x41]
       state_value: >
-        data[9] >= 0xB0 ? 'B' + string(data[9] - 0xB0) : string(data[9])
+        data[9] == 0x40
+          ? (has(state.value) && state.value != '' ? state.value : 'Unknown')
+          : (data[9] >= 0xB0 ? 'B' + string(data[9] - 0xB0) : string(data[9]))
 
     - id: 'elevator_state'
       name: 'Elevator State'
