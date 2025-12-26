@@ -18,6 +18,19 @@
   - **스키마 기반**: `data`, `value_offset`, `map` 으로 문자열→숫자 매핑
   - **CEL 표현식**: `xstr` 변수로 선택된 옵션을 받아 바이트 배열 반환
 
+## MQTT 디스커버리 메시지 구성
+- 토픽: `homeassistant/select/<unique_id>/config`
+- 공통 필드
+  - `name`, `default_entity_id`, `unique_id`
+  - `state_topic`: `${MQTT_TOPIC_PREFIX}/${id}/state`
+  - `availability`: `${MQTT_TOPIC_PREFIX}/bridge/status`
+  - `device`: `devices` 설정 또는 브리지 기본 정보
+  - 선택: `suggested_area`, `device_class`, `unit_of_measurement`, `state_class`, `icon`
+- 선택형 입력 전용
+  - `command_topic`: `${MQTT_TOPIC_PREFIX}/${id}/set`
+  - `value_template`: `{{ value_json.option }}`
+  - `options`: 설정의 `options` 배열 그대로
+
 ## 예제 1: 스키마 기반 (map 사용)
 ```yaml
 select:

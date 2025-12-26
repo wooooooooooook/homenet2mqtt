@@ -16,6 +16,28 @@
 - 추가 제어: `command_stop`.
 - 위치 제어: `command_position` — 입력 퍼센트 값을 바이트에 삽입.
 
+## MQTT 디스커버리 메시지 구성
+- 토픽: `homeassistant/valve/<unique_id>/config`
+- 공통 필드
+  - `name`, `default_entity_id`, `unique_id`
+  - `state_topic`: `${MQTT_TOPIC_PREFIX}/${id}/state`
+  - `availability`: `${MQTT_TOPIC_PREFIX}/bridge/status`
+  - `device`: `devices` 설정 또는 브리지 기본 정보
+  - 선택: `suggested_area`, `device_class`, `unit_of_measurement`, `state_class`, `icon`
+- 밸브 전용
+  - `command_topic`: `${MQTT_TOPIC_PREFIX}/${id}/set`
+  - `value_template`: `{{ value_json.state }}`
+  - `state_open`: `OPEN`, `state_opening`: `OPENING`
+  - `state_closed`: `CLOSED`, `state_closing`: `CLOSING`
+  - `payload_open`: `OPEN`, `payload_close`: `CLOSE`
+  - 선택: `payload_stop` (`command_stop` 설정 시)
+- 위치 지원 시
+  - `position_topic`: `${MQTT_TOPIC_PREFIX}/${id}/state`
+  - `set_position_topic`: `${MQTT_TOPIC_PREFIX}/${id}/position/set`
+  - `position_template`: `{{ value_json.position }}`
+  - `position_open`: `100`, `position_closed`: `0`
+  - 선택: `reports_position`
+
 ## 예제: 가스 밸브 닫기 명령
 `cvnet.homenet_bridge.yaml`에서는 `state_open/closed`로 상태를 구분하고, 닫기 명령을 전송합니다.【F:packages/core/config/cvnet.homenet_bridge.yaml†L110-L123】
 

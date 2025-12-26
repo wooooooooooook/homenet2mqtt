@@ -13,6 +13,22 @@
 ## 옵션 필드 (명령)
 - 추가 옵션 없음.
 
+## MQTT 디스커버리 메시지 구성
+- 토픽: `homeassistant/lock/<unique_id>/config`
+- 공통 필드
+  - `name`, `default_entity_id`, `unique_id`
+  - `state_topic`: `${MQTT_TOPIC_PREFIX}/${id}/state`
+  - `availability`: `${MQTT_TOPIC_PREFIX}/bridge/status`
+  - `device`: `devices` 설정 또는 브리지 기본 정보
+  - 선택: `suggested_area`, `device_class`, `unit_of_measurement`, `state_class`, `icon`
+- 잠금 전용
+  - `command_topic`: `${MQTT_TOPIC_PREFIX}/${id}/set`
+  - `value_template`: `{{ value_json.state }}`
+  - `state_locked`: `LOCKED`, `state_unlocked`: `UNLOCKED`
+  - `state_locking`: `LOCKING`, `state_unlocking`: `UNLOCKING`
+  - `state_jammed`: `JAMMED`
+  - `payload_lock`: `LOCK`, `payload_unlock`: `UNLOCK`
+
 ## 예제: 가스 밸브 잠금 제어
 `kocom_theart.homenet_bridge.yaml`에서는 상태 비트로 잠금/해제를 구분합니다.【F:packages/core/config/examples/kocom_theart.homenet_bridge.yaml†L496-L540】
 

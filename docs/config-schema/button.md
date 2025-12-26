@@ -8,6 +8,18 @@
 ## 옵션 필드
 - 추가 필드는 없지만, `command_press`에 CEL 표현식을 사용해 다중 패킷 전송이나 동적 명령 생성을 구성할 수 있습니다. [CEL 가이드](../CEL_GUIDE.md)를 참고하세요.
 
+## MQTT 디스커버리 메시지 구성
+- 토픽: `homeassistant/button/<unique_id>/config`
+- 공통 필드
+  - `name`, `default_entity_id`, `unique_id`
+  - `state_topic`: `${MQTT_TOPIC_PREFIX}/${id}/state` (버튼은 상태를 쓰지 않지만 브리지에서 기본으로 포함)
+  - `availability`: `${MQTT_TOPIC_PREFIX}/bridge/status`
+  - `device`: `devices` 설정 또는 브리지 기본 정보
+  - 선택: `suggested_area`, `device_class`, `unit_of_measurement`, `state_class`, `icon`
+- 버튼 전용
+  - `command_topic`: `${MQTT_TOPIC_PREFIX}/${id}/set`
+  - `payload_press`: `PRESS`
+
 ## 예제: 공동 현관 문열림 명령
 `hyundai_door.homenet_bridge.yaml`은 두 가지 버튼을 정의하고, 고정 데이터 배열로 문열림 명령을 보냅니다.【F:packages/core/config/hyundai_door.homenet_bridge.yaml†L40-L51】
 

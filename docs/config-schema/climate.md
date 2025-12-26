@@ -55,6 +55,39 @@
 - **명령(`command_custom_*`)**: 사용자가 UI에서 선택한 문자열(`xstr`)을 인자로 받아 전송할 **바이트 배열**(`[0x01, ...]` 등)을 반환해야 합니다.
   - ⚠️ 문자열 비교 시 `x`가 아닌 **`xstr`** 변수를 사용합니다. (예: `xstr == "Turbo"`)
 
+## MQTT 디스커버리 메시지 구성
+- 토픽: `homeassistant/climate/<unique_id>/config`
+- 공통 필드
+  - `name`, `default_entity_id`, `unique_id`
+  - `state_topic`: `${MQTT_TOPIC_PREFIX}/${id}/state`
+  - `availability`: `${MQTT_TOPIC_PREFIX}/bridge/status`
+  - `device`: `devices` 설정 또는 브리지 기본 정보
+  - 선택: `suggested_area`, `device_class`, `unit_of_measurement`, `state_class`, `icon`
+- 모드/온도 제어
+  - `mode_command_topic`: `${MQTT_TOPIC_PREFIX}/${id}/mode/set`
+  - `temperature_command_topic`: `${MQTT_TOPIC_PREFIX}/${id}/temperature/set`
+  - `mode_state_topic`: `${MQTT_TOPIC_PREFIX}/${id}/state`
+  - `mode_state_template`: `{{ value_json.mode }}`
+  - `temperature_state_topic`: `${MQTT_TOPIC_PREFIX}/${id}/state`
+  - `temperature_state_template`: `{{ value_json.target_temperature }}`
+  - `current_temperature_topic`: `${MQTT_TOPIC_PREFIX}/${id}/state`
+  - `current_temperature_template`: `{{ value_json.current_temperature }}`
+  - 선택: `action_topic` + `action_template` (설정에 `state_action`이 있을 때)
+- 가용 모드
+  - `modes`: `state_off/state_heat/state_cool/state_fan_only/state_dry/state_auto` 존재 여부로 목록 생성
+- 커스텀 팬/프리셋 모드
+  - `fan_modes`: `custom_fan_mode` 값 그대로 노출
+  - `fan_mode_command_topic`: `${MQTT_TOPIC_PREFIX}/${id}/fan_mode/set`
+  - `fan_mode_state_topic`: `${MQTT_TOPIC_PREFIX}/${id}/state`
+  - `fan_mode_state_template`: `{{ value_json.custom_fan }}`
+  - `preset_modes`: `custom_preset` 값 그대로 노출
+  - `preset_mode_command_topic`: `${MQTT_TOPIC_PREFIX}/${id}/preset_mode/set`
+  - `preset_mode_state_topic`: `${MQTT_TOPIC_PREFIX}/${id}/state`
+  - `preset_mode_state_template`: `{{ value_json.custom_preset }}`
+- 고정 값
+  - `temperature_unit`: `C`
+  - `min_temp`: `15`, `max_temp`: `30`, `temp_step`: `1`
+
 ## 예제: 온도·습도 설정
 `kocom_thinks.homenet_bridge.yaml`은 현재/목표 온도와 상태 비트를 분리해 읽고, `command_temperature`를 통해 온도를 설정합니다.【F:packages/core/config/examples/kocom_thinks.homenet_bridge.yaml†L601-L641】
 
