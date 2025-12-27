@@ -72,7 +72,8 @@ export class DiscoveryManager {
     }
 
     const uniqueId = this.ensureUniqueId(entity);
-    const topic = `${this.discoveryPrefix}/${entity.type}/${uniqueId}/config`;
+    const discoveryType = this.resolveDiscoveryType(entity.type);
+    const topic = `${this.discoveryPrefix}/${discoveryType}/${uniqueId}/config`;
 
     this.publisher.publish(topic, '', { retain: true });
 
@@ -197,7 +198,8 @@ export class DiscoveryManager {
     }
 
     const uniqueId = this.ensureUniqueId(entity);
-    const topic = `${this.discoveryPrefix}/${entity.type}/${uniqueId}/config`;
+    const discoveryType = this.resolveDiscoveryType(entity.type);
+    const topic = `${this.discoveryPrefix}/${discoveryType}/${uniqueId}/config`;
 
     this.publisher.publish(topic, '', { retain: true });
     logger.debug({ topic }, '[DiscoveryManager] Cleared retained discovery for renamed entity');
@@ -214,6 +216,13 @@ export class DiscoveryManager {
       entity.unique_id = `homenet_${this.portId}_${entity.id}`;
     }
     return entity.unique_id;
+  }
+
+  private resolveDiscoveryType(type: string): string {
+    if (type === 'text_sensor') {
+      return 'sensor';
+    }
+    return type;
   }
 
   private buildObjectId(entity: EntityConfig): string {
@@ -298,14 +307,15 @@ export class DiscoveryManager {
 
     const uniqueId = this.ensureUniqueId(entity);
     const objectId = this.buildObjectId(entity);
-    const topic = `${this.discoveryPrefix}/${type}/${uniqueId}/config`;
+    const discoveryType = this.resolveDiscoveryType(type);
+    const topic = `${this.discoveryPrefix}/${discoveryType}/${uniqueId}/config`;
 
     logger.debug({ id, uniqueId, topic }, '[DiscoveryManager] Preparing discovery');
 
     // Base payload with mandatory fields only
     const payload: DiscoveryPayload = {
       name: name || null,
-      default_entity_id: `${type}.${objectId}`,
+      default_entity_id: `${discoveryType}.${objectId}`,
       unique_id: uniqueId,
       state_topic: `${this.mqttTopicPrefix}/${id}/state`,
       availability: [{ topic: this.bridgeStatusTopic }],
