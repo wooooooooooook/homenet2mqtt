@@ -48,6 +48,7 @@ interface PortContext {
   automationManager: AutomationManager;
   rawPacketListener: ((data: Buffer) => void) | null;
   lastPacketTimestamp: number | null;
+  lastValidPacketTimestamp: number | null;
   packetIntervals: number[];
 }
 
@@ -91,6 +92,11 @@ export class HomeNetBridge {
 
   private normalizeCommandName(commandName: string) {
     return commandName.startsWith('command_') ? commandName : `command_${commandName}`;
+  }
+
+  private getMonotonicMs() {
+    const hrNow = process.hrtime.bigint();
+    return Number((hrNow - this.hrtimeBase) / 1000000n);
   }
 
   async start() {
@@ -768,8 +774,26 @@ export class HomeNetBridge {
         automationManager,
         rawPacketListener: null,
         lastPacketTimestamp: null,
+        lastValidPacketTimestamp: null,
         packetIntervals: [],
       };
+
+      packetProcessor.on('packet', (packet) => {
+        if (!context.rawPacketListener) return;
+
+        const now = this.getMonotonicMs();
+        const interval =
+          context.lastValidPacketTimestamp !== null ? now - context.lastValidPacketTimestamp : null;
+        context.lastValidPacketTimestamp = now;
+
+        const hexPacket = packet.map((b: number) => b.toString(16).padStart(2, '0')).join('');
+        eventBus.emit('raw-valid-packet', {
+          portId: normalizedPortId,
+          payload: hexPacket,
+          interval,
+          receivedAt: new Date().toISOString(),
+        });
+      });
 
       port.on('data', (data) => {
         if (!context.rawPacketListener) {
@@ -799,9 +823,9 @@ export class HomeNetBridge {
 
     logger.info({ portId: context.portId }, '[core] Starting raw packet listener.');
 
+    context.lastValidPacketTimestamp = null;
     context.rawPacketListener = (data: Buffer) => {
-      const hrNow = process.hrtime.bigint();
-      const now = Number((hrNow - this.hrtimeBase) / 1000000n); // Convert to ms
+      const now = this.getMonotonicMs();
 
       let interval: number | null = null;
 
@@ -847,6 +871,7 @@ export class HomeNetBridge {
       context.rawPacketListener = null;
       // Do not clear packetIntervals so we can recall stats in log metadata even if stream paused
       context.lastPacketTimestamp = null;
+      context.lastValidPacketTimestamp = null;
     }
   }
 
