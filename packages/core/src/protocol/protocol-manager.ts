@@ -56,7 +56,10 @@ export class ProtocolManager extends EventEmitter {
           this.flushPendingChunks();
         } else if (msg.type === 'error') {
           const payload = msg.payload as { message?: string; chunk?: Buffer };
-          logger.warn({ err: payload?.message }, '[ProtocolManager] Worker parse error, falling back to main thread');
+          logger.warn(
+            { err: payload?.message },
+            '[ProtocolManager] Worker parse error, falling back to main thread',
+          );
           this.fallbackToMain(payload?.chunk);
         }
       });
@@ -76,10 +79,9 @@ export class ProtocolManager extends EventEmitter {
       // Initialize worker configuration
       this.worker.postMessage({
         type: 'init',
-        payload: this.config.packet_defaults
+        payload: this.config.packet_defaults,
       });
       logger.info('[ProtocolManager] Packet parsing worker initializing');
-
     } catch (err) {
       logger.warn({ err }, '[ProtocolManager] Failed to start worker, using main thread');
       this.worker = null;

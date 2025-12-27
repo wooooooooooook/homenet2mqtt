@@ -1,4 +1,3 @@
-
 import { parentPort } from 'node:worker_threads';
 import { PacketParser } from './packet-parser.js';
 import { PacketDefaults } from './types.js';
@@ -17,9 +16,8 @@ if (parentPort) {
         if (!parser) return;
 
         // workerData로 넘어온 buffer는 Uint8Array일 수 있음
-        const chunk = message.payload instanceof Buffer
-          ? message.payload
-          : Buffer.from(message.payload);
+        const chunk =
+          message.payload instanceof Buffer ? message.payload : Buffer.from(message.payload);
 
         const packets = parser.parseChunk(chunk);
 
@@ -27,7 +25,7 @@ if (parentPort) {
           // Send packets back
           parentPort?.postMessage({
             type: 'packets',
-            payload: packets
+            payload: packets,
           });
         }
       }
@@ -36,8 +34,8 @@ if (parentPort) {
         type: 'error',
         payload: {
           message: error instanceof Error ? error.message : String(error),
-          chunk: message.type === 'chunk' ? message.payload : undefined
-        }
+          chunk: message.type === 'chunk' ? message.payload : undefined,
+        },
       });
     }
   });

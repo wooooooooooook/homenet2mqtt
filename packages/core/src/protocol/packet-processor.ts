@@ -27,6 +27,17 @@ export interface EntityStateProvider {
   getEntityState(entityId: string): any;
 }
 
+/**
+ * Orchestrates the processing of packets and commands for all registered devices.
+ *
+ * This class serves as the bridge between the configuration (Entities) and the lower-level
+ * protocol management (`ProtocolManager`). Its responsibilities include:
+ * 1. Initializing the `ProtocolManager` with packet parsing rules.
+ * 2. Registering `Device` instances based on the provided configuration.
+ * 3. Routing incoming data chunks to the protocol manager for parsing.
+ * 4. Constructing command packets for entities, handling command normalization and device lookup.
+ * 5. Managing optimistic state updates for responsive UI feedback.
+ */
 export class PacketProcessor extends EventEmitter {
   private protocolManager: ProtocolManager;
   private states?: Map<string, Record<string, any>>;
@@ -108,10 +119,30 @@ export class PacketProcessor extends EventEmitter {
     });
   }
 
+  /**
+   * Processes a chunk of incoming raw data.
+   * Delegates the data to `ProtocolManager` for buffering, parsing, and state extraction.
+   *
+   * @param chunk - The raw data buffer received from the serial/network interface.
+   */
   public processChunk(chunk: Buffer) {
     this.protocolManager.handleIncomingChunk(chunk);
   }
 
+  /**
+   * Constructs a command packet for a specific entity and action.
+   *
+   * This method:
+   * 1. Normalizes the command name (e.g., handles 'command_' prefix).
+   * 2. Finds the registered `Device` instance for the entity.
+   * 3. Delegates packet construction to the device (which may use CEL or static config).
+   * 4. Handles 'optimistic' state updates if configured, emitting a state change event immediately.
+   *
+   * @param entity - The configuration of the target entity.
+   * @param commandNameInput - The name of the command (e.g., 'on', 'command_off').
+   * @param value - Optional value for the command (e.g., temperature, brightness).
+   * @returns The constructed packet as a number array, or `null` if construction failed.
+   */
   public constructCommandPacket(
     entity: EntityConfig,
     commandNameInput: string,
@@ -149,7 +180,10 @@ export class PacketProcessor extends EventEmitter {
     return cmd;
   }
 
-  // Deprecated/Legacy method support if needed, or remove if we update call sites
+  /**
+   * @deprecated This method is legacy and incompatible with the stream-based parsing architecture.
+   * Use `processChunk` instead, which handles buffering and parsing via `ProtocolManager`.
+   */
   public parseIncomingPacket(
     packet: number[],
     allEntities: EntityConfig[],
