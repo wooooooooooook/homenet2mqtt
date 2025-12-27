@@ -6,6 +6,7 @@
     disabled = false,
     isLoading = false,
     ariaLabel = undefined,
+    title = undefined,
     type = undefined,
     fullWidth = false,
     class: className = '',
@@ -16,6 +17,7 @@
     disabled?: boolean;
     isLoading?: boolean;
     ariaLabel?: string;
+    title?: string;
     type?: 'button' | 'submit' | 'reset';
     fullWidth?: boolean;
     class?: string;
@@ -33,6 +35,7 @@
   disabled={disabled || isLoading}
   aria-label={ariaLabel}
   aria-busy={isLoading}
+  {title}
 >
   {#if isLoading}
     <span class="spinner" aria-hidden="true"></span>

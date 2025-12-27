@@ -100,6 +100,7 @@
   let cacheStats = $state<LogRetentionStats | null>(null);
   let cacheFiles = $state<SavedLogFile[]>([]);
   let isCacheSaving = $state(false);
+  let deletingFile = $state<string | null>(null);
   let downloadError = $state<string | null>(null);
 
   const fetchCacheSettings = async () => {
@@ -239,6 +240,7 @@
   const deleteCacheFile = async (filename: string) => {
     if (!confirm($t('settings.log_retention.delete_confirm'))) return;
 
+    deletingFile = filename;
     try {
       const res = await fetch(`./api/logs/cache/${filename}`, {
         method: 'DELETE',
@@ -248,6 +250,8 @@
       }
     } catch (err) {
       console.error('Failed to delete cache file', err);
+    } finally {
+      deletingFile = null;
     }
   };
 
@@ -510,20 +514,25 @@
                 <span class="file-name">{file.filename}</span>
                 <span class="file-size">{formatBytes(file.size)}</span>
                 <div class="file-actions">
-                  <button
-                    class="btn-icon"
+                  <Button
+                    variant="secondary"
+                    class="file-action-btn"
                     onclick={() => downloadCacheFile(file.filename)}
+                    ariaLabel={$t('settings.log_retention.download')}
                     title={$t('settings.log_retention.download')}
                   >
                     ⬇
-                  </button>
-                  <button
-                    class="btn-icon danger"
+                  </Button>
+                  <Button
+                    variant="danger"
+                    class="file-action-btn"
                     onclick={() => deleteCacheFile(file.filename)}
+                    isLoading={deletingFile === file.filename}
+                    ariaLabel={$t('settings.log_retention.delete')}
                     title={$t('settings.log_retention.delete')}
                   >
                     🗑
-                  </button>
+                  </Button>
                 </div>
               </div>
             {/each}
@@ -780,26 +789,10 @@
     gap: 0.5rem;
   }
 
-  .btn-icon {
-    background: rgba(59, 130, 246, 0.15);
-    border: none;
-    border-radius: 6px;
-    padding: 0.4rem 0.6rem;
-    cursor: pointer;
+  :global(.file-action-btn) {
+    padding: 0.4rem 0.6rem !important;
+    line-height: 1;
     font-size: 1rem;
-    transition: background 0.2s;
-  }
-
-  .btn-icon:hover {
-    background: rgba(59, 130, 246, 0.3);
-  }
-
-  .btn-icon.danger {
-    background: rgba(248, 113, 113, 0.15);
-  }
-
-  .btn-icon.danger:hover {
-    background: rgba(248, 113, 113, 0.3);
   }
 
   @media (max-width: 480px) {
