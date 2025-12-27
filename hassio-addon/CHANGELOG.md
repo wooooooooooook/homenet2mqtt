@@ -1,3 +1,6 @@
+v1.5.1
+- fix: text_sensor의 디스커버리타입을 sensor로 수정하여 HA에 정상등록되도록 수정했습니다 
+
 v1.5.0
 - feat: state schema에 guard와 except옵션을 추가했습니다.
   - 패킷매칭후에 판단하여 예외 처리할 수 있게되었습니다.
