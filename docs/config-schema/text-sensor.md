@@ -11,7 +11,7 @@
   - **스키마**: [`StateSchema`](./schemas.md#stateschema)를 사용하여 특정 위치의 ASCII 문자를 읽음.
 
 ## MQTT 디스커버리 메시지 구성
-- 토픽: `homeassistant/text_sensor/<unique_id>/config`
+- 토픽: `homeassistant/sensor/<unique_id>/config` (Home Assistant가 `text_sensor` 도메인을 인식하지 않으므로 `sensor`로 발행)
 - 공통 필드
   - `name`, `default_entity_id`, `unique_id`
   - `state_topic`: `${MQTT_TOPIC_PREFIX}/${id}/state`
