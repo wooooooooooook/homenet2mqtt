@@ -9,6 +9,7 @@ import { logger } from '../../utils/logger.js';
 export async function createSerialPortConnection(
   serialPath: string,
   serialConfig: SerialConfig,
+  timeoutMs?: number,
 ): Promise<Duplex> {
   let port: Duplex;
   if (isTcpConnection(serialPath)) {
@@ -50,9 +51,11 @@ export async function createSerialPortConnection(
       });
     };
 
-    port = await connectTcp();
+    // If timeout is specified (e.g. testing), do not retry
+    const maxRetries = timeoutMs !== undefined ? 0 : 3;
+    port = await connectTcp(maxRetries);
   } else {
-    await waitForSerialDevice(serialPath);
+    await waitForSerialDevice(serialPath, timeoutMs);
     const serialPort = new SerialPort({
       path: serialPath,
       baudRate: serialConfig.baud_rate,

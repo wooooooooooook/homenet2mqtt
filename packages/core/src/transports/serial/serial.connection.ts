@@ -18,8 +18,9 @@ const SERIAL_WAIT_TIMEOUT_MS = resolveSerialWaitTimeout();
 
 export const isTcpConnection = (serialPath: string) => serialPath.includes(':');
 
-export const waitForSerialDevice = async (serialPath: string) => {
+export const waitForSerialDevice = async (serialPath: string, timeoutMs?: number) => {
   const startedAt = Date.now();
+  const waitTimeout = timeoutMs ?? SERIAL_WAIT_TIMEOUT_MS;
 
   while (true) {
     try {
@@ -32,9 +33,9 @@ export const waitForSerialDevice = async (serialPath: string) => {
       }
 
       const elapsed = Date.now() - startedAt;
-      if (elapsed >= SERIAL_WAIT_TIMEOUT_MS) {
+      if (elapsed >= waitTimeout) {
         throw new Error(
-          `시리얼 포트 경로(${serialPath})를 ${SERIAL_WAIT_TIMEOUT_MS}ms 내에 찾지 못했습니다.`,
+          `시리얼 포트 경로(${serialPath})를 ${waitTimeout}ms 내에 찾지 못했습니다.`,
         );
       }
 

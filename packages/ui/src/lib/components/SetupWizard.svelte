@@ -4,9 +4,15 @@
 
   let { configRoot = '', oncomplete }: { configRoot?: string; oncomplete?: () => void } = $props();
 
-  type WizardStep = 'config' | 'consent' | 'complete';
+  type WizardStep = 'config' | 'packet_defaults' | 'entity_selection' | 'consent' | 'complete';
 
   const EMPTY_CONFIG_VALUE = '__empty__';
+  const DEFAULT_PACKET_DEFAULTS = {
+    rx_timeout: '10ms',
+    tx_timeout: '500ms',
+    tx_delay: '50ms',
+    tx_retry_cnt: 3,
+  };
   let examples = $state<string[]>([]);
   let selectedExample = $state('');
   let serialPath = $state('');
@@ -59,6 +65,64 @@
     hasTested = false;
   });
 
+  // Example serial config info
+  type ExampleSerialInfo = {
+    portId?: string;
+    baud_rate?: number;
+    data_bits?: number;
+    parity?: string;
+    stop_bits?: number;
+  };
+  let exampleSerialInfo = $state<ExampleSerialInfo | null>(null);
+  let exampleSerialLoading = $state(false);
+  let packetDefaults = $state<Record<string, any>>({ ...DEFAULT_PACKET_DEFAULTS });
+
+  let entities = $state<Record<string, { id: string; name: string }[]>>({});
+  let selectedEntities = $state<Record<string, string[]>>({});
+  let loadingEntities = $state(false);
+
+  // Fetch example serial config when example changes
+  $effect(() => {
+    const example = selectedExample;
+    if (!example || example === EMPTY_CONFIG_VALUE) {
+      exampleSerialInfo = null;
+      packetDefaults = { ...DEFAULT_PACKET_DEFAULTS };
+      if (example === EMPTY_CONFIG_VALUE) {
+        serialPortId = 'custom_port';
+      }
+      return;
+    }
+
+    exampleSerialLoading = true;
+    exampleSerialInfo = null;
+
+    fetch(`./api/config/examples/${encodeURIComponent(example)}/serial`)
+      .then((res) => {
+        if (!res.ok) throw new Error('Failed to fetch serial info');
+        return res.json();
+      })
+      .then((data) => {
+        if (data.ok && data.serial) {
+          exampleSerialInfo = data.serial;
+          if (data.serial.portId) {
+            serialPortId = data.serial.portId;
+          }
+          if (data.packetDefaults) {
+            packetDefaults = { ...data.packetDefaults };
+          } else {
+            packetDefaults = { ...DEFAULT_PACKET_DEFAULTS };
+          }
+        }
+      })
+      .catch(() => {
+        exampleSerialInfo = null;
+        packetDefaults = { ...DEFAULT_PACKET_DEFAULTS };
+      })
+      .finally(() => {
+        exampleSerialLoading = false;
+      });
+  });
+
   async function loadExamples() {
     loading = true;
     error = '';
@@ -99,49 +163,162 @@
     }
   }
 
+  function parseConfigValue(val: any): any {
+    if (typeof val !== 'string') return val;
+    val = val.trim();
+    if (val.startsWith('[') && val.endsWith(']')) {
+      try {
+        return JSON.parse(val);
+      } catch {
+        const inner = val.slice(1, -1);
+        if (!inner) return [];
+        return inner.split(',').map((v: string) => {
+          v = v.trim();
+          if (/^0x[0-9a-fA-F]+$/.test(v)) return parseInt(v, 16);
+          const n = Number(v);
+          return isNaN(n) ? v : n;
+        });
+      }
+    }
+    return val;
+  }
+
   async function handleConfigSubmit() {
-    const serialConfigPayload = buildSerialConfigPayload();
-    if (!selectedExample || !serialConfigPayload) {
-      error = $t('setup_wizard.validation_error');
+    if (currentStep === 'config') {
+      const serialConfigPayload = buildSerialConfigPayload();
+      if (!selectedExample || !serialConfigPayload) {
+        error = $t('setup_wizard.validation_error');
+        return;
+      }
+      if (!hasTested) {
+        await handleSerialTest();
+        if (testPackets.length === 0) {
+          error = $t('setup_wizard.serial_test_failed_warning');
+          return;
+        }
+      }
+
+      currentStep = 'packet_defaults';
+      error = '';
       return;
     }
 
-    submitting = true;
-    error = '';
+    if (currentStep === 'packet_defaults') {
+      await loadEntities();
+      currentStep = 'entity_selection';
+      return;
+    }
 
-    try {
-      const res = await fetch('./api/config/examples/select', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(
-          selectedExample === EMPTY_CONFIG_VALUE
-            ? {
-                filename: EMPTY_CONFIG_VALUE,
-                serialConfig: serialConfigPayload,
-              }
-            : {
-                filename: selectedExample,
-                serialPath: serialPath.trim(),
-              },
-        ),
+    if (currentStep === 'entity_selection') {
+      const serialConfigPayload = buildSerialConfigPayload();
+      submitting = true;
+      error = '';
+
+      const finalPacketDefaults = { ...packetDefaults };
+      ['rx_header', 'rx_footer', 'tx_header', 'tx_footer'].forEach((key) => {
+        if (typeof finalPacketDefaults[key] === 'string') {
+          finalPacketDefaults[key] = parseConfigValue(finalPacketDefaults[key]);
+        }
       });
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        const errorKey = data.error || 'UNKNOWN_ERROR';
-        error = $t(`errors.${errorKey}`, {
-          default: data.error || $t('setup_wizard.submit_error'),
+      try {
+        const res = await fetch('./api/config/examples/select', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(
+            selectedExample === EMPTY_CONFIG_VALUE
+              ? {
+                  filename: EMPTY_CONFIG_VALUE,
+                  serialConfig: serialConfigPayload,
+                  packetDefaults: finalPacketDefaults,
+                  selectedEntities,
+                }
+              : {
+                  filename: selectedExample,
+                  serialPath: serialPath.trim(),
+                  portId: serialPortId.trim(),
+                  packetDefaults: finalPacketDefaults,
+                  selectedEntities,
+                },
+          ),
         });
-        return;
-      }
 
-      // 설정 완료 → 로그 동의 단계로 이동
-      currentStep = 'consent';
+        const data = await res.json();
+
+        if (!res.ok) {
+          const errorKey = data.error || 'UNKNOWN_ERROR';
+          error = $t(`errors.${errorKey}`, {
+            default: data.error || $t('setup_wizard.submit_error'),
+          });
+          return;
+        }
+
+        // 설정 완료 → 로그 동의 단계로 이동
+        currentStep = 'consent';
+      } catch (err) {
+        error = $t('setup_wizard.submit_error');
+      } finally {
+        submitting = false;
+      }
+    }
+  }
+
+  async function loadEntities() {
+    if (!selectedExample || selectedExample === EMPTY_CONFIG_VALUE) {
+      entities = {};
+      selectedEntities = {};
+      return;
+    }
+
+    loadingEntities = true;
+    try {
+      const res = await fetch(
+        `./api/config/examples/${encodeURIComponent(selectedExample)}/entities`,
+      );
+      if (!res.ok) throw new Error('Failed to fetch entities');
+      const data = await res.json();
+      entities = data.entities || {};
+
+      // Default select all
+      const initialSelection: Record<string, string[]> = {};
+      for (const [type, items] of Object.entries(entities)) {
+        initialSelection[type] = items.map((i) => i.id);
+      }
+      selectedEntities = initialSelection;
     } catch (err) {
-      error = $t('setup_wizard.submit_error');
+      console.error(err);
+      entities = {};
     } finally {
-      submitting = false;
+      loadingEntities = false;
+    }
+  }
+
+  function toggleType(type: string, checked: boolean) {
+    if (checked) {
+      selectedEntities[type] = entities[type]?.map((i) => i.id) || [];
+    } else {
+      selectedEntities[type] = [];
+    }
+  }
+
+  function toggleEntity(type: string, id: string, checked: boolean) {
+    const current = selectedEntities[type] || [];
+    if (checked) {
+      if (!current.includes(id)) {
+        selectedEntities[type] = [...current, id];
+      }
+    } else {
+      selectedEntities[type] = current.filter((i) => i !== id);
+    }
+  }
+
+  function handlePrevious() {
+    if (currentStep === 'packet_defaults') {
+      currentStep = 'config';
+    } else if (currentStep === 'entity_selection') {
+      currentStep = 'packet_defaults';
+    } else if (currentStep === 'consent') {
+      currentStep = 'entity_selection';
     }
   }
 
@@ -170,6 +347,7 @@
             : {
                 filename: selectedExample,
                 serialPath: serialPath.trim(),
+                portId: serialPortId.trim(),
               },
         ),
       });
@@ -178,9 +356,13 @@
 
       if (!res.ok) {
         const errorKey = data.error || 'UNKNOWN_ERROR';
-        testError = $t(`errors.${errorKey}`, {
-          default: data.error || $t('setup_wizard.serial_test_error'),
-        });
+        if (errorKey === 'SERIAL_TEST_FAILED') {
+          testError = $t('setup_wizard.serial_test_failed_warning');
+        } else {
+          testError = $t(`errors.${errorKey}`, {
+            default: data.error || $t('setup_wizard.serial_test_error'),
+          });
+        }
         return;
       }
 
@@ -282,10 +464,28 @@
       <div class="step-line"></div>
       <div
         class="step"
+        class:active={currentStep === 'packet_defaults'}
+        class:done={currentStep !== 'config' && currentStep !== 'packet_defaults'}
+      >
+        <span class="step-number">2</span>
+        <span class="step-label">{$t('setup_wizard.step_packet_defaults')}</span>
+      </div>
+      <div class="step-line"></div>
+      <div
+        class="step"
+        class:active={currentStep === 'entity_selection'}
+        class:done={currentStep === 'consent' || currentStep === 'complete'}
+      >
+        <span class="step-number">3</span>
+        <span class="step-label">{$t('setup_wizard.step_entities')}</span>
+      </div>
+      <div class="step-line"></div>
+      <div
+        class="step"
         class:active={currentStep === 'consent'}
         class:done={currentStep === 'complete'}
       >
-        <span class="step-number">2</span>
+        <span class="step-number">4</span>
         <span class="step-label">{$t('setup_wizard.step_consent')}</span>
       </div>
     </div>
@@ -324,19 +524,20 @@
           <p class="field-hint">{$t('setup_wizard.serial_path_hint')}</p>
         </div>
 
-        {#if selectedExample === EMPTY_CONFIG_VALUE}
-          <div class="form-group">
-            <label for="serial-port-id">{$t('setup_wizard.serial_port_id_label')}</label>
-            <input
-              type="text"
-              id="serial-port-id"
-              bind:value={serialPortId}
-              placeholder={$t('setup_wizard.serial_port_id_placeholder')}
-              disabled={submitting}
-            />
-            <p class="field-hint">{$t('setup_wizard.serial_port_id_hint')}</p>
-          </div>
+        <!-- Port ID field - shown for both empty config and examples -->
+        <div class="form-group">
+          <label for="serial-port-id">{$t('setup_wizard.serial_port_id_label')}</label>
+          <input
+            type="text"
+            id="serial-port-id"
+            bind:value={serialPortId}
+            placeholder={$t('setup_wizard.serial_port_id_placeholder')}
+            disabled={submitting}
+          />
+          <p class="field-hint">{$t('setup_wizard.serial_port_id_hint')}</p>
+        </div>
 
+        {#if selectedExample === EMPTY_CONFIG_VALUE}
           <div class="form-grid">
             <div class="form-group">
               <label for="serial-baud-rate">{$t('setup_wizard.serial_baud_rate_label')}</label>
@@ -353,11 +554,7 @@
 
             <div class="form-group">
               <label for="serial-data-bits">{$t('setup_wizard.serial_data_bits_label')}</label>
-              <select
-                id="serial-data-bits"
-                bind:value={serialDataBits}
-                disabled={submitting}
-              >
+              <select id="serial-data-bits" bind:value={serialDataBits} disabled={submitting}>
                 <option value="5">5</option>
                 <option value="6">6</option>
                 <option value="7">7</option>
@@ -391,6 +588,33 @@
             </div>
           </div>
           <p class="field-hint emphasis">{$t('setup_wizard.serial_manual_hint')}</p>
+        {:else}
+          <!-- Show example serial config info -->
+          <div class="example-serial-info">
+            <p class="info-label">{$t('setup_wizard.example_serial_info')}</p>
+            {#if exampleSerialLoading}
+              <p class="info-loading">{$t('setup_wizard.example_serial_loading')}</p>
+            {:else if exampleSerialInfo}
+              <div class="info-grid">
+                <div class="info-item">
+                  <span class="info-key">Baud Rate</span>
+                  <span class="info-value">{exampleSerialInfo.baud_rate ?? '-'}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-key">Data Bits</span>
+                  <span class="info-value">{exampleSerialInfo.data_bits ?? '-'}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-key">Parity</span>
+                  <span class="info-value">{exampleSerialInfo.parity ?? '-'}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-key">Stop Bits</span>
+                  <span class="info-value">{exampleSerialInfo.stop_bits ?? '-'}</span>
+                </div>
+              </div>
+            {/if}
+          </div>
         {/if}
 
         <div class="form-group">
@@ -409,18 +633,19 @@
               <p class="field-hint error-hint">{testError}</p>
             {/if}
           </div>
-          {#if hasTested}
+          {#if hasTested && !testError}
             <div class="serial-test-result">
               {#if testingSerial}
                 <p class="field-hint">{$t('setup_wizard.serial_test_wait')}</p>
               {:else if testPackets.length > 0}
                 <div class="result-list">
-                  {#each testPackets as packet, index}
-                    <div class="result-row">
-                      <span class="badge">#{index + 1}</span>
-                      <code>{packet}</code>
-                    </div>
-                  {/each}
+                  <div class="result-row">
+                    <code>
+                      {#each testPackets as packet, index}
+                        {packet}
+                      {/each}
+                    </code>
+                  </div>
                 </div>
               {:else if !testError}
                 <p class="field-hint muted">{$t('setup_wizard.serial_test_empty')}</p>
@@ -428,7 +653,9 @@
             </div>
           {/if}
         </div>
-
+        {#if testPackets.length > 0}
+          <p class="success-hint">{$t('setup_wizard.serial_test_success')}</p>
+        {/if}
         {#if error}
           <div class="error-message">{error}</div>
         {/if}
@@ -444,6 +671,182 @@
           {$t('setup_wizard.next')}
         </Button>
       </form>
+    {:else if currentStep === 'packet_defaults'}
+      <div class="wizard-step">
+        <h3>{$t('setup_wizard.pdf_title')}</h3>
+        <p class="step-desc">{$t('setup_wizard.pdf_desc')}</p>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="rx_timeout">{$t('setup_wizard.pdf_rx_timeout')}</label>
+            <input type="text" id="rx_timeout" bind:value={packetDefaults.rx_timeout} />
+            <p class="field-hint">{$t('setup_wizard.pdf_rx_timeout_hint')}</p>
+          </div>
+          <div class="form-group">
+            <label for="tx_delay">{$t('setup_wizard.pdf_tx_delay')}</label>
+            <input type="text" id="tx_delay" bind:value={packetDefaults.tx_delay} />
+            <p class="field-hint">{$t('setup_wizard.pdf_tx_delay_hint')}</p>
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="tx_timeout">{$t('setup_wizard.pdf_tx_timeout')}</label>
+            <input type="text" id="tx_timeout" bind:value={packetDefaults.tx_timeout} />
+            <p class="field-hint">{$t('setup_wizard.pdf_tx_timeout_hint')}</p>
+          </div>
+          <div class="form-group">
+            <label for="tx_retry_cnt">{$t('setup_wizard.pdf_tx_retry_cnt')}</label>
+            <input type="number" id="tx_retry_cnt" bind:value={packetDefaults.tx_retry_cnt} />
+            <p class="field-hint">{$t('setup_wizard.pdf_tx_retry_cnt_hint')}</p>
+          </div>
+        </div>
+
+        <hr class="params-divider" />
+
+        <h4>{$t('setup_wizard.pdf_header_footer_title')}</h4>
+        <p class="step-desc-sm">{$t('setup_wizard.pdf_header_footer_desc')}</p>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="rx_header">{$t('setup_wizard.pdf_rx_header')}</label>
+            <input
+              type="text"
+              id="rx_header"
+              value={typeof packetDefaults.rx_header !== 'string'
+                ? JSON.stringify(packetDefaults.rx_header ?? [])
+                : packetDefaults.rx_header}
+              oninput={(e) => (packetDefaults.rx_header = e.currentTarget.value)}
+            />
+          </div>
+          <div class="form-group">
+            <label for="rx_footer">{$t('setup_wizard.pdf_rx_footer')}</label>
+            <input
+              type="text"
+              id="rx_footer"
+              value={typeof packetDefaults.rx_footer !== 'string'
+                ? JSON.stringify(packetDefaults.rx_footer ?? [])
+                : packetDefaults.rx_footer}
+              oninput={(e) => (packetDefaults.rx_footer = e.currentTarget.value)}
+            />
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="tx_header">{$t('setup_wizard.pdf_tx_header')}</label>
+            <input
+              type="text"
+              id="tx_header"
+              value={typeof packetDefaults.tx_header !== 'string'
+                ? JSON.stringify(packetDefaults.tx_header ?? [])
+                : packetDefaults.tx_header}
+              oninput={(e) => (packetDefaults.tx_header = e.currentTarget.value)}
+            />
+          </div>
+          <div class="form-group">
+            <label for="tx_footer">{$t('setup_wizard.pdf_tx_footer')}</label>
+            <input
+              type="text"
+              id="tx_footer"
+              value={typeof packetDefaults.tx_footer !== 'string'
+                ? JSON.stringify(packetDefaults.tx_footer ?? [])
+                : packetDefaults.tx_footer}
+              oninput={(e) => (packetDefaults.tx_footer = e.currentTarget.value)}
+            />
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="rx_checksum">{$t('setup_wizard.pdf_rx_checksum')}</label>
+            <input type="text" id="rx_checksum" bind:value={packetDefaults.rx_checksum} />
+          </div>
+          <div class="form-group">
+            <label for="tx_checksum">{$t('setup_wizard.pdf_tx_checksum')}</label>
+            <input type="text" id="tx_checksum" bind:value={packetDefaults.tx_checksum} />
+          </div>
+        </div>
+
+        <div class="actions">
+          <Button type="button" variant="secondary" onclick={handlePrevious} disabled={submitting}>
+            {$t('setup_wizard.prev')}
+          </Button>
+          <Button
+            type="button"
+            variant="primary"
+            onclick={handleConfigSubmit}
+            isLoading={submitting}
+            disabled={submitting}
+          >
+            {$t('setup_wizard.next')}
+          </Button>
+        </div>
+      </div>
+    {:else if currentStep === 'entity_selection'}
+      <div class="wizard-step">
+        <h3>{$t('setup_wizard.entities_title')}</h3>
+        <p class="step-desc">{$t('setup_wizard.entities_desc')}</p>
+
+        {#if loadingEntities}
+          <div class="loading-state">
+            <p>{$t('setup_wizard.loading_entities')}</p>
+          </div>
+        {:else if Object.keys(entities).length === 0}
+          <div class="empty-state">
+            <p>{$t('setup_wizard.no_entities_found')}</p>
+          </div>
+        {:else}
+          <div class="entity-list-container">
+            {#each Object.entries(entities) as [type, items]}
+              <div class="entity-group">
+                <div class="entity-type-header">
+                  <label class="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={selectedEntities[type]?.length === items.length}
+                      indeterminate={selectedEntities[type]?.length > 0 &&
+                        selectedEntities[type]?.length < items.length}
+                      onchange={(e) => toggleType(type, e.currentTarget.checked)}
+                    />
+                    <span class="type-name">{$t(`entity_types.${type}`, { default: type })}</span>
+                    <span class="type-count">({selectedEntities[type]?.length}/{items.length})</span
+                    >
+                  </label>
+                </div>
+                <div class="entity-items">
+                  {#each items as item}
+                    <label class="checkbox-label entity-item">
+                      <input
+                        type="checkbox"
+                        checked={selectedEntities[type]?.includes(item.id)}
+                        onchange={(e) => toggleEntity(type, item.id, e.currentTarget.checked)}
+                      />
+                      <span class="entity-name">{item.name}</span>
+                      <span class="entity-id">{item.id}</span>
+                    </label>
+                  {/each}
+                </div>
+              </div>
+            {/each}
+          </div>
+        {/if}
+
+        <div class="actions">
+          <Button type="button" variant="secondary" onclick={handlePrevious} disabled={submitting}>
+            {$t('setup_wizard.prev')}
+          </Button>
+          <Button
+            type="button"
+            variant="primary"
+            onclick={handleConfigSubmit}
+            isLoading={submitting}
+            disabled={submitting}
+          >
+            {$t('setup_wizard.next')}
+          </Button>
+        </div>
+      </div>
     {:else if currentStep === 'consent'}
       <div class="consent-section">
         <p class="consent-desc">{$t('settings.log_sharing.consent_modal.desc')}</p>
@@ -465,6 +868,15 @@
         </div>
 
         <div class="consent-actions">
+          <Button
+            type="button"
+            variant="secondary"
+            onclick={handlePrevious}
+            disabled={consentSubmitting}
+            class="wizard-btn-flex"
+          >
+            {$t('setup_wizard.prev')}
+          </Button>
           <Button
             type="button"
             variant="secondary"
@@ -497,6 +909,74 @@
 
 <style>
   /* ... existing styles ... */
+  .entity-list-container {
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 8px;
+    background: rgba(15, 23, 42, 0.3);
+    margin-bottom: 2rem;
+    padding: 1rem;
+  }
+
+  .entity-group {
+    margin-bottom: 1.5rem;
+  }
+
+  .entity-group:last-child {
+    margin-bottom: 0;
+  }
+
+  .entity-type-header {
+    background: rgba(51, 65, 85, 0.5);
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+  }
+
+  .type-name {
+    text-transform: capitalize;
+    margin-right: 0.5rem;
+  }
+
+  .type-count {
+    color: #94a3b8;
+    font-size: 0.875rem;
+    font-weight: normal;
+  }
+
+  .entity-items {
+    padding-left: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .entity-item {
+    font-size: 0.95rem;
+  }
+
+  .entity-id {
+    color: #64748b;
+    font-size: 0.8rem;
+    margin-left: 0.5rem;
+  }
+
+  .checkbox-label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .checkbox-label input[type='checkbox'] {
+    margin-right: 0.75rem;
+    width: 1.1em;
+    height: 1.1em;
+    accent-color: #3b82f6;
+  }
+
   .setup-wizard {
     display: flex;
     justify-content: center;
@@ -694,7 +1174,6 @@
 
   .result-list {
     display: flex;
-    flex-direction: column;
     gap: 0.5rem;
   }
 
@@ -708,21 +1187,18 @@
     word-break: break-all;
   }
 
-  .badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.15rem 0.5rem;
-    border-radius: 9999px;
-    border: 1px solid rgba(59, 130, 246, 0.4);
-    background: rgba(59, 130, 246, 0.15);
-    color: #93c5fd;
-    font-weight: 700;
-    font-size: 0.8rem;
-  }
-
   .error-hint {
     color: #fca5a5;
+  }
+
+  .success-hint {
+    background: rgba(68, 239, 77, 0.1);
+    border: 1px solid rgba(68, 239, 77, 0.3);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    color: #10b981;
+    font-size: 0.9rem;
+    margin-bottom: 1.5rem;
   }
 
   .muted {
@@ -837,6 +1313,92 @@
     font-style: italic;
     font-size: 0.9rem;
     margin: 0;
+  }
+
+  /* Example serial config info styles */
+  .example-serial-info {
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(148, 163, 184, 0.15);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .example-serial-info .info-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #94a3b8;
+    margin: 0 0 0.75rem 0;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  .example-serial-info .info-loading {
+    font-size: 0.85rem;
+    color: #64748b;
+    font-style: italic;
+    margin: 0;
+  }
+
+  .example-serial-info .info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem 1rem;
+  }
+
+  .example-serial-info .info-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.35rem 0;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+  }
+
+  .example-serial-info .info-key {
+    font-size: 0.85rem;
+    color: #94a3b8;
+  }
+
+  .example-serial-info .info-value {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #e2e8f0;
+    font-family:
+      'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  }
+
+  /* Packet Defaults Step Styles */
+  .actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-top: 2rem;
+  }
+  .wizard-step h3 {
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+    font-size: 1.25rem;
+    color: #e2e8f0;
+  }
+  .step-desc {
+    margin-bottom: 1.5rem;
+    color: #94a3b8;
+    font-size: 0.95rem;
+  }
+  .step-desc-sm {
+    margin-bottom: 1rem;
+    color: #94a3b8;
+    font-size: 0.85rem;
+  }
+  .params-divider {
+    border: 0;
+    border-top: 1px solid rgba(148, 163, 184, 0.15);
+    margin: 2rem 0 1.5rem 0;
+  }
+  h4 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1rem;
+    color: #e2e8f0;
   }
 
   @media (max-width: 600px) {

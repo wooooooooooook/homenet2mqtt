@@ -399,10 +399,13 @@
       }
 
       startMqttStream();
-      loadCommands();
-      loadAutomations();
-      loadScripts();
-      loadPacketHistory();
+
+      if (bridgeInfo.configFiles && bridgeInfo.configFiles.length > 0) {
+        loadCommands();
+        loadAutomations();
+        loadScripts();
+        loadPacketHistory();
+      }
     } catch (err) {
       bridgeInfo = null;
       closeStream();
