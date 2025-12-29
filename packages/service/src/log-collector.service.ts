@@ -2,6 +2,7 @@ import path from 'path';
 import fs from 'fs/promises';
 import { fileURLToPath } from 'url';
 import { randomUUID } from 'crypto';
+import yaml from 'js-yaml';
 import { eventBus, logger, HomeNetBridge, logBuffer } from '@rs485-homenet/core';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -172,6 +173,53 @@ export class LogCollectorService {
     }
   }
 
+  /**
+   * Recursively sanitizes configuration object to remove sensitive data
+   */
+  private sanitizeConfig(config: any): any {
+    if (Array.isArray(config)) {
+      return config.map((item) => this.sanitizeConfig(item));
+    }
+    if (config && typeof config === 'object') {
+      const sanitized: any = {};
+      for (const [key, value] of Object.entries(config)) {
+        const lowerKey = key.toLowerCase();
+        // Redact values for keys that indicate sensitive information
+        if (
+          lowerKey === 'password' ||
+          lowerKey === 'passwd' ||
+          lowerKey === 'token' ||
+          lowerKey === 'secret' ||
+          lowerKey === 'api_key' ||
+          lowerKey === 'apikey' ||
+          lowerKey === 'ssid' ||
+          lowerKey.endsWith('_password') ||
+          lowerKey.endsWith('_token') ||
+          lowerKey.endsWith('_secret')
+        ) {
+          sanitized[key] = '******';
+        } else {
+          sanitized[key] = this.sanitizeConfig(value);
+        }
+      }
+      return sanitized;
+    }
+    return config;
+  }
+
+  private sanitizeYamlContent(content: string): string {
+    try {
+      const parsed = yaml.load(content);
+      const sanitized = this.sanitizeConfig(parsed);
+      return yaml.dump(sanitized);
+    } catch (e) {
+      // If parsing fails, we cannot safely sanitize it.
+      // Better to exclude the content than leak secrets.
+      logger.warn({ err: e }, '[LogCollector] Failed to parse YAML for sanitization');
+      return '# INVALID OR MALFORMED CONFIGURATION (Sanitization Failed)';
+    }
+  }
+
   async sendData() {
     logger.info('[LogCollector] 1000 packets collected. Sending report...');
 
@@ -201,13 +249,19 @@ export class LogCollectorService {
         hour12: false,
       });
 
+      // 🛡️ Sentinel: Sanitize config files before uploading
+      const sanitizedConfigs = this.configFiles.map((file) => ({
+        name: file.name,
+        content: this.sanitizeYamlContent(file.content),
+      }));
+
       const payload = {
         timestamp: kstTimestamp,
         uid: this.config.uid,
         architecture: process.arch,
         version: await this.getAddonVersion(),
         isRunningOnHASupervisor,
-        configs: this.configFiles,
+        configs: sanitizedConfigs,
         logs: logs,
         packets: this.packetBuffer,
       };
