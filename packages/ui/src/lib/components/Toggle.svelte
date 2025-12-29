@@ -4,18 +4,30 @@
     label = '',
     id = undefined,
     disabled = false,
+    ariaLabelledBy = undefined,
+    ariaDescribedBy = undefined,
     onchange,
   }: {
     checked: boolean;
     label?: string;
     id?: string;
     disabled?: boolean;
+    ariaLabelledBy?: string;
+    ariaDescribedBy?: string;
     onchange?: (checked: boolean) => void;
   } = $props();
 
   const uniqueId = `toggle-${Math.random().toString(36).slice(2, 9)}`;
   const elementId = $derived(id || uniqueId);
   const labelId = $derived(`${elementId}-label`);
+
+  // Combine internal label ID with external labelledBy if provided
+  const computedLabelledBy = $derived.by(() => {
+    const ids = [];
+    if (label) ids.push(labelId);
+    if (ariaLabelledBy) ids.push(ariaLabelledBy);
+    return ids.length > 0 ? ids.join(' ') : undefined;
+  });
 </script>
 
 <div class="toggle-wrapper" class:disabled>
@@ -27,8 +39,9 @@
     class="toggle-switch"
     {disabled}
     onclick={() => onchange?.(!checked)}
-    aria-labelledby={label ? labelId : undefined}
-    aria-label={!label ? 'Toggle' : undefined}
+    aria-labelledby={computedLabelledBy}
+    aria-label={!computedLabelledBy ? 'Toggle' : undefined}
+    aria-describedby={ariaDescribedBy}
   >
     <span class="slider"></span>
   </button>

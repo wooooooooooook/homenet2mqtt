@@ -2,6 +2,7 @@
   import { t, locale, locales } from 'svelte-i18n';
   import LogConsentModal from '../components/LogConsentModal.svelte';
   import Button from '../components/Button.svelte';
+  import Toggle from '$lib/components/Toggle.svelte';
   import type { FrontendSettings, LogRetentionStats, SavedLogFile } from '../types';
 
   type ToastSettingKey = 'stateChange' | 'command';
@@ -359,18 +360,13 @@
             {$t('settings.toast.state_change.desc')}
           </div>
         </div>
-        <label class="switch">
-          <input
-            type="checkbox"
-            role="switch"
-            aria-labelledby="toast-state-title"
-            aria-describedby="toast-state-desc"
-            checked={getToastValue('stateChange')}
-            onchange={(event) => handleToggle('stateChange', event)}
-            disabled={isSaving || isLoading}
-          />
-          <span class="slider"></span>
-        </label>
+        <Toggle
+          checked={getToastValue('stateChange')}
+          onchange={(checked) => onToastChange?.('stateChange', checked)}
+          disabled={isSaving || isLoading}
+          ariaLabelledBy="toast-state-title"
+          ariaDescribedBy="toast-state-desc"
+        />
       </div>
 
       <div class="setting">
@@ -382,18 +378,13 @@
             {$t('settings.toast.command.desc')}
           </div>
         </div>
-        <label class="switch">
-          <input
-            type="checkbox"
-            role="switch"
-            aria-labelledby="toast-command-title"
-            aria-describedby="toast-command-desc"
-            checked={getToastValue('command')}
-            onchange={(event) => handleToggle('command', event)}
-            disabled={isSaving || isLoading}
-          />
-          <span class="slider"></span>
-        </label>
+        <Toggle
+          checked={getToastValue('command')}
+          onchange={(checked) => onToastChange?.('command', checked)}
+          disabled={isSaving || isLoading}
+          ariaLabelledBy="toast-command-title"
+          ariaDescribedBy="toast-command-desc"
+        />
       </div>
     {/if}
   </div>
@@ -415,16 +406,11 @@
             {$t('settings.log_sharing.enable')}
           </div>
         </div>
-        <label class="switch">
-          <input
-            type="checkbox"
-            role="switch"
-            aria-labelledby="log-sharing-title"
-            checked={logSharingStatus.consented}
-            onchange={handleLogSharingToggle}
-          />
-          <span class="slider"></span>
-        </label>
+        <Toggle
+          checked={logSharingStatus.consented}
+          onchange={(checked) => handleLogSharingToggle(checked)}
+          ariaLabelledBy="log-sharing-title"
+        />
       </div>
 
       {#if logSharingStatus.consented && logSharingStatus.uid}
@@ -464,18 +450,13 @@
             {$t('settings.log_retention.enable_desc')}
           </div>
         </div>
-        <label class="switch">
-          <input
-            type="checkbox"
-            role="switch"
-            aria-labelledby="log-retention-title"
-            aria-describedby="log-retention-desc"
-            checked={cacheSettings.enabled}
-            onchange={handleCacheToggle}
-            disabled={isCacheSaving}
-          />
-          <span class="slider"></span>
-        </label>
+        <Toggle
+          checked={cacheSettings.enabled}
+          onchange={(checked) => updateCacheSettings({ enabled: checked })}
+          disabled={isCacheSaving}
+          ariaLabelledBy="log-retention-title"
+          ariaDescribedBy="log-retention-desc"
+        />
       </div>
 
       {#if cacheSettings.enabled && cacheStats}
@@ -517,18 +498,13 @@
               {$t('settings.log_retention.auto_save_desc')}
             </div>
           </div>
-          <label class="switch">
-            <input
-              type="checkbox"
-              role="switch"
-              aria-labelledby="auto-save-title"
-              aria-describedby="auto-save-desc"
-              checked={cacheSettings.autoSaveEnabled}
-              onchange={handleAutoSaveToggle}
-              disabled={isCacheSaving}
-            />
-            <span class="slider"></span>
-          </label>
+          <Toggle
+            checked={cacheSettings.autoSaveEnabled}
+            onchange={(checked) => updateCacheSettings({ autoSaveEnabled: checked })}
+            disabled={isCacheSaving}
+            ariaLabelledBy="auto-save-title"
+            ariaDescribedBy="auto-save-desc"
+          />
         </div>
 
         {#if cacheSettings.autoSaveEnabled}
@@ -715,56 +691,6 @@
     color: #facc15;
   }
 
-  .switch {
-    position: relative;
-    display: inline-block;
-    width: 50px;
-    height: 28px;
-    flex-shrink: 0;
-  }
-
-  .switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-  }
-
-  .slider {
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(148, 163, 184, 0.4);
-    transition: 0.2s;
-    border-radius: 34px;
-  }
-
-  .slider:before {
-    position: absolute;
-    content: '';
-    height: 22px;
-    width: 22px;
-    left: 3px;
-    bottom: 3px;
-    background-color: white;
-    transition: 0.2s;
-    border-radius: 50%;
-  }
-
-  input:checked + .slider {
-    background-color: rgba(59, 130, 246, 0.7);
-  }
-
-  input:checked + .slider:before {
-    transform: translateX(22px);
-  }
-
-  input:disabled + .slider {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
 
   .error-banner {
     background: rgba(248, 113, 113, 0.15);
