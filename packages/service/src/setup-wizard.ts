@@ -15,6 +15,7 @@ type SetupWizardState = {
   hasDefaultConfig: boolean;
   hasInitMarker: boolean;
   requiresInitialization: boolean;
+  configFiles: string[];
 };
 
 type SetupWizardService = {
@@ -40,6 +41,7 @@ type SetupWizardDeps = {
     warn: (msg: string | Record<string, unknown>, ...args: unknown[]) => void;
     error: (msg: string | Record<string, unknown>, ...args: unknown[]) => void;
   };
+  getLoadedConfigs: () => HomenetBridgeConfig[];
 };
 
 const EMPTY_CONFIG_SENTINEL = '__empty__';
@@ -271,6 +273,7 @@ export const createSetupWizardService = ({
   triggerRestart,
   serialTestRateLimiter,
   logger,
+  getLoadedConfigs,
 }: SetupWizardDeps): SetupWizardService => {
   let isSerialTestRunning = false;
 
@@ -295,17 +298,75 @@ export const createSetupWizardService = ({
   };
 
   const getInitializationState = async (): Promise<SetupWizardState> => {
-    const [defaultConfigName, hasInitMarker] = await Promise.all([
+    const [defaultConfigName, hasInitMarker, allFiles] = await Promise.all([
       getDefaultConfigFilename(),
       fileExists(configInitMarker),
+      fs.readdir(configDir).catch(() => []),
     ]);
+
+    const configFiles = allFiles.filter(
+      (file) =>
+        file === defaultConfigFilename ||
+        file === legacyDefaultConfigFilename ||
+        /\.homenet_bridge\.ya?ml$/.test(file),
+    );
 
     return {
       defaultConfigName,
       hasDefaultConfig: Boolean(defaultConfigName),
       hasInitMarker,
       requiresInitialization: !hasInitMarker,
+      configFiles,
     };
+  };
+
+  const getNextConfigFilename = async (): Promise<string> => {
+    const files = await fs.readdir(configDir).catch(() => []);
+    const bridgeFiles = files.filter((f) => /^default(_\d+)?\.homenet_bridge\.yaml$/.test(f));
+
+    if (bridgeFiles.length === 0) return defaultConfigFilename;
+
+    let maxSuffix = 1;
+    for (const file of bridgeFiles) {
+      if (file === defaultConfigFilename) continue;
+      const match = file.match(/^default_(\d+)\.homenet_bridge\.yaml$/);
+      if (match) {
+        const suffix = parseInt(match[1], 10);
+        if (suffix > maxSuffix) maxSuffix = suffix;
+      }
+    }
+
+    return `default_${maxSuffix + 1}.homenet_bridge.yaml`;
+  };
+
+  const checkDuplicateSerial = async (
+    targetPath: string,
+    targetPortId?: string,
+  ): Promise<{ error: string } | null> => {
+    const loadedConfigs = getLoadedConfigs();
+
+    for (const config of loadedConfigs) {
+      if (!config) continue;
+
+      const serials = config.serials || (config.serial ? [config.serial] : []);
+
+      for (let i = 0; i < serials.length; i++) {
+        const serial = serials[i];
+        if (!serial) continue;
+
+        if (serial.path === targetPath) {
+          return { error: 'SERIAL_PATH_DUPLICATE' };
+        }
+
+        if (targetPortId) {
+          const existingPortId = normalizePortId(serial.portId, i);
+          if (existingPortId === targetPortId) {
+            return { error: 'PORT_ID_DUPLICATE' };
+          }
+        }
+      }
+    }
+    return null;
   };
 
   const registerRoutes = (app: Express) => {
@@ -544,17 +605,37 @@ export const createSetupWizardService = ({
     app.post('/api/config/examples/select', async (req, res) => {
       try {
         const state = await getInitializationState();
-        if (!state.requiresInitialization) {
+        const {
+          filename,
+          serialPath,
+          serialConfig,
+          portId,
+          packetDefaults,
+          selectedEntities,
+          mode,
+        } = req.body || {};
+
+        if (mode !== 'add' && !state.requiresInitialization) {
           return res.status(400).json({ error: 'INITIALIZATION_NOT_ALLOWED' });
         }
-
-        const { filename, serialPath, serialConfig, portId, packetDefaults, selectedEntities } =
-          req.body || {};
         if (typeof filename !== 'string' || filename.includes('/') || filename.includes('\\')) {
           return res.status(400).json({ error: 'INVALID_FILENAME' });
         }
 
-        const targetPath = path.join(configDir, defaultConfigFilename);
+        let targetFilename = defaultConfigFilename;
+        if (mode === 'add') {
+          // Duplication Check
+          if (typeof serialPath === 'string') {
+            const validation = await checkDuplicateSerial(serialPath.trim(), portId?.trim());
+            if (validation) {
+              return res.status(400).json({ error: validation.error });
+            }
+          }
+
+          targetFilename = await getNextConfigFilename();
+        }
+
+        const targetPath = path.join(configDir, targetFilename);
 
         let updatedYaml = '';
         let serialPathValue = '';
@@ -636,7 +717,7 @@ export const createSetupWizardService = ({
 
         await fs.mkdir(configDir, { recursive: true });
 
-        if (await fileExists(targetPath)) {
+        if (mode !== 'add' && await fileExists(targetPath)) {
           try {
             const existingContent = await fs.readFile(targetPath, 'utf-8');
             const existingConfig = yaml.load(existingContent);
@@ -659,7 +740,7 @@ export const createSetupWizardService = ({
 
         res.json({
           ok: true,
-          target: defaultConfigFilename,
+          target: targetFilename,
           restartScheduled: true,
         });
 

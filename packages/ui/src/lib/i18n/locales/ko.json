@@ -64,6 +64,12 @@
       "restart_desc": "Homenet2MQTT 서비스를 재시작합니다. 잠시 동안 연결이 끊어집니다.",
       "restart_confirm": "정말로 서비스를 재시작하시겠습니까?",
       "restarting": "재시작 요청 중..."
+    },
+    "bridge_config": {
+      "title": "브릿지 관리",
+      "add_title": "브릿지 추가",
+      "add_desc": "새로운 RS485 브릿지 설정을 추가합니다.",
+      "add_button": "브릿지 추가"
     }
   },
   "analysis": {
@@ -439,7 +445,9 @@
     "SERIAL_BAUD_RATE_INVALID": "시리얼 통신 속도를 확인해주세요.",
     "SERIAL_DATA_BITS_INVALID": "데이터 비트 설정을 확인해주세요.",
     "SERIAL_PARITY_INVALID": "패리티 설정을 확인해주세요.",
-    "SERIAL_STOP_BITS_INVALID": "스톱 비트 설정을 확인해주세요."
+    "SERIAL_STOP_BITS_INVALID": "스톱 비트 설정을 확인해주세요.",
+    "SERIAL_PATH_DUPLICATE": "이미 사용 중인 시리얼 경로입니다. 다른 경로를 선택해주세요.",
+    "PORT_ID_DUPLICATE": "이미 사용 중인 포트 ID입니다. 다른 ID를 입력해주세요."
   },
   "setup_wizard": {
     "title": "초기 설정",

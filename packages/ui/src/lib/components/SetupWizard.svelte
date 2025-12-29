@@ -2,7 +2,11 @@
   import { t, locale } from 'svelte-i18n';
   import Button from './Button.svelte';
 
-  let { configRoot = '', oncomplete }: { configRoot?: string; oncomplete?: () => void } = $props();
+  let {
+    configRoot = '',
+    oncomplete,
+    mode = 'init',
+  }: { configRoot?: string; oncomplete?: () => void; mode?: 'init' | 'add' } = $props();
 
   type WizardStep = 'config' | 'packet_defaults' | 'entity_selection' | 'consent' | 'complete';
 
@@ -142,6 +146,8 @@
         selectedExample = EMPTY_CONFIG_VALUE;
       }
 
+      if (mode === 'add') return;
+
       // 로그 동의가 이미 완료된 경우 바로 complete 화면으로
       if (consentRes.ok) {
         const consentStatus = await consentRes.json();
@@ -232,6 +238,7 @@
                   serialConfig: serialConfigPayload,
                   packetDefaults: finalPacketDefaults,
                   selectedEntities,
+                  mode,
                 }
               : {
                   filename: selectedExample,
@@ -239,6 +246,7 @@
                   portId: serialPortId.trim(),
                   packetDefaults: finalPacketDefaults,
                   selectedEntities,
+                  mode,
                 },
           ),
         });
@@ -250,6 +258,11 @@
           error = $t(`errors.${errorKey}`, {
             default: data.error || $t('setup_wizard.submit_error'),
           });
+          return;
+        }
+
+        if (mode === 'add') {
+          currentStep = 'complete';
           return;
         }
 
@@ -485,7 +498,7 @@
       <button class="lang-toggle" onclick={toggleLocale}>
         {currentLocale === 'ko' ? 'EN' : '한국어'}
       </button>
-      <h1>{$t('setup_wizard.title')}</h1>
+      <h1>{mode === 'add' ? '브릿지 추가' : $t('setup_wizard.title')}</h1>
       <p class="subtitle">{$t('setup_wizard.subtitle')}</p>
     </div>
 
@@ -518,14 +531,16 @@
         <span class="step-label">{$t('setup_wizard.step_entities')}</span>
       </div>
       <div class="step-line"></div>
-      <div
-        class="step"
-        class:active={currentStep === 'consent'}
-        class:done={currentStep === 'complete'}
-      >
-        <span class="step-number">4</span>
-        <span class="step-label">{$t('setup_wizard.step_consent')}</span>
-      </div>
+      {#if mode !== 'add'}
+        <div
+          class="step"
+          class:active={currentStep === 'consent'}
+          class:done={currentStep === 'complete'}
+        >
+          <span class="step-number">4</span>
+          <span class="step-label">{$t('setup_wizard.step_consent')}</span>
+        </div>
+      {/if}
     </div>
 
     {#if loading}

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { t, locale, locales } from 'svelte-i18n';
   import LogConsentModal from '../components/LogConsentModal.svelte';
+  import WizardModal from '../components/WizardModal.svelte';
   import Button from '../components/Button.svelte';
   import type { FrontendSettings, LogRetentionStats, SavedLogFile } from '../types';
 
@@ -41,6 +42,7 @@
     null,
   );
   let showConsentModal = $state(false);
+  let showAddBridgeModal = $state(false);
 
   const fetchLogSharingStatus = () => {
     fetch(`./api/log-sharing/status?_=${Date.now()}`)
@@ -314,6 +316,10 @@
     />
   {/if}
 
+  {#if showAddBridgeModal}
+    <WizardModal onclose={() => (showAddBridgeModal = false)} />
+  {/if}
+
   <div class="view-header">
     <h1>{$t('settings.title')}</h1>
     <div class="lang-switcher">
@@ -438,6 +444,29 @@
         </div>
       {/if}
     {/if}
+  </div>
+
+  <!-- Bridge Config Card -->
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <h2>{$t('settings.bridge_config.title')}</h2>
+      </div>
+    </div>
+
+    <div class="setting">
+      <div>
+        <div class="setting-title">
+          {$t('settings.bridge_config.add_title')}
+        </div>
+        <div class="setting-desc">
+          {$t('settings.bridge_config.add_desc')}
+        </div>
+      </div>
+      <Button onclick={() => (showAddBridgeModal = true)}>
+        {$t('settings.bridge_config.add_button')}
+      </Button>
+    </div>
   </div>
 
   <!-- Log Caching Card -->

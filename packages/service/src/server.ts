@@ -224,6 +224,7 @@ const setupWizardService = createSetupWizardService({
   triggerRestart,
   serialTestRateLimiter,
   logger,
+  getLoadedConfigs: () => currentConfigs,
 });
 
 type BridgeInstance = {

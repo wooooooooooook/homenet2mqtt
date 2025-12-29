@@ -11,6 +11,7 @@
   import EntityCard from '../components/EntityCard.svelte';
   import RecentActivity from '../components/RecentActivity.svelte';
   import SetupWizard from '../components/SetupWizard.svelte';
+  import WizardModal from '../components/WizardModal.svelte';
   import HintBubble from '$lib/components/HintBubble.svelte';
   import { t } from 'svelte-i18n';
 
@@ -74,6 +75,7 @@
   // 여기서는 전달받은 entities를 그대로 사용합니다.
   const visibleEntities = $derived.by<UnifiedEntity[]>(() => entities);
   let hintDismissed = $state(false);
+  let showAddBridgeModal = $state(false);
 
   // portStatuses에서 해당 포트의 상태를 가져오는 헬퍼 함수
   function getPortStatus(portId: string): BridgeStatus | 'unknown' {
@@ -159,6 +161,14 @@
             </button>
           {/each}
         {/if}
+        <button
+          class="add-bridge-btn"
+          type="button"
+          onclick={() => (showAddBridgeModal = true)}
+          aria-label={$t('settings.bridge_config.add_button')}
+        >
+          +
+        </button>
       </div>
       <div class="toggle-container" style="position: relative;">
         {#if hasInactiveEntities && !hintDismissed}
@@ -224,6 +234,10 @@
         {/each}
       {/if}
     </div>
+  {/if}
+
+  {#if showAddBridgeModal}
+    <WizardModal onclose={() => (showAddBridgeModal = false)} />
   {/if}
 </div>
 
@@ -467,6 +481,21 @@
 
   .port-tabs button:hover {
     border-color: rgba(148, 163, 184, 0.6);
+  }
+
+  .add-bridge-btn {
+    padding: 0.5rem 0.8rem !important;
+    background: rgba(30, 41, 59, 0.4) !important;
+    border: 1px dashed rgba(148, 163, 184, 0.4) !important;
+    color: #94a3b8 !important;
+    font-size: 1.2rem;
+    line-height: 1;
+  }
+
+  .add-bridge-btn:hover {
+    border-color: #60a5fa !important;
+    color: #60a5fa !important;
+    background: rgba(59, 130, 246, 0.1) !important;
   }
 
   .toggle-switch {
