@@ -16,6 +16,7 @@
     isRecording = $bindable(false),
     recordingStartTime = $bindable(null),
     recordedFile = $bindable(null),
+    portId = null,
   }: {
     rawPackets?: RawPacketWithInterval[];
     isStreaming: boolean;
@@ -26,6 +27,7 @@
     isRecording: boolean;
     recordingStartTime: number | null;
     recordedFile: { filename: string; path: string } | null;
+    portId: string | null;
   } = $props();
 
   let showSaveDialog = $state(false);
@@ -38,6 +40,8 @@
   let filterText = $state('');
   let debouncedFilterText = $state('');
   let filterDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+  import PacketSender from './PacketSender.svelte';
 
   // Limits
   const MAX_DURATION_MS = 20 * 60 * 1000;
@@ -387,6 +391,11 @@
     </code>
   </div>
 {/snippet}
+
+<!-- Packet Sender Section -->
+{#if portId}
+  <PacketSender {portId} />
+{/if}
 
 <div class="log-section">
   <div class="log-header">

@@ -126,6 +126,88 @@ export class HomeNetBridge {
   }
 
   /**
+   * Construct a packet with optional header, footer, and checksum based on configuration
+   */
+  constructCustomPacket(
+    hexPayload: string,
+    options: { header?: boolean; footer?: boolean; checksum?: boolean },
+  ): { success: boolean; packet?: string; error?: string } {
+    if (!this.config) {
+      return { success: false, error: 'Bridge not initialized' };
+    }
+
+    // Clean hex string
+    const cleanedHex = hexPayload.replace(/[^0-9A-Fa-f]/g, '').toUpperCase();
+    if (cleanedHex.length % 2 !== 0) {
+      return { success: false, error: 'Invalid hex string length' };
+    }
+    const payloadBytes = cleanedHex.match(/.{1,2}/g)?.map((b) => parseInt(b, 16)) || [];
+
+    const defaults = this.config.packet_defaults || {};
+    const header = options.header && defaults.rx_header ? defaults.rx_header : [];
+    const footer = options.footer && defaults.rx_footer ? defaults.rx_footer : [];
+
+    // Determine Checksum requirements
+    let checksumLen = 0;
+    const checksumType = defaults.rx_checksum;
+    const checksum2Type = defaults.rx_checksum2;
+
+    if (options.checksum) {
+      if (checksum2Type) checksumLen = 2;
+      else if (checksumType && checksumType !== 'none') checksumLen = 1;
+    }
+
+    const totalLen = header.length + payloadBytes.length + checksumLen + footer.length;
+    const buffer = Buffer.alloc(totalLen);
+
+    let offset = 0;
+
+    // Header
+    for (const b of header) buffer[offset++] = b;
+    const headerLen = header.length;
+
+    // Payload
+    for (const b of payloadBytes) buffer[offset++] = b;
+
+    // Checksum calculation range ends here
+    const checksumPos = offset;
+    const dataEnd = offset;
+
+    // Checksum Placeholder
+    offset += checksumLen;
+
+    // Footer
+    for (const b of footer) buffer[offset++] = b;
+
+    // Calculate and Fill Checksum
+    if (options.checksum) {
+      if (checksumLen === 1 && checksumType && checksumType !== 'none') {
+        const cs = calculateChecksumFromBuffer(
+          buffer,
+          checksumType as ChecksumType,
+          headerLen,
+          dataEnd,
+        );
+        buffer[checksumPos] = cs;
+      } else if (checksumLen === 2 && checksum2Type) {
+        const cs = calculateChecksum2FromBuffer(
+          buffer,
+          checksum2Type as Checksum2Type,
+          headerLen,
+          dataEnd,
+        );
+        buffer[checksumPos] = cs[0];
+        buffer[checksumPos + 1] = cs[1];
+      }
+    }
+
+    return {
+      success: true,
+      packet: buffer.toString('hex').toUpperCase(),
+    };
+  }
+
+  /**
    * Send a raw packet directly to the serial port without ACK waiting
    */
   sendRawPacket(portId: string | undefined, packet: number[]): boolean {
@@ -136,6 +218,20 @@ export class HomeNetBridge {
       return false;
     }
     context.port.write(Buffer.from(packet));
+    eventBus.emit('raw-tx-packet', {
+      portId: context.portId,
+      payload: Buffer.from(packet).toString('hex'),
+      timestamp: new Date().toISOString(),
+    });
+    eventBus.emit('command-packet', {
+      entity: 'Manual',
+      entityId: 'manual',
+      command: 'send_raw',
+      value: undefined,
+      packet: Buffer.from(packet).toString('hex').toUpperCase(),
+      portId: context.portId,
+      timestamp: new Date().toISOString(),
+    });
     logger.info(
       {
         portId: context.portId,

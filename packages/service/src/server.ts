@@ -478,6 +478,65 @@ app.post('/api/bridge/:portId/latency-test', async (req, res) => {
   }
 });
 
+const findBridgeInstanceByPortId = (portId: string): BridgeInstance | undefined => {
+  for (const instance of bridges) {
+    const serials = instance.config.serials || [];
+    for (let i = 0; i < serials.length; i++) {
+      const pId = normalizePortId(serials[i].portId, i);
+      if (pId === portId) {
+        return instance;
+      }
+    }
+  }
+  return undefined;
+};
+
+app.post('/api/tools/packet/preview', async (req, res) => {
+  const { hex, header, footer, checksum, portId } = req.body;
+
+  if (!hex) return res.status(400).json({ error: 'hex is required' });
+
+  const instance = findBridgeInstanceByPortId(portId);
+  if (!instance) return res.status(404).json({ error: 'Bridge not found' });
+
+  const result = instance.bridge.constructCustomPacket(hex, { header, footer, checksum });
+  if (!result.success) return res.status(400).json({ error: result.error });
+
+  res.json({ preview: result.packet });
+});
+
+app.post('/api/tools/packet/send', async (req, res) => {
+  const { hex, header, footer, checksum, portId, interval = 100, count = 1 } = req.body;
+
+  if (!hex) return res.status(400).json({ error: 'hex is required' });
+
+  const instance = findBridgeInstanceByPortId(portId);
+  if (!instance) return res.status(404).json({ error: 'Bridge not found' });
+
+  const result = instance.bridge.constructCustomPacket(hex, { header, footer, checksum });
+  if (!result.success || !result.packet) return res.status(400).json({ error: result.error });
+
+  const packetBytes = result.packet.match(/.{1,2}/g)!.map((x) => parseInt(x, 16));
+
+  const maxCount = 50; // Safety limit
+  const effectiveCount = Math.min(count, maxCount);
+  let sentCount = 0;
+
+  try {
+    for (let i = 0; i < effectiveCount; i++) {
+      instance.bridge.sendRawPacket(portId, packetBytes);
+      sentCount++;
+      if (i < effectiveCount - 1) {
+        await new Promise((r) => setTimeout(r, interval));
+      }
+    }
+    res.json({ success: true, sentCount });
+  } catch (error) {
+    logger.error({ err: error, portId }, '[service] Failed to send custom packet');
+    res.status(500).json({ error: 'Failed to send packet' });
+  }
+});
+
 app.get('/api/bridge/info', async (_req, res) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
 

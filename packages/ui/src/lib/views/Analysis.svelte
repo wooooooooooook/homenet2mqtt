@@ -79,6 +79,7 @@
     bind:isRecording
     bind:recordingStartTime
     bind:recordedFile
+    portId={activePortId}
   />
   <CelAnalyzerCard />
 

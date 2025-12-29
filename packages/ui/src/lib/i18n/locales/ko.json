@@ -114,7 +114,23 @@
       "empty": "표시할 패킷이 없습니다.",
       "collected_packets": "수집된 패킷: {count}",
       "recording_duration": "녹화 시간: {duration}",
-      "auto_stopped_limit": "녹화 제한(20분 또는 10,000개 패킷)에 도달하여 녹화가 자동 중단되었습니다."
+      "auto_stopped_limit": "녹화 제한(20분 또는 10,000개 패킷)에 도달하여 녹화가 자동 중단되었습니다.",
+      "sender": {
+        "title": "패킷 전송",
+        "hex_input_label": "Hex 패킷 입력 (공백 무관)",
+        "hex_input_placeholder": "예: AF 00 F7 ...",
+        "options_label": "전송 옵션",
+        "option_header": "헤더 붙이기",
+        "option_footer": "푸터 붙이기 (체크섬 필수)",
+        "option_checksum": "체크섬 계산",
+        "preview_label": "전송 패킷 미리보기",
+        "settings_label": "전송 설정",
+        "interval_label": "간격 (ms)",
+        "count_label": "횟수",
+        "send_btn": "전송",
+        "sending": "전송 중...",
+        "sent_success": "{count}회 전송 완료"
+      }
     },
     "cel_analyzer": {
       "title": "CEL 분석기",
