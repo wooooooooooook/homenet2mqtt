@@ -262,6 +262,46 @@
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
+
+  // Application Control
+  let isRestarting = $state(false);
+
+  async function handleRestart() {
+    if (!confirm($t('settings.app_control.restart_confirm'))) return;
+
+    isRestarting = true;
+    try {
+      // 1. Get One-time Token
+      const tokenRes = await fetch('/api/system/restart/token');
+      if (!tokenRes.ok) throw new Error('Failed to get restart token');
+      const { token } = await tokenRes.json();
+
+      // 2. Send Restart Request with Token
+      const res = await fetch('/api/system/restart', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ token }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Restart failed');
+      }
+
+      alert($t('settings.app_control.restarting'));
+
+      // Auto-reload after 5 seconds
+      setTimeout(() => {
+        window.location.reload();
+      }, 5000);
+    } catch (e: any) {
+      console.error('Restart failed', e);
+      alert(e.message || 'Failed to restart');
+      isRestarting = false;
+    }
+  }
 </script>
 
 <section class="settings-view">
@@ -552,6 +592,30 @@
         </div>
       {/if}
     {/if}
+  </div>
+
+  <!-- Application Control Card -->
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <h2>{$t('settings.app_control.title')}</h2>
+      </div>
+    </div>
+
+    <div class="setting">
+      <div>
+        <div class="setting-title">{$t('settings.app_control.restart')}</div>
+        <div class="setting-desc">{$t('settings.app_control.restart_desc')}</div>
+      </div>
+      <Button
+        variant="danger"
+        onclick={handleRestart}
+        isLoading={isRestarting}
+        disabled={isRestarting}
+      >
+        {$t('settings.app_control.restart')}
+      </Button>
+    </div>
   </div>
 </section>
 

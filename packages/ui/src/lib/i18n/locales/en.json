@@ -57,6 +57,13 @@
       "download": "Download log file",
       "delete": "Delete log file",
       "delete_confirm": "Are you sure you want to delete this log file?"
+    },
+    "app_control": {
+      "title": "Application Control",
+      "restart": "Restart",
+      "restart_desc": "Restart the Homenet2MQTT service. Connection will be lost momentarily.",
+      "restart_confirm": "Are you sure you want to restart the service?",
+      "restarting": "Requesting restart..."
     }
   },
   "analysis": {

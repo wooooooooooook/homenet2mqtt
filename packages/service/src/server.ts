@@ -6,6 +6,7 @@ import { createServer, type IncomingMessage } from 'node:http';
 import { fileURLToPath } from 'node:url';
 import yaml from 'js-yaml';
 import { WebSocket, WebSocketServer } from 'ws';
+import crypto from 'node:crypto';
 import { dumpConfigToYaml } from './utils/yaml-dumper.js';
 import {
   HomeNetBridge,
@@ -378,6 +379,53 @@ app.get('/api/activity/recent', (_req, res) => {
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' });
+});
+
+const restartTokens = new Set<string>();
+
+app.get('/api/system/restart/token', (_req, res) => {
+  const token = crypto.randomUUID();
+  restartTokens.add(token);
+  // Token valid for 1 minute
+  setTimeout(() => restartTokens.delete(token), 60000);
+  res.json({ token });
+});
+
+app.post('/api/system/restart', async (req, res) => {
+  try {
+    const { token } = req.body;
+
+    if (!token || !restartTokens.has(token)) {
+      logger.warn('[service] Invalid or expired restart token used');
+      return res.status(403).json({ error: 'Invalid or expired token. Please refresh the page and try again.' });
+    }
+
+    // Valid token, consume it
+    restartTokens.delete(token);
+
+    await triggerRestart();
+    res.json({ success: true, message: 'Restarting...' });
+
+    // Give time for response to be sent
+    setTimeout(async () => {
+      // Dev environment support: touch this file to trigger tsx watch restart
+      if (process.env.npm_lifecycle_event === 'dev') {
+        logger.info('[service] Dev mode detected. Touching file to trigger restart...');
+        try {
+          const now = new Date();
+          await fs.utimes(__filename, now, now);
+        } catch (err) {
+          logger.error({ err }, '[service] Failed to touch file for dev restart');
+        }
+      } else {
+        logger.info('[service] Exiting process to trigger restart...');
+        process.exit(0);
+      }
+    }, 500);
+  } catch (error) {
+    logger.error({ err: error }, '[service] Failed to trigger restart');
+    res.status(500).json({ error: 'Restart failed' });
+  }
 });
 
 app.post('/api/bridge/:portId/latency-test', async (req, res) => {

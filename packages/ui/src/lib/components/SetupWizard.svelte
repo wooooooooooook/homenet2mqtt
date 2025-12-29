@@ -439,6 +439,44 @@
   function isFormReady() {
     return Boolean(buildSerialConfigPayload());
   }
+
+  // Restart Logic
+  let isRestarting = $state(false);
+
+  async function handleRestart() {
+    isRestarting = true;
+    try {
+      // 1. Get One-time Token
+      const tokenRes = await fetch('/api/system/restart/token');
+      if (!tokenRes.ok) throw new Error('Failed to get restart token');
+      const { token } = await tokenRes.json();
+
+      // 2. Send Restart Request with Token
+      const res = await fetch('/api/system/restart', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ token }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Restart failed');
+      }
+
+      alert($t('settings.app_control.restarting'));
+
+      // Auto-reload after 5 seconds
+      setTimeout(() => {
+        window.location.reload();
+      }, 5000);
+    } catch (e: any) {
+      console.error('Restart failed', e);
+      alert(e.message || 'Failed to restart');
+      isRestarting = false;
+    }
+  }
 </script>
 
 <div class="setup-wizard">
@@ -902,6 +940,16 @@
         <div class="success-icon">✓</div>
         <p class="success-message">{$t('setup_wizard.success_message')}</p>
         <p class="hint">{$t('setup_wizard.restarting')}</p>
+        <div class="restart-action">
+          <Button
+            variant="primary"
+            onclick={handleRestart}
+            isLoading={isRestarting}
+            disabled={isRestarting}
+          >
+            {$t('settings.app_control.restart')}
+          </Button>
+        </div>
       </div>
     {/if}
   </div>
@@ -1313,6 +1361,12 @@
     font-style: italic;
     font-size: 0.9rem;
     margin: 0;
+  }
+
+  .restart-action {
+    margin-top: 2rem;
+    display: flex;
+    justify-content: center;
   }
 
   /* Example serial config info styles */
