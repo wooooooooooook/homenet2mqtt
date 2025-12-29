@@ -29,6 +29,7 @@ async function main() {
     '../packages/simulator/dist/index.js'
   );
   const intervalMs = ensureNumber(process.env.SIMULATOR_INTERVAL_MS, 1000);
+  const slow = ensureNumber(process.env.SIMULATOR_SLOW, 1);
   const linkPath = process.env.SIMULATOR_LINK_PATH ?? DEFAULT_LINK_PATH;
 
   const simulatorProtocol = process.env.SIMULATOR_PROTOCOL || 'pty';
@@ -41,10 +42,12 @@ async function main() {
       intervalMs,
       packets: device === 'commax' ? COMMAX_TEST_PACKETS : undefined,
       device,
+      device,
       baudRate: 9600,
-      port: 8888
+      port: 8888,
+      slow
     });
-    console.log(`[simulator] TCP Mode started on port 8888 (device=${device}, baudRate=9600)`);
+    console.log(`[simulator] TCP Mode started on port 8888 (device=${device}, baudRate=9600, slow=${slow})`);
   } else if (simulatorProtocol === 'serial') {
     const { createExternalPortSimulator } = await import('../packages/simulator/dist/index.js');
     const portPath = process.env.SIMULATOR_PORT_PATH;
@@ -59,18 +62,20 @@ async function main() {
       device,
       baudRate: 9600,
       portPath,
-      parity
+      parity,
+      slow
     });
-    console.log(`[simulator] External Serial Mode started on ${portPath} (device=${device}, baudRate=9600, parity=${parity})`);
+    console.log(`[simulator] External Serial Mode started on ${portPath} (device=${device}, baudRate=9600, parity=${parity}, slow=${slow})`);
   } else {
     simulator = createSimulator({
       intervalMs: 1,
       packets: device === 'commax' ? COMMAX_TEST_PACKETS : undefined,
       device,
+      slow,
     });
     await exposePty(simulator.ptyPath, linkPath);
     console.log(
-      `[simulator] PTY 노출: 실제=${simulator.ptyPath}, 링크=${linkPath} (Byte Mode: 1ms)`
+      `[simulator] PTY 노출: 실제=${simulator.ptyPath}, 링크=${linkPath} (Byte Mode: 1ms, slow=${slow})`
     );
   }
 
