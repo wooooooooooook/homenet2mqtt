@@ -447,12 +447,12 @@
     isRestarting = true;
     try {
       // 1. Get One-time Token
-      const tokenRes = await fetch('/api/system/restart/token');
+      const tokenRes = await fetch('./api/system/restart/token');
       if (!tokenRes.ok) throw new Error('Failed to get restart token');
       const { token } = await tokenRes.json();
 
       // 2. Send Restart Request with Token
-      const res = await fetch('/api/system/restart', {
+      const res = await fetch('./api/system/restart', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
