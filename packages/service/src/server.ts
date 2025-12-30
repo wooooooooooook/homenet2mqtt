@@ -221,6 +221,7 @@ const setupWizardService = createSetupWizardService({
   saveBackup,
   triggerRestart,
   serialTestRateLimiter,
+  configRateLimiter,
   logger,
   getLoadedConfigs: () => currentConfigs,
 });
