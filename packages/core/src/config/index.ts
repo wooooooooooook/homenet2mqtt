@@ -219,14 +219,6 @@ export function validateConfig(
     }
   }
 
-  const hasEntities = ENTITY_TYPE_KEYS.some(
-    (type) => config[type] && Array.isArray(config[type]) && (config[type] as any[]).length > 0,
-  );
-
-  if (!hasEntities) {
-    errors.push('최소 한 개 이상의 엔터티(light, climate 등)가 설정되어야 합니다.');
-  }
-
   ENTITY_TYPE_KEYS.forEach((type) => {
     const entities = config[type] as Array<Record<string, unknown>> | undefined;
     if (!entities) return;

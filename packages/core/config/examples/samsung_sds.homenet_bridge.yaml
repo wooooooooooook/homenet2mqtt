@@ -17,14 +17,16 @@ homenet_bridge:
     tx_checksum: samsung_tx
 
   button:
-    - name: 'Gas Valve Close'
+    - id: 'gas_valve_close'
+      name: 'Gas Valve Close'
       icon: 'mdi:gas-burner'
       command_press:
         data: [0xAB, 0x78, 0x00]
         ack: [0x78]
 
   light:
-    - name: 'Light 1'
+    - id: 'light_1'
+      name: 'Light 1'
       state:
         data: [0x79, 0x21]
       state_on:
@@ -42,7 +44,8 @@ homenet_bridge:
         data: [0xAC, 0x7A, 0x01, 0x00]
         ack: [0x79, 0x01, 0x00]
 
-    - name: 'Light 2'
+    - id: 'light_2'
+      name: 'Light 2'
       state:
         data: [0x79, 0x13]
       state_on:
@@ -60,7 +63,8 @@ homenet_bridge:
         data: [0xAC, 0x7A, 0x03, 0x00]
         ack: [0x79, 0x03, 0x00]
 
-    - name: 'Light 3'
+    - id: 'light_3'
+      name: 'Light 3'
       state:
         data: [0x79, 0x14]
       state_on:
@@ -78,7 +82,8 @@ homenet_bridge:
         data: [0xAC, 0x7A, 0x04, 0x00]
         ack: [0x79, 0x04, 0x00]
 
-    - name: 'Light 4'
+    - id: 'light_4'
+      name: 'Light 4'
       state:
         data: [0x79, 0x15]
       state_on:
@@ -97,7 +102,8 @@ homenet_bridge:
         ack: [0x79, 0x05, 0x00]
 
   climate:
-    - name: 'Room 0 Heater'
+    - id: 'room_0_heater'
+      name: 'Room 0 Heater'
       visual:
         min_temperature: 5 °C
         max_temperature: 40 °C
@@ -129,7 +135,8 @@ homenet_bridge:
       state_action: >-
         data[3] == 0x00 ? 'off' : (data[4] > data[5] ? 'heating' : 'idle')
 
-    - name: 'Room 1 Heater'
+    - id: 'room_1_heater'
+      name: 'Room 1 Heater'
       visual:
         min_temperature: 5 °C
         max_temperature: 40 °C
@@ -161,7 +168,8 @@ homenet_bridge:
       state_action: >-
         data[3] == 0x00 ? 'off' : (data[4] > data[5] ? 'heating' : 'idle')
 
-    - name: 'Room 2 Heater'
+    - id: 'room_2_heater'
+      name: 'Room 2 Heater'
       visual:
         min_temperature: 5 °C
         max_temperature: 40 °C
@@ -193,7 +201,8 @@ homenet_bridge:
       state_action: >-
         data[3] == 0x00 ? 'off' : (data[4] > data[5] ? 'heating' : 'idle')
 
-    - name: 'Room 3 Heater'
+    - id: 'room_3_heater'
+      name: 'Room 3 Heater'
       visual:
         min_temperature: 5 °C
         max_temperature: 40 °C
@@ -226,7 +235,8 @@ homenet_bridge:
         data[3] == 0x00 ? 'off' : (data[4] > data[5] ? 'heating' : 'idle')
 
   fan:
-    - name: 'Ventilator'
+    - id: 'ventilator'
+      name: 'Ventilator'
       state:
         data: [0x4E]
       state_on:

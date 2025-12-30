@@ -483,6 +483,13 @@ export const createSetupWizardService = ({
         const bridgeConfig =
           parsedConfig.homenet_bridge || parsedConfig.homenetBridge || parsedConfig;
 
+        // Normalize to ensure IDs are generated
+        try {
+          normalizeConfig(parsedConfig as HomenetBridgeConfig);
+        } catch (e) {
+          // Ignore validation errors, we just want ID generation
+        }
+
         if (!bridgeConfig || typeof bridgeConfig !== 'object') {
           return res.status(200).json({ entities: {} });
         }
@@ -697,6 +704,12 @@ export const createSetupWizardService = ({
           try {
             const rawContent = await fs.readFile(sourcePath, 'utf-8');
             parsedConfig = yaml.load(rawContent);
+            // Normalize to ensure IDs are generated for matching
+            try {
+              normalizeConfig(parsedConfig as HomenetBridgeConfig);
+            } catch (e) {
+              // Ignore errors
+            }
           } catch (error) {
             logger.error({ err: error, sourcePath }, '[service] Failed to read example config');
             return res.status(500).json({ error: 'EXAMPLE_READ_FAILED' });
@@ -740,6 +753,17 @@ export const createSetupWizardService = ({
                 }
               }
             }
+          }
+
+          updatedYaml = dumpConfigToYaml(parsedConfig, { lineWidth: 120 });
+
+          const bridgeConfigForCleanup =
+            (parsedConfig as any).homenet_bridge ||
+            (parsedConfig as any).homenetBridge ||
+            parsedConfig;
+
+          if (bridgeConfigForCleanup && typeof bridgeConfigForCleanup === 'object') {
+            delete bridgeConfigForCleanup.serials;
           }
 
           updatedYaml = dumpConfigToYaml(parsedConfig, { lineWidth: 120 });
