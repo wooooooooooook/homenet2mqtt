@@ -2,50 +2,72 @@
 
 `StateSchema`, `StateNumSchema`, `CommandSchema`는 모든 엔티티와 자동화에서 공통으로 사용하는 핵심 구조입니다. 값 추출과 명령 생성의 기준이 되므로 다른 문서를 읽기 전에 이 정의를 확인하세요.
 
-## StateSchema
-| 속성 | 타입 | 설명 |
-| --- | --- | --- |
-| `offset` | `number` | 패킷 내 데이터 시작 오프셋(헤더 포함 여부는 설정에 따라 다름). |
-| `data` | `number[]` | 패킷이 이 배열과 일치할 때만 상태를 인정합니다. |
-| `mask` | `number` \| `number[]` | 비교·추출 시 `(value & mask)`를 적용합니다. 단일 값 또는 위치별 배열을 사용할 수 있습니다. |
-| `inverted` | `boolean` | `true`면 매칭/추출 전에 비트를 반전(`~value`)합니다. |
-| `guard` | `string` | 패킷이 `data`로 매칭된 뒤 추가로 평가하는 CEL 표현식입니다. `data` 배열을 사용할 수 있습니다. |
-| `except` | `StateSchema[]` | 하위 예외 패턴. 하나라도 매칭되면 현재 매칭을 무효화합니다. |
+## 패킷 매칭과 상태 추출의 분리
+설정 파일에서 `state`와 `state_*` 필드는 서로 다른 역할을 수행합니다.
 
-### 활용 예시
+### 1. `state` (패킷 매칭)
+- **역할**: 들어오는 수많은 RS485 패킷 중, **이 엔티티가 처리해야 할 패킷을 선별**합니다.
+- **사용 스키마**: `StateSchema`
+- **동작**: 이 조건에 맞는 패킷만 다음 단계(상태 추출)로 넘어갑니다.
 
-**1. 단순 데이터 매칭 (Light ON 상태)**
-패킷의 2번째 바이트가 `0x01`인 경우를 식별합니다.
+### 2. `state_*` (상태 추출)
+- **역할**: 매칭된 패킷에서 **실제 엔티티의 상태(ON/OFF, 온도 값 등)를 추출**합니다.
+- **사용 스키마**: `StateSchema` 또는 `StateNumSchema`, `CEL`
+- **동작**: `state`에서 매칭된 패킷 데이터를 기반으로 값을 읽어냅니다.
+
+---
+
+## StateSchema (패킷 매칭)
+패킷을 필터링(`state`)하거나 단순 상태(`state_on/off`)를 정의할 때 사용합니다.
+
+| 속성 | 타입 | 기본값 | 설명 |
+| --- | --- | --- | --- |
+| `data` | `number[]` | - | 패킷이 이 배열과 일치해야 합니다. |
+| `offset` | `number` | `0` | `data` 비교를 시작할 위치입니다. (헤더 포함 인덱스) |
+| `mask` | `number` \| `number[]` | - | 비교 전 `(value & mask)`를 적용합니다. 특정 비트만 비교할 때 유용합니다. |
+| `inverted` | `boolean` | `false` | `true`면 매칭/추출 전에 비트를 반전(`~value`)합니다. |
+| `guard` | `string` | - | `data` 매칭 후 추가로 검증할 CEL 표현식입니다. |
+| `except` | `StateSchema[]` | - | 이 패턴에 매칭되면 무시합니다 (예외 처리). |
+
+### 실전 작성 가이드
+
+**Q: `0x82 0x80 0x01`로 시작하는 패킷을 매칭하려면?**
+`offset: 0` (기본값)에서 해당 바이트 배열을 정의합니다.
 ```yaml
-state_on:
-  offset: 1
+state:
+  data: [0x82, 0x80, 0x01]
+```
+
+**Q: 헤더(2바이트) 건너뛰고 3번째 바이트가 `0x01`인 패킷은?**
+`offset`을 사용하여 비교 시작 위치를 지정합니다.
+```yaml
+state:
+  offset: 2
   data: [0x01]
 ```
 
-**2. 비트마스크 매칭 (전체 패킷 중 특정 비트만 확인)**
-패킷의 1번째 바이트(`0x31`)를 확인하되, 2번째 바이트의 하위 4비트가 `0x0F`인 경우만 매칭합니다.
+**Q: 특정 위치의 상위 4비트만 확인하고 싶다면?**
+`mask`를 사용하여 하위 비트를 무시합니다. (예: `0x3?` 형태 매칭)
 ```yaml
 state:
-  data: [0x31, 0x0F]
-  mask: [0xFF, 0x0F]
+  data: [0x30]      # 0x30 ~ 0x3F 모두 매칭됨 (마스크 적용 후 0x30이 되는 값)
+  mask: [0xF0]      # 상위 4비트만 비교
 ```
 
-**3. guard + except로 예외 제외**
-`data` 매칭 후 guard를 통과해야 하며, except 패턴이 맞으면 제외됩니다.
+**Q: 특정 패킷은 제외하고 싶다면?**
+`except`를 사용하여 예외 조건을 추가합니다.
 ```yaml
-state_on:
-  offset: 0
-  data: [0x31, 0x01]
-  guard: "data[4] != 0x10"
+state:
+  data: [0x82]
   except:
-    - offset: 2
-      data: [0xff]
+    - offset: 1
+      data: [0xEE]  # 0x82 0xEE ... 는 제외
 ```
 
-## StateNumSchema
-`StateSchema`를 확장하여 숫자 변환을 제공합니다.
+---
 
-> ⚠️ **전제 조건**: `state_number`, `state_temperature_current` 등 `StateNumSchema` 필드는 **`state:` 필드가 먼저 정의되어야** 동작합니다. `state:`가 패킷을 매칭한 후에만 값을 추출합니다.
+## StateNumSchema (상태 값 추출)
+`StateSchema`의 확장이며 패킷에서 추출한 값의 변환이 필요할때 사용하는 스키마입니다. `StateSchema`의 모든 속성을 사용할 수 있으며 아래의 `StateNumSchema` 전용 속성을 사용하면 `StateNumSchema`로 평가됩니다.
 
 | 속성 | 타입 | 기본값 | 설명 |
 | --- | --- | --- | --- |
@@ -54,32 +76,36 @@ state_on:
 | `signed` | `boolean` | `false` | 부호 있는 정수로 해석할지 여부. |
 | `precision` | `number` | `0` | 소수점 자리수. `precision: 1`이면 `123` → `12.3`. |
 | `decode` | `DecodeEncodeType` | `'none'` | `bcd`, `ascii`, `signed_byte_half_degree`, `multiply`, `add_0x80` 등. |
-| `mapping` | `Object` | - | `{ 원시값: 결과 }` 형태로 값을 치환합니다. |
+| `mapping` | `Object` | - | `{ 원시값: 결과 }` 형태로 값을 치환 (예: `{0: "Off", 1: "On"}`). |
 
 ### 활용 예시
 
-**1. 소수점 처리 (온도)**
-`235`라는 원시 값을 읽어 `23.5`로 표시합니다.
+**1. 3번째 바이트를 온도로 읽기**
 ```yaml
-state_number:
+# 먼저 패킷을 매칭
+state:
+  data: [0x82, 0x80]
+
+# 매칭된 패킷의 2번 인덱스(3번째 바이트)를 온도로 사용
+state_temperature:
   offset: 2
   length: 1
+```
+
+**2. 16비트 정수 (Big Endian) 읽기 + 소수점**
+오프셋 4부터 2바이트를 읽어 `23.5`(`235`)로 변환합니다.
+```yaml
+state_temperature:
+  offset: 4
+  length: 2
+  endian: big
   precision: 1
 ```
 
-**2. 2바이트 정수 (Big Endian)**
-오프셋 1부터 2바이트를 읽어 하나의 숫자로 변환합니다.
+**3. BCD 포맷 디코딩**
+`0x12 0x34` → `1234`로 변환.
 ```yaml
-state_number:
-  offset: 1
-  length: 2
-  endian: big
-```
-
-**3. BCD 디코딩 (사용 전력량)**
-`0x12 0x34`와 같은 BCD 패킷을 숫자 `1234`로 변환합니다.
-```yaml
-state_number:
+state_value:
   offset: 5
   length: 2
   decode: bcd
