@@ -3,7 +3,7 @@ meta:
   name_en: "Elevator Call"
   description: "코맥스 엘리베이터 호출 버튼과 현재 층수 센서 설정입니다."
   description_en: "Commax elevator call button and current floor sensor."
-  version: "1.0.0"
+  version: "1.0.1"
   author: "wooooooooooook"
   tags: ["elevator", "button", "sensor", "commax"]
 
