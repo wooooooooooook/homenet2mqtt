@@ -362,14 +362,20 @@ app.get('/api/packets/dictionary', (_req, res) => {
   res.json(logRetentionService.getPacketDictionary());
 });
 
-// 명령 패킷 히스토리 (LogRetentionService에서 가져옴)
+// 명령 패킷 히스토리 (LogRetentionService에서 딕셔너리 + 원시 로그로 반환)
 app.get('/api/packets/command/history', (_req, res) => {
-  res.json(logRetentionService.getCommandPacketHistory());
+  res.json({
+    dictionary: logRetentionService.getPacketDictionary(),
+    logs: logRetentionService.getCommandPacketHistoryRaw(),
+  });
 });
 
-// 파싱된 패킷 히스토리 (LogRetentionService에서 가져옴)
+// 파싱된 패킷 히스토리 (LogRetentionService에서 딕셔너리 + 원시 로그로 반환)
 app.get('/api/packets/parsed/history', (_req, res) => {
-  res.json(logRetentionService.getParsedPacketHistory());
+  res.json({
+    dictionary: logRetentionService.getPacketDictionary(),
+    logs: logRetentionService.getParsedPacketHistoryRaw(),
+  });
 });
 
 app.get('/api/activity/recent', (_req, res) => {

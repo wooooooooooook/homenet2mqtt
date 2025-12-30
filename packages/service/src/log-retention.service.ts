@@ -28,7 +28,7 @@ export interface SavedLogFile {
   createdAt: string;
 }
 
-type PacketLogEntry = {
+export type PacketLogEntry = {
   packetId: string;
   entityId: string;
   state: unknown;
@@ -36,7 +36,7 @@ type PacketLogEntry = {
   portId?: string;
 };
 
-type CommandLogEntry = {
+export type CommandLogEntry = {
   packetId: string;
   entity: string;
   entityId: string;
@@ -166,6 +166,15 @@ export class LogRetentionService {
       timestamp: log.timestamp,
       portId: log.portId,
     }));
+  }
+
+  // Optimized: Return raw logs with packetId instead of resolved packet string
+  public getParsedPacketHistoryRaw(): PacketLogEntry[] {
+    return this.parsedPacketLogs;
+  }
+
+  public getCommandPacketHistoryRaw(): CommandLogEntry[] {
+    return this.commandPacketLogs;
   }
 
   public getPacketDictionary(): Record<string, string> {

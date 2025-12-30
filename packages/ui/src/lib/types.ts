@@ -184,3 +184,27 @@ export type StatusMessage = {
   key: string;
   values?: Record<string, any>;
 };
+
+// Optimized packet log types (with packetId instead of resolved packet string)
+export type PacketLogEntry = {
+  packetId: string;
+  entityId: string;
+  state: unknown;
+  timestamp: string;
+  portId?: string;
+};
+
+export type CommandLogEntry = {
+  packetId: string;
+  entity: string;
+  entityId: string;
+  command: string;
+  value?: unknown;
+  timestamp: string;
+  portId?: string;
+};
+
+export type PacketHistoryResponse<T> = {
+  dictionary: Record<string, string>;
+  logs: T[];
+};

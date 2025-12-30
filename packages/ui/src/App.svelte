@@ -22,6 +22,9 @@
     AutomationSummary,
     ScriptSummary,
     EntityCategory,
+    PacketLogEntry,
+    CommandLogEntry,
+    PacketHistoryResponse,
   } from './lib/types';
   import Sidebar from './lib/components/Sidebar.svelte';
   import Header from './lib/components/Header.svelte';
@@ -76,7 +79,34 @@
   let selectedPortId = $state<string | null>(null);
   let bridgeStatusByPort = $state(new Map<string, string>());
 
-  let commandPackets = $state<CommandPacket[]>([]);
+  // Packet dictionary cache (packetId -> hex string)
+  let packetDictionary = $state<Record<string, string>>({});
+  // Raw logs with packetId (optimized storage)
+  let commandPacketLogs = $state<CommandLogEntry[]>([]);
+  let parsedPacketLogs = $state<PacketLogEntry[]>([]);
+
+  // Derived: resolved packets with packet string (for UI display)
+  const commandPackets = $derived.by<CommandPacket[]>(() =>
+    commandPacketLogs.map((log) => ({
+      entity: log.entity,
+      entityId: log.entityId,
+      command: log.command,
+      value: log.value,
+      packet: packetDictionary[log.packetId] || '',
+      timestamp: log.timestamp,
+      portId: log.portId,
+    })),
+  );
+  const parsedPackets = $derived.by<ParsedPacket[]>(() =>
+    parsedPacketLogs.map((log) => ({
+      entityId: log.entityId,
+      packet: packetDictionary[log.packetId] || '',
+      state: log.state,
+      timestamp: log.timestamp,
+      portId: log.portId,
+    })),
+  );
+
   type DeviceStateEntry = { payload: string; portId?: string };
   let deviceStates = $state(new Map<string, DeviceStateEntry>());
   let socket = $state<WebSocket | null>(null);
@@ -95,7 +125,6 @@
   let executingCommands = $state(new Set<string>());
 
   let rawPackets = $state<RawPacketWithInterval[]>([]);
-  let parsedPackets = $state<ParsedPacket[]>([]);
   let packetStatsByPort = $state(new Map<string, PacketStats>());
   let hasIntervalPackets = $state(false);
   let lastRawPacketTimestamp = $state<number | null>(null);
@@ -420,13 +449,21 @@
 
   async function loadPacketHistory() {
     try {
-      const [cmds, parsed] = await Promise.all([
-        apiRequest<CommandPacket[]>('./api/packets/command/history'),
-        apiRequest<ParsedPacket[]>('./api/packets/parsed/history'),
+      const [cmdsResponse, parsedResponse] = await Promise.all([
+        apiRequest<PacketHistoryResponse<CommandLogEntry>>('./api/packets/command/history'),
+        apiRequest<PacketHistoryResponse<PacketLogEntry>>('./api/packets/parsed/history'),
       ]);
-      // portId가 없는 패킷은 그대로 유지 (포트별 필터링 시 처리됨)
-      commandPackets = cmds.slice(-MAX_PACKETS);
-      parsedPackets = parsed.slice(-MAX_PACKETS);
+
+      // Merge dictionaries from both responses
+      packetDictionary = {
+        ...packetDictionary,
+        ...cmdsResponse.dictionary,
+        ...parsedResponse.dictionary,
+      };
+
+      // Store raw logs with packetId (optimized)
+      commandPacketLogs = cmdsResponse.logs.slice(-MAX_PACKETS);
+      parsedPacketLogs = parsedResponse.logs.slice(-MAX_PACKETS);
     } catch (err) {
       console.error('Failed to load packet history:', err);
     }
@@ -600,9 +637,32 @@
       }
     };
 
+    // Helper to get or create packetId from packet string
+    let packetIdCounter = Object.keys(packetDictionary).length;
+    const getOrCreatePacketId = (packet: string): string => {
+      // Check if packet already exists in dictionary
+      for (const [id, p] of Object.entries(packetDictionary)) {
+        if (p === packet) return id;
+      }
+      // Create new entry
+      const newId = `p${++packetIdCounter}`;
+      packetDictionary = { ...packetDictionary, [newId]: packet };
+      return newId;
+    };
+
     const handleCommandPacket = (data: CommandPacket) => {
-      // portId가 없는 패킷은 그대로 저장 (필터링 시 제외됨)
-      commandPackets = [...commandPackets, data].slice(-MAX_PACKETS);
+      // Convert to log entry and store
+      const packetId = getOrCreatePacketId(data.packet);
+      const logEntry: CommandLogEntry = {
+        packetId,
+        entity: data.entity,
+        entityId: data.entityId,
+        command: data.command,
+        value: data.value,
+        timestamp: data.timestamp,
+        portId: data.portId,
+      };
+      commandPacketLogs = [...commandPacketLogs, logEntry].slice(-MAX_PACKETS);
 
       if (!isToastEnabled('command')) return;
 
@@ -622,8 +682,16 @@
     };
 
     const handleParsedPacket = (data: ParsedPacket) => {
-      // portId가 없는 패킷은 그대로 저장
-      parsedPackets = [...parsedPackets, data].slice(-MAX_PACKETS);
+      // Convert to log entry and store
+      const packetId = getOrCreatePacketId(data.packet);
+      const logEntry: PacketLogEntry = {
+        packetId,
+        entityId: data.entityId,
+        state: data.state,
+        timestamp: data.timestamp,
+        portId: data.portId,
+      };
+      parsedPacketLogs = [...parsedPacketLogs, logEntry].slice(-MAX_PACKETS);
     };
 
     const handleStateChange = (data: StateChangeEvent) => {
