@@ -1,6 +1,7 @@
 <script lang="ts">
   import { t, locale } from 'svelte-i18n';
   import { onMount, untrack } from 'svelte';
+  import Button from './Button.svelte';
 
   interface ContentSummary {
     entities: Record<string, number>;
@@ -67,7 +68,7 @@
   let applying = $state(false);
   let applyError = $state<string | null>(null);
   let applySuccess = $state(false);
-  let showConfirmModal = $state(false);
+  let restarting = $state(false);
 
   // Conflict detection states
   let checkingConflicts = $state(false);
@@ -121,16 +122,39 @@
     loadYamlContent();
   });
 
-  function handleApplyClick() {
-    showConfirmModal = true;
-  }
+  async function handleRestart() {
+    if (restarting) return;
+    restarting = true;
 
-  function cancelConfirm() {
-    showConfirmModal = false;
+    try {
+      const tokenResponse = await fetch('./api/system/restart/token');
+      if (!tokenResponse.ok) {
+        throw new Error('Failed to get restart token');
+      }
+      const { token } = await tokenResponse.json();
+
+      const restartResponse = await fetch('./api/system/restart', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token }),
+      });
+
+      if (!restartResponse.ok) {
+        const data = await restartResponse.json();
+        throw new Error(data.error || 'Restart failed');
+      }
+
+      // Close modal and let the app handle reconnection
+      setTimeout(() => {
+        window.location.reload();
+      }, 5000);
+    } catch (e) {
+      console.error('Restart failed', e);
+      restarting = false;
+    }
   }
 
   async function confirmAndCheckConflicts() {
-    showConfirmModal = false;
     checkingConflicts = true;
     applyError = null;
 
@@ -265,9 +289,20 @@
         <p class="success-message">{$t('gallery.preview.success_with_backup')}</p>
       </div>
       <footer class="modal-footer success-footer">
-        <button class="apply-btn full-width" onclick={onClose}>
-          {$t('common.close')}
-        </button>
+        <div class="success-buttons">
+          <Button
+            variant="danger"
+            onclick={handleRestart}
+            disabled={restarting}
+            isLoading={restarting}
+            fullWidth
+          >
+            {$t('gallery.preview.restart_now')}
+          </Button>
+          <Button variant="secondary" onclick={onClose} fullWidth>
+            {$t('common.close')}
+          </Button>
+        </div>
       </footer>
     {:else}
       <div class="modal-body">
@@ -354,13 +389,14 @@
           </div>
 
           <div class="action-buttons">
-            <button class="cancel-btn" onclick={onClose}>
-              {$t('gallery.preview.cancel')}
-            </button>
-            <button
-              class="apply-btn"
-              onclick={handleApplyClick}
-              disabled={applying || checkingConflicts || !selectedPortId || loadingYaml}
+            <Button variant="secondary" onclick={onClose}>
+              {$t('common.cancel')}
+            </Button>
+            <Button
+              variant="primary"
+              onclick={confirmAndCheckConflicts}
+              isLoading={applying || checkingConflicts}
+              disabled={!selectedPortId || loadingYaml}
             >
               {#if applying}
                 {$t('gallery.preview.applying')}
@@ -369,31 +405,13 @@
               {:else}
                 {$t('gallery.preview.apply')}
               {/if}
-            </button>
+            </Button>
           </div>
         </div>
       </footer>
     {/if}
   </div>
 </div>
-
-{#if showConfirmModal}
-  <div class="confirm-backdrop">
-    <div class="confirm-modal" role="alertdialog" aria-modal="true">
-      <h3>{$t('gallery.preview.confirm_title')}</h3>
-      <p class="warning-text">⚠️ {$t('gallery.preview.confirm_warning')}</p>
-      <p class="proceed-text">{$t('gallery.preview.confirm_proceed')}</p>
-      <div class="confirm-buttons">
-        <button class="confirm-cancel-btn" onclick={cancelConfirm}>
-          {$t('gallery.preview.confirm_cancel')}
-        </button>
-        <button class="confirm-apply-btn" onclick={confirmAndCheckConflicts}>
-          {$t('gallery.preview.confirm_apply')}
-        </button>
-      </div>
-    </div>
-  </div>
-{/if}
 
 {#if showConflictModal}
   <div class="confirm-backdrop">
@@ -438,12 +456,11 @@
         </p>
 
         <div class="conflict-list">
-          {#each conflicts as conflict (conflict.id)}
+          {#each conflicts as conflict}
             <div class="conflict-item">
               <div class="conflict-header">
                 <span class="conflict-id">
-                  {formatItemLabel(conflict.type, conflict.entityType)}
-                  {conflict.id}
+                  ID: <strong>{conflict.id}</strong>
                 </span>
                 <button class="toggle-diff-btn" onclick={() => toggleDiff(conflict.id)}>
                   {expandedDiffs.has(conflict.id) ? '▲' : '▼'}
@@ -468,7 +485,7 @@
                 <label class="resolution-option">
                   <input
                     type="radio"
-                    name={`resolution-${conflict.id}`}
+                    name="resolution-{conflict.id}"
                     value="overwrite"
                     checked={resolutions[conflict.id] === 'overwrite'}
                     onchange={() => (resolutions[conflict.id] = 'overwrite')}
@@ -478,7 +495,7 @@
                 <label class="resolution-option">
                   <input
                     type="radio"
-                    name={`resolution-${conflict.id}`}
+                    name="resolution-{conflict.id}"
                     value="skip"
                     checked={resolutions[conflict.id] === 'skip'}
                     onchange={() => (resolutions[conflict.id] = 'skip')}
@@ -488,7 +505,7 @@
                 <label class="resolution-option">
                   <input
                     type="radio"
-                    name={`resolution-${conflict.id}`}
+                    name="resolution-{conflict.id}"
                     value="rename"
                     checked={resolutions[conflict.id] === 'rename'}
                     onchange={() => (resolutions[conflict.id] = 'rename')}
@@ -515,8 +532,7 @@
           <ul class="new-items-list">
             {#each newItems as newItem}
               <li>
-                {formatItemLabel(newItem.type, newItem.entityType)}
-                {newItem.id}
+                • {newItem.id} ({newItem.type})
               </li>
             {/each}
           </ul>
@@ -524,16 +540,16 @@
       {/if}
 
       <div class="confirm-buttons">
-        <button class="confirm-cancel-btn" onclick={cancelConflictModal}>
+        <Button variant="secondary" onclick={cancelConflictModal}>
           {$t('gallery.preview.cancel')}
-        </button>
-        <button
-          class="confirm-apply-btn"
+        </Button>
+        <Button
+          variant="primary"
           onclick={applyWithResolutions}
-          disabled={compatibility && !compatibility.compatible && !forceApply}
+          disabled={!!(compatibility && !compatibility.compatible && !forceApply)}
         >
           {$t('gallery.preview.apply')}
-        </button>
+        </Button>
       </div>
     </div>
   </div>
@@ -817,41 +833,6 @@
     gap: 0.5rem;
   }
 
-  .cancel-btn,
-  .apply-btn {
-    padding: 0.6rem 1.25rem;
-    border-radius: 6px;
-    font-size: 0.9rem;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .cancel-btn {
-    background: transparent;
-    border: 1px solid rgba(148, 163, 184, 0.2);
-    color: #94a3b8;
-  }
-
-  .cancel-btn:hover {
-    border-color: rgba(148, 163, 184, 0.4);
-    color: #f1f5f9;
-  }
-
-  .apply-btn {
-    background: #3b82f6;
-    border: none;
-    color: white;
-  }
-
-  .apply-btn:hover:not(:disabled) {
-    background: #2563eb;
-  }
-
-  .apply-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
   @media (max-width: 640px) {
     .modal {
       max-height: 100vh;
@@ -890,72 +871,6 @@
     z-index: 1100;
     padding: 1rem;
     backdrop-filter: blur(4px);
-  }
-
-  .confirm-modal {
-    background: #1e293b;
-    border: 1px solid rgba(148, 163, 184, 0.2);
-    border-radius: 12px;
-    padding: 1.5rem;
-    max-width: 400px;
-    width: 100%;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-  }
-
-  .confirm-modal h3 {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #f1f5f9;
-    margin: 0 0 1rem 0;
-  }
-
-  .confirm-modal .warning-text {
-    font-size: 0.9rem;
-    color: #fbbf24;
-    margin: 0 0 0.75rem 0;
-    line-height: 1.5;
-  }
-
-  .confirm-modal .proceed-text {
-    font-size: 0.85rem;
-    color: #94a3b8;
-    margin: 0 0 1.25rem 0;
-  }
-
-  .confirm-buttons {
-    display: flex;
-    justify-content: flex-end;
-    gap: 0.5rem;
-  }
-
-  .confirm-cancel-btn,
-  .confirm-apply-btn {
-    padding: 0.5rem 1rem;
-    border-radius: 6px;
-    font-size: 0.85rem;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .confirm-cancel-btn {
-    background: transparent;
-    border: 1px solid rgba(148, 163, 184, 0.2);
-    color: #94a3b8;
-  }
-
-  .confirm-cancel-btn:hover {
-    border-color: rgba(148, 163, 184, 0.4);
-    color: #f1f5f9;
-  }
-
-  .confirm-apply-btn {
-    background: #3b82f6;
-    border: none;
-    color: white;
-  }
-
-  .confirm-apply-btn:hover {
-    background: #2563eb;
   }
 
   /* Conflict Modal Styles */
@@ -1235,8 +1150,17 @@
     justify-content: center;
   }
 
-  .full-width {
+  .success-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
     width: 100%;
-    justify-content: center;
+  }
+
+  .confirm-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 1.5rem;
   }
 </style>

@@ -192,6 +192,9 @@
     "english": "English",
     "korean": "한국어",
     "close": "닫기",
+    "cancel": "취소",
+    "confirm": "확인",
+    "apply": "적용",
     "copied": "복사됨!"
   },
   "header": {
@@ -249,6 +252,8 @@
       "checking": "충돌 확인 중...",
       "success": "스니펫이 적용되었습니다.",
       "success_with_backup": "스니펫이 적용되었습니다. 백업 파일이 생성되었습니다. 적용을 위해 애드온을 재시작해주세요.",
+      "restart_now": "지금 재시작",
+      "restarting": "재시작 요청 중...",
       "error": "적용에 실패했습니다.",
       "cancel": "취소",
       "confirm_title": "스니펫 적용 확인",

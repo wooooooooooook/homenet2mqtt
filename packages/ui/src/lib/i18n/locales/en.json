@@ -64,6 +64,12 @@
       "restart_desc": "Restart the Homenet2MQTT service. Connection will be lost momentarily.",
       "restart_confirm": "Are you sure you want to restart the service?",
       "restarting": "Requesting restart..."
+    },
+    "bridge_config": {
+      "title": "Bridge Management",
+      "add_title": "Add Bridge",
+      "add_desc": "Add a new RS485 bridge configuration.",
+      "add_button": "Add Bridge"
     }
   },
   "analysis": {
@@ -114,7 +120,23 @@
       "empty": "No packets to display.",
       "collected_packets": "Collected Packets: {count}",
       "recording_duration": "Recording Duration: {duration}",
-      "auto_stopped_limit": "Recording automatically stopped because it reached the limit (20 minutes or 10,000 packets)."
+      "auto_stopped_limit": "Recording automatically stopped because it reached the limit (20 minutes or 10,000 packets).",
+      "sender": {
+        "title": "Send Packet",
+        "hex_input_label": "Hex Packet Input",
+        "hex_input_placeholder": "e.g. AF 00 F7 ...",
+        "options_label": "Options",
+        "option_header": "Add Header",
+        "option_footer": "Add Footer (Checksum required)",
+        "option_checksum": "Calculate Checksum",
+        "preview_label": "Packet Preview",
+        "settings_label": "Send Settings",
+        "interval_label": "Interval (ms)",
+        "count_label": "Count",
+        "send_btn": "Send",
+        "sending": "Sending...",
+        "sent_success": "Sent {count} times"
+      }
     },
     "cel_analyzer": {
       "title": "CEL Analyzer",
@@ -170,6 +192,9 @@
     "english": "English",
     "korean": "Korean",
     "close": "Close",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "apply": "Apply",
     "copied": "Copied!"
   },
   "header": {
@@ -227,6 +252,8 @@
       "checking": "Checking conflicts...",
       "success": "Snippet applied successfully.",
       "success_with_backup": "Snippet applied successfully. Backup file has been created. Please restart the addon to apply changes.",
+      "restart_now": "Restart Now",
+      "restarting": "Restarting...",
       "error": "Failed to apply snippet.",
       "cancel": "Cancel",
       "confirm_title": "Confirm Apply",
@@ -423,7 +450,9 @@
     "SERIAL_BAUD_RATE_INVALID": "Check the baud rate setting.",
     "SERIAL_DATA_BITS_INVALID": "Check the data bits setting.",
     "SERIAL_PARITY_INVALID": "Check the parity setting.",
-    "SERIAL_STOP_BITS_INVALID": "Check the stop bits setting."
+    "SERIAL_STOP_BITS_INVALID": "Check the stop bits setting.",
+    "SERIAL_PATH_DUPLICATE": "The serial path is already in use. Please choose another path.",
+    "PORT_ID_DUPLICATE": "The port ID is already in use. Please enter a different ID."
   },
   "setup_wizard": {
     "title": "Initial Setup",
@@ -487,7 +516,27 @@
     "pdf_tx_header": "TX Header",
     "pdf_tx_footer": "TX Footer",
     "pdf_rx_checksum": "RX Checksum",
-    "pdf_tx_checksum": "TX Checksum"
+    "pdf_tx_checksum": "TX Checksum",
+    "step_entities": "Select Entities",
+    "entities_title": "Include Entities",
+    "entities_desc": "Select devices and sensors to use. Unchecked items will be excluded from the configuration.",
+    "loading_entities": "Loading entity list...",
+    "no_entities_found": "No selectable entities found in this example configuration."
+  },
+  "entity_types": {
+    "light": "Light",
+    "climate": "Thermostat/AC",
+    "valve": "Valve",
+    "button": "Button",
+    "sensor": "Sensor",
+    "fan": "Fan",
+    "switch": "Switch",
+    "lock": "Lock",
+    "number": "Number Input",
+    "select": "Select",
+    "text_sensor": "Text Sensor",
+    "text": "Text Input",
+    "binary_sensor": "Binary Sensor"
   },
   "toasts": {
     "command_sent": "{entity} Command Sent",
