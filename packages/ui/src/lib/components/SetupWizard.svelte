@@ -35,6 +35,8 @@
   let hasTested = $state(false);
   let currentStep = $state<WizardStep>('config');
   let currentLocale = $state('ko');
+  let requiresManualUpdate = $state(false);
+  let createdFilename = $state('');
 
   // Sync with current locale
   $effect(() => {
@@ -196,6 +198,28 @@
         error = $t('setup_wizard.validation_error');
         return;
       }
+      if (mode === 'add') {
+        try {
+          const res = await fetch('./api/config/check-duplicate-serial', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              serialPath: serialPath.trim(),
+              portId: serialPortId.trim(),
+            }),
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            error = $t(`errors.${data.error || 'UNKNOWN_ERROR'}`);
+            return;
+          }
+        } catch (e) {
+          console.error(e);
+          error = $t('errors.UNKNOWN_ERROR');
+          return;
+        }
+      }
+
       if (!hasTested) {
         await handleSerialTest();
         if (testPackets.length === 0) {
@@ -263,6 +287,8 @@
 
         if (mode === 'add') {
           currentStep = 'complete';
+          requiresManualUpdate = data.requiresManualConfigUpdate;
+          createdFilename = data.target;
           return;
         }
 
@@ -370,11 +396,18 @@
       if (!res.ok) {
         const errorKey = data.error || 'UNKNOWN_ERROR';
         if (errorKey === 'SERIAL_TEST_FAILED') {
-          testError = $t('setup_wizard.serial_test_failed_warning');
+          // If detailed error message is available, show it
+          error = $t('setup_wizard.serial_test_failed_warning');
+          if (data.details) {
+            error += ` (${data.details})`;
+          }
         } else {
-          testError = $t(`errors.${errorKey}`, {
+          error = $t(`errors.${errorKey}`, {
             default: data.error || $t('setup_wizard.serial_test_error'),
           });
+          if (data.details) {
+            error += ` (${data.details})`;
+          }
         }
         return;
       }
@@ -382,10 +415,10 @@
       testPackets = Array.isArray(data.packets) ? data.packets : [];
 
       if (testPackets.length === 0) {
-        testError = $t('setup_wizard.serial_test_empty');
+        error = $t('setup_wizard.serial_test_empty');
       }
     } catch (err) {
-      testError = $t('setup_wizard.serial_test_error');
+      error = $t('setup_wizard.serial_test_error');
     } finally {
       testingSerial = false;
     }
@@ -671,22 +704,7 @@
         {/if}
 
         <div class="form-group">
-          <div class="test-actions">
-            <Button
-              type="button"
-              variant="secondary"
-              onclick={handleSerialTest}
-              isLoading={testingSerial}
-              disabled={submitting || !selectedExample || !isFormReady()}
-              class="wizard-test-btn"
-            >
-              {$t('setup_wizard.serial_test_button')}
-            </Button>
-            {#if testError}
-              <p class="field-hint error-hint">{testError}</p>
-            {/if}
-          </div>
-          {#if hasTested && !testError}
+          {#if hasTested && !error}
             <div class="serial-test-result">
               {#if testingSerial}
                 <p class="field-hint">{$t('setup_wizard.serial_test_wait')}</p>
@@ -700,29 +718,46 @@
                     </code>
                   </div>
                 </div>
-              {:else if !testError}
-                <p class="field-hint muted">{$t('setup_wizard.serial_test_empty')}</p>
               {/if}
             </div>
           {/if}
-        </div>
-        {#if testPackets.length > 0}
-          <p class="success-hint">{$t('setup_wizard.serial_test_success')}</p>
-        {/if}
-        {#if error}
-          <div class="error-message">{error}</div>
-        {/if}
 
-        <Button
-          type="submit"
-          variant="primary"
-          isLoading={submitting}
-          fullWidth={true}
-          disabled={!selectedExample || !isFormReady()}
-          class="wizard-submit-btn"
-        >
-          {$t('setup_wizard.next')}
-        </Button>
+          {#if testPackets.length > 0}
+            <p class="success-hint">{$t('setup_wizard.serial_test_success')}</p>
+          {/if}
+
+          {#if error}
+            <div class="error-message">{error}</div>
+          {/if}
+
+          <div class="button-group">
+            <Button
+              type="button"
+              variant="secondary"
+              onclick={handleSerialTest}
+              disabled={submitting || testingSerial || !selectedExample || !isFormReady()}
+              class="wizard-test-btn"
+            >
+              {$t('setup_wizard.serial_test_button')}
+            </Button>
+
+            <Button
+              type="submit"
+              variant="primary"
+              isLoading={submitting || testingSerial}
+              disabled={!selectedExample || !isFormReady()}
+              class="wizard-submit-btn"
+            >
+              {#if !hasTested && testingSerial}
+                {$t('setup_wizard.serial_test_running')}
+              {:else if hasTested && testPackets.length === 0 && error}
+                {$t('setup_wizard.ignore_and_next')}
+              {:else}
+                {$t('setup_wizard.next')}
+              {/if}
+            </Button>
+          </div>
+        </div>
       </form>
     {:else if currentStep === 'packet_defaults'}
       <div class="wizard-step">
@@ -952,19 +987,28 @@
       </div>
     {:else if currentStep === 'complete'}
       <div class="success-state">
-        <div class="success-icon">✓</div>
-        <p class="success-message">{$t('setup_wizard.success_message')}</p>
-        <p class="hint">{$t('setup_wizard.restarting')}</p>
-        <div class="restart-action">
-          <Button
-            variant="primary"
-            onclick={handleRestart}
-            isLoading={isRestarting}
-            disabled={isRestarting}
-          >
-            {$t('settings.app_control.restart')}
-          </Button>
-        </div>
+        {#if requiresManualUpdate}
+          <div class="warning-icon">!</div>
+          <p class="warning-message">
+            {$t('setup_wizard.manual_config_update_required', {
+              values: { filename: createdFilename },
+            })}
+          </p>
+        {:else}
+          <div class="success-icon">✓</div>
+          <p class="success-message">{$t('setup_wizard.success_message')}</p>
+          <p class="hint">{$t('setup_wizard.restarting')}</p>
+          <div class="restart-action">
+            <Button
+              variant="primary"
+              onclick={handleRestart}
+              isLoading={isRestarting}
+              disabled={isRestarting}
+            >
+              {$t('settings.app_control.restart')}
+            </Button>
+          </div>
+        {/if}
       </div>
     {/if}
   </div>
@@ -1215,18 +1259,6 @@
     gap: 1rem;
   }
 
-  .test-actions {
-    margin-top: 0.5rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
-  }
-
-  /* Styling for Button component when used in test-actions */
-  :global(.wizard-test-btn) {
-    align-self: flex-start;
-  }
-
   .serial-test-result {
     margin-top: 0.75rem;
     padding: 0.75rem;
@@ -1250,10 +1282,6 @@
     word-break: break-all;
   }
 
-  .error-hint {
-    color: #fca5a5;
-  }
-
   .success-hint {
     background: rgba(68, 239, 77, 0.1);
     border: 1px solid rgba(68, 239, 77, 0.3);
@@ -1264,10 +1292,6 @@
     margin-bottom: 1.5rem;
   }
 
-  .muted {
-    color: #94a3b8;
-  }
-
   .error-message {
     background: rgba(239, 68, 68, 0.1);
     border: 1px solid rgba(239, 68, 68, 0.3);
@@ -1275,7 +1299,7 @@
     padding: 0.75rem 1rem;
     color: #ef4444;
     font-size: 0.9rem;
-    margin-bottom: 1.5rem;
+    margin: 0.75rem 0;
   }
 
   /* Style tweaks for Button component variants to match wizard style if needed,
@@ -1362,6 +1386,27 @@
     align-items: center;
     justify-content: center;
     margin: 0 auto 1rem;
+  }
+
+  .warning-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: white;
+    font-size: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    margin: 0 auto 1rem;
+  }
+
+  .warning-message {
+    color: #f59e0b;
+    font-weight: 600;
+    font-size: 1.1rem;
+    margin: 0 0 0.5rem 0;
   }
 
   .success-message {
@@ -1461,8 +1506,18 @@
   }
   .params-divider {
     border: 0;
-    border-top: 1px solid rgba(148, 163, 184, 0.15);
-    margin: 2rem 0 1.5rem 0;
+    border-top: 1px solid rgba(148, 163, 184, 0.2);
+    margin: 2rem 0;
+  }
+
+  .button-group {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+
+  .button-group > :global(*) {
+    flex: 1;
   }
   h4 {
     margin: 0 0 0.5rem 0;

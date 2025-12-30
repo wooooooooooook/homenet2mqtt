@@ -20,12 +20,23 @@ export async function createSerialPortConnection(
       return new Promise((resolve, reject) => {
         const socket = net.createConnection({ host, port: portNumber });
 
+        // Add explicit connection timeout
+        const connectionTimeout = timeoutMs || 5000;
+        const timeoutId = setTimeout(() => {
+          socket.destroy();
+          const err = new Error(`Connection timed out after ${connectionTimeout}ms`);
+          (err as any).code = 'ETIMEDOUT';
+          reject(err);
+        }, connectionTimeout);
+
         const onConnect = () => {
+          clearTimeout(timeoutId);
           socket.removeListener('error', onError);
           resolve(socket);
         };
 
         const onError = async (err: Error) => {
+          clearTimeout(timeoutId);
           socket.removeListener('connect', onConnect);
           socket.destroy();
 

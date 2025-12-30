@@ -87,7 +87,7 @@ services:
       SERIAL_PATH_WAIT_TIMEOUT_MS: '10000'
       PORT: '3000'
       CONFIG_ROOT: /workspace/deploy/.configs
-      CONFIG_FILES: samsung_sds.homenet_bridge.yaml
+      CONFIG_FILES:
       LOG_LEVEL: info
       MQTT_TOPIC_PREFIX: homenet
     volumes:

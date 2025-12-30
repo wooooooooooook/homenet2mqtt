@@ -51,7 +51,6 @@ const resolveConfigRoot = (): string => {
 const CONFIG_DIR = resolveConfigRoot();
 const FRONTEND_SETTINGS_FILE = path.join(CONFIG_DIR, 'frontend-setting.json');
 const DEFAULT_CONFIG_FILENAME = 'default.homenet_bridge.yaml';
-const LEGACY_DEFAULT_CONFIG_FILENAME = 'default.yaml';
 const CONFIG_INIT_MARKER = path.join(CONFIG_DIR, '.initialized');
 const CONFIG_RESTART_FLAG = path.join(CONFIG_DIR, '.restart-required');
 const GALLERY_RAW_BASE_URL =
@@ -214,7 +213,6 @@ const setupWizardService = createSetupWizardService({
   configDir: CONFIG_DIR,
   examplesDir: path.resolve(__dirname, '../../core/config/examples'),
   defaultConfigFilename: DEFAULT_CONFIG_FILENAME,
-  legacyDefaultConfigFilename: LEGACY_DEFAULT_CONFIG_FILENAME,
   configInitMarker: CONFIG_INIT_MARKER,
   configRestartFlag: CONFIG_RESTART_FLAG,
   envConfigFilesSource: envConfigFiles.source,
@@ -3002,6 +3000,113 @@ const stopAllBridges = async (options?: { preserveStatus?: boolean }) => {
   }
 };
 
+/**
+ * Checks for duplicate portIds across loaded configuration files and auto-fixes them if found.
+ * Returns true if duplicates were found and fixed, false otherwise.
+ */
+async function checkAndFixDuplicatePortIds(
+  filenames: string[],
+  resolvedPaths: string[],
+): Promise<{ needsRestart: boolean; fixedFiles: string[] }> {
+  const fixedFiles: string[] = [];
+  const usedPortIds = new Map<string, { filename: string; index: number }>();
+  const portIdUpdates: { pathIndex: number; originalPortId: string; newPortId: string }[] = [];
+
+  // Step 1: Read each config file and collect portIds, checking for duplicates
+  for (let i = 0; i < resolvedPaths.length; i++) {
+    const configPath = resolvedPaths[i];
+    const filename = filenames[i];
+
+    try {
+      const fileContent = await fs.readFile(configPath, 'utf8');
+      const loadedYaml = yaml.load(fileContent) as { homenet_bridge?: HomenetBridgeConfig };
+
+      if (!loadedYaml?.homenet_bridge?.serial) {
+        continue;
+      }
+
+      const serial = loadedYaml.homenet_bridge.serial;
+      const portId = (serial.portId || 'default').toString().trim();
+
+      if (usedPortIds.has(portId)) {
+        const existing = usedPortIds.get(portId)!;
+        logger.warn(
+          {
+            portId,
+            existingFile: existing.filename,
+            duplicateFile: filename,
+          },
+          '[service] Duplicate portId detected. Auto-fixing...',
+        );
+
+        // Append suffix to duplicate portId
+        let suffix = 2;
+        let newPortId = `${portId}_${suffix}`;
+        while (usedPortIds.has(newPortId)) {
+          suffix += 1;
+          newPortId = `${portId}_${suffix}`;
+        }
+
+        portIdUpdates.push({
+          pathIndex: i,
+          originalPortId: portId,
+          newPortId,
+        });
+
+        usedPortIds.set(newPortId, { filename, index: i });
+      } else {
+        usedPortIds.set(portId, { filename, index: i });
+      }
+    } catch (err) {
+      // Ignore file read errors (will be handled in loadAndStartBridges)
+      logger.debug({ err, configPath }, '[service] Failed to read config for portId check');
+    }
+  }
+
+  // Step 2: If duplicates found, modify and save the config files
+  if (portIdUpdates.length === 0) {
+    return { needsRestart: false, fixedFiles: [] };
+  }
+
+  for (const update of portIdUpdates) {
+    const configPath = resolvedPaths[update.pathIndex];
+    const filename = filenames[update.pathIndex];
+
+    try {
+      const fileContent = await fs.readFile(configPath, 'utf8');
+      const loadedYaml = yaml.load(fileContent) as { homenet_bridge: HomenetBridgeConfig };
+
+      // Create backup
+      await saveBackup(configPath, loadedYaml, 'portid-fix');
+
+      // Update portId
+      loadedYaml.homenet_bridge.serial!.portId = update.newPortId;
+
+      // Save the modified config
+      const updatedYaml = dumpConfigToYaml(loadedYaml);
+      await fs.writeFile(configPath, updatedYaml, 'utf-8');
+
+      logger.info(
+        {
+          filename,
+          originalPortId: update.originalPortId,
+          newPortId: update.newPortId,
+        },
+        '[service] Fixed duplicate portId and saved configuration file.',
+      );
+
+      fixedFiles.push(filename);
+    } catch (err) {
+      logger.error(
+        { err, configPath },
+        '[service] Error occurred while fixing duplicate portId.',
+      );
+    }
+  }
+
+  return { needsRestart: fixedFiles.length > 0, fixedFiles };
+}
+
 async function loadAndStartBridges(filenames: string[]) {
   if (filenames.length === 0) {
     throw new Error('No configuration files provided.');
@@ -3020,6 +3125,46 @@ async function loadAndStartBridges(filenames: string[]) {
 
     const resolvedPaths = filenames.map(resolveConfigPath);
     logger.info(`[service] Loading configuration files: ${filenames.join(', ')}`);
+
+    // Check for duplicate portIds when multiple config files exist
+    if (filenames.length > 1) {
+      const { needsRestart, fixedFiles } = await checkAndFixDuplicatePortIds(
+        filenames,
+        resolvedPaths,
+      );
+
+      if (needsRestart) {
+        logger.warn(
+          { fixedFiles },
+          '[service] Duplicate portId(s) fixed. Restarting to apply changes...',
+        );
+
+        bridgeStatus = 'error';
+        bridgeError = `Duplicate portId(s) auto-fixed (${fixedFiles.join(', ')}). Restarting...`;
+        bridgeStartPromise = null;
+
+        // Trigger restart
+        await triggerRestart();
+
+        // Handle immediate restart in dev environment
+        setTimeout(async () => {
+          if (process.env.npm_lifecycle_event === 'dev') {
+            logger.info('[service] Dev mode detected. Touching file to trigger restart...');
+            try {
+              const now = new Date();
+              await fs.utimes(__filename, now, now);
+            } catch (err) {
+              logger.error({ err }, '[service] Failed to touch file for dev restart');
+            }
+          } else {
+            logger.info('[service] Exiting process to apply portId fixes...');
+            process.exit(0);
+          }
+        }, 500);
+
+        return;
+      }
+    }
 
     // Load configs individually, capturing errors per config
     const loadResults: { config: HomenetBridgeConfig | null; error: string | null }[] = [];
@@ -3201,8 +3346,7 @@ server.listen(port, async () => {
     const discoveredConfigFiles = (await fs.readdir(CONFIG_DIR)).filter(
       (file: string) =>
         file === DEFAULT_CONFIG_FILENAME ||
-        file === LEGACY_DEFAULT_CONFIG_FILENAME ||
-        /\.homenet_bridge\.ya?ml$/.test(file),
+        /^default_\d+\.homenet_bridge\.ya?ml$/.test(file),
     );
 
     const shouldPersistInitMarker =
@@ -3210,13 +3354,13 @@ server.listen(port, async () => {
 
     const availableConfigFiles = (() => {
       if (!initState.hasInitMarker && initState.defaultConfigName) {
-        const remaining = (
-          configFilesFromEnv.length > 0 ? configFilesFromEnv : discoveredConfigFiles
-        ).filter((file) => file !== initState.defaultConfigName);
+        const sourceConfigs =
+          envConfigFiles.source !== 'default' ? configFilesFromEnv : discoveredConfigFiles;
+        const remaining = sourceConfigs.filter((file) => file !== initState.defaultConfigName);
         return [initState.defaultConfigName, ...remaining];
       }
 
-      return configFilesFromEnv.length > 0 ? configFilesFromEnv : discoveredConfigFiles;
+      return envConfigFiles.source !== 'default' ? configFilesFromEnv : discoveredConfigFiles;
     })();
 
     const uniqueConfigFiles = [...new Set(availableConfigFiles)];

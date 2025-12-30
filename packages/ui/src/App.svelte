@@ -851,7 +851,9 @@
           status?: 'idle' | 'starting' | 'started' | 'error' | 'stopped';
         }
       >;
-    return bridgeInfo.bridges.flatMap((bridge) => {
+
+    // 1. Flatten all ports from all bridges
+    const allPorts = bridgeInfo.bridges.flatMap((bridge) => {
       if (bridge.serials.length === 0 && (bridge.error || bridge.status === 'error')) {
         // Serials가 없지만 에러가 있는 경우, placeholder 포트를 추가하여 UI 탭에 표시되도록 함
         return [
@@ -873,6 +875,19 @@
         status: bridge.status,
       }));
     });
+
+    // 2. Deduplicate by portId
+    const uniquePorts: typeof allPorts = [];
+    const seenIds = new Set<string>();
+
+    for (const port of allPorts) {
+      if (!seenIds.has(port.portId)) {
+        seenIds.add(port.portId);
+        uniquePorts.push(port);
+      }
+    }
+
+    return uniquePorts;
   });
 
   const configPortMap = $derived.by(() => {

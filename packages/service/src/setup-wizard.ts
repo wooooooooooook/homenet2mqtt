@@ -27,7 +27,6 @@ type SetupWizardDeps = {
   configDir: string;
   examplesDir: string;
   defaultConfigFilename: string;
-  legacyDefaultConfigFilename: string;
   configInitMarker: string;
   configRestartFlag: string;
   envConfigFilesSource: string | null;
@@ -263,7 +262,6 @@ export const createSetupWizardService = ({
   configDir,
   examplesDir,
   defaultConfigFilename,
-  legacyDefaultConfigFilename,
   configInitMarker,
   configRestartFlag,
   envConfigFilesSource,
@@ -290,10 +288,8 @@ export const createSetupWizardService = ({
 
   const getDefaultConfigFilename = async (): Promise<string | null> => {
     const defaultPath = path.join(configDir, defaultConfigFilename);
-    const legacyDefaultPath = path.join(configDir, legacyDefaultConfigFilename);
 
     if (await fileExists(defaultPath)) return defaultConfigFilename;
-    if (await fileExists(legacyDefaultPath)) return legacyDefaultConfigFilename;
     return null;
   };
 
@@ -307,7 +303,6 @@ export const createSetupWizardService = ({
     const configFiles = allFiles.filter(
       (file) =>
         file === defaultConfigFilename ||
-        file === legacyDefaultConfigFilename ||
         /\.homenet_bridge\.ya?ml$/.test(file),
     );
 
@@ -596,9 +591,27 @@ export const createSetupWizardService = ({
         });
       } catch (error) {
         logger.error({ err: error }, '[service] Failed to test serial path during setup');
-        res.status(500).json({ error: 'SERIAL_TEST_FAILED' });
+        const err = error as Error & { code?: string };
+        res.status(500).json({
+          error: 'SERIAL_TEST_FAILED',
+          details: err.code || err.message || 'Unknown error',
+        });
       } finally {
         isSerialTestRunning = false;
+      }
+    });
+
+    app.post('/api/config/check-duplicate-serial', async (req, res) => {
+      try {
+        const { serialPath, portId } = req.body || {};
+        const validation = await checkDuplicateSerial(serialPath, portId);
+        if (validation) {
+          return res.status(400).json({ error: validation.error });
+        }
+        res.json({ ok: true });
+      } catch (error) {
+        logger.error({ err: error }, '[service] Failed to check duplicate serial');
+        res.status(500).json({ error: 'UNKNOWN_ERROR' });
       }
     });
 
@@ -742,6 +755,7 @@ export const createSetupWizardService = ({
           ok: true,
           target: targetFilename,
           restartScheduled: true,
+          requiresManualConfigUpdate: envConfigFilesSource !== 'default',
         });
 
         await triggerRestart();
