@@ -36,6 +36,7 @@ type SetupWizardDeps = {
   saveBackup: (configPath: string, config: any, reason: string) => Promise<string>;
   triggerRestart: () => Promise<void>;
   serialTestRateLimiter: { check: (key: string) => boolean };
+  configRateLimiter?: { check: (key: string) => boolean };
   logger: {
     info: (msg: string | Record<string, unknown>, ...args: unknown[]) => void;
     warn: (msg: string | Record<string, unknown>, ...args: unknown[]) => void;
@@ -272,6 +273,7 @@ export const createSetupWizardService = ({
   saveBackup,
   triggerRestart,
   serialTestRateLimiter,
+  configRateLimiter,
   logger,
   getLoadedConfigs,
 }: SetupWizardDeps): SetupWizardService => {
@@ -603,6 +605,11 @@ export const createSetupWizardService = ({
     });
 
     app.post('/api/config/examples/select', async (req, res) => {
+      if (configRateLimiter && !configRateLimiter.check(req.ip || 'unknown')) {
+        logger.warn({ ip: req.ip }, '[service] Setup wizard rate limit exceeded');
+        return res.status(429).json({ error: 'Too many requests' });
+      }
+
       try {
         const state = await getInitializationState();
         const {
