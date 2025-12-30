@@ -1,0 +1,33 @@
+meta:
+  name: "엘리베이터 호출 설정 (26으로 시작하는 층수 센서)"
+  name_en: "Elevator Call"
+  description: "코맥스 엘리베이터 호출 버튼과 26으로 시작하는 층수 센서 설정입니다."
+  description_en: "Commax elevator call button and current floor sensor."
+  version: "1.0.0"
+  author: "wooooooooooook"
+  tags: ["elevator", "button", "sensor", "commax"]
+
+entities:
+# 26 01 01 46 00 12 02 82  a6 01 01 01 00 00 00 a9
+# 26 01 01 46 00 14 02 84  a6 01 01 01 00 00 00 a9
+# 26 01 01 46 00 14 02 84  a6 01 01 01 00 00 00 a9
+  sensor:
+    - id: 'elevator_floors'
+      name: 'Elevator Floors'
+      icon: 'mdi:elevator'
+      state:
+        data: [0x26]
+      state_number:
+        offset: 5
+        length: 1
+        precision: 0
+
+  #명령 0xA0, 0x01, 0x01, 0x00, 0x08, 0x15, 0x00, add checksum
+  button:
+    - id: 'elevator_call'
+      name: 'Elevator Call'
+      icon: 'mdi:elevator'
+      command_press:
+        data: [0xA0, 0x01, 0x01, 0x00, 0x08, 0x15, 0x00]
+        ack: [0x23]
+      discovery_linked_id: elevator_floors
