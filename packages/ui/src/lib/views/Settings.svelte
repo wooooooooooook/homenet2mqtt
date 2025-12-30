@@ -4,12 +4,13 @@
   import WizardModal from '../components/WizardModal.svelte';
   import Button from '../components/Button.svelte';
   import Toggle from '$lib/components/Toggle.svelte';
-  import type { FrontendSettings, LogRetentionStats, SavedLogFile } from '../types';
+  import type { FrontendSettings, LogRetentionStats, SavedLogFile, BridgeInfo } from '../types';
 
   type ToastSettingKey = 'stateChange' | 'command';
 
   let {
     frontendSettings = null,
+    bridgeInfo = null,
     isLoading = false,
     isSaving = false,
     error = '',
@@ -17,6 +18,7 @@
     onLocaleChange,
   }: {
     frontendSettings?: FrontendSettings | null;
+    bridgeInfo?: BridgeInfo | null;
     isLoading?: boolean;
     isSaving?: boolean;
     error?: string;
@@ -266,9 +268,7 @@
   // Application Control
   let isRestarting = $state(false);
 
-  async function handleRestart() {
-    if (!confirm($t('settings.app_control.restart_confirm'))) return;
-
+  async function triggerSystemRestart() {
     isRestarting = true;
     try {
       // 1. Get One-time Token
@@ -302,6 +302,36 @@
       isRestarting = false;
     }
   }
+
+  async function handleRestart() {
+    if (!confirm($t('settings.app_control.restart_confirm'))) return;
+    await triggerSystemRestart();
+  }
+
+  let deletingConfig = $state<string | null>(null);
+
+  const handleDeleteConfig = async (filename: string) => {
+    if (!confirm($t('settings.bridge_config.delete_confirm', { values: { filename } }))) return;
+
+    deletingConfig = filename;
+    try {
+      const res = await fetch(`./api/config/files/${filename}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        alert($t('settings.bridge_config.delete_success'));
+        await triggerSystemRestart();
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Delete failed');
+      }
+    } catch (err) {
+      console.error('Failed to delete config file', err);
+      alert('Failed to delete config');
+    } finally {
+      deletingConfig = null;
+    }
+  };
 </script>
 
 <section class="settings-view">
@@ -427,29 +457,6 @@
         </div>
       {/if}
     {/if}
-  </div>
-
-  <!-- Bridge Config Card -->
-  <div class="card">
-    <div class="card-header">
-      <div>
-        <h2>{$t('settings.bridge_config.title')}</h2>
-      </div>
-    </div>
-
-    <div class="setting">
-      <div>
-        <div class="setting-title">
-          {$t('settings.bridge_config.add_title')}
-        </div>
-        <div class="setting-desc">
-          {$t('settings.bridge_config.add_desc')}
-        </div>
-      </div>
-      <Button onclick={() => (showAddBridgeModal = true)}>
-        {$t('settings.bridge_config.add_button')}
-      </Button>
-    </div>
   </div>
 
   <!-- Log Caching Card -->
@@ -593,6 +600,62 @@
           <div class="setting-desc muted">{$t('settings.log_retention.no_files')}</div>
         </div>
       {/if}
+    {/if}
+  </div>
+
+  <!-- Bridge Config Card -->
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <h2>{$t('settings.bridge_config.title')}</h2>
+      </div>
+    </div>
+
+    <div class="setting">
+      <div>
+        <div class="setting-title">
+          {$t('settings.bridge_config.add_title')}
+        </div>
+        <div class="setting-desc">
+          {$t('settings.bridge_config.add_desc')}
+        </div>
+      </div>
+      <Button onclick={() => (showAddBridgeModal = true)}>
+        {$t('settings.bridge_config.add_button')}
+      </Button>
+    </div>
+
+    {#if bridgeInfo?.bridges && bridgeInfo.bridges.length > 0}
+      <div class="setting sub-setting list">
+        <div class="setting-title">{$t('settings.bridge_config.current_configs')}</div>
+        <div class="files-list">
+          {#each bridgeInfo.bridges as bridge (bridge.configFile)}
+            <div class="file-row">
+              <div class="bridge-info">
+                <span class="file-name">{bridge.configFile}</span>
+                <div class="bridge-details">
+                  {#each bridge.serials as serial}
+                    <span class="badge sm">{serial.portId}: {serial.path}</span>
+                  {/each}
+                </div>
+              </div>
+
+              <div class="file-actions">
+                <Button
+                  variant="danger"
+                  class="file-action-btn"
+                  onclick={() => handleDeleteConfig(bridge.configFile)}
+                  isLoading={deletingConfig === bridge.configFile}
+                  ariaLabel={$t('common.delete')}
+                  title={$t('common.delete')}
+                >
+                  🗑
+                </Button>
+              </div>
+            </div>
+          {/each}
+        </div>
+      </div>
     {/if}
   </div>
 
@@ -769,7 +832,8 @@
     font-style: italic;
   }
 
-  .files-section {
+  .files-section,
+  .setting.list {
     flex-direction: column;
     align-items: stretch;
     gap: 1rem;
@@ -796,6 +860,26 @@
     font-family: monospace;
     font-size: 0.85rem;
     word-break: break-all;
+  }
+
+  .bridge-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    flex: 1;
+  }
+
+  .bridge-details {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .badge.sm {
+    font-size: 0.75rem;
+    padding: 0.1rem 0.5rem;
+    background: rgba(255, 255, 255, 0.1);
+    color: #cbd5e1;
   }
 
   .file-size {

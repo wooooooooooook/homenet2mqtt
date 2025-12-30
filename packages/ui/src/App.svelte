@@ -1349,6 +1349,7 @@
         {:else if activeView === 'settings'}
           <SettingsView
             {frontendSettings}
+            {bridgeInfo}
             isLoading={settingsLoading}
             error={settingsError}
             isSaving={settingsSaving}

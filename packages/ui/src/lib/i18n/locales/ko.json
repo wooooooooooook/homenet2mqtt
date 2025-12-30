@@ -69,7 +69,10 @@
       "title": "브릿지 관리",
       "add_title": "브릿지 추가",
       "add_desc": "새로운 RS485 브릿지 설정을 추가합니다.",
-      "add_button": "브릿지 추가"
+      "add_button": "브릿지 추가",
+      "current_configs": "현재 브릿지 설정 목록",
+      "delete_confirm": "{filename} 파일을 삭제하시겠습니까? (삭제 전 백업됩니다)",
+      "delete_success": "설정 파일이 삭제되었습니다."
     }
   },
   "analysis": {
