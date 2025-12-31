@@ -107,6 +107,16 @@ export type CommandInfo = {
   discoveryLinkedId?: string;
 };
 
+export type ConfigEntitySummary = {
+  entityId: string;
+  entityName: string;
+  entityType: string;
+  portId?: string;
+  configFile?: string;
+  discoveryAlways?: boolean;
+  discoveryLinkedId?: string;
+};
+
 export type EntityCategory = 'entity' | 'automation' | 'script';
 
 export type AutomationSummary = {

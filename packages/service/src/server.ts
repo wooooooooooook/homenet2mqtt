@@ -1229,6 +1229,15 @@ interface CommandInfo {
   discoveryLinkedId?: string;
 }
 
+interface ConfigEntityInfo {
+  entityId: string;
+  entityName: string;
+  entityType: string;
+  portId?: string;
+  discoveryAlways?: boolean;
+  discoveryLinkedId?: string;
+}
+
 function extractCommands(config: HomenetBridgeConfig): CommandInfo[] {
   const commands: CommandInfo[] = [];
 
@@ -1348,6 +1357,44 @@ function extractCommands(config: HomenetBridgeConfig): CommandInfo[] {
   return commands;
 }
 
+function extractEntities(config: HomenetBridgeConfig): ConfigEntityInfo[] {
+  const entities: ConfigEntityInfo[] = [];
+
+  for (const entityType of ENTITY_TYPE_KEYS) {
+    const list = config[entityType] as Array<Record<string, unknown>> | undefined;
+    if (!list) continue;
+
+    for (const entity of list) {
+      if (entity.internal === true) continue;
+
+      const entityId = entity.id as string;
+      if (!entityId) continue;
+
+      const entityName = (entity.name as string) || entityId;
+      const portId = typeof entity.portId === 'string' ? entity.portId : undefined;
+
+      const info: ConfigEntityInfo = {
+        entityId,
+        entityName,
+        entityType,
+        portId,
+      };
+
+      if (entity.discovery_always === true) {
+        info.discoveryAlways = true;
+      }
+
+      if (typeof entity.discovery_linked_id === 'string') {
+        info.discoveryLinkedId = entity.discovery_linked_id;
+      }
+
+      entities.push(info);
+    }
+  }
+
+  return entities;
+}
+
 /**
  * Find which config file (by index) contains the given portId.
  * Returns -1 if not found.
@@ -1439,6 +1486,20 @@ app.get('/api/commands', (_req, res) => {
     })),
   );
   res.json({ commands });
+});
+
+app.get('/api/entities', (_req, res) => {
+  if (currentConfigs.length === 0) {
+    return res.status(400).json({ error: 'Config not loaded' });
+  }
+
+  const entities = currentConfigs.flatMap((config, index) =>
+    extractEntities(config).map((entity) => ({
+      ...entity,
+      configFile: currentConfigFiles[index],
+    })),
+  );
+  res.json({ entities });
 });
 
 app.get('/api/automations', (_req, res) => {
