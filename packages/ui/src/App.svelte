@@ -25,6 +25,7 @@
     PacketLogEntry,
     CommandLogEntry,
     PacketHistoryResponse,
+    ConfigEntitySummary,
   } from './lib/types';
   import Sidebar from './lib/components/Sidebar.svelte';
   import Header from './lib/components/Header.svelte';
@@ -117,6 +118,7 @@
 
   // Command buttons state
   let availableCommands = $state<CommandInfo[]>([]);
+  let configuredEntities = $state<ConfigEntitySummary[]>([]);
   let commandsLoading = $state(false);
   let commandsError = $state('');
   let automationItems = $state<AutomationSummary[]>([]);
@@ -438,6 +440,7 @@
 
       if (bridgeInfo.configFiles && bridgeInfo.configFiles.length > 0) {
         loadCommands();
+        loadConfiguredEntities();
         loadAutomations();
         loadScripts();
         loadPacketHistory();
@@ -846,6 +849,16 @@
     }
   }
 
+  async function loadConfiguredEntities() {
+    try {
+      const data = await apiRequest<{ entities: ConfigEntitySummary[] }>('./api/entities');
+      configuredEntities = data.entities ?? [];
+    } catch (err) {
+      console.error('Failed to load configured entities:', err);
+      configuredEntities = [];
+    }
+  }
+
   async function loadAutomations() {
     try {
       const data = await apiRequest<{ automations: AutomationSummary[] }>('./api/automations');
@@ -910,6 +923,7 @@
         cmd.entityId === entityId ? { ...cmd, entityName: trimmed } : cmd,
       );
       await loadCommands();
+      await loadConfiguredEntities();
 
       addToast({
         type: 'state',
@@ -998,7 +1012,30 @@
       category: EntityCategory = 'entity',
     ) => `${category}:${portId ?? 'unknown'}:${entityId}`;
 
-    // 1. Initialize with Commands (Source of Truth for Configured Names)
+    // 1. Initialize with Configured Entities (Include read-only sensors)
+    for (const entity of configuredEntities) {
+      const portId =
+        entity.portId ??
+        (entity.configFile ? configPortMap.get(entity.configFile) : null) ??
+        undefined;
+      const key = makeKey(portId, entity.entityId, 'entity');
+
+      if (!entities.has(key)) {
+        entities.set(key, {
+          id: entity.entityId,
+          displayName: entity.entityName || entity.entityId,
+          type: entity.entityType,
+          category: 'entity',
+          commands: [],
+          isStatusDevice: false,
+          portId,
+          discoveryAlways: entity.discoveryAlways,
+          discoveryLinkedId: entity.discoveryLinkedId,
+        });
+      }
+    }
+
+    // 2. Initialize with Commands (Source of Truth for Configured Names)
     for (const cmd of availableCommands) {
       // portId는 명시적으로 제공된 값 또는 configFile에서 매핑된 값만 사용
       const portId =
@@ -1020,13 +1057,15 @@
         });
       }
       const entity = entities.get(key)!;
+      entity.displayName = cmd.entityName || entity.displayName;
+      entity.type = cmd.entityType || entity.type;
       entity.commands.push({ ...cmd, portId });
       // Merge discovery flags if present on any command (though they should be consistent per entity)
       if (cmd.discoveryAlways) entity.discoveryAlways = true;
       if (cmd.discoveryLinkedId) entity.discoveryLinkedId = cmd.discoveryLinkedId;
     }
 
-    // 2. Merge States
+    // 3. Merge States
     for (const [topic, entry] of deviceStates.entries()) {
       if (isBridgeStatusTopic(topic)) continue; // Skip bridge status
 
