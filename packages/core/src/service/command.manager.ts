@@ -65,12 +65,13 @@ export class CommandManager {
   public send(
     entity: EntityConfig,
     packet: number[],
-    options?: { priority?: 'normal' | 'low' },
+    options?: { priority?: 'normal' | 'low'; ackMatch?: StateSchema },
   ): Promise<void> {
     return new Promise((resolve, reject) => {
       const retryConfig = this.getRetryConfig(entity);
       const job: CommandJob = {
         entity,
+        ackMatch: options?.ackMatch,
         packet,
         retryConfig,
         attemptsLeft: (retryConfig.attempts ?? 5) + 1,
@@ -245,9 +246,14 @@ export class CommandManager {
   }
 
   private setupListener(job: CommandJob, callback: () => void) {
+    // If entity exists, always set up state:changed listener
     if (job.entity) {
       this.setAckListener(job.entity.id, callback);
-    } else if (job.ackMatch) {
+    }
+
+    // If ackMatch exists, also set up packet matcher
+    // This allows both state:changed and ack packet to trigger ACK
+    if (job.ackMatch) {
       const matcher = (packet: number[]) => {
         if (job.ackMatch && matchesPacket(job.ackMatch, packet)) {
           callback();
@@ -259,9 +265,12 @@ export class CommandManager {
   }
 
   private cleanupListeners(job: CommandJob) {
+    // Clean up entity listener if exists
     if (job.entity) {
       this.removeAckListener(job.entity.id);
-    } else if (job.packetMatcher) {
+    }
+    // Clean up packet matcher if exists
+    if (job.packetMatcher) {
       this.packetAckListeners.delete(job.packetMatcher);
     }
   }

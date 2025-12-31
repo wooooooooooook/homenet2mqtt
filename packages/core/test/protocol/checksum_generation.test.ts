@@ -28,7 +28,7 @@ describe('Command Generator - Checksum Logic', () => {
     id: 'test',
     type: 'light',
     name: 'Test',
-    command_on: { cmd: [0x01] },
+    command_on: { data: [0x01] },
   } as any;
 
   // --- 1-Byte Checksum Tests ---

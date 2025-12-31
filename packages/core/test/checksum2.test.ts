@@ -108,7 +108,7 @@ describe('2-Byte Checksum', () => {
         type: 'light',
         name: 'Test',
         command_on: {
-          cmd: [0x01],
+          data: [0x01],
         },
       };
 

@@ -1,5 +1,5 @@
 import { GenericDevice } from './generic.device.js';
-import { DeviceConfig, ProtocolConfig } from '../types.js';
+import { DeviceConfig, ProtocolConfig, CommandResult } from '../types.js';
 import { FanEntity } from '../../domain/entities/fan.entity.js';
 
 export class FanDevice extends GenericDevice {
@@ -66,7 +66,7 @@ export class FanDevice extends GenericDevice {
     commandName: string,
     value?: any,
     states?: Map<string, Record<string, any>>,
-  ): number[] | null {
+  ): number[] | CommandResult | null {
     const entityConfig = this.config as FanEntity;
     const commandConfig = (entityConfig as any)[`command_${commandName}`];
 

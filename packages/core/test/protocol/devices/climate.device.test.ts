@@ -30,8 +30,11 @@ describe('ClimateDevice Command Generation', () => {
     const device = new ClimateDevice(config, protocolConfig);
     const command = device.constructCommand('temperature', 25);
 
-    // It returns the first packet of the list
-    expect(command).toEqual([0x36, 0x11, 0x44, 0x01, 25]);
+    // It returns CommandResult with packet and ack
+    expect(command).toEqual({
+      packet: [0x36, 0x11, 0x44, 0x01, 25],
+      ack: { data: [0x36, 0x11, 0xc4] },
+    });
   });
 
   it('should succeed when using complex list structure with "x" (Kocom Pattern)', () => {
@@ -44,9 +47,11 @@ describe('ClimateDevice Command Generation', () => {
     const device = new ClimateDevice(config, protocolConfig);
     const command = device.constructCommand('temperature', 20);
 
-    expect(command).toEqual([
-      0x30, 0xbc, 0x00, 0x36, 0x03, 0x01, 0x00, 0x00, 0x11, 0x01, 20, 0x00, 0x00, 0x00, 0x00, 0x00,
-    ]);
+    // It returns CommandResult with packet and ack
+    expect(command).toEqual({
+      packet: [0x30, 0xbc, 0x00, 0x36, 0x03, 0x01, 0x00, 0x00, 0x11, 0x01, 20, 0x00, 0x00, 0x00, 0x00, 0x00],
+      ack: { data: [0x30, 0xdc] },
+    });
   });
 
   it('should succeed when using variable "x" in a simple array structure', () => {

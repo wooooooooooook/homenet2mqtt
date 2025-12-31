@@ -739,8 +739,11 @@ export class AutomationManager {
     });
 
     if (this.commandSender) {
+      // ack가 배열로 입력된 경우 StateSchema 형태로 변환하여 호환성 확보
+      const ackMatch = Array.isArray(action.ack) ? { data: action.ack } : action.ack;
+
       await this.commandSender(targetPortId, finalPacket, {
-        ackMatch: action.ack,
+        ackMatch,
       });
     } else {
       logger.warn(
@@ -770,10 +773,22 @@ export class AutomationManager {
       return;
     }
 
-    const packet = this.packetProcessor.constructCommandPacket(entity, normalized, parsed.value);
-    if (!packet) {
+    const commandResult = this.packetProcessor.constructCommandPacket(entity, normalized, parsed.value);
+    if (!commandResult) {
       logger.warn({ target: action.target }, '[automation] Failed to construct command packet');
       return;
+    }
+
+    // Extract packet and ack from result (can be number[] or CommandResult)
+    let packet: number[];
+    let celAck: StateSchema | undefined;
+
+    if (Array.isArray(commandResult)) {
+      packet = commandResult;
+    } else {
+      // CommandResult with { packet, ack }
+      packet = commandResult.packet;
+      celAck = commandResult.ack;
     }
 
     let isLowPriority = action.low_priority;
@@ -783,8 +798,18 @@ export class AutomationManager {
       if (schemaLowPriority) isLowPriority = true;
     }
 
+    // Determine ackMatch: CEL result ack takes priority, then schema ack
+    let ackMatch: StateSchema | undefined = celAck;
+    if (!ackMatch && schema && typeof schema === 'object') {
+      const ack = (schema as any).ack;
+      if (ack) {
+        ackMatch = Array.isArray(ack) ? { data: ack } : ack;
+      }
+    }
+
     await this.commandManager.send(entity, packet, {
       priority: isLowPriority ? 'low' : 'normal',
+      ackMatch,
     });
   }
 

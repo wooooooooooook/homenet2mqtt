@@ -268,11 +268,11 @@ export class CommandGenerator {
       return null;
     }
 
-    if (!commandSchema.cmd) {
-      logger.error(`Command data (cmd) not found for ${entity.type}.${commandName}`);
+    if (!commandSchema.data) {
+      logger.error(`Command data (data) not found for ${entity.type}.${commandName}`);
       return null;
     }
-    let commandData = [...commandSchema.cmd];
+    let commandData = [...commandSchema.data];
 
     if (value !== undefined && commandSchema.value_offset !== undefined) {
       const encodedValue = this.encodeValue(value, commandSchema);

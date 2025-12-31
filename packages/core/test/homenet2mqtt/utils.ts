@@ -106,8 +106,12 @@ export async function executeCommand(
   const entity = findEntityById(ctx.config, entityId);
   if (!entity) throw new Error(`Entity ${entityId} not found`);
 
-  const packet = ctx.packetProcessor.constructCommandPacket(entity, commandName, value);
-  if (!packet) throw new Error(`Could not construct packet for ${entityId} ${commandName}`);
+  const result = ctx.packetProcessor.constructCommandPacket(entity, commandName, value);
+  if (!result) throw new Error(`Could not construct packet for ${entityId} ${commandName}`);
 
-  await ctx.commandManager.send(entity, packet);
+  // Handle both number[] and CommandResult
+  const packet = Array.isArray(result) ? result : result.packet;
+  const ackMatch = Array.isArray(result) ? undefined : result.ack;
+
+  await ctx.commandManager.send(entity, packet, { ackMatch });
 }

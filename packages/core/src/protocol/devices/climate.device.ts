@@ -1,5 +1,5 @@
 import { GenericDevice } from './generic.device.js';
-import { DeviceConfig, ProtocolConfig } from '../types.js';
+import { DeviceConfig, ProtocolConfig, CommandResult } from '../types.js';
 
 export class ClimateDevice extends GenericDevice {
   constructor(config: DeviceConfig, protocolConfig: ProtocolConfig) {
@@ -62,7 +62,7 @@ export class ClimateDevice extends GenericDevice {
     commandName: string,
     value?: any,
     states?: Map<string, Record<string, any>>,
-  ): number[] | null {
+  ): number[] | CommandResult | null {
     const entityConfig = this.config as any;
     const normalizedCommandName = commandName.startsWith('command_')
       ? commandName

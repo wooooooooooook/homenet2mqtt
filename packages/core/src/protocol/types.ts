@@ -88,3 +88,12 @@ export interface DeviceConfig {
   state?: StateSchema;
   optimistic?: boolean;
 }
+
+/**
+ * Result of constructing a command packet.
+ * Can include optional ACK matching information when using CEL expressions.
+ */
+export interface CommandResult {
+  packet: number[];
+  ack?: StateSchema;
+}

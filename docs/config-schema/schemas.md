@@ -117,7 +117,8 @@ state_value:
 | 속성 | 타입 | 기본값 | 설명 |
 | --- | --- | --- | --- |
 | `data` | `number[]` | - | 전송할 기본 패킷 데이터. |
-| `cmd` | `number[]` | - | 보조 명령 배열(일부 구형 설정에서 사용). |
+| `ack` | `StateSchema` \| `number[]` | - | ACK 패킷 매칭 패턴. 정의된 경우 이 패턴에 매칭되는 패킷 **또는** `state:change` 이벤트가 발생하면 명령이 성공한 것으로 간주합니다. 배열로 지정하면 `{ data: [...] }` 형태의 `StateSchema`로 자동 변환됩니다. |
+
 | `value_offset` | `number` | - | 입력값을 삽입할 인덱스. |
 | `length` | `number` | `1` | 입력값이 차지할 바이트 길이. |
 | `precision` | `number` | `0` | 소수점 자릿수. 예: `precision: 1`이면 `23.5` → `235`로 인코딩. |
@@ -127,6 +128,13 @@ state_value:
 | `multiply_factor` | `number` | `1` | 값에 곱할 계수. 예: `multiply_factor: 10`이면 `2.5` → `25`. |
 | `low_priority` | `boolean` | `false` | `true`면 일반 큐가 비어 있을 때만 전송합니다. |
 | `script` | `string` | - | 재사용 가능한 스크립트 ID 참조. [SCRIPTS.md](../SCRIPTS.md) 참고. |
+
+### ACK 동작 방식
+
+- **`ack`가 정의된 경우**: ACK 패킷 매칭 **또는** 해당 엔티티의 `state:change` 이벤트 중 **먼저 발생하는 것**을 ACK로 처리합니다.
+- **`ack`가 정의되지 않은 경우**: 기존처럼 `state:change` 이벤트만을 ACK로 대기합니다.
+- Button과 같이 `state:change` 이벤트가 발생하지 않는 엔티티에서는 `ack`를 반드시 정의해야 ACK를 수신할 수 있습니다.
+- `ack`는 위의 [StateSchema](#stateschema-패킷-매칭) 형식으로 정의할 수 있으며, `offset`, `mask`, `except` 등의 고급 매칭 옵션을 사용할 수 있습니다.
 
 ### 스키마 기반 vs CEL 방식
 
@@ -200,6 +208,21 @@ command_temperature: >-
   x > 30 ? [0x21, 0x02, int(x)] : [0x21, 0x01, int(x)]
 ```
 
+**7-1. CEL 표현식 (ACK 포함)**
+중첩 배열로 반환하면 첫 번째 배열이 명령 데이터, 두 번째 배열이 ACK 패턴, (선택) 세 번째 배열이 ACK 마스크입니다.
+```yaml
+# 2개 배열: [data, ack:data]
+command_temperature: >-
+  [[0x36, 0x11, 0x44, 0x01, int(x)], [0x36, 0x11, 0xC4]]
+
+# 3개 배열: [data, ack:data, ack:mask]
+command_temperature: >-
+  [[0x36, 0x11, 0x44, 0x01, int(x)], [0x36, 0x11], [0xFF, 0xFF]]
+```
+- 첫 번째 배열: 전송할 명령 패킷
+- 두 번째 배열: ACK로 인식할 패킷의 data (StateSchema의 `data`)
+- 세 번째 배열 (선택): ACK 매칭 시 사용할 mask (StateSchema의 `mask`)
+
 **8. 스크립트 참조 (재사용 가능한 액션 시퀀스)**
 `scripts` 블록에서 정의한 스크립트를 참조하여 복잡한 명령 시퀀스를 재사용합니다.
 ```yaml
@@ -217,6 +240,29 @@ button:
     name: "전체 새로고침"
     command_press:
       script: refresh_all
+```
+
+**9. ACK 패킷 매칭 (Button 등 state:change 이벤트가 없는 엔티티)**
+`ack`를 정의하면 해당 패턴에 매칭되는 패킷을 ACK로 인식합니다.
+```yaml
+# 간단한 배열 형태 (자동으로 StateSchema로 변환됨)
+button:
+  - id: elevator_call
+    name: "엘리베이터 호출"
+    command_press:
+      data: [0x31, 0x01, 0x00]
+      ack: [0x31, 0x81, 0x00]  # 0x31 0x81 0x00으로 시작하는 패킷을 ACK로 인식
+
+# StateSchema 형태 (offset, mask 등 고급 옵션 사용 가능)
+button:
+  - id: doorbell
+    name: "초인종"
+    command_press:
+      data: [0x42, 0x01]
+      ack:
+        data: [0x42]
+        offset: 0
+        mask: 0xFF
 ```
 
 ## CEL과의 연계

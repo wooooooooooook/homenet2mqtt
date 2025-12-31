@@ -98,20 +98,23 @@ export class GenericDevice extends Device {
    * Constructs a raw command packet for a specific action.
    *
    * Uses the `command_<name>` configuration which can be:
-   * - A **CEL String**: Evaluated to produce a byte array or single number.
+   * - A **CEL String**: Evaluated to produce a byte array or nested arrays.
+   *   - Single array: `[0x01, 0x02]` → command data
+   *   - 2 arrays: `[[0x01, 0x02], [0x03, 0x04]]` → [data, ack:data]
+   *   - 3 arrays: `[[0x01, 0x02], [0x03, 0x04], [0xFF]]` → [data, ack:data, ack:mask]
    *   - Context: `x` (command value), `state` (current device state), `states` (global state map).
    * - A **Static Object**: `{ data: [...] }` containing fixed bytes.
    *
    * @param commandName - The name of the command to execute (e.g., 'power', 'temp').
    * @param value - The value associated with the command (e.g., 'on', 24).
    * @param states - Optional map of all global entity states.
-   * @returns The raw packet bytes (including header/footer/checksum) or `null` if construction failed.
+   * @returns The raw packet bytes, CommandResult with ack info, or `null` if construction failed.
    */
   public constructCommand(
     commandName: string,
     value?: any,
     states?: Map<string, Record<string, any>>,
-  ): number[] | null {
+  ): number[] | { packet: number[]; ack?: StateSchema } | null {
     const entityConfig = this.config as any;
     const normalizedCommandName = commandName.startsWith('command_')
       ? commandName
@@ -119,6 +122,7 @@ export class GenericDevice extends Device {
     const commandConfig = entityConfig[normalizedCommandName];
 
     let commandData: number[] | null = null;
+    let ackSchema: StateSchema | undefined;
 
     if (commandConfig) {
       if (typeof commandConfig === 'string') {
@@ -136,9 +140,22 @@ export class GenericDevice extends Device {
         });
 
         if (Array.isArray(result)) {
+          // Check if result is nested arrays (CEL returning multiple arrays)
           if (Array.isArray(result[0])) {
+            // First array is command data
             commandData = result[0];
+
+            // Second array is ack:data (if exists)
+            if (result.length >= 2 && Array.isArray(result[1])) {
+              ackSchema = { data: result[1] };
+
+              // Third array is ack:mask (if exists)
+              if (result.length >= 3 && Array.isArray(result[2])) {
+                ackSchema.mask = result[2];
+              }
+            }
           } else {
+            // Single flat array - just command data
             commandData = result;
           }
         }
@@ -148,7 +165,12 @@ export class GenericDevice extends Device {
     }
 
     if (commandData) {
-      return this.framePacket(commandData);
+      const packet = this.framePacket(commandData);
+      // Return CommandResult if ack is defined, otherwise just the packet array
+      if (ackSchema) {
+        return { packet, ack: ackSchema };
+      }
+      return packet;
     }
 
     return null;

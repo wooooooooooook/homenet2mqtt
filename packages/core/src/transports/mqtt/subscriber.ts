@@ -1,13 +1,14 @@
 // packages/core/src/transports/mqtt/subscriber.ts
 import { MqttClient } from './mqtt.client.js';
 import { HomenetBridgeConfig } from '../../config/types.js';
-import { EntityConfig } from '../../domain/entities/base.entity.js';
+import { EntityConfig, CommandSchema } from '../../domain/entities/base.entity.js';
 import { logger } from '../../utils/logger.js';
 import { PacketProcessor, EntityStateProvider } from '../../protocol/packet-processor.js';
 import { eventBus } from '../../service/event-bus.js';
 import { CommandManager } from '../../service/command.manager.js';
 import { ENTITY_TYPE_KEYS, findEntityById } from '../../utils/entities.js';
 import { AutomationManager } from '../../automation/automation-manager.js';
+import { StateSchema } from '../../protocol/types.js';
 
 export class MqttSubscriber {
   private mqttClient: MqttClient;
@@ -221,13 +222,25 @@ export class MqttSubscriber {
         return;
       }
 
-      const commandPacket = this.packetProcessor.constructCommandPacket(
+      const commandResult = this.packetProcessor.constructCommandPacket(
         targetEntity,
         commandName,
         commandValue,
       );
 
-      if (commandPacket) {
+      if (commandResult) {
+        // Extract packet and ack from result (can be number[] or CommandResult)
+        let commandPacket: number[];
+        let celAck: StateSchema | undefined;
+
+        if (Array.isArray(commandResult)) {
+          commandPacket = commandResult;
+        } else {
+          // CommandResult with { packet, ack }
+          commandPacket = commandResult.packet;
+          celAck = commandResult.ack;
+        }
+
         // If empty packet (virtual switch/optimistic only), we skip sending but consider it success
         if (commandPacket.length === 0) {
           logger.debug(
@@ -247,7 +260,16 @@ export class MqttSubscriber {
           timestamp: new Date().toISOString(),
         });
         try {
-          await this.commandManager.send(targetEntity, commandPacket);
+          // Determine ackMatch: CEL result ack takes priority, then commandSchema ack
+          let ackMatch: StateSchema | undefined = celAck;
+          if (!ackMatch && commandSchema && typeof commandSchema === 'object') {
+            const schema = commandSchema as CommandSchema;
+            if (schema.ack) {
+              ackMatch = Array.isArray(schema.ack) ? { data: schema.ack } : schema.ack;
+            }
+          }
+
+          await this.commandManager.send(targetEntity, commandPacket, { ackMatch });
         } catch (error) {
           logger.error(
             { err: error, entity: targetEntity.name },

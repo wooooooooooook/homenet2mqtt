@@ -12,7 +12,7 @@ import {
   ScriptConfig,
 } from '../config/types.js';
 import { loadConfig } from '../config/index.js';
-import { EntityConfig } from '../domain/entities/base.entity.js';
+import { EntityConfig, CommandSchema } from '../domain/entities/base.entity.js';
 import { PacketProcessor, EntityStateProvider } from '../protocol/packet-processor.js';
 import {
   calculateChecksumFromBuffer,
@@ -20,6 +20,7 @@ import {
   ChecksumType,
   Checksum2Type,
 } from '../protocol/utils/checksum.js';
+import { StateSchema } from '../protocol/types.js';
 import { createSerialPortConnection } from '../transports/serial/serial.factory.js';
 import { MqttClient } from '../transports/mqtt/mqtt.client.js';
 import { MqttSubscriber } from '../transports/mqtt/subscriber.js';
@@ -108,7 +109,7 @@ export class HomeNetBridge {
 
   async stop() {
     if (this.startPromise) {
-      await this.startPromise.catch(() => {});
+      await this.startPromise.catch(() => { });
     }
 
     for (const context of this.portContexts.values()) {
@@ -427,14 +428,26 @@ export class HomeNetBridge {
     }
 
     // Construct command packet using packetProcessor (same as subscriber)
-    const commandPacket = context.packetProcessor.constructCommandPacket(
+    const commandResult = context.packetProcessor.constructCommandPacket(
       targetEntity,
       commandKey,
       value,
     );
 
-    if (!commandPacket) {
+    if (!commandResult) {
       return { success: false, error: `Failed to construct packet for ${commandName}` };
+    }
+
+    // Extract packet and ack from result (can be number[] or CommandResult)
+    let commandPacket: number[];
+    let celAck: StateSchema | undefined;
+
+    if (Array.isArray(commandResult)) {
+      commandPacket = commandResult;
+    } else {
+      // CommandResult with { packet, ack }
+      commandPacket = commandResult.packet;
+      celAck = commandResult.ack;
     }
 
     const hexPacket = Buffer.from(commandPacket).toString('hex');
@@ -452,7 +465,16 @@ export class HomeNetBridge {
 
     // Send command via commandManager (same as subscriber)
     try {
-      await context.commandManager.send(targetEntity, commandPacket);
+      // Determine ackMatch: CEL result ack takes priority, then commandSchema ack
+      let ackMatch: StateSchema | undefined = celAck;
+      if (!ackMatch && commandSchema && typeof commandSchema === 'object') {
+        const schema = commandSchema as CommandSchema;
+        if (schema.ack) {
+          ackMatch = Array.isArray(schema.ack) ? { data: schema.ack } : schema.ack;
+        }
+      }
+
+      await context.commandManager.send(targetEntity, commandPacket, { ackMatch });
       return { success: true, packet: hexPacket };
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';

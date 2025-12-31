@@ -17,7 +17,7 @@ import { SelectDevice } from './devices/select.device.js';
 import { TextSensorDevice } from './devices/text-sensor.device.js';
 import { TextDevice } from './devices/text.device.js';
 import { BinarySensorDevice } from './devices/binary-sensor.device.js';
-import { ProtocolConfig } from './types.js';
+import { ProtocolConfig, CommandResult } from './types.js';
 import { slugify } from '../utils/common.js';
 import { logger } from '../utils/logger.js';
 
@@ -142,13 +142,13 @@ export class PacketProcessor extends EventEmitter {
    * @param entity - The configuration of the target entity.
    * @param commandNameInput - The name of the command (e.g., 'on', 'command_off').
    * @param value - Optional value for the command (e.g., temperature, brightness).
-   * @returns The constructed packet as a number array, or `null` if construction failed.
+   * @returns The constructed packet as a number array, CommandResult with ack info, or `null` if construction failed.
    */
   public constructCommandPacket(
     entity: EntityConfig,
     commandNameInput: string,
     value?: number | string,
-  ): number[] | null {
+  ): number[] | CommandResult | null {
     const commandName = commandNameInput.startsWith('command_')
       ? commandNameInput.slice('command_'.length)
       : commandNameInput;

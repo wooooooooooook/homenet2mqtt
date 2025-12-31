@@ -1,5 +1,5 @@
 import { GenericDevice } from './generic.device.js';
-import { DeviceConfig, ProtocolConfig } from '../types.js';
+import { DeviceConfig, ProtocolConfig, CommandResult } from '../types.js';
 import { TextEntity } from '../../domain/entities/text.entity.js';
 
 export class TextDevice extends GenericDevice {
@@ -67,7 +67,7 @@ export class TextDevice extends GenericDevice {
     return text.length > 0 ? text : null;
   }
 
-  public constructCommand(commandName: string, value?: any): number[] | null {
+  public constructCommand(commandName: string, value?: any): number[] | CommandResult | null {
     const entityConfig = this.config as TextEntity;
 
     const cmd = super.constructCommand(commandName, value);

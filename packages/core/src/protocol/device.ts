@@ -1,5 +1,5 @@
 import { matchesPacket } from '../utils/packet-matching.js';
-import { DeviceConfig, StateSchema, StateNumSchema, ProtocolConfig } from './types.js';
+import { DeviceConfig, StateSchema, StateNumSchema, ProtocolConfig, CommandResult } from './types.js';
 
 export abstract class Device {
   protected config: DeviceConfig;
@@ -17,7 +17,7 @@ export abstract class Device {
     commandName: string,
     value?: any,
     states?: Map<string, Record<string, any>>,
-  ): number[] | null;
+  ): number[] | CommandResult | null;
 
   public getOptimisticState(commandName: string, value?: any): Record<string, any> | null {
     return null;

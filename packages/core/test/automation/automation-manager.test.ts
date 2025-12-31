@@ -518,7 +518,7 @@ describe('AutomationManager', () => {
       undefined, // portId
       expect.arrayContaining([0x01, 0x02]), // data (might have checksum appended depending on defaults, but here defaults are empty/undefined so likely just data)
       expect.objectContaining({
-        ackMatch: [0x06],
+        ackMatch: { data: [0x06] }, // array is converted to StateSchema
       }),
     );
   });

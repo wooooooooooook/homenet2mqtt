@@ -1,5 +1,5 @@
 import { GenericDevice } from './generic.device.js';
-import { DeviceConfig, ProtocolConfig } from '../types.js';
+import { DeviceConfig, ProtocolConfig, CommandResult } from '../types.js';
 import { ValveEntity } from '../../domain/entities/valve.entity.js';
 
 export class ValveDevice extends GenericDevice {
@@ -50,7 +50,7 @@ export class ValveDevice extends GenericDevice {
     commandName: string,
     value?: any,
     states?: Map<string, Record<string, any>>,
-  ): number[] | null {
+  ): number[] | CommandResult | null {
     const entityConfig = this.config as ValveEntity;
     const commandConfig = (entityConfig as any)[`command_${commandName}`];
 

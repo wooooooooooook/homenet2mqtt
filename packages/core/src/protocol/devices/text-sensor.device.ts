@@ -1,5 +1,5 @@
 import { GenericDevice } from './generic.device.js';
-import { DeviceConfig, ProtocolConfig } from '../types.js';
+import { DeviceConfig, ProtocolConfig, CommandResult } from '../types.js';
 import { TextSensorEntity } from '../../domain/entities/text-sensor.entity.js';
 
 export class TextSensorDevice extends GenericDevice {
@@ -52,7 +52,7 @@ export class TextSensorDevice extends GenericDevice {
     return text.length > 0 ? text : null;
   }
 
-  public constructCommand(commandName: string, value?: any): number[] | null {
+  public constructCommand(commandName: string, value?: any): number[] | CommandResult | null {
     // Text sensor is read-only, no commands
     return super.constructCommand(commandName, value);
   }

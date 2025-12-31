@@ -1,8 +1,9 @@
-import { DecodeEncodeType, EndianType } from '../../protocol/types.js';
+import { DecodeEncodeType, EndianType, StateSchema } from '../../protocol/types.js';
 
 export interface CommandSchema {
   data?: number[];
-  cmd?: number[];
+  ack?: StateSchema | number[];
+
   value_offset?: number;
   value_encode?: DecodeEncodeType;
   length?: number;

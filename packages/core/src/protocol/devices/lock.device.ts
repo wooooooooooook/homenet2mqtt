@@ -1,5 +1,5 @@
 import { GenericDevice } from './generic.device.js';
-import { DeviceConfig, ProtocolConfig } from '../types.js';
+import { DeviceConfig, ProtocolConfig, CommandResult } from '../types.js';
 import { LockEntity } from '../../domain/entities/lock.entity.js';
 
 export class LockDevice extends GenericDevice {
@@ -58,7 +58,7 @@ export class LockDevice extends GenericDevice {
     return true;
   }
 
-  public constructCommand(commandName: string, value?: any): number[] | null {
+  public constructCommand(commandName: string, value?: any): number[] | CommandResult | null {
     const cmd = super.constructCommand(commandName, value);
     if (cmd) return cmd;
 

@@ -1,5 +1,5 @@
 import { GenericDevice } from './generic.device.js';
-import { ProtocolConfig } from '../types.js';
+import { ProtocolConfig, CommandResult } from '../types.js';
 import { SelectEntity } from '../../domain/entities/select.entity.js';
 
 export class SelectDevice extends GenericDevice {
@@ -59,7 +59,7 @@ export class SelectDevice extends GenericDevice {
     return null;
   }
 
-  public constructCommand(commandName: string, value?: any): number[] | null {
+  public constructCommand(commandName: string, value?: any): number[] | CommandResult | null {
     const entityConfig = this.config as SelectEntity;
 
     // Handle select command with option value

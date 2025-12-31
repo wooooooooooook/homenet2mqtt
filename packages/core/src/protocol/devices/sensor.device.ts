@@ -1,5 +1,5 @@
 import { GenericDevice } from './generic.device.js';
-import { DeviceConfig, ProtocolConfig } from '../types.js';
+import { DeviceConfig, ProtocolConfig, CommandResult } from '../types.js';
 
 export class SensorDevice extends GenericDevice {
   constructor(config: DeviceConfig, protocolConfig: ProtocolConfig) {
@@ -25,7 +25,7 @@ export class SensorDevice extends GenericDevice {
     return Object.keys(updates).length > 0 ? updates : null;
   }
 
-  public constructCommand(commandName: string, value?: any): number[] | null {
+  public constructCommand(commandName: string, value?: any): number[] | CommandResult | null {
     return super.constructCommand(commandName, value);
   }
 }
