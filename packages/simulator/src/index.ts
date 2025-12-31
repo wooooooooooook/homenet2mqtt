@@ -176,7 +176,7 @@ export function createTcpSimulator(
     for (const client of clients) {
       try {
         client.write(data);
-      } catch (e) { }
+      } catch (e) {}
     }
   });
 

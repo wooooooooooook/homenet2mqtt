@@ -653,11 +653,9 @@
                   isLoading={deletingConfig === bridge.configFile}
                   disabled={!canDeleteBridge}
                   ariaLabel={$t('common.delete')}
-                  title={
-                    canDeleteBridge
-                      ? $t('common.delete')
-                      : $t('settings.bridge_config.delete_last_warning')
-                  }
+                  title={canDeleteBridge
+                    ? $t('common.delete')
+                    : $t('settings.bridge_config.delete_last_warning')}
                 >
                   🗑
                 </Button>
