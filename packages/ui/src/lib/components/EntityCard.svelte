@@ -38,11 +38,7 @@
   }
 </script>
 
-<button
-  class="entity-card"
-  class:inactive={!entity.isActive}
-  onclick={() => onSelect?.()}
->
+<button class="entity-card" class:inactive={!entity.isActive} onclick={() => onSelect?.()}>
   <header class="card-header">
     <div class="header-title">
       <h3>{entity.displayName}</h3>

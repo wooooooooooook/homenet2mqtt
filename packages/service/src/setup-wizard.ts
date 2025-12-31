@@ -306,9 +306,7 @@ export const createSetupWizardService = ({
     ]);
 
     const configFiles = allFiles.filter(
-      (file) =>
-        file === defaultConfigFilename ||
-        /\.homenet_bridge\.ya?ml$/.test(file),
+      (file) => file === defaultConfigFilename || /\.homenet_bridge\.ya?ml$/.test(file),
     );
 
     return {

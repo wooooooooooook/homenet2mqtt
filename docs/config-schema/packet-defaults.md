@@ -5,13 +5,38 @@
 ## 필드 목록
 - `rx_header` / `tx_header`: 수신·송신 패킷 앞부분 식별 바이트 배열.
 - `rx_footer` / `tx_footer`: 패킷 종료 시그널.
-- `rx_checksum` / `tx_checksum`: 기본 체크섬 계산기. `add`, `xor`, `add_no_header`, `samsung_rx` 등 문자열 또는 CEL 표현식.
-- `rx_checksum2` / `tx_checksum2`: 이중 체크섬(`xor_add` 혹은 CEL 표현식).
+- `rx_checksum` / `tx_checksum`: 기본 1바이트 체크섬 계산기 (알고리즘 이름 문자열 또는 CEL 표현식).
+- `rx_checksum2` / `tx_checksum2`: 이중(2바이트) 체크섬 계산기 (알고리즘 이름 문자열 또는 CEL 표현식).
 - `rx_length`: 고정 길이 패킷일 때 전체 길이를 명시.
-- `tx_delay`: 연속 송신 시 두 패킷 사이의 지연.
+- `tx_delay`: 연속 송신 시 두 패킷 사이의 지연 (ms).
 - `tx_retry_cnt`: 재전송 횟수.
-- `tx_timeout`: 명령 패킷 송신 완료 대기 시간.
-- `rx_timeout`: 상태 패킷 수신 대기 시간.
+- `tx_timeout`: 명령 패킷 송신 완료 대기 시간 (ms).
+- `rx_timeout`: 상태 패킷 수신 대기 시간 (ms).
+
+## 지원하는 체크섬 알고리즘 (Supported Checksum Algorithms)
+
+패킷 무결성 검증을 위한 체크섬 알고리즘을 문자열로 지정할 수 있습니다. 아래 목록에 없는 복잡한 로직은 CEL 표현식으로 직접 구현해야 합니다.
+
+### 1바이트 체크섬 (`rx_checksum` / `tx_checksum`)
+
+| 알고리즘 (값) | 설명 |
+| :--- | :--- |
+| `add` | 헤더를 포함한 모든 바이트의 합 (Sum & 0xFF) |
+| `add_no_header` | 헤더를 제외한 데이터 바이트의 합 (Sum & 0xFF) |
+| `xor` | 헤더를 포함한 모든 바이트의 XOR 연산 값 |
+| `xor_no_header` | 헤더를 제외한 데이터 바이트의 XOR 연산 값 |
+| `samsung_rx` | 삼성 월패드 수신 패킷 전용 (0xB0 초기값 + XOR + 0x80 보정) |
+| `samsung_tx` | 삼성 월패드 송신 패킷 전용 (0x00 초기값 + XOR + 0x80 보정) |
+| `none` | 체크섬 검사를 하지 않음 |
+
+### 2바이트 체크섬 (`rx_checksum2` / `tx_checksum2`)
+
+| 알고리즘 (값) | 설명 |
+| :--- | :--- |
+| `xor_add` | Ezville 등에서 사용. `[XOR, ADD]` 순서로 2바이트 생성 (헤더 포함) |
+
+> **참고**: 체크섬 필드에 알고리즘 이름 대신 CEL 표현식을 작성하면 커스텀 로직을 적용할 수 있습니다.
+> 예: `rx_checksum: "data[0] + data[1]"`
 
 ## 기본 예제 (양방향 동일 헤더/푸터)
 `kocom.homenet_bridge.yaml`은 동일한 헤더·푸터와 단순 합산 체크섬을 사용합니다.

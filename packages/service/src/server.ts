@@ -115,7 +115,7 @@ const parseEnvList = (
   if (!raw.includes(',')) {
     logger.warn(
       `[service] ${source}에 단일 값이 입력되었습니다. 쉼표로 구분된 배열 형식(${source}=item1,item2)` +
-      ' 사용을 권장합니다.',
+        ' 사용을 권장합니다.',
     );
   }
 
@@ -308,7 +308,7 @@ const normalizeFrontendSettings = (value: Partial<FrontendSettings> | null | und
           : DEFAULT_FRONTEND_SETTINGS.logRetention!.autoSaveEnabled,
       retentionCount:
         typeof value?.logRetention?.retentionCount === 'number' &&
-          value.logRetention.retentionCount > 0
+        value.logRetention.retentionCount > 0
           ? value.logRetention.retentionCount
           : DEFAULT_FRONTEND_SETTINGS.logRetention!.retentionCount,
     },
@@ -3171,10 +3171,7 @@ async function checkAndFixDuplicatePortIds(
 
       fixedFiles.push(filename);
     } catch (err) {
-      logger.error(
-        { err, configPath },
-        '[service] Error occurred while fixing duplicate portId.',
-      );
+      logger.error({ err, configPath }, '[service] Error occurred while fixing duplicate portId.');
     }
   }
 
@@ -3187,7 +3184,7 @@ async function loadAndStartBridges(filenames: string[]) {
   }
 
   if (bridgeStartPromise) {
-    await bridgeStartPromise.catch(() => { });
+    await bridgeStartPromise.catch(() => {});
   }
 
   bridgeStartPromise = (async () => {
@@ -3276,7 +3273,8 @@ async function loadAndStartBridges(filenames: string[]) {
     const newConfigErrors: (string | null)[] = [];
     const newConfigStatuses: ('idle' | 'starting' | 'started' | 'error' | 'stopped')[] = [];
     const loadedConfigs: HomenetBridgeConfig[] = [];
-    const loadedConfigFilesForCollector: { name: string; content: string; portIds?: string[] }[] = [];
+    const loadedConfigFilesForCollector: { name: string; content: string; portIds?: string[] }[] =
+      [];
 
     // 1. Instantiate bridges only for successfully loaded configs
     for (let i = 0; i < filenames.length; i += 1) {
@@ -3305,7 +3303,8 @@ async function loadAndStartBridges(filenames: string[]) {
         // Read file content for log collector
         try {
           const content = await fs.readFile(resolvedPaths[i], 'utf-8');
-          const portIds = result.config.serials?.map((s, idx) => normalizePortId(s.portId, idx)) || [];
+          const portIds =
+            result.config.serials?.map((s, idx) => normalizePortId(s.portId, idx)) || [];
           loadedConfigFilesForCollector.push({ name: filenames[i], content, portIds });
         } catch {
           // Ignore read error for log collector
@@ -3420,8 +3419,7 @@ server.listen(port, async () => {
     const configFilesFromEnv = envConfigFiles.values;
     const discoveredConfigFiles = (await fs.readdir(CONFIG_DIR)).filter(
       (file: string) =>
-        file === DEFAULT_CONFIG_FILENAME ||
-        /^default_\d+\.homenet_bridge\.ya?ml$/.test(file),
+        file === DEFAULT_CONFIG_FILENAME || /^default_\d+\.homenet_bridge\.ya?ml$/.test(file),
     );
 
     const shouldPersistInitMarker =
@@ -3456,7 +3454,7 @@ server.listen(port, async () => {
 
     // 브리지 시작 성공 후 .restart-required 파일 삭제
     if (await fileExists(CONFIG_RESTART_FLAG)) {
-      await fs.unlink(CONFIG_RESTART_FLAG).catch(() => { });
+      await fs.unlink(CONFIG_RESTART_FLAG).catch(() => {});
       logger.info('[service] Cleared .restart-required flag');
     }
 

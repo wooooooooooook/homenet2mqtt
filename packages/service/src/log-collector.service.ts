@@ -44,7 +44,7 @@ export class LogCollectorService {
   private packetCount = 0;
   private config: LogConfig = { consent: null, uid: null };
 
-  constructor() { }
+  constructor() {}
 
   async init(bridges: HomeNetBridge[], configFiles: ConfigFileContent[] = []) {
     this.bridges = bridges;
@@ -88,7 +88,7 @@ export class LogCollectorService {
       await this.saveConfig();
 
       // Remove legacy file after successful migration
-      await fs.unlink(LEGACY_CONSENT_FILE).catch(() => { });
+      await fs.unlink(LEGACY_CONSENT_FILE).catch(() => {});
     } catch (e: any) {
       if (e.code !== 'ENOENT') {
         logger.error({ err: e }, '[LogCollector] Failed to migrate legacy config');
@@ -200,8 +200,12 @@ export class LogCollectorService {
       // KST timestamp
       const kstTimestamp = new Date().toLocaleString('ko-KR', {
         timeZone: 'Asia/Seoul',
-        year: 'numeric', month: '2-digit', day: '2-digit',
-        hour: '2-digit', minute: '2-digit', second: '2-digit',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
         hour12: false,
       });
 
@@ -210,8 +214,8 @@ export class LogCollectorService {
         if (packets.length === 0) continue;
 
         // Filter configs relevant to this portId
-        const relatedConfigs = this.configFiles.filter(c =>
-          c.portIds && c.portIds.includes(portId)
+        const relatedConfigs = this.configFiles.filter(
+          (c) => c.portIds && c.portIds.includes(portId),
         );
 
         // Fallback: If no config explicitly claims this port, include all (safety net)
@@ -242,7 +246,10 @@ export class LogCollectorService {
         });
 
         if (!response.ok) {
-          logger.error({ status: response.status, portId }, '[LogCollector] Failed to upload log for port');
+          logger.error(
+            { status: response.status, portId },
+            '[LogCollector] Failed to upload log for port',
+          );
         } else {
           logger.info({ portId }, '[LogCollector] Report sent successfully for port');
         }
