@@ -1,5 +1,7 @@
 v1.6.1
-- fix: config_files를 기본값으로 비워뒀을때 `WARN: [service] CONFIG_FILES에 단일 값이 입력되었습니다. 쉼표로 구분된 배열 형식(CONFIG_FILES=item1,item2) 사용을 권장합니다.` 경고가 뜨는문제 수정
+- config_files를 기본값으로 비워뒀을때 `WARN: [service] CONFIG_FILES에 단일 값이 입력되었습니다. 쉼표로 구분된 배열 형식(CONFIG_FILES=item1,item2) 사용을 권장합니다.` 경고가 뜨는문제 수정
+- 마지막 남은 브릿지를 삭제할수 없도록 수정
+- 비활성화 보기 토글을 유지하여 비활성화엔티티 삭제 편의성 향상
 
 v1.6.0
 - 초기설정마법사를 강화: 예제 뿐 아니라 시리얼 직접설정을 지원, 포함할 엔티티 체크 추가.
