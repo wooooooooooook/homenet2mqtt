@@ -33,6 +33,7 @@ interface LogConfig {
 interface ConfigFileContent {
   name: string;
   content: string;
+  portIds?: string[];
 }
 
 export class LogCollectorService {
@@ -208,16 +209,27 @@ export class LogCollectorService {
       for (const [portId, packets] of this.packetBuffers) {
         if (packets.length === 0) continue;
 
+        // Filter configs relevant to this portId
+        const relatedConfigs = this.configFiles.filter(c =>
+          c.portIds && c.portIds.includes(portId)
+        );
+
+        // Fallback: If no config explicitly claims this port, include all (safety net)
+        // or strictly send none? Better to send all if unsure to avoid missing context,
+        // but user specifically requested separation.
+        // Let's settle on: if valid matches found, use them. If NO matches found, send ALL.
+        const configsToSend = relatedConfigs.length > 0 ? relatedConfigs : this.configFiles;
+
         const payload = {
           timestamp: kstTimestamp,
           uid: this.config.uid,
           architecture: arch,
           version: version,
           isRunningOnHASupervisor,
-          configs: this.configFiles,
+          portIds: [portId], // The single port ID for this batch
+          configs: configsToSend,
           logs: logs,
           packets: packets, // string[] of payloads only
-          portIds: [portId], // The single port ID for this batch
         };
 
         const response = await fetch(LOG_COLLECTOR_URL, {

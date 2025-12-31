@@ -116,10 +116,21 @@ export default {
                 const serverTimestamp = Date.now();
 
                 // Extract port IDs
-                const portIds = (configs || [])
-                    .map(c => c.portId)
-                    .filter(Boolean)
-                    .join(',');
+                // 1. Try explicit portIds from body (Service sends portIds: string[])
+                let portIds = body.portIds || body.port_ids;
+
+                if (Array.isArray(portIds)) {
+                    portIds = portIds.join(',');
+                }
+
+                // 2. Fallback: extract from configs (legacy support)
+                if (!portIds) {
+                    portIds = (configs || [])
+                        .map(c => c.portId)
+                        .filter(Boolean)
+                        .join(',');
+
+                }
 
                 const { success } = await env.LOG_DB.prepare(
                     `INSERT INTO logs (
