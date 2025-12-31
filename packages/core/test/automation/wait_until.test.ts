@@ -26,6 +26,7 @@ describe('wait_until action', () => {
       {
         id: 'test_sensor',
         name: 'Test Sensor',
+        type: 'binary_sensor',
         state: { data: [0x01] },
         state_on: { data: [0x01] },
         state_off: { data: [0x00] },

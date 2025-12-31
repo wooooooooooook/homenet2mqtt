@@ -15,7 +15,7 @@ const serial = {
 const baseConfig: HomenetBridgeConfig = {
   serial,
   serials: [serial],
-  light: [{ id: 'light_1', name: 'Light 1', type: 'light' }],
+  light: [{ id: 'light_1', name: 'Light 1', type: 'light', state: { data: [0x01] } }],
 };
 
 describe('AutomationManager', () => {
@@ -404,6 +404,7 @@ describe('AutomationManager', () => {
           id: 'light_1',
           name: 'Light 1',
           type: 'light',
+          state: { data: [0x01] },
           command_on: { data: [0x01], low_priority: true },
         },
       ],
@@ -447,6 +448,7 @@ describe('AutomationManager', () => {
           id: 'light_1',
           name: 'Light 1',
           type: 'light',
+          state: { data: [0x01] },
           command_on: { data: [0x01], low_priority: true },
         },
       ],
@@ -727,7 +729,7 @@ describe('AutomationManager', () => {
     it('조건이 참이면 then 블록을 실행해야 한다', async () => {
       const config: HomenetBridgeConfig = {
         ...baseConfig,
-        sensor: [{ id: 'sensor_temp', name: 'Temp', type: 'sensor' }],
+        sensor: [{ id: 'sensor_temp', name: 'Temp', type: 'sensor', state: { data: [0x01] } }],
         automation: [
           {
             id: 'if_then_test',
@@ -768,7 +770,7 @@ describe('AutomationManager', () => {
     it('조건이 거짓이면 else 블록을 실행해야 한다', async () => {
       const config: HomenetBridgeConfig = {
         ...baseConfig,
-        sensor: [{ id: 'sensor_temp', name: 'Temp', type: 'sensor' }],
+        sensor: [{ id: 'sensor_temp', name: 'Temp', type: 'sensor', state: { data: [0x01] } }],
         automation: [
           {
             id: 'if_else_test',
@@ -809,7 +811,7 @@ describe('AutomationManager', () => {
     it('else 블록이 없고 조건이 거짓이면 아무것도 실행하지 않아야 한다', async () => {
       const config: HomenetBridgeConfig = {
         ...baseConfig,
-        sensor: [{ id: 'sensor_temp', name: 'Temp', type: 'sensor' }],
+        sensor: [{ id: 'sensor_temp', name: 'Temp', type: 'sensor', state: { data: [0x01] } }],
         automation: [
           {
             id: 'if_no_else_test',
@@ -880,7 +882,7 @@ describe('AutomationManager', () => {
     it('while 조건이 거짓이 되면 반복을 중단해야 한다', async () => {
       const config: HomenetBridgeConfig = {
         ...baseConfig,
-        sensor: [{ id: 'counter', name: 'Counter', type: 'sensor' }],
+        sensor: [{ id: 'counter', name: 'Counter', type: 'sensor', state: { data: [0x01] } }],
         automation: [
           {
             id: 'repeat_while_test',
@@ -962,7 +964,7 @@ describe('AutomationManager', () => {
     it('중첩된 if와 repeat 액션이 올바르게 동작해야 한다', async () => {
       const config: HomenetBridgeConfig = {
         ...baseConfig,
-        sensor: [{ id: 'switch_1', name: 'Switch', type: 'sensor' }],
+        sensor: [{ id: 'switch_1', name: 'Switch', type: 'sensor', state: { data: [0x01] } }],
         automation: [
           {
             id: 'nested_test',

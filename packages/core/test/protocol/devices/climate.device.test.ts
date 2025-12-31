@@ -11,6 +11,7 @@ describe('ClimateDevice Command Generation', () => {
 
   it('should fail when using undefined variable "target" in CEL', () => {
     const config = {
+      id: 'test_climate',
       name: 'test_climate',
       command_temperature: '[[0x36, 0x11, 0x44, 0x01, target], [0x36, 0x11, 0xc4]]',
     };
@@ -23,6 +24,7 @@ describe('ClimateDevice Command Generation', () => {
 
   it('should succeed when using variable "x" in CEL (Ezville Pattern)', () => {
     const config = {
+      id: 'test_climate',
       name: 'test_climate',
       command_temperature: '[[0x36, 0x11, 0x44, 0x01, x], [0x36, 0x11, 0xc4]]',
     };
@@ -39,6 +41,7 @@ describe('ClimateDevice Command Generation', () => {
 
   it('should succeed when using complex list structure with "x" (Kocom Pattern)', () => {
     const config = {
+      id: 'test_climate',
       name: 'test_climate',
       command_temperature:
         '[[0x30, 0xbc, 0x00, 0x36, 0x03, 0x01, 0x00, 0x00, 0x11, 0x01, x, 0x00, 0x00, 0x00, 0x00, 0x00], [0x30, 0xdc]]',
@@ -56,6 +59,7 @@ describe('ClimateDevice Command Generation', () => {
 
   it('should succeed when using variable "x" in a simple array structure', () => {
     const config = {
+      id: 'test_climate',
       name: 'test_climate',
       command_temperature: '[0x01, 0x02, x]',
     };

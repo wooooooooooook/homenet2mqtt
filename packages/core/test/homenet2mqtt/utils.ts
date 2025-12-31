@@ -15,6 +15,8 @@ import { findEntityById } from '../../src/utils/entities';
 export const bridgeMock = {
   getLightState: vi.fn(),
   getClimateState: vi.fn(),
+  getAllStates: vi.fn().mockReturnValue({}),
+  getEntityState: vi.fn(),
 };
 
 export interface TestContext {
