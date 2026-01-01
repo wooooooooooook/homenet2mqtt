@@ -204,6 +204,7 @@ const wss = new WebSocketServer({ server, path: '/api/packets/stream' });
 const port = process.env.PORT ? Number(process.env.PORT) : 3000;
 
 // Security: Rate Limiters
+const globalRateLimiter = new RateLimiter(60000, 300); // 300 requests per minute (General DoS protection)
 const commandRateLimiter = new RateLimiter(10000, 20); // 20 requests per 10 seconds
 const configRateLimiter = new RateLimiter(60000, 20); // 20 requests per minute
 const serialTestRateLimiter = new RateLimiter(60000, 20); // 20 requests per minute
@@ -354,6 +355,14 @@ app.use((_req, res, next) => {
 });
 // Payload 크기 제한 설정 (DoS 방지)
 app.use(express.json({ limit: '1mb' }));
+
+// Global Rate Limiter Middleware
+app.use((req, res, next) => {
+  if (!globalRateLimiter.check(req.ip || 'unknown')) {
+    return res.status(429).json({ error: 'Too many requests' });
+  }
+  next();
+});
 
 setupWizardService.registerRoutes(app);
 
@@ -528,7 +537,11 @@ app.post('/api/tools/packet/send', async (req, res) => {
   const result = instance.bridge.constructCustomPacket(hex, { header, footer, checksum });
   if (!result.success || !result.packet) return res.status(400).json({ error: result.error });
 
-  const packetBytes = result.packet.match(/.{1,2}/g)!.map((x) => parseInt(x, 16));
+  const packetBytes = result.packet.match(/.{1,2}/g)?.map((x) => parseInt(x, 16));
+
+  if (!packetBytes) {
+    return res.status(400).json({ error: 'Failed to generate packet bytes from hex' });
+  }
 
   const maxCount = 50; // Safety limit
   const effectiveCount = Math.min(count, maxCount);
