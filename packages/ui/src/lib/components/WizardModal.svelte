@@ -4,7 +4,21 @@
   let { onclose } = $props<{ onclose: () => void }>();
 </script>
 
-<div class="modal-backdrop">
+<div
+  class="modal-backdrop"
+  role="button"
+  tabindex="0"
+  onclick={(event) => {
+    if (event.currentTarget === event.target) {
+      onclose();
+    }
+  }}
+  onkeydown={(event) => {
+    if (event.key === 'Escape' || event.key === 'Enter' || event.key === ' ') {
+      onclose();
+    }
+  }}
+>
   <div class="modal-content">
     <button class="close-btn" onclick={onclose} aria-label="Close">×</button>
     <SetupWizard mode="add" />
