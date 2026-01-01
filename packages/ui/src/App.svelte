@@ -1444,18 +1444,24 @@
 <ToastContainer {toasts} onDismiss={(id) => removeToast(id)} />
 
 <style>
+  :global(html, body) {
+    height: 100%;
+  }
+
   :global(body) {
     font-family: system-ui, sans-serif;
     margin: 0;
     background: #0f172a;
     color: #e2e8f0;
     min-height: 100vh;
+    min-height: 100dvh;
   }
 
   .app-container {
     display: flex;
     flex-direction: column;
     min-height: 100vh;
+    min-height: 100dvh;
   }
 
   .content-body {
@@ -1471,6 +1477,10 @@
     box-sizing: border-box;
     overflow-y: auto;
     height: calc(100vh - 65px); /* Header height */
+    height: calc(100dvh - 65px); /* iOS dynamic viewport 대응 */
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+    padding-bottom: env(safe-area-inset-bottom);
   }
 
   @media (min-width: 769px) {

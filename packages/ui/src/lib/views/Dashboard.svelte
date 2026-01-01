@@ -78,6 +78,7 @@
   const visibleEntities = $derived.by<UnifiedEntity[]>(() => entities);
   let hintDismissed = $state(false);
   let showAddBridgeModal = $state(false);
+  const hintBubbleEnabled = false;
 
   // portStatuses에서 해당 포트의 상태를 가져오는 헬퍼 함수
   function getPortStatus(portId: string): BridgeStatus | 'unknown' {
@@ -193,7 +194,7 @@
       class="toggle-container"
       style="position: relative; display: flex; justify-content: flex-end;"
     >
-      {#if hasInactiveEntities && !hintDismissed}
+      {#if hintBubbleEnabled && hasInactiveEntities && !hintDismissed}
         <HintBubble onDismiss={() => (hintDismissed = true)}>
           {$t('dashboard.hint_inactive_performance')}
         </HintBubble>
