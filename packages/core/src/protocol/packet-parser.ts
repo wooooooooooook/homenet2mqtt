@@ -20,6 +20,7 @@ export class PacketParser {
   private buffer: Buffer = Buffer.alloc(0);
   private lastRxTime: number = 0;
   private lastScannedLength: number = 0;
+  private lastRunningChecksum: number = 0;
   private readonly MAX_BUFFER_SIZE = 16384; // 16KB limit
   private defaults: PacketDefaults;
   private headerBuffer: Buffer | null = null;
@@ -224,13 +225,28 @@ export class PacketParser {
             const initialDataEnd = startLen - checksumLen;
 
             // Calculate initial checksum for the starting packet length
-            if (isAdd) {
-              for (let i = startIdx; i < initialDataEnd; i++) {
-                runningChecksum += this.buffer[i];
+            // OPTIMIZATION: If we are resuming from a previous scan of the same logical buffer,
+            // we can reuse the previously calculated running checksum.
+            if (this.lastScannedLength > 0 && startLen === this.lastScannedLength + 1) {
+              runningChecksum = this.lastRunningChecksum;
+              // The byte at `lastScannedLength - checksumLen` was previously considered a checksum candidate (or part of it).
+              // Now that the packet length has increased by 1, this byte becomes the last byte of the data payload.
+              const newByte = this.buffer[this.lastScannedLength - checksumLen];
+              if (isAdd) {
+                runningChecksum += newByte;
+              } else {
+                runningChecksum ^= newByte;
               }
             } else {
-              for (let i = startIdx; i < initialDataEnd; i++) {
-                runningChecksum ^= this.buffer[i];
+              // Full recalculation needed
+              if (isAdd) {
+                for (let i = startIdx; i < initialDataEnd; i++) {
+                  runningChecksum += this.buffer[i];
+                }
+              } else {
+                for (let i = startIdx; i < initialDataEnd; i++) {
+                  runningChecksum ^= this.buffer[i];
+                }
               }
             }
 
@@ -272,6 +288,8 @@ export class PacketParser {
                 break;
               }
             }
+            // Save the running checksum state for the next chunk iteration
+            this.lastRunningChecksum = runningChecksum;
           } else {
             // Standard unoptimized loop for complex checksums (CEL, Samsung, etc.)
             for (let len = startLen; len <= this.buffer.length; len++) {
