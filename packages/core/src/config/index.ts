@@ -136,8 +136,55 @@ export function normalizeConfig(config: HomenetBridgeConfig) {
     config.scripts = [];
   }
 
+  if (config.scripts && Array.isArray(config.scripts)) {
+    const scriptIds = new Set<string>();
+    config.scripts.forEach((script) => {
+      // script.id가 존재할 때만 처리 (없으면 validateConfig에서 걸러짐)
+      if (script && typeof script === 'object' && script.id) {
+        let currentId = script.id;
+        const originalId = currentId;
+        let suffix = 2;
+
+        while (scriptIds.has(currentId)) {
+          currentId = `${originalId}_${suffix}`;
+          suffix += 1;
+        }
+
+        if (currentId !== originalId) {
+          script.id = currentId;
+          logger.warn(
+            { original: originalId, new: currentId },
+            '[config] Detected duplicate script ID, renamed to avoid conflict',
+          );
+        }
+        scriptIds.add(currentId);
+      }
+    });
+  }
+
   if (config.automation && Array.isArray(config.automation)) {
+    const automationIds = new Set<string>();
     config.automation.forEach((auto) => {
+      if (auto && typeof auto === 'object' && auto.id) {
+        let currentId = auto.id;
+        const originalId = currentId;
+        let suffix = 2;
+
+        while (automationIds.has(currentId)) {
+          currentId = `${originalId}_${suffix}`;
+          suffix += 1;
+        }
+
+        if (currentId !== originalId) {
+          auto.id = currentId;
+          logger.warn(
+            { original: originalId, new: currentId },
+            '[config] Detected duplicate automation ID, renamed to avoid conflict',
+          );
+        }
+        automationIds.add(currentId);
+      }
+
       if (!auto.trigger) return;
       const hasSchedule = auto.trigger.some((t) => t.type === 'schedule');
       if (hasSchedule) {
@@ -277,8 +324,6 @@ export function validateConfig(
 
         if (typeof script.id !== 'string' || !script.id.trim()) {
           errors.push(`scripts[${index}]에 유효한 id(문자열)가 필요합니다.`);
-        } else if (scriptIds.has(script.id)) {
-          errors.push(`scripts 항목의 id는 고유해야 합니다. 중복된 id: ${script.id}`);
         } else {
           scriptIds.add(script.id);
         }
