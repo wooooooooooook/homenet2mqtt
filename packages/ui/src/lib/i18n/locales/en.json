@@ -98,7 +98,8 @@
       "rx": "RX (Received)",
       "tx": "TX (Sent)",
       "desc": "List of parsed received packets and packets sent by H2M.",
-      "empty": "No packets to display."
+      "empty": "No packets to display.",
+      "search_placeholder": "Search ID, packet (hex), command"
     },
     "raw_log": {
       "title": "Raw Packet Log",

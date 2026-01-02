@@ -98,7 +98,8 @@
       "rx": "RX (수신)",
       "tx": "TX (발신)",
       "desc": "파싱된 수신패킷과 H2M에서 발신한 패킷 목록입니다.",
-      "empty": "표시할 패킷이 없습니다."
+      "empty": "표시할 패킷이 없습니다.",
+      "search_placeholder": "ID, 패킷(Hex), 명령 검색"
     },
     "raw_log": {
       "title": "Raw 패킷 로그",

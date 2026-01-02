@@ -10,6 +10,7 @@
 
   let showRx = $state(true);
   let showTx = $state(true);
+  let searchQuery = $state('');
 
   type MergedPacket = ({ type: 'rx' } & ParsedPacket) | ({ type: 'tx' } & CommandPacket);
 
@@ -25,6 +26,26 @@
       packets = packets.concat(
         commandPackets.map((p: CommandPacket) => ({ ...p, type: 'tx' }) as const),
       );
+    }
+
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      packets = packets.filter((p) => {
+        // Search Entity ID
+        if (p.entityId?.toLowerCase().includes(query)) return true;
+        // Search Packet Hex
+        if (p.packet?.toLowerCase().includes(query)) return true;
+
+        // Search Payload / Command info
+        if (p.type === 'rx' && p.state) {
+          if (JSON.stringify(p.state).toLowerCase().includes(query)) return true;
+        } else if (p.type === 'tx') {
+          if (p.command?.toLowerCase().includes(query)) return true;
+          if (p.value !== undefined && String(p.value).toLowerCase().includes(query)) return true;
+        }
+
+        return false;
+      });
     }
 
     return packets.sort(
@@ -62,6 +83,13 @@
     <div class="header-left">
       <h2>{$t('analysis.packet_log.title')}</h2>
       <div class="filters">
+        <div class="search-box">
+          <input
+            type="text"
+            bind:value={searchQuery}
+            placeholder={$t('analysis.packet_log.search_placeholder')}
+          />
+        </div>
         <label>
           <input type="checkbox" bind:checked={showRx} />
           {$t('analysis.packet_log.rx')}
@@ -119,6 +147,7 @@
     display: flex;
     align-items: center;
     gap: 1.5rem;
+    flex-wrap: wrap; /* Handle small screens */
   }
 
   .description {
@@ -129,8 +158,24 @@
   .filters {
     display: flex;
     gap: 1rem;
+    align-items: center;
     font-size: 0.9rem;
     color: #94a3b8;
+  }
+
+  .search-box input {
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 4px;
+    padding: 0.3rem 0.6rem;
+    color: #e2e8f0;
+    font-size: 0.85rem;
+    width: 200px;
+  }
+
+  .search-box input:focus {
+    outline: none;
+    border-color: #3b82f6;
   }
 
   .filters label {
@@ -140,7 +185,7 @@
     cursor: pointer;
   }
 
-  .filters input {
+  .filters input[type='checkbox'] {
     cursor: pointer;
   }
 
