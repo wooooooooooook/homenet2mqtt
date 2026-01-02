@@ -29,14 +29,18 @@ describe('Fan Entity', () => {
   it('should parse ON/OFF state', () => {
     const device = new FanDevice(fanConfig, protocolConfig);
 
-    expect(device.parseData([0x40, 0x01, 0x00, 0x00, 0x00])).toMatchObject({ state: 'ON' });
-    expect(device.parseData([0x40, 0x00, 0x00, 0x00, 0x00])).toMatchObject({ state: 'OFF' });
+    expect(device.parseData(Buffer.from([0x40, 0x01, 0x00, 0x00, 0x00]))).toMatchObject({
+      state: 'ON',
+    });
+    expect(device.parseData(Buffer.from([0x40, 0x00, 0x00, 0x00, 0x00]))).toMatchObject({
+      state: 'OFF',
+    });
   });
 
   it('should parse speed, oscillation, and direction', () => {
     const device = new FanDevice(fanConfig, protocolConfig);
     // Speed 50 (0x32), Oscillation ON (0x01), Forward (0x00)
-    const packet = [0x40, 0x01, 0x32, 0x01, 0x00];
+    const packet = Buffer.from([0x40, 0x01, 0x32, 0x01, 0x00]);
     const result = device.parseData(packet);
     expect(result).toMatchObject({
       state: 'ON',

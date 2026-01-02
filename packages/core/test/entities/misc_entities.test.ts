@@ -29,7 +29,7 @@ describe('Text Entity', () => {
     const device = new TextDevice(textConfig, protocolConfig);
     // "HELLO" in ASCII
     const packet = [0x80, 0x48, 0x45, 0x4c, 0x4c, 0x4f];
-    expect(device.parseData(packet)).toMatchObject({ text: 'HELLO' });
+    expect(device.parseData(Buffer.from(packet))).toMatchObject({ text: 'HELLO' });
   });
 
   it('should construct text command', () => {
@@ -55,7 +55,7 @@ describe('Number Entity', () => {
 
   it('should parse number value', () => {
     const device = new NumberDevice(numberConfig, protocolConfig);
-    expect(device.parseData([0x81, 50])).toMatchObject({ value: 50 });
+    expect(device.parseData(Buffer.from([0x81, 50]))).toMatchObject({ value: 50 });
   });
 
   it('should construct number command', () => {
@@ -77,8 +77,8 @@ describe('Select Entity', () => {
 
   it('should parse select value', () => {
     const device = new SelectDevice(selectConfig, protocolConfig);
-    expect(device.parseData([0x82, 1])).toMatchObject({ option: 'Option A' });
-    expect(device.parseData([0x82, 2])).toMatchObject({ option: 'Option B' });
+    expect(device.parseData(Buffer.from([0x82, 1]))).toMatchObject({ option: 'Option A' });
+    expect(device.parseData(Buffer.from([0x82, 2]))).toMatchObject({ option: 'Option B' });
   });
 
   it('should construct select command', () => {
@@ -116,8 +116,8 @@ describe('Lock Entity', () => {
 
   it('should parse locked/unlocked state', () => {
     const device = new LockDevice(lockConfig, protocolConfig);
-    expect(device.parseData([0x84, 0x01])).toMatchObject({ state: 'LOCKED' });
-    expect(device.parseData([0x84, 0x00])).toMatchObject({ state: 'UNLOCKED' });
+    expect(device.parseData(Buffer.from([0x84, 0x01]))).toMatchObject({ state: 'LOCKED' });
+    expect(device.parseData(Buffer.from([0x84, 0x00]))).toMatchObject({ state: 'UNLOCKED' });
   });
 
   it('should construct lock/unlock commands', () => {

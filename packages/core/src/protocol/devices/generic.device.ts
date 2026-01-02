@@ -44,12 +44,12 @@ export class GenericDevice extends Device {
    *    - Context: `data` (packet bytes), `states` (global state map).
    * 2. **Schema Extraction**: (Currently limited implementation in this base class) Fallback to `state` schema.
    *
-   * @param packet - The received packet as an array of bytes.
+   * @param packet - The received packet as a Buffer of bytes.
    * @param states - Optional map of all global entity states, injected into the CEL context.
    * @returns A dictionary of state updates (e.g., `{ power: 'on', temperature: 24 }`) or `null` if no match/updates.
    */
   public parseData(
-    packet: number[],
+    packet: Buffer,
     states?: Map<string, Record<string, any>>,
   ): Record<string, any> | null {
     if (!this.matchesPacket(packet)) {
@@ -270,7 +270,7 @@ export class GenericDevice extends Device {
    * @param stateSchema - The schema defining the expected data, mask, and offset.
    * @returns `true` if the packet matches the schema's pattern.
    */
-  protected matchState(packetData: number[], stateSchema: StateSchema | undefined): boolean {
+  protected matchState(packetData: Uint8Array, stateSchema: StateSchema | undefined): boolean {
     if (!stateSchema) return false;
     return matchesPacket(stateSchema, packetData, {
       allowEmptyData: true,
@@ -291,7 +291,7 @@ export class GenericDevice extends Device {
    * @param schema - The schema defining offset, length, type, and decoding rules.
    * @returns The extracted number or string, or `null` if extraction fails (e.g. out of bounds).
    */
-  protected extractValue(bytes: number[], schema: StateNumSchema): number | string | null {
+  protected extractValue(bytes: Uint8Array, schema: StateNumSchema): number | string | null {
     const {
       offset,
       length = 1,
@@ -305,9 +305,15 @@ export class GenericDevice extends Device {
       return null;
     }
 
-    const valueBytes = bytes.slice(offset, offset + length);
+    const valueBytes: number[] = [];
     if (endian === 'little') {
-      valueBytes.reverse();
+      for (let i = offset + length - 1; i >= offset; i -= 1) {
+        valueBytes.push(bytes[i]);
+      }
+    } else {
+      for (let i = offset; i < offset + length; i += 1) {
+        valueBytes.push(bytes[i]);
+      }
     }
 
     let value: number;

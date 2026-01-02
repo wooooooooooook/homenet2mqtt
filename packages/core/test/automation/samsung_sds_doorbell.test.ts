@@ -234,7 +234,7 @@ describe('Samsung SDS Doorbell Automation', () => {
 
   describe('패킷 응답 처리', () => {
     it('초기화 패킷(A4 5A) 수신 시 응답 패킷(B0 5A 00 + checksum)을 전송해야 한다', async () => {
-      packetProcessor.emit('packet', [0xa4, 0x5a, 0x00, 0x00]);
+      packetProcessor.emit('packet', Buffer.from([0xa4, 0x5a, 0x00, 0x00]));
       await vi.runAllTimersAsync();
 
       const expectedData = [0xb0, 0x5a, 0x00];
@@ -252,7 +252,7 @@ describe('Samsung SDS Doorbell Automation', () => {
       eventBus.emit('state:changed', { entityId: 'door_state', state: { state: 'D_IDLE' } });
       await vi.advanceTimersByTimeAsync(10);
 
-      packetProcessor.emit('packet', [0xa4, 0x41, 0x00, 0x00]);
+      packetProcessor.emit('packet', Buffer.from([0xa4, 0x41, 0x00, 0x00]));
       await vi.advanceTimersByTimeAsync(10);
 
       const expectedData = [0xb0, 0x41, 0x00];
@@ -270,7 +270,7 @@ describe('Samsung SDS Doorbell Automation', () => {
       eventBus.emit('state:changed', { entityId: 'door_state', state: { state: 'D_CALL' } });
       await vi.advanceTimersByTimeAsync(10);
 
-      packetProcessor.emit('packet', [0xa4, 0x41, 0x00, 0x00]);
+      packetProcessor.emit('packet', Buffer.from([0xa4, 0x41, 0x00, 0x00]));
       await vi.advanceTimersByTimeAsync(10);
 
       const expectedData = [0xb0, 0x36, 0x01];
@@ -288,7 +288,7 @@ describe('Samsung SDS Doorbell Automation', () => {
       eventBus.emit('state:changed', { entityId: 'door_state', state: { state: 'D_OPEN' } });
       await vi.advanceTimersByTimeAsync(10);
 
-      packetProcessor.emit('packet', [0xa4, 0x41, 0x00, 0x00]);
+      packetProcessor.emit('packet', Buffer.from([0xa4, 0x41, 0x00, 0x00]));
       await vi.advanceTimersByTimeAsync(10);
 
       const expectedData = [0xb0, 0x3b, 0x00];

@@ -7,7 +7,7 @@ export class LightDevice extends GenericDevice {
     super(config, protocolConfig);
   }
 
-  public parseData(packet: number[]): Record<string, any> | null {
+  public parseData(packet: Buffer): Record<string, any> | null {
     if (!this.matchesPacket(packet)) {
       return null;
     }

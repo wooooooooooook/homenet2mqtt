@@ -20,7 +20,7 @@ interface CommandJob {
   packet: number[];
   attemptsLeft: number;
   retryConfig: RetryConfig;
-  packetMatcher?: (packet: number[]) => void;
+  packetMatcher?: (packet: Buffer) => void;
   timer: NodeJS.Timeout | null;
   resolve: () => void;
   reject: (reason?: any) => void;
@@ -34,7 +34,7 @@ export class CommandManager {
   private serialPort: Duplex;
   private config: HomenetBridgeConfig;
   private ackListeners: Map<string, () => void> = new Map();
-  private packetAckListeners: Set<(packet: number[]) => void> = new Set();
+  private packetAckListeners: Set<(packet: Buffer) => void> = new Set();
   private portId: string;
   private packetProcessor?: PacketProcessor;
 
@@ -56,7 +56,7 @@ export class CommandManager {
     });
 
     if (this.packetProcessor) {
-      this.packetProcessor.on('packet', (packet: number[]) => {
+      this.packetProcessor.on('packet', (packet: Buffer) => {
         this.handlePacketAck(packet);
       });
     }
@@ -254,7 +254,7 @@ export class CommandManager {
     // If ackMatch exists, also set up packet matcher
     // This allows both state:changed and ack packet to trigger ACK
     if (job.ackMatch) {
-      const matcher = (packet: number[]) => {
+      const matcher = (packet: Buffer) => {
         if (job.ackMatch && matchesPacket(job.ackMatch, packet)) {
           callback();
         }
@@ -290,7 +290,7 @@ export class CommandManager {
     }
   }
 
-  private handlePacketAck(packet: number[]) {
+  private handlePacketAck(packet: Buffer) {
     for (const listener of this.packetAckListeners) {
       listener(packet);
     }

@@ -152,7 +152,7 @@ describe('ACK Matching', () => {
 
       // Wait a bit and simulate ACK packet reception
       await vi.advanceTimersByTimeAsync(50);
-      packetCallback([0x31, 0x81, 0x00, 0xb2]); // Packet that matches ack pattern
+      packetCallback(Buffer.from([0x31, 0x81, 0x00, 0xb2])); // Packet that matches ack pattern
 
       await expect(sendPromise).resolves.toBeUndefined();
       expect(writeSpy).toHaveBeenCalledOnce();
@@ -198,7 +198,7 @@ describe('ACK Matching', () => {
 
       // Send non-matching packet
       await vi.advanceTimersByTimeAsync(50);
-      packetCallback([0x99, 0x99, 0x99]); // Does not match ack pattern
+      packetCallback(Buffer.from([0x99, 0x99, 0x99])); // Does not match ack pattern
 
       // Should not resolve yet, will eventually timeout and retry
       vi.runAllTimers();

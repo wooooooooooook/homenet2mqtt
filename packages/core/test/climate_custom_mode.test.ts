@@ -30,18 +30,18 @@ describe('Climate Custom Mode (CEL)', () => {
 
       // Test Turbo mode (byte 5 = 0x03)
       // Packet: [header] [0x20, 0x10, 0x00, 0x00, 0x00, 0x03, ...] [footer]
-      const packetTurbo = [0xf7, 0x20, 0x10, 0x00, 0x00, 0x00, 0x03, 0x00, 0xee];
+      const packetTurbo = Buffer.from([0xf7, 0x20, 0x10, 0x00, 0x00, 0x00, 0x03, 0x00, 0xee]);
       const resultTurbo = device.parseData(packetTurbo);
       expect(resultTurbo).not.toBeNull();
       expect(resultTurbo?.custom_fan).toBe('Turbo');
 
       // Test Nature mode (byte 5 = 0x02)
-      const packetNature = [0xf7, 0x20, 0x10, 0x00, 0x00, 0x00, 0x02, 0x00, 0xee];
+      const packetNature = Buffer.from([0xf7, 0x20, 0x10, 0x00, 0x00, 0x00, 0x02, 0x00, 0xee]);
       const resultNature = device.parseData(packetNature);
       expect(resultNature?.custom_fan).toBe('Nature');
 
       // Test Sleep mode (byte 5 = anything else, e.g., 0x01)
-      const packetSleep = [0xf7, 0x20, 0x10, 0x00, 0x00, 0x00, 0x01, 0x00, 0xee];
+      const packetSleep = Buffer.from([0xf7, 0x20, 0x10, 0x00, 0x00, 0x00, 0x01, 0x00, 0xee]);
       const resultSleep = device.parseData(packetSleep);
       expect(resultSleep?.custom_fan).toBe('Sleep');
     });
@@ -62,17 +62,17 @@ describe('Climate Custom Mode (CEL)', () => {
       const device = new ClimateDevice(config, protocolConfig);
 
       // Test Eco preset
-      const packetEco = [0xf7, 0x20, 0x10, 0x00, 0x00, 0x00, 0x00, 0x01, 0xee];
+      const packetEco = Buffer.from([0xf7, 0x20, 0x10, 0x00, 0x00, 0x00, 0x00, 0x01, 0xee]);
       const resultEco = device.parseData(packetEco);
       expect(resultEco?.custom_preset).toBe('Eco');
 
       // Test Comfort preset
-      const packetComfort = [0xf7, 0x20, 0x10, 0x00, 0x00, 0x00, 0x00, 0x02, 0xee];
+      const packetComfort = Buffer.from([0xf7, 0x20, 0x10, 0x00, 0x00, 0x00, 0x00, 0x02, 0xee]);
       const resultComfort = device.parseData(packetComfort);
       expect(resultComfort?.custom_preset).toBe('Comfort');
 
       // Test Boost preset
-      const packetBoost = [0xf7, 0x20, 0x10, 0x00, 0x00, 0x00, 0x00, 0x03, 0xee];
+      const packetBoost = Buffer.from([0xf7, 0x20, 0x10, 0x00, 0x00, 0x00, 0x00, 0x03, 0xee]);
       const resultBoost = device.parseData(packetBoost);
       expect(resultBoost?.custom_preset).toBe('Boost');
     });
@@ -155,7 +155,7 @@ describe('Climate Custom Mode (CEL)', () => {
 
       // Parse state: Auto fan mode (data[4] = 0x00, which is index 4 in the full packet)
       // Packet: [header=0xf7, 0x30, 0x01, 0x00, 0x00, footer=0xee] => data[4] = 0x00
-      const packetAuto = [0xf7, 0x30, 0x01, 0x00, 0x00, 0xee];
+      const packetAuto = Buffer.from([0xf7, 0x30, 0x01, 0x00, 0x00, 0xee]);
       const stateAuto = device.parseData(packetAuto);
       expect(stateAuto?.custom_fan).toBe('Auto');
 

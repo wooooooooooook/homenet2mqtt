@@ -7,7 +7,7 @@ export class LockDevice extends GenericDevice {
     super(config, protocolConfig);
   }
 
-  public parseData(packet: number[]): Record<string, any> | null {
+  public parseData(packet: Buffer): Record<string, any> | null {
     if (!this.matchesPacket(packet)) {
       return null;
     }
@@ -33,7 +33,7 @@ export class LockDevice extends GenericDevice {
     return Object.keys(updates).length > 0 ? updates : null;
   }
 
-  private matchesSchema(packet: number[], schema: any): boolean {
+  private matchesSchema(packet: Buffer, schema: any): boolean {
     if (!schema || !schema.data) return false;
 
     const headerLength = this.protocolConfig.packet_defaults?.rx_header?.length || 0;

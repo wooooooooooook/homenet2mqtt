@@ -31,7 +31,7 @@ describe('Climate Entity', () => {
   it('should parse current and target temperature', () => {
     const device = new ClimateDevice(climateConfig, protocolConfig);
     // 0x81 (Heat), 0x25 (25C), 0x30 (30C), 0x01 (Heating)
-    const packet = [0x81, 0x25, 0x30, 0x01, 0x00];
+    const packet = Buffer.from([0x81, 0x25, 0x30, 0x01, 0x00]);
     const result = device.parseData(packet);
     expect(result).toMatchObject({
       current_temperature: 25,
@@ -42,17 +42,29 @@ describe('Climate Entity', () => {
   it('should parse mode', () => {
     const device = new ClimateDevice(climateConfig, protocolConfig);
 
-    expect(device.parseData([0x80, 0x00, 0x00, 0x00, 0x00])).toMatchObject({ mode: 'off' });
-    expect(device.parseData([0x81, 0x00, 0x00, 0x00, 0x00])).toMatchObject({ mode: 'heat' });
-    expect(device.parseData([0x82, 0x00, 0x00, 0x00, 0x00])).toMatchObject({ mode: 'cool' });
+    expect(device.parseData(Buffer.from([0x80, 0x00, 0x00, 0x00, 0x00]))).toMatchObject({
+      mode: 'off',
+    });
+    expect(device.parseData(Buffer.from([0x81, 0x00, 0x00, 0x00, 0x00]))).toMatchObject({
+      mode: 'heat',
+    });
+    expect(device.parseData(Buffer.from([0x82, 0x00, 0x00, 0x00, 0x00]))).toMatchObject({
+      mode: 'cool',
+    });
   });
 
   it('should parse action', () => {
     const device = new ClimateDevice(climateConfig, protocolConfig);
 
-    expect(device.parseData([0x81, 0x00, 0x00, 0x01, 0x00])).toMatchObject({ action: 'heating' });
-    expect(device.parseData([0x82, 0x00, 0x00, 0x02, 0x00])).toMatchObject({ action: 'cooling' });
-    expect(device.parseData([0x81, 0x00, 0x00, 0x00, 0x00])).toMatchObject({ action: 'idle' });
+    expect(device.parseData(Buffer.from([0x81, 0x00, 0x00, 0x01, 0x00]))).toMatchObject({
+      action: 'heating',
+    });
+    expect(device.parseData(Buffer.from([0x82, 0x00, 0x00, 0x02, 0x00]))).toMatchObject({
+      action: 'cooling',
+    });
+    expect(device.parseData(Buffer.from([0x81, 0x00, 0x00, 0x00, 0x00]))).toMatchObject({
+      action: 'idle',
+    });
   });
 
   it('should construct mode commands', () => {
@@ -94,7 +106,7 @@ describe('Climate Entity', () => {
     };
 
     const device = new ClimateDevice(heater4Config as any, protocolConfig);
-    const packet = [0x82, 0x80, 0x04, 0x22, 0x15, 0x00, 0x00, 0x3d];
+    const packet = Buffer.from([0x82, 0x80, 0x04, 0x22, 0x15, 0x00, 0x00, 0x3d]);
 
     expect(device.matchesPacket(packet)).toBe(true);
     const result = device.parseData(packet);

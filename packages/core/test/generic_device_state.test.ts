@@ -23,7 +23,7 @@ describe('GenericDevice', () => {
 
     (device as unknown as { state: Record<string, any> }).state = { value: 55 };
 
-    const updates = device.parseData([0x10, 0x01]);
+    const updates = device.parseData(Buffer.from([0x10, 0x01]));
 
     expect(updates).toEqual({ value: 55 });
   });
@@ -48,7 +48,7 @@ describe('GenericDevice', () => {
 
     (device as unknown as { state: Record<string, any> }).state = {};
 
-    const updates = device.parseData([0x10, 0x01]);
+    const updates = device.parseData(Buffer.from([0x10, 0x01]));
 
     expect(updates).toBeNull();
   });
@@ -73,7 +73,7 @@ describe('GenericDevice', () => {
 
     (device as unknown as { state: Record<string, any> }).state = {};
 
-    const updates = device.parseData([0x10, 0x01]);
+    const updates = device.parseData(Buffer.from([0x10, 0x01]));
 
     expect(updates).toEqual({ value: 'Unknown' });
   });
@@ -105,27 +105,27 @@ describe('GenericDevice', () => {
       }
     };
 
-    const initialUnknown = device.parseData([
+    const initialUnknown = device.parseData(Buffer.from([
       0x0d, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40,
-    ]);
+    ]));
     expect(initialUnknown).toEqual({ value: 'Unknown' });
     applyUpdates(initialUnknown);
 
-    const floorUpdate = device.parseData([
+    const floorUpdate = device.parseData(Buffer.from([
       0x0d, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02,
-    ]);
+    ]));
     expect(floorUpdate).toEqual({ value: '2' });
     applyUpdates(floorUpdate);
 
-    const keepPrevious = device.parseData([
+    const keepPrevious = device.parseData(Buffer.from([
       0x0d, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40,
-    ]);
+    ]));
     expect(keepPrevious).toEqual({ value: '2' });
     applyUpdates(keepPrevious);
 
-    const basementUpdate = device.parseData([
+    const basementUpdate = device.parseData(Buffer.from([
       0x0d, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xb1,
-    ]);
+    ]));
     expect(basementUpdate).toEqual({ value: 'B1' });
   });
 });

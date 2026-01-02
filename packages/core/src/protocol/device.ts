@@ -6,6 +6,7 @@ import {
   ProtocolConfig,
   CommandResult,
 } from './types.js';
+import { Buffer } from 'buffer';
 
 export abstract class Device {
   protected config: DeviceConfig;
@@ -17,7 +18,7 @@ export abstract class Device {
     this.protocolConfig = protocolConfig;
   }
 
-  public abstract parseData(packet: number[]): Record<string, any> | null;
+  public abstract parseData(packet: Buffer): Record<string, any> | null;
 
   public abstract constructCommand(
     commandName: string,
@@ -46,7 +47,7 @@ export abstract class Device {
   }
 
   // Helper to extract data based on schema
-  protected extractFromSchema(packet: number[], schema: StateSchema | StateNumSchema): any {
+  protected extractFromSchema(packet: Buffer, schema: StateSchema | StateNumSchema): any {
     const { offset = 0, data, mask, inverted = false } = schema;
     const numSchema = schema as StateNumSchema;
 
@@ -178,7 +179,7 @@ export abstract class Device {
     return value;
   }
 
-  public matchesPacket(packet: number[]): boolean {
+  public matchesPacket(packet: Buffer): boolean {
     const stateConfig = this.config.state;
     if (!stateConfig || !stateConfig.data) {
       // If no state config, we can't match based on state pattern.

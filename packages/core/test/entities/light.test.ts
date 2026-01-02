@@ -34,42 +34,42 @@ describe('Light Entity', () => {
 
   it('should parse ON state', () => {
     const device = new LightDevice(lightConfig, protocolConfig);
-    const packet = [0x30, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
+    const packet = Buffer.from([0x30, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
     const result = device.parseData(packet);
     expect(result).toMatchObject({ state: 'ON' });
   });
 
   it('should parse OFF state', () => {
     const device = new LightDevice(lightConfig, protocolConfig);
-    const packet = [0x30, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
+    const packet = Buffer.from([0x30, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
     const result = device.parseData(packet);
     expect(result).toMatchObject({ state: 'OFF' });
   });
 
   it('should parse brightness', () => {
     const device = new LightDevice(lightConfig, protocolConfig);
-    const packet = [0x30, 0x01, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]; // Brightness 128
+    const packet = Buffer.from([0x30, 0x01, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]); // Brightness 128
     const result = device.parseData(packet);
     expect(result).toMatchObject({ brightness: 128 });
   });
 
   it('should parse RGB color', () => {
     const device = new LightDevice(lightConfig, protocolConfig);
-    const packet = [0x30, 0x01, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00]; // Red 255
+    const packet = Buffer.from([0x30, 0x01, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00]); // Red 255
     const result = device.parseData(packet);
     expect(result).toMatchObject({ red: 255, green: 0, blue: 0 });
   });
 
   it('should parse color temperature', () => {
     const device = new LightDevice(lightConfig, protocolConfig);
-    const packet = [0x30, 0x01, 0xff, 0x00, 0x00, 0x00, 0x01, 0xf4, 0x00]; // 500 mireds (0x01F4)
+    const packet = Buffer.from([0x30, 0x01, 0xff, 0x00, 0x00, 0x00, 0x01, 0xf4, 0x00]); // 500 mireds (0x01F4)
     const result = device.parseData(packet);
     expect(result).toMatchObject({ color_temp: 500 });
   });
 
   it('should parse white value', () => {
     const device = new LightDevice(lightConfig, protocolConfig);
-    const packet = [0x30, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff]; // White 255
+    const packet = Buffer.from([0x30, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff]); // White 255
     const result = device.parseData(packet);
     expect(result).toMatchObject({ white: 255 });
   });
