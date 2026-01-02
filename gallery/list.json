@@ -1,5 +1,5 @@
 {
-  "generated_at": "2025-12-31T01:29:00.003Z",
+  "generated_at": "2026-01-02T00:23:24.540Z",
   "vendors": [
     {
       "id": "commax",
@@ -525,36 +525,12 @@
       },
       "items": [
         {
-          "file": "hyundai_imazu/doorbell.yaml",
-          "name": "현관문세트",
-          "name_en": "Doorbell Set",
-          "description": "현대 이마주 현관문세트 설정입니다. 개인현관문과 공동현관문의 벨 감지, 통화, 문열기 기능을 지원합니다. 주방폰에 baud_rate 3880으로 연결이 필요하다고 생각됩니다.",
-          "description_en": "Hyundai Imazu doorbell set configuration. Supports bell detection, calling, and door opening for private and common entrances. It is thought that it needs to connect to the kitchen phone with baud_rate 3880.",
-          "version": "1.0.0",
-          "author": "wooooooooooook",
-          "tags": [
-            "doorbell",
-            "hyundai",
-            "switch",
-            "button"
-          ],
-          "content_summary": {
-            "entities": {
-              "binary_sensor": 2,
-              "button": 2,
-              "switch": 4
-            },
-            "automations": 2,
-            "scripts": 0
-          }
-        },
-        {
           "file": "hyundai_imazu/elevator.yaml",
           "name": "현대통신 엘리베이터",
           "name_en": "Hyundai Telecom Elevator",
           "description": "현대통신 월패드용 엘리베이터 호출 및 상태 확인 설정입니다. 참고:https://yogyui.tistory.com/entry/%ED%98%84%EB%8C%80%ED%86%B5%EC%8B%A0-%EC%9B%94%ED%8C%A8%EB%93%9C-RS-485-%ED%86%B5%EC%8B%A0-%ED%94%84%EB%A1%9C%ED%86%A0%EC%BD%9C-%EC%97%98%EB%A6%AC%EB%B2%A0%EC%9D%B4%ED%84%B0-%ED%98%B8%EC%B6%9C",
           "description_en": "Elevator call and status configuration for Hyundai Telecom wallpads. Reference: https://yogyui.tistory.com/entry/%ED%98%84%EB%8C%80%ED%86%B5%EC%8B%A0-%EC%9B%94%ED%8C%A8%EB%93%9C-RS-485-%ED%86%B5%EC%8B%A0-%ED%94%84%EB%A1%9C%ED%86%A0%EC%BD%9C-%EC%97%98%EB%A6%AC%EB%B2%A0%EC%9D%B4%ED%84%B0-%ED%98%B8%EC%B6%9C",
-          "version": "1.0.4",
+          "version": "1.0.5",
           "author": "wooooooooooook",
           "tags": [
             "elevator",
@@ -576,7 +552,7 @@
           "name_en": "Hyundai Telecom Elevator x2",
           "description": "현대통신 월패드용 엘리베이터 2대가 있는 경우 호출 및 상태 확인 설정입니다.",
           "description_en": "Elevator call and status configuration for Hyundai Telecom wallpads.",
-          "version": "1.0.1",
+          "version": "1.0.2",
           "author": "wooooooooooook",
           "tags": [
             "elevator",
@@ -723,6 +699,60 @@
               "sensor": 4
             },
             "automations": 0,
+            "scripts": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "hyundai_imazu_doorbell",
+      "name": "현대 imazu 현관문(주방폰)",
+      "requirements": {
+        "serial": {
+          "baud_rate": 3880,
+          "data_bits": 8,
+          "parity": "none",
+          "stop_bits": 1
+        },
+        "packet_defaults": {
+          "rx_header": [
+            127
+          ],
+          "rx_footer": [
+            238
+          ],
+          "tx_header": [
+            127
+          ],
+          "tx_footer": [
+            238
+          ],
+          "rx_checksum": "none",
+          "tx_checksum": "none"
+        }
+      },
+      "items": [
+        {
+          "file": "hyundai_imazu_doorbell/doorbell.yaml",
+          "name": "현관문세트",
+          "name_en": "Doorbell Set",
+          "description": "현대 이마주 현관문세트 설정입니다. 개인현관문과 공동현관문의 벨 감지, 통화, 문열기 기능을 지원합니다. 주방폰에 baud_rate 3880으로 연결이 필요하다고 생각됩니다.",
+          "description_en": "Hyundai Imazu doorbell set configuration. Supports bell detection, calling, and door opening for private and common entrances. It is thought that it needs to connect to the kitchen phone with baud_rate 3880.",
+          "version": "1.0.0",
+          "author": "wooooooooooook",
+          "tags": [
+            "doorbell",
+            "hyundai",
+            "switch",
+            "button"
+          ],
+          "content_summary": {
+            "entities": {
+              "binary_sensor": 2,
+              "button": 2,
+              "switch": 4
+            },
+            "automations": 2,
             "scripts": 0
           }
         }
