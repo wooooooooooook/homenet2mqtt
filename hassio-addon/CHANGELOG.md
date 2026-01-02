@@ -1,3 +1,12 @@
+v1.7.0
+- feat: commandSchema에 ack를 추가하였습니다. [schema 가이드](https://github.com/wooooooooooook/RS485-HomeNet-to-MQTT-bridge/blob/main/docs/config-schema/schemas.md#CommandSchema)
+  - 기존: 명령패킷 전송 후 해당 엔티티의 상태변화가 있으면 전송 성공으로판단.
+  - 변경: ack가 정의된경우 상태변화와 ack패킷 중 먼저온 것을 성공으로 판단. (button 등 state가 없는 엔티티에서도 ack판단이 가능해졌습니다.)
+- fix: 명령이 없는 엔티티가 대시보드에 나타나지 않는 문제 수정
+- fix: 엔티티와 스크립트/자동화의 id가 겹칠수 있어 UI가 마비되는 현상 -> id가 중복되지 않도록 자동수정하도록 했습니다.
+- etc: 성능 최적화
+- gallery: 현대 imazu 현관문(주방폰에 별도 포트연결필요), 이지빌 스마트플러그(F750패킷) 추가
+
 v1.6.1
 - config_files를 기본값으로 비워뒀을때 `WARN: [service] CONFIG_FILES에 단일 값이 입력되었습니다. 쉼표로 구분된 배열 형식(CONFIG_FILES=item1,item2) 사용을 권장합니다.` 경고가 뜨는문제 수정
 - 마지막 남은 브릿지를 삭제할수 없도록 수정
