@@ -3,9 +3,9 @@ import { logger } from '@rs485-homenet/core';
 import fsp from 'node:fs/promises';
 import path from 'node:path';
 
-const LOG_TTL = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+const LOG_TTL = 6 * 60 * 60 * 1000; // 6 hours in milliseconds
 const CLEANUP_INTERVAL = 60 * 60 * 1000; // Cleanup every hour
-const AUTO_SAVE_INTERVAL = 24 * 60 * 60 * 1000; // 24 hours
+const AUTO_SAVE_INTERVAL = 6 * 60 * 60 * 1000; // 6 hours
 
 export interface LogRetentionSettings {
   enabled: boolean;
@@ -464,7 +464,7 @@ export class LogRetentionService {
       clearInterval(this.autoSaveTimer);
     }
     this.autoSaveTimer = setInterval(() => this.autoSave(), AUTO_SAVE_INTERVAL);
-    logger.info('[LogRetention] Auto-save started (24h interval)');
+    logger.info('[LogRetention] Auto-save started (6h interval)');
   }
 
   private stopAutoSave() {

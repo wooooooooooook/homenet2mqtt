@@ -39,7 +39,7 @@
     "saving": "Saving...",
     "log_retention": {
       "title": "Log Retention",
-      "desc": "Store 24-hour logs (packet, raw packet, activity) on the server.",
+      "desc": "Store 6-hour logs (packet, raw packet, activity) on the server. Not necessary to enable unless debugging.",
       "enable": "Enable Log Retention",
       "enable_desc": "Uses server memory when enabled. When disabled, only logs during the current UI session are available.",
       "save_now": "Save & Download Current Logs",
@@ -48,8 +48,8 @@
       "memory_usage": "Current Memory Usage",
       "packets": "Packets",
       "activity": "Activity",
-      "auto_save": "Auto-save every 24 hours",
-      "auto_save_desc": "Automatically saves logs to file every 24 hours when enabled.",
+      "auto_save": "Auto-save every 6 hours",
+      "auto_save_desc": "Automatically saves logs to file every 6 hours when enabled.",
       "retention_count": "Files to retain",
       "retention_count_desc": "Older files will be automatically deleted.",
       "saved_files": "Saved Log Files",
@@ -199,6 +199,8 @@
     "cancel": "Cancel",
     "confirm": "Confirm",
     "apply": "Apply",
+    "delete": "Delete",
+    "delete_confirm": "Are you sure?",
     "copied": "Copied!"
   },
   "header": {
