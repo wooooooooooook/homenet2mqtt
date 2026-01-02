@@ -41,7 +41,7 @@ describe('Heater Matching Reproduction', () => {
     manager.on('state', spy);
 
     // Packet: B0 7C 03 00 14 16 FF 32
-    const packet = [0xb0, 0x7c, 0x03, 0x00, 0x14, 0x16, 0xff, 0x32];
+    const packet = Buffer.from([0xb0, 0x7c, 0x03, 0x00, 0x14, 0x16, 0xff, 0x32]);
 
     // Manually trigger processPacket (which is private, so we use handleIncomingByte loop or mock)
     // But ProtocolManager.processPacket is private.

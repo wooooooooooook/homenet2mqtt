@@ -7,7 +7,7 @@ export class SelectDevice extends GenericDevice {
     super(config, protocolConfig);
   }
 
-  public parseData(packet: number[]): Record<string, any> | null {
+  public parseData(packet: Buffer): Record<string, any> | null {
     if (!this.matchesPacket(packet)) {
       return null;
     }
@@ -32,7 +32,7 @@ export class SelectDevice extends GenericDevice {
     return Object.keys(updates).length > 0 ? updates : null;
   }
 
-  private extractOption(packet: number[], entityConfig: SelectEntity): string | null {
+  private extractOption(packet: Buffer, entityConfig: SelectEntity): string | null {
     const schema = entityConfig.state_select as any;
     if (!schema || !schema.map) return null;
 

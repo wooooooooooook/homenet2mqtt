@@ -127,7 +127,7 @@ describe('Samsung SDS Elevator Automation', () => {
     });
 
     it('장치 스캔 패킷(AD 5A 00 77) 수신 시 응답 패킷(B0 5A 00 6A)을 전송해야 한다', async () => {
-      packetProcessor.emit('packet', [0xad, 0x5a, 0x00, 0x77]);
+      packetProcessor.emit('packet', Buffer.from([0xad, 0x5a, 0x00, 0x77]));
       await vi.runAllTimersAsync();
       expect(mockSender).toHaveBeenCalledWith(
         undefined,
@@ -138,7 +138,7 @@ describe('Samsung SDS Elevator Automation', () => {
 
     it('호출 중이지 않을 때(AD 41 00 6C) 기본 패킷(B0 41 00 71)을 전송해야 한다', async () => {
       eventBus.emit('state:changed', { entityId: 'elevator_call', state: { state: 'off' } });
-      packetProcessor.emit('packet', [0xad, 0x41, 0x00, 0x6c]);
+      packetProcessor.emit('packet', Buffer.from([0xad, 0x41, 0x00, 0x6c]));
       await vi.advanceTimersByTimeAsync(1);
       expect(mockSender).toHaveBeenCalledWith(
         undefined,
@@ -149,7 +149,7 @@ describe('Samsung SDS Elevator Automation', () => {
 
     it('호출 중일 때(AD 41 00 6C) 호출됨 패킷(B0 2F 01 1E)을 전송해야 한다', async () => {
       eventBus.emit('state:changed', { entityId: 'elevator_call', state: { state: 'on' } });
-      packetProcessor.emit('packet', [0xad, 0x41, 0x00, 0x6c]);
+      packetProcessor.emit('packet', Buffer.from([0xad, 0x41, 0x00, 0x6c]));
       await vi.advanceTimersByTimeAsync(1);
       expect(mockSender).toHaveBeenCalledWith(
         undefined,
@@ -275,7 +275,7 @@ describe('Samsung SDS Elevator Automation', () => {
     });
 
     it('장치 스캔 패킷(CC 5A 01 00 17) 수신 시 응답 패킷(B0 5A 01 00 6B)을 전송해야 한다', async () => {
-      packetProcessor.emit('packet', [0xcc, 0x5a, 0x01, 0x00, 0x17]);
+      packetProcessor.emit('packet', Buffer.from([0xcc, 0x5a, 0x01, 0x00, 0x17]));
       await vi.runAllTimersAsync();
       expect(mockSender).toHaveBeenCalledWith(
         undefined,
@@ -286,7 +286,7 @@ describe('Samsung SDS Elevator Automation', () => {
 
     it('호출 중이지 않을 때(CC 41 01 00 0C) 기본 패킷(B0 41 01 00 70)을 전송해야 한다', async () => {
       eventBus.emit('state:changed', { entityId: 'elevator_call', state: { state: 'off' } });
-      packetProcessor.emit('packet', [0xcc, 0x41, 0x01, 0x00, 0x0c]);
+      packetProcessor.emit('packet', Buffer.from([0xcc, 0x41, 0x01, 0x00, 0x0c]));
       await vi.advanceTimersByTimeAsync(1);
       expect(mockSender).toHaveBeenCalledWith(
         undefined,
@@ -297,7 +297,7 @@ describe('Samsung SDS Elevator Automation', () => {
 
     it('호출 중일 때(CC 41 01 00 0C) 호출됨 패킷(B0 10 01 01 20)을 전송해야 한다', async () => {
       eventBus.emit('state:changed', { entityId: 'elevator_call', state: { state: 'on' } });
-      packetProcessor.emit('packet', [0xcc, 0x41, 0x01, 0x00, 0x0c]);
+      packetProcessor.emit('packet', Buffer.from([0xcc, 0x41, 0x01, 0x00, 0x0c]));
       await vi.advanceTimersByTimeAsync(1);
       expect(mockSender).toHaveBeenCalledWith(
         undefined,
@@ -308,7 +308,7 @@ describe('Samsung SDS Elevator Automation', () => {
 
     it('호출 완료 패킷(CC 10 01 01 5C) 수신 시 응답 패킷 전송 및 스위치를 꺼야 한다', async () => {
       eventBus.emit('state:changed', { entityId: 'elevator_call', state: { state: 'on' } });
-      packetProcessor.emit('packet', [0xcc, 0x10, 0x01, 0x01, 0x5c]);
+      packetProcessor.emit('packet', Buffer.from([0xcc, 0x10, 0x01, 0x01, 0x5c]));
       await vi.runAllTimersAsync();
       expect(mockSender).toHaveBeenCalledWith(
         undefined,

@@ -11,8 +11,8 @@ describe('matchesPacket', () => {
       guard: 'data[2] == 0x03',
     };
 
-    expect(matchesPacket(schema, [0x01, 0x02, 0x03])).toBe(true);
-    expect(matchesPacket(schema, [0x01, 0x02, 0x04])).toBe(false);
+    expect(matchesPacket(schema, Buffer.from([0x01, 0x02, 0x03]))).toBe(true);
+    expect(matchesPacket(schema, Buffer.from([0x01, 0x02, 0x04]))).toBe(false);
   });
 
   it('should exclude packets that match an except schema', () => {
@@ -27,7 +27,7 @@ describe('matchesPacket', () => {
       ],
     };
 
-    expect(matchesPacket(schema, [0x01, 0x02, 0x10])).toBe(true);
-    expect(matchesPacket(schema, [0x01, 0x02, 0xff])).toBe(false);
+    expect(matchesPacket(schema, Buffer.from([0x01, 0x02, 0x10]))).toBe(true);
+    expect(matchesPacket(schema, Buffer.from([0x01, 0x02, 0xff]))).toBe(false);
   });
 });

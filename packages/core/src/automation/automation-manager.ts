@@ -263,7 +263,7 @@ export class AutomationManager {
     };
     this.bind(eventBus, 'state:changed', stateListener);
 
-    const packetListener = (packet: number[]) => this.handlePacketTriggers(packet);
+    const packetListener = (packet: Buffer) => this.handlePacketTriggers(packet);
     this.bind(this.packetProcessor, 'packet', packetListener);
 
     for (const automation of this.automationList) {
@@ -381,18 +381,22 @@ export class AutomationManager {
     }
   }
 
-  private handlePacketTriggers(packet: number[]) {
+  private handlePacketTriggers(packet: Buffer) {
     for (const automation of this.automationList) {
       for (const trigger of automation.trigger) {
         if (trigger.type !== 'packet') continue;
-        const context: TriggerContext = { type: 'packet', packet, timestamp: Date.now() };
         if (!this.matchesPacket(trigger, packet)) continue;
+        const context: TriggerContext = {
+          type: 'packet',
+          packet: Array.from(packet),
+          timestamp: Date.now(),
+        };
         this.runAutomation(automation, trigger, context);
       }
     }
   }
 
-  private matchesPacket(trigger: AutomationTriggerPacket, packet: number[]) {
+  private matchesPacket(trigger: AutomationTriggerPacket, packet: Buffer) {
     return matchesPacket(trigger.match as StateSchema, packet);
   }
 

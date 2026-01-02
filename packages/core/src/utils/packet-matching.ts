@@ -9,7 +9,7 @@ interface PacketMatchOptions {
 
 export function matchesPacket(
   match: StateSchema,
-  packet: number[],
+  packet: Uint8Array,
   options: PacketMatchOptions = {},
 ): boolean {
   const baseOffset = options.baseOffset ?? 0;

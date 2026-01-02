@@ -41,7 +41,7 @@ homenet_bridge:
     const device = new GenericDevice(lightConfig as DeviceConfig, protocolConfig);
 
     // Test State Parsing
-    const packet = [0x01, 0x00, 0x00, 0x00, 0x00];
+    const packet = Buffer.from([0x01, 0x00, 0x00, 0x00, 0x00]);
     const parsed = device.parseData(packet);
     expect(parsed).toEqual({ on: 'ON' });
 

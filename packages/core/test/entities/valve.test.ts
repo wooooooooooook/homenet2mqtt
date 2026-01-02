@@ -28,15 +28,27 @@ describe('Valve Entity', () => {
   it('should parse OPEN/CLOSED states', () => {
     const device = new ValveDevice(valveConfig, protocolConfig);
 
-    expect(device.parseData([0x50, 0x64, 0x00])).toMatchObject({ state: 'OPEN', position: 100 });
-    expect(device.parseData([0x50, 0x00, 0x00])).toMatchObject({ state: 'CLOSED', position: 0 });
+    expect(device.parseData(Buffer.from([0x50, 0x64, 0x00]))).toMatchObject({
+      state: 'OPEN',
+      position: 100,
+    });
+    expect(device.parseData(Buffer.from([0x50, 0x00, 0x00]))).toMatchObject({
+      state: 'CLOSED',
+      position: 0,
+    });
   });
 
   it('should parse OPENING/CLOSING states', () => {
     const device = new ValveDevice(valveConfig, protocolConfig);
 
-    expect(device.parseData([0x50, 0x32, 0x01])).toMatchObject({ state: 'OPENING', position: 50 });
-    expect(device.parseData([0x50, 0x32, 0x02])).toMatchObject({ state: 'CLOSING', position: 50 });
+    expect(device.parseData(Buffer.from([0x50, 0x32, 0x01]))).toMatchObject({
+      state: 'OPENING',
+      position: 50,
+    });
+    expect(device.parseData(Buffer.from([0x50, 0x32, 0x02]))).toMatchObject({
+      state: 'CLOSING',
+      position: 50,
+    });
   });
 
   it('should construct OPEN/CLOSE/STOP commands', () => {

@@ -23,8 +23,8 @@ describe('Switch Entity', () => {
   it('should parse ON/OFF state', () => {
     const device = new SwitchDevice(switchConfig, protocolConfig);
 
-    expect(device.parseData([0x60, 0x01])).toMatchObject({ state: 'ON' });
-    expect(device.parseData([0x60, 0x00])).toMatchObject({ state: 'OFF' });
+    expect(device.parseData(Buffer.from([0x60, 0x01]))).toMatchObject({ state: 'ON' });
+    expect(device.parseData(Buffer.from([0x60, 0x00]))).toMatchObject({ state: 'OFF' });
   });
 
   it('should construct ON/OFF commands', () => {

@@ -38,18 +38,18 @@ describe('Fan Preset Mode (CEL)', () => {
 
       // Test Auto preset (byte 5 = 0x01)
       // Packet: [header=0xf7] [0x30, 0x01, 0x71, 0x01, 0x01, ...] [footer=0xee]
-      const packetAuto = [0xf7, 0x30, 0x01, 0x71, 0x01, 0x01, 0x00, 0xee];
+      const packetAuto = Buffer.from([0xf7, 0x30, 0x01, 0x71, 0x01, 0x01, 0x00, 0xee]);
       const resultAuto = device.parseData(packetAuto);
       expect(resultAuto).not.toBeNull();
       expect(resultAuto?.preset_mode).toBe('Auto');
 
       // Test Sleep preset (byte 5 = 0x02)
-      const packetSleep = [0xf7, 0x30, 0x01, 0x71, 0x01, 0x02, 0x00, 0xee];
+      const packetSleep = Buffer.from([0xf7, 0x30, 0x01, 0x71, 0x01, 0x02, 0x00, 0xee]);
       const resultSleep = device.parseData(packetSleep);
       expect(resultSleep?.preset_mode).toBe('Sleep');
 
       // Test Turbo preset (byte 5 = anything else, e.g., 0x03)
-      const packetTurbo = [0xf7, 0x30, 0x01, 0x71, 0x01, 0x03, 0x00, 0xee];
+      const packetTurbo = Buffer.from([0xf7, 0x30, 0x01, 0x71, 0x01, 0x03, 0x00, 0xee]);
       const resultTurbo = device.parseData(packetTurbo);
       expect(resultTurbo?.preset_mode).toBe('Turbo');
     });
@@ -80,7 +80,7 @@ describe('Fan Preset Mode (CEL)', () => {
       // Full packet: [header=0xf7, 0x30, 0x01, 0x71, 0x00, 0x01, 0x02, 0x00, 0xee]
       // payload = [0x30, 0x01, 0x71, 0x00, 0x01, 0x02, 0x00] (after header)
       // payload[4] = 0x01 (ON)
-      const packet = [0xf7, 0x30, 0x01, 0x71, 0x00, 0x01, 0x02, 0x00, 0xee];
+      const packet = Buffer.from([0xf7, 0x30, 0x01, 0x71, 0x00, 0x01, 0x02, 0x00, 0xee]);
       const result = device.parseData(packet);
 
       expect(result).not.toBeNull();
@@ -177,7 +177,7 @@ describe('Fan Preset Mode (CEL)', () => {
       const device = new FanDevice(config, protocolConfig);
 
       // Parse state: fan ON with Low preset
-      const packetLow = [0xf7, 0x30, 0x01, 0x71, 0x01, 0x01, 0xee];
+      const packetLow = Buffer.from([0xf7, 0x30, 0x01, 0x71, 0x01, 0x01, 0xee]);
       const stateLow = device.parseData(packetLow);
       expect(stateLow?.state).toBe('ON');
       expect(stateLow?.preset_mode).toBe('Low');

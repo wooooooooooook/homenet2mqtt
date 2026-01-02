@@ -15,7 +15,7 @@ export class TextDevice extends GenericDevice {
     }
   }
 
-  public parseData(packet: number[]): Record<string, any> | null {
+  public parseData(packet: Buffer): Record<string, any> | null {
     // For optimistic text without state config, return current optimistic value
     const entityConfig = this.config as TextEntity;
     if (entityConfig.optimistic && !entityConfig.state) {
@@ -43,7 +43,7 @@ export class TextDevice extends GenericDevice {
     return Object.keys(updates).length > 0 ? updates : null;
   }
 
-  private extractText(packet: number[], schema: any): string | null {
+  private extractText(packet: Buffer, schema: any): string | null {
     if (!schema) return null;
 
     const offset = schema.offset || 0;

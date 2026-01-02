@@ -38,7 +38,7 @@ describe('LightDevice Fix', () => {
     // With fix: offset = 2 + 1 (header) = 3.
     // packet[3] = 01. Matches data [01].
 
-    const packet = [0xb0, 0x79, 0x15, 0x01, 0x5d];
+    const packet = Buffer.from([0xb0, 0x79, 0x15, 0x01, 0x5d]);
 
     const updates = device.parseData(packet);
 
@@ -74,7 +74,7 @@ describe('LightDevice Fix', () => {
     const device = new LightDevice(deviceConfig, protocolConfig);
 
     // Packet: 0xB0 0x79 0x15 0x00 0x5C (OFF)
-    const packet = [0xb0, 0x79, 0x15, 0x00, 0x5c];
+    const packet = Buffer.from([0xb0, 0x79, 0x15, 0x00, 0x5c]);
 
     const updates = device.parseData(packet);
 

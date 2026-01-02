@@ -7,7 +7,7 @@ export class TextSensorDevice extends GenericDevice {
     super(config, protocolConfig);
   }
 
-  public parseData(packet: number[]): Record<string, any> | null {
+  public parseData(packet: Buffer): Record<string, any> | null {
     if (!this.matchesPacket(packet)) {
       return null;
     }
@@ -28,7 +28,7 @@ export class TextSensorDevice extends GenericDevice {
     return Object.keys(updates).length > 0 ? updates : null;
   }
 
-  private extractText(packet: number[], schema: any): string | null {
+  private extractText(packet: Buffer, schema: any): string | null {
     if (!schema) return null;
 
     const offset = schema.offset || 0;

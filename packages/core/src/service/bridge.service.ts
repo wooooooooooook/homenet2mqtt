@@ -803,7 +803,7 @@ export class HomeNetBridge {
 
       packetProcessor.on('parsed-packet', (data) => {
         const { deviceId, packet, state } = data;
-        const hexPacket = packet.map((b: number) => b.toString(16).padStart(2, '0')).join('');
+        const hexPacket = packet.toString('hex');
         eventBus.emit('parsed-packet', {
           portId: normalizedPortId,
           entityId: deviceId,
@@ -919,7 +919,7 @@ export class HomeNetBridge {
           }
         }
 
-        const hexPacket = packet.map((b: number) => b.toString(16).padStart(2, '0')).join('');
+        const hexPacket = packet.toString('hex');
         eventBus.emit('raw-valid-packet', {
           portId: normalizedPortId,
           payload: hexPacket,

@@ -200,13 +200,7 @@ export class ProtocolManager extends EventEmitter {
   }
 
   private processPacket(packet: Buffer) {
-    // Compatibility: Convert Buffer to number[] for downstream devices expecting it.
-    // This maintains backward compatibility with the Device.parseData(number[]) signature
-    // while allowing efficient processing up to this point.
-    // NOTE: This is the only allocation point now (reduced from 2+ allocations).
-    const packetArray = [...packet];
-
-    this.emit('packet', packetArray);
+    this.emit('packet', packet);
 
     let matchedAny = false;
 
@@ -219,7 +213,7 @@ export class ProtocolManager extends EventEmitter {
     }
 
     for (const device of this.devices) {
-      const stateUpdates = device.parseData(packetArray);
+      const stateUpdates = device.parseData(packet);
       if (stateUpdates) {
         matchedAny = true;
         if (isDebug) {
@@ -231,7 +225,7 @@ export class ProtocolManager extends EventEmitter {
         this.emit('state', { deviceId: device.getId(), state: stateUpdates });
         this.emit('parsed-packet', {
           deviceId: device.getId(),
-          packet: packetArray,
+          packet,
           state: stateUpdates,
         });
       }

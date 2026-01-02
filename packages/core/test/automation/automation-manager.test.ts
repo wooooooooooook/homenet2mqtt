@@ -208,12 +208,12 @@ describe('AutomationManager', () => {
     automationManager.start();
 
     // 일치하는 패킷 수신
-    packetProcessor.emit('packet', [0xaa, 0xbb, 0xcc]);
+    packetProcessor.emit('packet', Buffer.from([0xaa, 0xbb, 0xcc]));
     await vi.runAllTimersAsync();
     expect(mqttPublisher.publish).toHaveBeenCalledTimes(1);
 
     // 일치하지 않는 패킷 수신 (동작하지 않아야 함)
-    packetProcessor.emit('packet', [0xaa, 0x00, 0xcc]);
+    packetProcessor.emit('packet', Buffer.from([0xaa, 0x00, 0xcc]));
     await vi.runAllTimersAsync();
     expect(mqttPublisher.publish).toHaveBeenCalledTimes(1); // 호출 횟수 증가 없음
   });
@@ -557,12 +557,12 @@ describe('AutomationManager', () => {
       automationManager.start();
 
       // 첫 번째 트리거
-      packetProcessor.emit('packet', [0xaa]);
+      packetProcessor.emit('packet', Buffer.from([0xaa]));
       await vi.advanceTimersByTimeAsync(10);
       expect(mqttPublisher.publish).toHaveBeenCalledWith('start', 'begin', undefined);
 
       // 두 번째 트리거 (첫 번째가 딜레이 중일 때)
-      packetProcessor.emit('packet', [0xaa]);
+      packetProcessor.emit('packet', Buffer.from([0xaa]));
       await vi.advanceTimersByTimeAsync(10);
       // 두 번 'start'가 호출되어야 함 (병렬)
       expect(mqttPublisher.publish).toHaveBeenCalledTimes(2);
@@ -605,13 +605,13 @@ describe('AutomationManager', () => {
       automationManager.start();
 
       // 첫 번째 트리거
-      packetProcessor.emit('packet', [0xaa]);
+      packetProcessor.emit('packet', Buffer.from([0xaa]));
       await vi.advanceTimersByTimeAsync(10);
       expect(mqttPublisher.publish).toHaveBeenCalledWith('start', 'begin', undefined);
       expect(mqttPublisher.publish).toHaveBeenCalledTimes(1);
 
       // 두 번째 트리거 (첫 번째가 딜레이 중일 때) -> 무시되어야 함
-      packetProcessor.emit('packet', [0xaa]);
+      packetProcessor.emit('packet', Buffer.from([0xaa]));
       await vi.advanceTimersByTimeAsync(10);
       // 여전히 1번만 호출되어야 함 (single 모드)
       expect(mqttPublisher.publish).toHaveBeenCalledTimes(1);
@@ -653,14 +653,14 @@ describe('AutomationManager', () => {
       automationManager.start();
 
       // 첫 번째 트리거
-      packetProcessor.emit('packet', [0xaa]);
+      packetProcessor.emit('packet', Buffer.from([0xaa]));
       await vi.advanceTimersByTimeAsync(10);
       expect(mqttPublisher.publish).toHaveBeenCalledWith('start', 'begin', undefined);
       expect(mqttPublisher.publish).toHaveBeenCalledTimes(1);
 
       // 50ms 후 두 번째 트리거 (첫 번째 취소, 새로 시작)
       await vi.advanceTimersByTimeAsync(40);
-      packetProcessor.emit('packet', [0xaa]);
+      packetProcessor.emit('packet', Buffer.from([0xaa]));
       await vi.advanceTimersByTimeAsync(10);
       // 두 번째 'start' 호출
       expect(mqttPublisher.publish).toHaveBeenCalledTimes(2);
@@ -703,13 +703,13 @@ describe('AutomationManager', () => {
       automationManager.start();
 
       // 첫 번째 트리거
-      packetProcessor.emit('packet', [0xaa]);
+      packetProcessor.emit('packet', Buffer.from([0xaa]));
       await vi.advanceTimersByTimeAsync(1);
       expect(mqttPublisher.publish).toHaveBeenCalledWith('run', 'start', undefined);
       expect(mqttPublisher.publish).toHaveBeenCalledTimes(1);
 
       // 두 번째 트리거 (큐에 추가됨)
-      packetProcessor.emit('packet', [0xaa]);
+      packetProcessor.emit('packet', Buffer.from([0xaa]));
       await vi.advanceTimersByTimeAsync(1);
       // 아직 첫 번째 실행 중이므로 'start' 한 번만 호출
       expect(mqttPublisher.publish).toHaveBeenCalledTimes(1);
@@ -761,7 +761,7 @@ describe('AutomationManager', () => {
 
       // 상태 설정 후 패킷 트리거
       eventBus.emit('state:changed', { entityId: 'sensor_temp', state: { value: 25 } });
-      packetProcessor.emit('packet', [0xaa]);
+      packetProcessor.emit('packet', Buffer.from([0xaa]));
 
       await vi.runAllTimersAsync();
       expect(mqttPublisher.publish).toHaveBeenCalledWith('if', 'then', undefined);
@@ -802,7 +802,7 @@ describe('AutomationManager', () => {
 
       // 상태 설정 (조건 false) 후 패킷 트리거
       eventBus.emit('state:changed', { entityId: 'sensor_temp', state: { value: 15 } });
-      packetProcessor.emit('packet', [0xaa]);
+      packetProcessor.emit('packet', Buffer.from([0xaa]));
 
       await vi.runAllTimersAsync();
       expect(mqttPublisher.publish).toHaveBeenCalledWith('if', 'else', undefined);
@@ -841,7 +841,7 @@ describe('AutomationManager', () => {
       automationManager.start();
 
       eventBus.emit('state:changed', { entityId: 'sensor_temp', state: { value: 15 } });
-      packetProcessor.emit('packet', [0xaa]);
+      packetProcessor.emit('packet', Buffer.from([0xaa]));
 
       await vi.runAllTimersAsync();
       expect(mqttPublisher.publish).not.toHaveBeenCalled();
@@ -922,7 +922,7 @@ describe('AutomationManager', () => {
         eventBus.emit('state:changed', { entityId: 'counter', state: { value: counter } });
       });
 
-      packetProcessor.emit('packet', [0xaa]);
+      packetProcessor.emit('packet', Buffer.from([0xaa]));
 
       await vi.runAllTimersAsync();
       // 0, 1, 2 세 번 실행 후 condition이 false가 되어 중단
@@ -1000,7 +1000,7 @@ describe('AutomationManager', () => {
       automationManager.start();
 
       eventBus.emit('state:changed', { entityId: 'switch_1', state: { power: 'on' } });
-      packetProcessor.emit('packet', [0xaa]);
+      packetProcessor.emit('packet', Buffer.from([0xaa]));
 
       await vi.runAllTimersAsync();
       expect(mqttPublisher.publish).toHaveBeenCalledTimes(2);

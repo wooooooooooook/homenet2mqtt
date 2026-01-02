@@ -23,7 +23,7 @@ describe('Sensor Entity', () => {
   it('should parse value', () => {
     const device = new SensorDevice(sensorConfig, protocolConfig);
     // Value 25 (0x19)
-    expect(device.parseData([0x70, 0x19])).toMatchObject({ value: 25 });
+    expect(device.parseData(Buffer.from([0x70, 0x19]))).toMatchObject({ value: 25 });
   });
 
   it('should handle precision', () => {
@@ -33,7 +33,7 @@ describe('Sensor Entity', () => {
     };
     const device = new SensorDevice(precisionConfig, protocolConfig);
     // Value 25 (0x19) -> 2.5
-    expect(device.parseData([0x70, 0x19])).toMatchObject({ value: 2.5 });
+    expect(device.parseData(Buffer.from([0x70, 0x19]))).toMatchObject({ value: 2.5 });
   });
 });
 
@@ -51,7 +51,7 @@ describe('Binary Sensor Entity', () => {
   it('should parse ON/OFF state', () => {
     const device = new BinarySensorDevice(binarySensorConfig, protocolConfig);
 
-    expect(device.parseData([0x71, 0x01])).toMatchObject({ state: 'ON' });
-    expect(device.parseData([0x71, 0x00])).toMatchObject({ state: 'OFF' });
+    expect(device.parseData(Buffer.from([0x71, 0x01]))).toMatchObject({ state: 'ON' });
+    expect(device.parseData(Buffer.from([0x71, 0x00]))).toMatchObject({ state: 'OFF' });
   });
 });
