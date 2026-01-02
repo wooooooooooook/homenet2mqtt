@@ -12,6 +12,7 @@
   import RecentActivity from '../components/RecentActivity.svelte';
   import SetupWizard from '../components/SetupWizard.svelte';
   import WizardModal from '../components/WizardModal.svelte';
+  import HintBubble from '$lib/components/HintBubble.svelte';
   import Toggle from '$lib/components/Toggle.svelte';
   import PortToolbar from '$lib/components/PortToolbar.svelte';
   import { t } from 'svelte-i18n';
@@ -75,6 +76,7 @@
   // App.svelte에서 이미 dashboardEntities로 포트별 필터링을 완료하여 전달하므로,
   // 여기서는 전달받은 entities를 그대로 사용합니다.
   const visibleEntities = $derived.by<UnifiedEntity[]>(() => entities);
+  let hintDismissed = $state(false);
   let showAddBridgeModal = $state(false);
 
   // portStatuses에서 해당 포트의 상태를 가져오는 헬퍼 함수
@@ -191,6 +193,11 @@
       class="toggle-container"
       style="position: relative; display: flex; justify-content: flex-end;"
     >
+      {#if hasInactiveEntities && !hintDismissed}
+        <HintBubble onDismiss={() => (hintDismissed = true)} autoCloseMs={10000}>
+          {$t('dashboard.hint_inactive_performance')}
+        </HintBubble>
+      {/if}
       <Toggle
         checked={showInactive}
         onchange={onToggleInactive}

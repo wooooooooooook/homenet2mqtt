@@ -1,20 +1,42 @@
 <script lang="ts">
-  import { onMount, tick } from 'svelte';
+  import { onMount, onDestroy, tick } from 'svelte';
   import { fade } from 'svelte/transition';
 
   let {
     onDismiss,
     children,
     variant = 'default',
-  }: { onDismiss?: () => void; children: any; variant?: 'default' | 'error' } = $props();
+    autoCloseMs,
+  }: {
+    onDismiss?: () => void;
+    children: any;
+    variant?: 'default' | 'error';
+    autoCloseMs?: number;
+  } = $props();
 
   let bubbleEl: HTMLDivElement;
   let position = $state<'top' | 'bottom'>('top');
   let horizontalAlign = $state<'left' | 'right'>('left');
+  let autoCloseTimer: ReturnType<typeof setTimeout> | null = null;
 
   onMount(async () => {
     await tick();
     adjustPosition();
+
+    // 자동 닫힘 타이머 설정
+    if (autoCloseMs && autoCloseMs > 0 && onDismiss) {
+      autoCloseTimer = setTimeout(() => {
+        onDismiss();
+      }, autoCloseMs);
+    }
+  });
+
+  onDestroy(() => {
+    // 타이머 정리
+    if (autoCloseTimer) {
+      clearTimeout(autoCloseTimer);
+      autoCloseTimer = null;
+    }
   });
 
   function adjustPosition() {

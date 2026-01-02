@@ -77,7 +77,11 @@
             {portId}
           </button>
           {#if errorBubblePortId === portId && getPortErrorMessage(portId)}
-            <HintBubble variant="error" onDismiss={() => (errorBubblePortId = null)}>
+            <HintBubble
+              variant="error"
+              onDismiss={() => (errorBubblePortId = null)}
+              autoCloseMs={3000}
+            >
               <span class="error-message">{getPortErrorMessage(portId)}</span>
             </HintBubble>
           {/if}
