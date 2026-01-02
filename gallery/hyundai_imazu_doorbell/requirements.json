@@ -1,0 +1,24 @@
+{
+    "serial": {
+        "baud_rate": 3880,
+        "data_bits": 8,
+        "parity": "none",
+        "stop_bits": 1
+    },
+    "packet_defaults": {
+        "rx_header": [
+            127
+        ],
+        "rx_footer": [
+            238
+        ],
+        "tx_header": [
+            127
+        ],
+        "tx_footer": [
+            238
+        ],
+        "rx_checksum": "none",
+        "tx_checksum": "none"
+    }
+}

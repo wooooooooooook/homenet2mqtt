@@ -47,6 +47,7 @@ jobs:
             kocom_thinks: '코콤 Thinks',
             commax: '코맥스',
             hyundai_imazu: '현대 imazu',
+            hyundai_imazu_doorbell: '현대 imazu 현관문(주방폰)',
             ezville: '이지빌',
             samsung_sds: '삼성 SDS',
             cvnet: 'CVNet',
