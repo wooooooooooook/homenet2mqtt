@@ -3,6 +3,7 @@ v1.8.0
   - [state_update](https://github.com/wooooooooooook/RS485-HomeNet-to-MQTT-bridge/blob/main/docs/AUTOMATION.md#%EC%83%81%ED%83%9C-%EA%B0%B1%EC%8B%A0-update-state)
 - feat: packet log 검색기능추가 및 성능최적화
 - 로그보관으로 로그가쌓이는경우 성능저하가 심하여 기간을 24->6시간으로 줄였습니다.
+  - 그럼에도 로그가 쌓이면 분석페이지 진입 및 로그확인에 지연이 심하므로 분석이 꼭 필요한 경우가 아니면 로그보관을 끄고 사용하세요.
 - 각종 성능개선 및 ui수정
 
 v1.7.0
