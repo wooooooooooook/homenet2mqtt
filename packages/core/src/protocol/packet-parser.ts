@@ -232,7 +232,7 @@ export class PacketParser {
 
               const expected = this.buffer[baseOffset + len - 1 - footerLen];
               if ((finalChecksum & 0xff) === expected) {
-                 const packet = Buffer.from(
+                const packet = Buffer.from(
                   this.buffer.subarray(this.readOffset, this.readOffset + len),
                 );
                 packets.push(packet);

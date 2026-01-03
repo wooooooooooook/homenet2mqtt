@@ -970,7 +970,6 @@ export class HomeNetBridge {
         if (context.packetIntervals.length > 1000) {
           context.packetIntervals.shift();
         }
-        // logger.debug({ portId: context.portId, interval, count: context.packetIntervals.length }, '[core] Interval Pushed');
       }
 
       context.lastPacketTimestamp = now;

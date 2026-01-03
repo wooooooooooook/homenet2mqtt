@@ -361,9 +361,7 @@ describe('AutomationManager', () => {
     packetProcessor.emit('packet', Buffer.from([0xf7, 0x10, 0x01, 0x01, 0x00, 0x00]));
     await vi.runAllTimersAsync();
 
-    const errorCall = errorSpy.mock.calls.find(
-      (call) => call[1] === '[automation] Action failed',
-    );
+    const errorCall = errorSpy.mock.calls.find((call) => call[1] === '[automation] Action failed');
     expect(errorCall?.[0]?.error?.message).toContain('update_state');
     expect(stateManager.getEntityState('light_1')).toBeUndefined();
 

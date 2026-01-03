@@ -708,11 +708,7 @@ export class AutomationManager {
       'signed' in schema ||
       'mapping' in schema ||
       'endian' in schema;
-    return (
-      Array.isArray(schema.data) &&
-      schema.data.length > 0 &&
-      !hasNumericFields
-    );
+    return Array.isArray(schema.data) && schema.data.length > 0 && !hasNumericFields;
   }
 
   private async executeUpdateStateAction(
@@ -726,7 +722,9 @@ export class AutomationManager {
 
     const entity = findEntityById(this.config, action.target_id);
     if (!entity) {
-      throw new Error(`[automation] update_state 대상 엔티티를 찾을 수 없습니다: ${action.target_id}`);
+      throw new Error(
+        `[automation] update_state 대상 엔티티를 찾을 수 없습니다: ${action.target_id}`,
+      );
     }
 
     const allowedKeys = this.getAllowedUpdateStateKeys(entity as Record<string, any>);
@@ -771,10 +769,7 @@ export class AutomationManager {
     }
 
     if (Object.keys(updates).length === 0) {
-      logger.debug(
-        { action },
-        '[automation] update_state action skipped: no matched updates',
-      );
+      logger.debug({ action }, '[automation] update_state action skipped: no matched updates');
       return;
     }
 
