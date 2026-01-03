@@ -286,12 +286,28 @@ describe('AutomationManager', () => {
       state: 'ON',
       brightness: 89,
     });
+    const firstPublish = mqttPublisherStub.publish.mock.calls.find(
+      (call) => call[0] === 'homenet2mqtt/light_1/state',
+    );
+    expect(firstPublish?.[2]).toEqual({ retain: true });
+    expect(JSON.parse(firstPublish?.[1] ?? '{}')).toEqual({
+      state: 'ON',
+      brightness: 89,
+    });
     expect(stateChangedSpy).toHaveBeenCalled();
 
     packetProcessor.emit('packet', Buffer.from([0xf7, 0x10, 0x01, 0x00, 0x00, 0x00]));
     await vi.runAllTimersAsync();
 
     expect(stateManager.getEntityState('light_1')).toEqual({
+      state: 'OFF',
+      brightness: 0,
+    });
+    const secondPublish = mqttPublisherStub.publish.mock.calls
+      .filter((call) => call[0] === 'homenet2mqtt/light_1/state')
+      .at(-1);
+    expect(secondPublish?.[2]).toEqual({ retain: true });
+    expect(JSON.parse(secondPublish?.[1] ?? '{}')).toEqual({
       state: 'OFF',
       brightness: 0,
     });
@@ -413,6 +429,13 @@ describe('AutomationManager', () => {
     expect(stateManager.getEntityState('fan_1')).toEqual({
       speed: 3,
     });
+    const publishCall = mqttPublisherStub.publish.mock.calls.find(
+      (call) => call[0] === 'homenet2mqtt/fan_1/state',
+    );
+    expect(publishCall?.[2]).toEqual({ retain: true });
+    expect(JSON.parse(publishCall?.[1] ?? '{}')).toEqual({
+      speed: 3,
+    });
   });
 
   it('update_state가 climate target_temperature를 갱신하면 상태가 반영되어야 한다', async () => {
@@ -472,6 +495,13 @@ describe('AutomationManager', () => {
     await vi.runAllTimersAsync();
 
     expect(stateManager.getEntityState('climate_1')).toEqual({
+      target_temperature: 25,
+    });
+    const publishCall = mqttPublisherStub.publish.mock.calls.find(
+      (call) => call[0] === 'homenet2mqtt/climate_1/state',
+    );
+    expect(publishCall?.[2]).toEqual({ retain: true });
+    expect(JSON.parse(publishCall?.[1] ?? '{}')).toEqual({
       target_temperature: 25,
     });
   });
