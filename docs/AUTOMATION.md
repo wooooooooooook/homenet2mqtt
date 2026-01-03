@@ -14,7 +14,6 @@ HomenetBridge는 상태 변경, 패킷 수신, 스케줄 또는 시스템 시작
 - `name` (선택): 사람이 읽기 쉬운 이름.
 - `description` (선택): 설명.
 - `mode` (선택): `parallel`(기본), `single`, `restart`, `queued`.
-- `portId`는 설정하지 않습니다. 자동화는 해당 구성 파일의 `serial.portId`를 그대로 사용합니다.
 - `trigger` (필수): 트리거 배열.
 - `guard` (선택): CEL 표현식. 참일 때만 실행.
 - `then` (필수): 트리거가 통과했을 때 실행할 액션 목록.
