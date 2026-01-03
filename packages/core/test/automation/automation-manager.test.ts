@@ -2,6 +2,7 @@ import { EventEmitter } from 'events';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 import { AutomationManager } from '../../src/automation/automation-manager.js';
+import { StateManager } from '../../src/state/state-manager.js';
 import { eventBus } from '../../src/service/event-bus.js';
 import { HomenetBridgeConfig } from '../../src/config/types.js';
 
@@ -218,7 +219,7 @@ describe('AutomationManager', () => {
     expect(mqttPublisher.publish).toHaveBeenCalledTimes(1); // 호출 횟수 증가 없음
   });
 
-  it('update_state 액션이 패킷에서 상태를 추출해야 한다', async () => {
+  it('update_state 액션이 패킷에서 상태를 추출해 엔티티 상태를 갱신해야 한다', async () => {
     const config: HomenetBridgeConfig = {
       ...baseConfig,
       automation: [
@@ -244,7 +245,14 @@ describe('AutomationManager', () => {
         },
       ],
     };
-    const stateManager = { updateEntityState: vi.fn() };
+    const mqttPublisherStub = { publish: vi.fn() };
+    const stateManager = new StateManager(
+      'main',
+      config,
+      packetProcessor as any,
+      mqttPublisherStub as any,
+      'homenet2mqtt',
+    );
 
     automationManager = new AutomationManager(
       config,
@@ -260,7 +268,7 @@ describe('AutomationManager', () => {
     packetProcessor.emit('packet', Buffer.from([0x10, 0x01, 0x33]));
     await vi.runAllTimersAsync();
 
-    expect(stateManager.updateEntityState).toHaveBeenCalledWith('light_1', {
+    expect(stateManager.getEntityState('light_1')).toEqual({
       on: 0x1001,
       brightness: 0x33,
     });
