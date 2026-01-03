@@ -5,6 +5,7 @@ import { AutomationManager } from '../../src/automation/automation-manager.js';
 import { StateManager } from '../../src/state/state-manager.js';
 import { eventBus } from '../../src/service/event-bus.js';
 import { HomenetBridgeConfig } from '../../src/config/types.js';
+import { logger } from '../../src/utils/logger.js';
 
 const serial = {
   portId: 'main',
@@ -222,6 +223,17 @@ describe('AutomationManager', () => {
   it('update_state 액션이 패킷에서 상태를 추출해 엔티티 상태를 갱신해야 한다', async () => {
     const config: HomenetBridgeConfig = {
       ...baseConfig,
+      light: [
+        {
+          id: 'light_1',
+          name: 'Light 1',
+          type: 'light',
+          state: { data: [0x01] },
+          state_on: { offset: 3, data: [0x01] },
+          state_off: { offset: 3, data: [0x00] },
+          state_brightness: { offset: 5, length: 1, decode: 'bcd' },
+        },
+      ],
       automation: [
         {
           id: 'update_state_test',
@@ -280,6 +292,63 @@ describe('AutomationManager', () => {
       state: 'OFF',
       brightness: 0,
     });
+  });
+
+  it('update_state에서 정의되지 않은 속성을 업데이트하려 하면 오류를 반환해야 한다', async () => {
+    const config: HomenetBridgeConfig = {
+      ...baseConfig,
+      automation: [
+        {
+          id: 'update_state_invalid_key',
+          trigger: [
+            {
+              type: 'packet',
+              match: { data: [0xf7, 0x10, 0x01], offset: 0 },
+            },
+          ],
+          then: [
+            {
+              action: 'update_state',
+              target_id: 'light_1',
+              state: {
+                invalid_prop: { offset: 3, data: [0x01] },
+              },
+            },
+          ],
+        },
+      ],
+    };
+    const mqttPublisherStub = { publish: vi.fn() };
+    const stateManager = new StateManager(
+      'main',
+      config,
+      packetProcessor as any,
+      mqttPublisherStub as any,
+      'homenet2mqtt',
+    );
+    const errorSpy = vi.spyOn(logger, 'error').mockImplementation(() => logger as any);
+
+    automationManager = new AutomationManager(
+      config,
+      packetProcessor as any,
+      commandManager as any,
+      mqttPublisher as any,
+      undefined,
+      undefined,
+      stateManager as any,
+    );
+    automationManager.start();
+
+    packetProcessor.emit('packet', Buffer.from([0xf7, 0x10, 0x01, 0x01, 0x00, 0x00]));
+    await vi.runAllTimersAsync();
+
+    const errorCall = errorSpy.mock.calls.find(
+      (call) => call[1] === '[automation] Action failed',
+    );
+    expect(errorCall?.[0]?.error?.message).toContain('update_state');
+    expect(stateManager.getEntityState('light_1')).toBeUndefined();
+
+    errorSpy.mockRestore();
   });
 
   it('숫자 비교(gt, lt 등)가 포함된 상태 트리거를 처리해야 한다', async () => {

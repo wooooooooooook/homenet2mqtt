@@ -667,6 +667,39 @@ export class AutomationManager {
     return schemaKeys.some((key) => key in (value as Record<string, unknown>));
   }
 
+  private mapStateKey(key: string): string {
+    const mapping: Record<string, string> = {
+      temperature_target: 'target_temperature',
+      temperature_current: 'current_temperature',
+      humidity_target: 'target_humidity',
+      humidity_current: 'current_humidity',
+    };
+    const normalized = key.startsWith('state_') ? key.replace('state_', '') : key;
+    return mapping[normalized] ?? normalized;
+  }
+
+  private getAllowedUpdateStateKeys(entity: Record<string, any>) {
+    const allowedKeys = new Set<string>();
+
+    if (entity.state) {
+      allowedKeys.add('state');
+    }
+
+    for (const key of Object.keys(entity)) {
+      if (!key.startsWith('state_')) continue;
+      allowedKeys.add(key);
+      allowedKeys.add(this.mapStateKey(key));
+    }
+
+    if (entity.state_on || entity.state_off) {
+      allowedKeys.add('on');
+      allowedKeys.add('off');
+      allowedKeys.add('state');
+    }
+
+    return allowedKeys;
+  }
+
   private isDataMatchSchema(schema: StateSchema | StateNumSchema) {
     const hasNumericFields =
       'length' in schema ||
@@ -691,6 +724,20 @@ export class AutomationManager {
       return;
     }
 
+    const entity = findEntityById(this.config, action.target_id);
+    if (!entity) {
+      throw new Error(`[automation] update_state 대상 엔티티를 찾을 수 없습니다: ${action.target_id}`);
+    }
+
+    const allowedKeys = this.getAllowedUpdateStateKeys(entity as Record<string, any>);
+    for (const key of Object.keys(action.state)) {
+      if (!allowedKeys.has(key)) {
+        throw new Error(
+          `[automation] update_state 대상 엔티티에 정의되지 않은 속성입니다: ${action.target_id}.${key}`,
+        );
+      }
+    }
+
     const headerLength = this.config.packet_defaults?.rx_header?.length || 0;
     const payload = context.packet ? Buffer.from(context.packet).slice(headerLength) : null;
     const requiresPacket = Object.values(action.state).some((value) => {
@@ -702,6 +749,7 @@ export class AutomationManager {
     const updates: Record<string, any> = {};
 
     for (const [key, rawValue] of Object.entries(action.state)) {
+      const mappedKey = this.mapStateKey(key);
       if (this.isSchemaValue(rawValue)) {
         if (!payload) continue;
         if (this.isDataMatchSchema(rawValue)) {
@@ -709,16 +757,16 @@ export class AutomationManager {
             allowEmptyData: true,
             context: this.buildContext(context),
           });
-          updates[key] = matched;
+          updates[mappedKey] = matched;
           continue;
         }
         const extracted = extractFromSchema(payload, rawValue);
         if (extracted === null || extracted === undefined) {
           continue;
         }
-        updates[key] = extracted;
+        updates[mappedKey] = extracted;
       } else {
-        updates[key] = rawValue as AutomationActionUpdateStateValue;
+        updates[mappedKey] = rawValue as AutomationActionUpdateStateValue;
       }
     }
 
