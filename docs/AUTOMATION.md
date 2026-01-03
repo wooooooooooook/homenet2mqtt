@@ -101,16 +101,14 @@ state:
   state_off:
     offset: 5
     data: [0x10, 0x00]
-  brightness:
+  state_brightness:
     offset: 4
     length: 1
 ```
 
 - `state` 값이 `StateSchema/StateNumSchema`인 경우, 패킷에서 값을 추출하여 상태로 기록합니다.
-- 패킷 트리거가 아닌 경우에는 상수 값만 안전하게 사용하세요.
-- `state_on`/`state_off` 또는 `on`/`off` 키가 불리언으로 갱신되면 `state: 'ON' | 'OFF'` 형태로 변환되어 저장됩니다.
+- 패킷 트리거인 경우에만 사용하세요.
 - `update_state`는 대상 엔티티에 정의된 `state_*` 항목과 해당 속성명(예: `brightness`, `target_temperature`)만 허용하며, 정의되지 않은 속성은 오류로 처리됩니다.
-- `update_state`로 상태가 변경되면 `state:changed` 이벤트가 발행됩니다.
 
 ### 지연 (Delay)
 일정 시간 동안 대기합니다.
