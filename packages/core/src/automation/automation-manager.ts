@@ -14,7 +14,6 @@ import type {
   AutomationActionSendPacket,
   AutomationActionStop,
   AutomationActionUpdateState,
-  AutomationActionUpdateStateMatch,
   AutomationActionUpdateStateValue,
   AutomationActionWaitUntil,
   AutomationConfig,
@@ -668,63 +667,6 @@ export class AutomationManager {
     return schemaKeys.some((key) => key in (value as Record<string, unknown>));
   }
 
-  private isMatchValue(value: unknown): value is AutomationActionUpdateStateMatch {
-    if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
-    return 'match' in (value as Record<string, unknown>) && 'value' in (value as Record<string, unknown>);
-  }
-
-  private resolveUpdateStateValue(
-    rawValue: AutomationActionUpdateStateValue,
-    payload: Buffer | null,
-    context: TriggerContext,
-  ): { matched: boolean; value?: any } {
-    if (Array.isArray(rawValue) && rawValue.every((item) => this.isMatchValue(item))) {
-      for (const entry of rawValue) {
-        if (!payload) return { matched: false };
-        if (
-          matchesPacket(entry.match, payload, {
-            allowEmptyData: true,
-            context: this.buildContext(context),
-          })
-        ) {
-          const resolved = this.resolveUpdateStateValue(entry.value, payload, context);
-          return resolved.matched ? resolved : { matched: true, value: entry.value };
-        }
-      }
-      return { matched: false };
-    }
-
-    if (this.isMatchValue(rawValue)) {
-      if (!payload) return { matched: false };
-      if (
-        matchesPacket(rawValue.match, payload, {
-          allowEmptyData: true,
-          context: this.buildContext(context),
-        })
-      ) {
-        const resolved = this.resolveUpdateStateValue(rawValue.value, payload, context);
-        return resolved.matched ? resolved : { matched: true, value: rawValue.value };
-      }
-      return { matched: false };
-    }
-
-    if (this.isSchemaValue(rawValue)) {
-      if (!payload) return { matched: false };
-      const shouldMatch = matchesPacket(rawValue, payload, {
-        allowEmptyData: true,
-        context: this.buildContext(context),
-      });
-      if (!shouldMatch) return { matched: false };
-      const extracted = extractFromSchema(payload, rawValue);
-      if (extracted === null || extracted === undefined) {
-        return { matched: false };
-      }
-      return { matched: true, value: extracted };
-    }
-
-    return { matched: true, value: rawValue };
-  }
-
   private async executeUpdateStateAction(
     action: AutomationActionUpdateState,
     context: TriggerContext,
@@ -737,8 +679,7 @@ export class AutomationManager {
     const headerLength = this.config.packet_defaults?.rx_header?.length || 0;
     const payload = context.packet ? Buffer.from(context.packet).slice(headerLength) : null;
     const requiresPacket = Object.values(action.state).some((value) => {
-      if (this.isSchemaValue(value) || this.isMatchValue(value)) return true;
-      return Array.isArray(value) && value.every((item) => this.isMatchValue(item));
+      return this.isSchemaValue(value);
     });
     if (!payload && requiresPacket) {
       logger.warn({ action }, '[automation] update_state requires packet context');
@@ -746,9 +687,15 @@ export class AutomationManager {
     const updates: Record<string, any> = {};
 
     for (const [key, rawValue] of Object.entries(action.state)) {
-      const resolved = this.resolveUpdateStateValue(rawValue, payload, context);
-      if (resolved.matched) {
-        updates[key] = resolved.value;
+      if (this.isSchemaValue(rawValue)) {
+        if (!payload) continue;
+        const extracted = extractFromSchema(payload, rawValue);
+        if (extracted === null || extracted === undefined) {
+          continue;
+        }
+        updates[key] = extracted;
+      } else {
+        updates[key] = rawValue as AutomationActionUpdateStateValue;
       }
     }
 

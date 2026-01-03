@@ -87,26 +87,24 @@ ack: [0x06]
 ```
 
 ### 상태 갱신 (Update State)
-수신된 패킷(패킷 트리거)이나 조건에 따라 엔티티 상태를 직접 갱신합니다. 값은 상수, `StateSchema/StateNumSchema`, 또는 매칭 규칙 목록으로 정의할 수 있습니다.
+수신된 패킷(패킷 트리거)에서 값을 추출해 엔티티 상태를 직접 갱신합니다. `state` 항목은 `StateSchema/StateNumSchema`로 정의합니다.
 
 ```yaml
 action: update_state
 target_id: light_1
 state:
-  state:
-    - match:
-        data: [0x10, 0x01]
-      value: 'ON'
-    - match:
-        data: [0x10, 0x00]
-      value: 'OFF'
+  on:
+    offset: 5
+    data: [0x10, 0x01]
+  off:
+    offset: 5
+    data: [0x10, 0x00]
   brightness:
     offset: 4
     length: 1
 ```
 
 - `state` 값이 `StateSchema/StateNumSchema`인 경우, 패킷에서 값을 추출하여 상태로 기록합니다.
-- `match/value` 배열은 첫 번째로 일치하는 항목을 적용합니다.
 - 패킷 트리거가 아닌 경우에는 상수 값만 안전하게 사용하세요.
 
 ### 지연 (Delay)

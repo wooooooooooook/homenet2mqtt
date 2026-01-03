@@ -88,17 +88,7 @@ export interface AutomationActionScript {
   code?: string;
 }
 
-export interface AutomationActionUpdateStateMatch {
-  match: StateSchema;
-  value: any;
-}
-
-export type AutomationActionUpdateStateValue =
-  | StateSchema
-  | StateNumSchema
-  | AutomationActionUpdateStateMatch
-  | AutomationActionUpdateStateMatch[]
-  | any;
+export type AutomationActionUpdateStateValue = StateSchema | StateNumSchema | any;
 
 export interface AutomationActionUpdateState {
   action: 'update_state';
