@@ -985,7 +985,7 @@ app.delete('/api/logs/cache/:filename', async (req, res) => {
 });
 
 app.post('/api/logs/cache/save', async (req, res) => {
-  if (!configRateLimiter.check(req.ip || 'unknown')) {
+  if (!commandRateLimiter.check(req.ip || 'unknown')) {
     return res.status(429).json({ error: 'Too many requests' });
   }
 
