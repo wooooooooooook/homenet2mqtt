@@ -11,3 +11,7 @@
 ## 2024-05-24 - Troubleshooting Guide Necessity
 **Learning:** Users often encounter environment-specific setup hurdles (Docker permissions, MQTT auth) that are not code bugs but significantly hinder adoption.
 **Action:** Always include a dedicated 'Troubleshooting' section in the main README covering common environmental and configuration pitfalls.
+
+## 2024-05-24 - Implicit Automation Priority Defaults
+**Learning:** The configuration loader implicitly overrides `low_priority` to `true` for any automation containing a `schedule` trigger, which is not obvious from the schema alone.
+**Action:** When documenting configuration schemas, always verify if the loader logic modifies default values based on other properties (conditional defaults).

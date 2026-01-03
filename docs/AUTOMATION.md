@@ -37,6 +37,8 @@ trigger:
     cron: '0 0 * * *' # 매일 자정에 실행
 ```
 
+> **참고**: 스케줄 트리거가 포함된 자동화의 모든 `command` 액션은 기본적으로 `low_priority: true`로 설정됩니다. 이는 주기적인 폴링이나 비동기 작업이 사용자의 실시간 명령(조명 제어 등)을 방해하지 않도록 하기 위함입니다. 이를 원치 않는 경우 `low_priority: false`를 명시적으로 설정하세요.
+
 ### 시작 트리거 (Startup Trigger)
 애플리케이션이 시작될 때(부팅 시) 실행됩니다. 지연 실행이 필요한 경우 `action` 단계에서 `delay`를 사용해야 합니다.
 ```yaml
@@ -55,7 +57,7 @@ action: command
 target: id(light_1).command_on()
 # 또는
 target: id(climate_1).command_target_temp(24)
-low_priority: true # 선택사항. 기본값: false (일반 우선순위)
+low_priority: true # 선택사항. 기본값: false (단, 스케줄 트리거가 포함된 자동화에서는 기본값: true)
 # true로 설정 시, 일반 큐가 비어있을 때만 명령이 전송됩니다. (Polling 등 중요도가 낮은 명령에 사용)
 ```
 
