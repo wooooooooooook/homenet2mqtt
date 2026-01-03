@@ -218,6 +218,54 @@ describe('AutomationManager', () => {
     expect(mqttPublisher.publish).toHaveBeenCalledTimes(1); // 호출 횟수 증가 없음
   });
 
+  it('update_state 액션이 패킷에서 상태를 추출해야 한다', async () => {
+    const config: HomenetBridgeConfig = {
+      ...baseConfig,
+      automation: [
+        {
+          id: 'update_state_test',
+          trigger: [
+            {
+              type: 'packet',
+              match: { data: [0x10, 0x01], offset: 0 },
+            },
+          ],
+          then: [
+            {
+              action: 'update_state',
+              target_id: 'light_1',
+              state: {
+                on: { offset: 0, data: [0x10, 0x01] },
+                off: { offset: 0, data: [0x10, 0x00] },
+                brightness: { offset: 2, length: 1 },
+              },
+            },
+          ],
+        },
+      ],
+    };
+    const stateManager = { updateEntityState: vi.fn() };
+
+    automationManager = new AutomationManager(
+      config,
+      packetProcessor as any,
+      commandManager as any,
+      mqttPublisher as any,
+      undefined,
+      undefined,
+      stateManager as any,
+    );
+    automationManager.start();
+
+    packetProcessor.emit('packet', Buffer.from([0x10, 0x01, 0x33]));
+    await vi.runAllTimersAsync();
+
+    expect(stateManager.updateEntityState).toHaveBeenCalledWith('light_1', {
+      on: 0x1001,
+      brightness: 0x33,
+    });
+  });
+
   it('숫자 비교(gt, lt 등)가 포함된 상태 트리거를 처리해야 한다', async () => {
     const config: HomenetBridgeConfig = {
       ...baseConfig,
