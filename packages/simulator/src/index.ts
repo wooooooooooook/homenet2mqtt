@@ -289,7 +289,10 @@ async function main() {
     simulator = createSimulator({ device, baudRate: 9600, slow });
   }
 
+  // Critical IPC Output: Do not remove.
+  // This JSON output is read by parent processes (e.g., service, tests) to discover the PTY/TCP path.
   console.log(JSON.stringify({ ptyPath: simulator.ptyPath, slow }));
+
   simulator.start();
   const handleExit = () => {
     simulator.dispose();

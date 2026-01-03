@@ -1,10 +1,7 @@
 import { Buffer } from 'buffer';
 import { StateSchema, StateNumSchema } from './types.js';
 
-export const extractFromSchema = (
-  packet: Buffer,
-  schema: StateSchema | StateNumSchema,
-): any => {
+export const extractFromSchema = (packet: Buffer, schema: StateSchema | StateNumSchema): any => {
   const { offset = 0, data, mask, inverted = false } = schema;
   const numSchema = schema as StateNumSchema;
 

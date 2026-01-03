@@ -6,7 +6,7 @@ describe('PacketParser Footer Optimization Performance', () => {
   it('measures performance of noisy footer scenario', () => {
     // Protocol with Header 0xAA and Footer 0x55, Add Checksum
     const parser = new PacketParser({
-      rx_header: [0xAA],
+      rx_header: [0xaa],
       rx_footer: [0x55],
       rx_checksum: 'add',
     });
@@ -16,18 +16,18 @@ describe('PacketParser Footer Optimization Performance', () => {
     // The real footer is at the very end.
     const size = 15000;
     const buf = Buffer.alloc(size);
-    buf[0] = 0xAA; // Header
+    buf[0] = 0xaa; // Header
 
     // Fill with 0x55 (Footer) but ensure checksum fails
     // 0x55 is the footer.
     // We want 0x55 to appear frequently in the data.
     for (let i = 1; i < size - 2; i++) {
-        // Every 2nd byte is 0x55
-        if (i % 2 === 0) {
-            buf[i] = 0x55;
-        } else {
-            buf[i] = 0x01;
-        }
+      // Every 2nd byte is 0x55
+      if (i % 2 === 0) {
+        buf[i] = 0x55;
+      } else {
+        buf[i] = 0x01;
+      }
     }
 
     // Set the last byte as the real footer
@@ -36,9 +36,9 @@ describe('PacketParser Footer Optimization Performance', () => {
     // Calculate Checksum
     let sum = 0;
     for (let i = 0; i < size - 2; i++) {
-        sum += buf[i];
+      sum += buf[i];
     }
-    buf[size - 2] = sum & 0xFF;
+    buf[size - 2] = sum & 0xff;
 
     const start = process.hrtime.bigint();
     const packets = parser.parseChunk(buf);
