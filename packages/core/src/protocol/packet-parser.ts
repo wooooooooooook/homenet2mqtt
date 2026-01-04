@@ -280,8 +280,12 @@ export class PacketParser {
               checksumType,
             );
           const checksum2Type = this.defaults.rx_checksum2;
+          // Ensure we don't skip the 1-byte checksum if it's configured.
+          // The fast path is only safe if rx_checksum is undefined or 'none'.
           const isStandard2Byte =
-            typeof checksum2Type === 'string' && ['xor_add'].includes(checksum2Type);
+            typeof checksum2Type === 'string' &&
+            ['xor_add'].includes(checksum2Type) &&
+            (!this.defaults.rx_checksum || this.defaults.rx_checksum === 'none');
 
           const startLen = Math.max(minLen, this.lastScannedLength + 1);
 
