@@ -977,7 +977,38 @@ export class AutomationManager {
     const { normalized, schema } = this.getCommandSchema(entity, parsed.command);
 
     if (schema && typeof schema === 'object' && (schema as any).script) {
-      await this.runScript((schema as any).script, context, {}, scriptStack);
+      const schemaArgs = (schema as any).args || {};
+      const evaluatedArgs: Record<string, any> = {};
+
+      // Build context with 'x' for command value (injection)
+      const evalContext = this.buildContext(context);
+      (evalContext as any).x = commandValue;
+
+      for (const [key, value] of Object.entries(schemaArgs)) {
+        if (typeof value === 'string') {
+          // Heuristic to check if value needs evaluation
+          // Check for CEL syntax or usage of 'x' variable
+          if (
+            value.includes('(') ||
+            value.includes('.') ||
+            value.includes('[') ||
+            /\bx\b/.test(value)
+          ) {
+            try {
+              const result = this.celExecutor.execute(value, evalContext);
+              evaluatedArgs[key] = result !== undefined ? result : value;
+            } catch (e) {
+              evaluatedArgs[key] = value;
+            }
+          } else {
+            evaluatedArgs[key] = value;
+          }
+        } else {
+          evaluatedArgs[key] = value;
+        }
+      }
+
+      await this.runScript((schema as any).script, context, evaluatedArgs, scriptStack);
       return;
     }
 

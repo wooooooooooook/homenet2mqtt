@@ -80,6 +80,25 @@ export class CelExecutor {
     this.env.registerFunction('bitXor(int, int): int', (a: bigint, b: bigint) =>
       BigInt(Number(a) ^ Number(b)),
     );
+    // Double overloads for map values (args, states) which come as double in CEL
+    this.env.registerFunction('bitAnd(double, double): int', (a: number, b: number) =>
+      BigInt(Math.floor(a) & Math.floor(b)),
+    );
+    this.env.registerFunction('bitOr(double, double): int', (a: number, b: number) =>
+      BigInt(Math.floor(a) | Math.floor(b)),
+    );
+    this.env.registerFunction('bitXor(double, double): int', (a: number, b: number) =>
+      BigInt(Math.floor(a) ^ Math.floor(b)),
+    );
+    this.env.registerFunction('bitAnd(int, double): int', (a: bigint, b: number) =>
+      BigInt(Number(a) & Math.floor(b)),
+    );
+    this.env.registerFunction('bitOr(int, double): int', (a: bigint, b: number) =>
+      BigInt(Number(a) | Math.floor(b)),
+    );
+    this.env.registerFunction('bitXor(int, double): int', (a: bigint, b: number) =>
+      BigInt(Number(a) ^ Math.floor(b)),
+    );
     this.env.registerFunction('bitNot(int): int', (a: bigint) => BigInt(~Number(a)));
     this.env.registerFunction('bitShiftLeft(int, int): int', (a: bigint, b: bigint) =>
       BigInt(Number(a) << Number(b)),

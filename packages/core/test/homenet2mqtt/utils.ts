@@ -10,6 +10,7 @@ import { clearStateCache } from '../../src/state/store';
 import { CommandManager } from '../../src/service/command.manager';
 import { HomenetBridgeConfig } from '../../src/config/types';
 import { findEntityById } from '../../src/utils/entities';
+import { AutomationManager } from '../../src/automation/automation-manager';
 
 // Mock Bridge for PacketProcessor (EntityStateProvider)
 export const bridgeMock = {
@@ -23,10 +24,12 @@ export interface TestContext {
   packetProcessor: PacketProcessor;
   stateManager: StateManager;
   commandManager: CommandManager;
+  automationManager: AutomationManager;
   portId: string;
   config: HomenetBridgeConfig;
   mockSerialPort: any;
   publishMock: Mock;
+  sharedStates: Map<string, Record<string, any>>;
 }
 
 const DEFAULT_TOPIC_PREFIX = 'homenet2mqtt/homedevice1';
@@ -72,25 +75,53 @@ export async function setupTest(configPath: string): Promise<TestContext> {
     publish: publishMock,
   } as unknown as MqttPublisher;
 
-  const packetProcessor = new PacketProcessor(config, bridgeMock);
+  // Shared state map for CEL expression evaluation in PacketProcessor
+  const sharedStates = new Map<string, Record<string, any>>();
+
+  const packetProcessor = new PacketProcessor(config, bridgeMock, sharedStates);
   const stateManager = new StateManager(
     portId,
     config,
     packetProcessor,
     mqttPublisherMock,
     DEFAULT_TOPIC_PREFIX,
+    sharedStates,
   );
 
   const commandManager = new CommandManager(mockSerialPort, config, portId, packetProcessor);
+
+  // Create a commandSender function for AutomationManager's send_packet action
+  const commandSender = async (
+    _portId: string | undefined,
+    packet: number[],
+    _options?: any,
+  ) => {
+    // Directly write to the mock serial port
+    const buffer = Buffer.from(packet);
+    mockSerialPort.write(buffer, () => { });
+  };
+
+  // Create AutomationManager for script-based command support
+  const automationManager = new AutomationManager(
+    config,
+    packetProcessor,
+    commandManager,
+    mqttPublisherMock,
+    portId,
+    commandSender,
+    stateManager,
+  );
 
   return {
     packetProcessor,
     stateManager,
     commandManager,
+    automationManager,
     portId,
     config,
     mockSerialPort,
     publishMock,
+    sharedStates,
   };
 }
 
@@ -107,6 +138,27 @@ export async function executeCommand(
 ) {
   const entity = findEntityById(ctx.config, entityId);
   if (!entity) throw new Error(`Entity ${entityId} not found`);
+
+  // Check if command is script-based
+  const normalizedCommandName = commandName.startsWith('command_')
+    ? commandName
+    : `command_${commandName}`;
+  const commandConfig = (entity as any)[normalizedCommandName];
+
+  if (commandConfig && typeof commandConfig === 'object' && commandConfig.script) {
+    // Use AutomationManager for script-based commands
+    // Simulate a command action
+    const context = {
+      type: 'command' as any,
+      timestamp: Date.now(),
+      args: {},
+    };
+    await ctx.automationManager.runScript(commandConfig.script, context, {
+      ...commandConfig.args,
+      ...(value !== null && value !== undefined ? { x: value } : {}),
+    });
+    return;
+  }
 
   const result = ctx.packetProcessor.constructCommandPacket(entity, commandName, value);
   if (!result) throw new Error(`Could not construct packet for ${entityId} ${commandName}`);

@@ -1,3 +1,9 @@
+v1.9.0
+- feat: script에 args지원 추가.
+- checksum type에 bestin_sum 추가
+  - bestin 지원을 위해 작업중입니다..
+- 성능개선
+
 v1.8.0
 - feat: 자동화 액션에 state_update를 추가.
   - [state_update](https://github.com/wooooooooooook/RS485-HomeNet-to-MQTT-bridge/blob/main/docs/AUTOMATION.md#%EC%83%81%ED%83%9C-%EA%B0%B1%EC%8B%A0-update-state)

@@ -51,6 +51,7 @@ jobs:
             ezville: '이지빌',
             samsung_sds: '삼성 SDS',
             cvnet: 'CVNet',
+            'bestin2.0': 'BESTIN 2.0',
           };
 
           // Find all YAML files in gallery subdirectories
