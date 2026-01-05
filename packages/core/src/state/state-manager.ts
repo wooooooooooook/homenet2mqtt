@@ -9,8 +9,6 @@ import { eventBus } from '../service/event-bus.js';
 import { stateCache } from './store.js';
 
 export class StateManager {
-  private receiveBuffer: Buffer = Buffer.alloc(0);
-  private config: HomenetBridgeConfig;
   private packetProcessor: PacketProcessor;
   private mqttPublisher: MqttPublisher;
   private portId: string;
@@ -29,7 +27,6 @@ export class StateManager {
     sharedStates?: Map<string, Record<string, any>>,
   ) {
     this.portId = portId;
-    this.config = config;
     this.packetProcessor = packetProcessor;
     this.mqttPublisher = mqttPublisher;
     this.mqttTopicPrefix = mqttTopicPrefix;

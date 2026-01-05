@@ -51,29 +51,6 @@ export interface StateNumSchema extends StateSchema {
   mapping?: { [key: number]: string | number };
 }
 
-export interface ValueSource {
-  type: 'input' | 'entity_state' | 'packet';
-  entityId?: string;
-  property?: string;
-  offset?: number;
-  length?: number;
-  precision?: number;
-  signed?: boolean;
-  endian?: EndianType;
-  decode?: DecodeEncodeType;
-}
-
-export interface Extractor {
-  type: 'check_value' | 'offset_value';
-  offset?: number;
-  value?: number;
-  length?: number;
-  precision?: number;
-  signed?: boolean;
-  endian?: EndianType;
-  decode?: DecodeEncodeType;
-}
-
 // New Uartex-style types
 
 export interface ProtocolConfig {

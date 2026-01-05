@@ -28,7 +28,7 @@ function calculateBestinSum(data: number[]): number {
 describe('Bestin Dimming Test', () => {
 
     it('should parse dump packets correctly', async () => {
-        const ctx = await setupTest('bestin2.0.homenet_bridge.yaml.wip');
+        const ctx = await setupTest('bestin2.0.homenet_bridge.yaml');
         const { stateManager, publishMock } = ctx;
 
         const packet3 = hexToBuffer(DUMP_PACKETS[0]);
@@ -99,7 +99,7 @@ describe('Bestin Dimming Test', () => {
     });
 
     it('should generate light ON command packet with expected format', async () => {
-        const ctx = await setupTest('bestin2.0.homenet_bridge.yaml.wip');
+        const ctx = await setupTest('bestin2.0.homenet_bridge.yaml');
         const { mockSerialPort, sharedStates, config, automationManager } = ctx;
 
         sharedStates.set('sequence_number', { number: 1 });
@@ -148,7 +148,7 @@ describe('Bestin Dimming Test', () => {
     });
 
     it('should generate outlet ON command packet with expected format', async () => {
-        const ctx = await setupTest('bestin2.0.homenet_bridge.yaml.wip');
+        const ctx = await setupTest('bestin2.0.homenet_bridge.yaml');
         const { mockSerialPort, sharedStates, config, automationManager } = ctx;
 
         sharedStates.set('sequence_number', { number: 5 });
@@ -196,7 +196,7 @@ describe('Bestin Dimming Test', () => {
     });
 
     it('should generate multiple command packets (light + outlet)', async () => {
-        const ctx = await setupTest('bestin2.0.homenet_bridge.yaml.wip');
+        const ctx = await setupTest('bestin2.0.homenet_bridge.yaml');
         const { mockSerialPort, sharedStates, config, automationManager } = ctx;
 
         sharedStates.set('sequence_number', { number: 10 });
@@ -251,7 +251,7 @@ describe('Bestin Dimming Test', () => {
     });
 
     it('should generate OFF command packets correctly', async () => {
-        const ctx = await setupTest('bestin2.0.homenet_bridge.yaml.wip');
+        const ctx = await setupTest('bestin2.0.homenet_bridge.yaml');
         const { mockSerialPort, sharedStates, config, automationManager } = ctx;
 
         sharedStates.set('sequence_number', { number: 1 });

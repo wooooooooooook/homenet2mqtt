@@ -1,8 +1,14 @@
+import yaml from 'js-yaml';
+import fs from 'node:fs/promises';
 import { HomenetBridgeConfig, SerialConfig } from './types.js';
-import { loadYamlConfig } from './yaml-loader.js';
 import { logger } from '../utils/logger.js';
 import { parseDuration } from '../utils/duration.js';
 import { ENTITY_TYPE_KEYS } from '../utils/entities.js';
+
+async function loadYamlConfig(filePath: string): Promise<any> {
+  const fileContent = await fs.readFile(filePath, 'utf8');
+  return yaml.load(fileContent);
+}
 
 function normalizeSerialConfig(serial: SerialConfig): SerialConfig {
   const normalized = { ...serial };
