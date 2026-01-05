@@ -75,13 +75,6 @@ RS485 기반의 월패드(홈넷) 신호를 MQTT 메시지로 변환하여 Home 
 - **Home Assistant 자동 발견**: 설정 완료 시 HA에 기기들이 자동으로 등록됩니다.
 - **다양한 프로토콜 지원**: Commax, Kocom 등 국내 주요 월패드 프로토콜 지원 및 확장 가능.
 - **실시간 모니터링**: Web UI를 통해 RS485 패킷의 흐름을 실시간으로 확인 가능.
-- **대량 패킷 로그 성능 최적화**: 검색 디바운스/정렬 최적화로 많은 로그에서도 UI 반응성을 유지합니다.
-- **자동화/스크립트 관리**: 대시보드에서 자동화·스크립트를 확인하고 즉시 실행하거나 활성/비활성, 삭제 및 YAML 편집을 지원.
-- **대시보드 상태 저장**: 비활성 엔티티 보기 토글 상태를 프론트엔드 설정으로 저장해 재접속 시 유지합니다.
-- **센서 엔티티 표시 개선**: 명령이 없는 센서 엔티티도 대시보드에 표시됩니다(비활성 보기 토글로 숨김 가능).
-- **백업 관리**: 설정 화면에서 백업 파일 용량 합계, 다운로드/삭제, 일괄 정리 기능을 제공합니다.
-- **안정적인 패킷 파싱**: 워커 스레드 기반 파싱과 지연 시 버퍼링/폴백으로 메인 스레드 안정성을 확보.
-- **브라우저 호환성**: 최신 브라우저(Chrome/Edge/Firefox/Safari 최신 버전)를 권장합니다.
 
 ## 💡 고급 사용법
 
@@ -91,42 +84,6 @@ RS485 기반의 월패드(홈넷) 신호를 MQTT 메시지로 변환하여 Home 
 - 애드온 구성(또는 Docker 환경 변수)의 `CONFIG_FILES`에 파일 이름들을 쉼표로 구분하여 입력한 후 재시작합니다.
 
 - [Config 작성법 (상세 스키마)](https://github.com/wooooooooooook/RS485-HomeNet-to-MQTT-bridge/tree/main/docs/config-schema)
-- [Home Assistant 연동 및 Discovery 설정](docs/config-schema/common-entity-options.md#home-assistant-연동-설정)
-- [기기별 설정 예시](docs/ENTITY_EXAMPLES.md)
-- [CEL (Common Expression Language) 가이드](docs/CEL_GUIDE.md)
-
-## 🧪 성능 벤치마크
-
-PacketParser의 1바이트 청크 처리 성능을 측정하려면 아래 명령을 실행하세요.
-
-```bash
-node --loader ts-node/esm packages/core/test/perf_packet_processing.bench.ts
-```
-
-## ❓ 문제 해결 (Troubleshooting)
-
-### 1. 시리얼 포트 권한 오류 (`EACCES` or Permission denied)
-도커 환경에서 `/dev/ttyUSB0` 등의 시리얼 포트에 접근할 때 권한 문제가 발생할 수 있습니다.
-- **해결방법 1**: `privileged: true` 옵션을 사용하거나 `devices` 매핑을 정확히 설정하세요.
-- **해결방법 2**: 호스트 OS에서 해당 사용자를 `dialout` 그룹에 추가해야 할 수 있습니다 (`sudo usermod -aG dialout $USER`).
-
-### 2. 설정 파일이 보이지 않거나 'Setup' 화면만 나올 때
-앱이 실행되었지만 설정 파일을 찾지 못하면 초기 설정(Setup) 모드로 진입합니다.
-- **확인**: 설정 파일 경로(Docker 볼륨 매핑)에 `*.yaml` 파일이 존재하는지 확인하세요.
-- **확인**: 파일명이 `frontend-settings.json`이 아닌지 확인하세요 (이 파일은 UI 설정용입니다).
-
-### 3. MQTT 연결 실패
-로그에 `Connection refused` 또는 `Connect error`가 반복된다면:
-- **확인**: MQTT 브로커 주소가 올바른지 확인하세요. (같은 도커 네트워크가 아니라면 `localhost` 대신 호스트 IP 사용)
-- **확인**: HA 애드온 사용 시 아이디/비밀번호가 필수일 수 있습니다. `MQTT_NEED_LOGIN: true`로 설정하고 정보를 입력하세요.
-
-### 4. 장치가 Home Assistant에 나타나지 않음
-- **원인**: 기본적으로 `discovery_always: false`로 설정되어 있어, 실제 상태 패킷을 수신하기 전까지는 장치를 등록하지 않습니다.
-- **해결**: 장치 설정에 `discovery_always: true`를 추가하여 강제로 등록하거나, 월패드에서 해당 장치를 한번 조작하여 상태 패킷을 발생시키세요.
-
-### 5. 삼성 SDS 월패드 통신 불량
-- **원인**: 삼성 SDS는 Parity 설정을 `EVEN`으로 해야 합니다.
-- **해결**: `serial` 설정에서 `parity: EVEN`이 설정되어 있는지 확인하세요. ([삼성 SDS 가이드](docs/제조사별안내/samsung_sds.md) 참조)
 
 ## ⚖️ 라이선스
 이 프로젝트는 MIT License를 따릅니다.

@@ -1,6 +1,6 @@
 meta:
-  name: "일괄소등 스위치"
-  name_en: "All Lights Off Switch"
+  name: "☑️일괄소등 스위치"
+  name_en: "☑️All Lights Off Switch"
   description: "현대 이마주 일괄소등 스위치 설정입니다. 일괄소등 ON/OFF만 지원합니다."
   description_en: "Hyundai Imazu all lights off switch configuration (ON/OFF only)."
   version: "1.0.0"

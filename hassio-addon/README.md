@@ -28,7 +28,7 @@
    - `mqtt_user`: **필수** MQTT 사용자 아이디
    - `mqtt_passwd`: **필수** MQTT 비밀번호
    - `mqtt_topic_prefix`: MQTT 토픽 접두사. 기본값은 `homenet2mqtt`이며 변경할 필요 없습니다. 최종 토픽은 `${mqtt_topic_prefix}/{portId}/{entityId}/...` 형태로 발행됩니다.
-   - `config_files`: 사용할 설정 파일 이름 목록. 여러 개의 포트를 사용할 경우 쉼표로 구분하여 나열합니다. (예: `livingroom.yaml, room1.yaml`) 기본값(`default.homenet_bridge.yaml`) 또는 비워두면 애드온 시작시 초기설정 마법사를 통해 설정파일을 구성하여 사용하게됩니다.
+   - `config_files`: **비워두면 애드온 시작시 초기설정 마법사를 통해 자동으로 설정파일을 구성하여 사용하게됩니다.** 또는 직접 사용할 설정 파일 목록을 나열할 수 있습니다. 여러 개의 포트를 사용할 경우 쉼표로 구분하여 나열합니다. (예: `livingroom.yaml, room1.yaml`) 기본값(`default.homenet_bridge.yaml,`)
 
 6. 애드온을 재시작하면 설정 파일에 등록된 엔티티들이 MQTT Discovery를 통해 Home Assistant에 자동으로 등록됩니다.
     - 주의: 상태 패킷이 수신된 엔티티만 등록됩니다.
@@ -39,12 +39,18 @@
     - 명령 패킷 전송
     - 패킷 간격 분석 (명령이 씹히는 경우 패킷 간격과 겹치지 않는 딜레이 설정에 활용)
 
+8. 사용하지 않는 비활성화된 엔티티를 모두 삭제하면 성능 개선에 도움이됩니다.
+
+
 ## 고급 사용법
 
 ### 멀티포트사용하기
+- RS485가 여러 라인으로 구성된경우 여러개의 시리얼장치 혹은 EW11을 사용하여 여러개의 포트를 사용할 수 있습니다.
+- 대시보드에서 +버튼을 눌러 멀티포트를 구성하세요
+
+#### 직접 구성하는 방법
 - homenet2mqtt 폴더에 생성된 examples 폴더의 예시 설정파일들을 복제하여 homenet2mqtt 폴더에 이동합니다. 설정파일 이름은 임의로 지어주세요.
 - 각 설정파일의 serial.path에 사용할 시리얼 장치의 경로를 입력해줍니다. serial.portId로 UI및 MQTT토픽이 구분되므로 중복되지 않게 설정해주세요.
 - 구성의 config_files에 복제한 설정파일 이름들을 차례대로 입력하고 애드온을 재시작 하면 됩니다.
 
 ## [Config 작성법 문서 바로가기](https://github.com/wooooooooooook/RS485-HomeNet-to-MQTT-bridge/tree/main/docs/config-schema)
-
