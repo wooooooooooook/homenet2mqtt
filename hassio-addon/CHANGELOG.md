@@ -1,3 +1,6 @@
+v1.9.1
+- TCP 재연결 기능 보완 
+
 v1.9.0
 - feat: script에 args지원 추가.
 - checksum type에 bestin_sum 추가

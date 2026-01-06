@@ -1,8 +1,8 @@
 // packages/core/src/transports/serial/serial.factory.ts
 import { Duplex } from 'stream';
-import net from 'net';
 import { SerialPort } from 'serialport';
 import { isTcpConnection, waitForSerialDevice, openSerialPort } from './serial.connection.js';
+import { ReconnectingTcpSocket } from './tcp-socket.js';
 import { SerialConfig } from '../../config/types.js';
 import { logger } from '../../utils/logger.js';
 
@@ -16,55 +16,38 @@ export async function createSerialPortConnection(
     const [host, tcpPort] = serialPath.split(':');
     const portNumber = Number(tcpPort);
 
-    const connectTcp = async (retries = 3, delayMs = 2000): Promise<net.Socket> => {
-      return new Promise((resolve, reject) => {
-        const socket = net.createConnection({ host, port: portNumber });
+    logger.info({ host, port: portNumber }, '[serial] Creating TCP connection with auto-reconnect');
 
-        // Add explicit connection timeout
-        const connectionTimeout = timeoutMs || 5000;
-        const timeoutId = setTimeout(() => {
-          socket.destroy();
-          const err = new Error(`Connection timed out after ${connectionTimeout}ms`);
-          (err as any).code = 'ETIMEDOUT';
-          reject(err);
-        }, connectionTimeout);
+    const reconnectingSocket = new ReconnectingTcpSocket(host, portNumber, {
+      initialDelayMs: 1000,
+      maxDelayMs: 30000,
+      connectionTimeoutMs: timeoutMs || 5000,
+    });
 
-        const onConnect = () => {
-          clearTimeout(timeoutId);
-          socket.removeListener('error', onError);
-          resolve(socket);
-        };
-
-        const onError = async (err: Error) => {
-          clearTimeout(timeoutId);
-          socket.removeListener('connect', onConnect);
-          socket.destroy();
-
-          if (retries > 0) {
-            logger.warn(
-              { err, remainingRetries: retries },
-              '[serial] failed to connect TCP, retrying...',
-            );
-            await new Promise((r) => setTimeout(r, delayMs));
-            try {
-              const newSocket = await connectTcp(retries - 1, delayMs);
-              resolve(newSocket);
-            } catch (e) {
-              reject(e);
-            }
-          } else {
-            reject(err);
-          }
-        };
-
-        socket.once('connect', onConnect);
-        socket.once('error', onError);
-      });
-    };
-
-    // If timeout is specified (e.g. testing), do not retry
+    // Initial connection with retries
     const maxRetries = timeoutMs !== undefined ? 0 : 3;
-    port = await connectTcp(maxRetries);
+    let lastError: Error | null = null;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        await reconnectingSocket.connect();
+        port = reconnectingSocket;
+        return port;
+      } catch (err) {
+        lastError = err as Error;
+        if (attempt < maxRetries) {
+          logger.warn(
+            { err, remainingRetries: maxRetries - attempt },
+            '[serial] Failed to connect TCP, retrying...',
+          );
+          await new Promise((r) => setTimeout(r, 2000));
+        }
+      }
+    }
+
+    // All retries failed
+    reconnectingSocket.destroy();
+    throw lastError || new Error('Failed to connect to TCP server');
   } else {
     await waitForSerialDevice(serialPath, timeoutMs);
     const serialPort = new SerialPort({
