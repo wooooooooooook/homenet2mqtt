@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-01-06T08:15:17.694Z",
+  "generated_at": "2026-01-06T08:54:16.990Z",
   "vendors": [
     {
       "id": "bestin",
@@ -523,10 +523,8 @@
             "ezville"
           ],
           "content_summary": {
-            "entities": {
-              "automation": 1
-            },
-            "automations": 0,
+            "entities": {},
+            "automations": 1,
             "scripts": 0
           }
         },
@@ -589,10 +587,9 @@
           ],
           "content_summary": {
             "entities": {
-              "fan": 1,
-              "automation": 1
+              "fan": 1
             },
-            "automations": 0,
+            "automations": 1,
             "scripts": 0
           }
         },
