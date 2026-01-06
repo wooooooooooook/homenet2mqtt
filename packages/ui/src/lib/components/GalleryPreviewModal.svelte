@@ -554,8 +554,8 @@
   .modal-content-wrapper {
     background: #1e293b;
     width: 100%;
-    /* Fit inside Modal 90vh */
-    height: 85vh;
+    /* Fit inside Modal 90dvh */
+    height: 85dvh;
     display: flex;
     flex-direction: column;
   }
@@ -799,7 +799,7 @@
 
   @media (max-width: 640px) {
     .modal-content-wrapper {
-      max-height: 100vh;
+      max-height: 100dvh;
       border-radius: 0;
     }
 
@@ -826,7 +826,7 @@
     background: #1e293b;
     padding: 1.5rem;
     width: 100%;
-    max-height: 80vh;
+    max-height: 80dvh;
     overflow-y: auto;
   }
 
@@ -975,7 +975,7 @@
 
   @media (max-width: 640px) {
     .conflict-modal-wrapper {
-      max-height: 95vh;
+      max-height: 95dvh;
     }
 
     .diff-container {

@@ -1223,7 +1223,7 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: 80vh;
+    min-height: 80dvh;
     padding: 2rem;
   }
 
@@ -1681,7 +1681,7 @@
   .modal-content-wrapper {
     position: relative;
     width: 100%;
-    height: 90vh;
+    height: 90dvh;
     overflow-y: auto;
     padding: 1rem;
     box-sizing: border-box;

@@ -973,7 +973,7 @@
     background: #1e293b;
     display: flex;
     flex-direction: column;
-    height: 85vh;
+    height: 85dvh;
     overflow: hidden;
   }
 

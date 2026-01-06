@@ -166,7 +166,7 @@
   .modal-content-wrapper {
     position: relative;
     width: 100%;
-    height: 85vh;
+    height: 85dvh;
     background: linear-gradient(145deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.95));
     display: flex;
     flex-direction: column;
