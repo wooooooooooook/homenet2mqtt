@@ -1,27 +1,11 @@
 meta:
-  name: "Bestin 조명 및 아웃렛 (energy485)"
-  name_en: "Bestin Light and Outlet (energy485)"
-  description: "v1.8.0이상이 필요합니다. Bestin 조명 및 아웃렛 설정입니다. 방1은 조명4개+콘센트3개, 방2는 조명2개+콘센트2개입니다."
-  description_en: "Bestin light and outlet. Room 1 has 4 lights + 3 outlets, Room 2 has 2 lights + 2 outlets."
+  name: "Bestin general 조명 및 아웃렛 (energy485)"
+  name_en: "Bestin general Light and Outlet (energy485)"
+  description: "Bestin general gateway용 조명 및 아웃렛 설정입니다. 방1은 조명4개+콘센트3개, 방2는 조명2개+콘센트2개입니다."
+  description_en: "Bestin general gateway light and outlet. Room 1 has 4 lights + 3 outlets, Room 2 has 2 lights + 2 outlets."
   version: "2.0.0"
   author: "wooooooooooook"
   tags: ["light", "outlet", "bestin"]
-
-# 패킷 구조 (30바이트 고정):
-# data[0]: 헤더 0x31
-# data[1]: 길이 0x1E
-# data[2]: 명령어 0x91
-# data[3]: 타임스탬프
-# data[4]: 방 ID (room_id & 0x0F)
-# data[5]: 조명 상태 비트맵 (비트0-3: 조명0-3)
-# data[6]: 콘센트 상태 비트맵 (비트0-2: 콘센트0-2, 비트4: 대기전력차단)
-# data[7-8]: 콘센트 차단값 0 (big-endian, /10)
-# data[9-10]: 콘센트 차단값 1 (big-endian, /10)
-# data[11-12]: DC 전압값 (big-endian, /10.0)
-# data[13-14]: 콘센트 소비전력 0 (big-endian, /10.0)
-# data[15-16]: 콘센트 소비전력 1 (big-endian, /10.0)
-# data[17-18]: 콘센트 소비전력 2 (big-endian, /10.0)
-# data[19-20]: 콘센트 소비전력 3 (big-endian, /10.0)
 
 entities:
   scripts:

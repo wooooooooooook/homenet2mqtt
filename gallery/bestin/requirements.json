@@ -1,6 +1,6 @@
 {
     "serial": {
-        "baud_rate": 38400,
+        "baud_rate": 9600,
         "data_bits": 8,
         "parity": "none",
         "stop_bits": 1
