@@ -1,0 +1,58 @@
+meta:
+  name: "전열교환기"
+  name_en: "heat exchanger fan"
+  description: "Ezville 전열교환기 설정입니다."
+  description_en: "Ezville heat exchanger fan configuration."
+  version: "1.0.0"
+  author: "gunfos"
+  tags: ["heat exchanger fan", "ezville"]
+
+entities:  
+  fan:  
+    - id: heat_exchanger_fan  
+      name: "전열교환기"  
+        
+      # 상태 패킷 식별  
+      state:  
+        data: [0x32, 0x01, 0x81]  
+        
+      # 전원 상태 감지 (7번째 바이트 기준)  
+      state_on:  
+        offset: 6  
+        data: [0x01]  # 약/중/강 모두 ON 상태  
+        #data: [0x01, 0x02, 0x03]  # 약/중/강 모두 ON 상태  
+      state_off:  
+        offset: 6 
+        data: [0x00]  
+        
+      # 전원 제어  
+      command_on:  
+        data: [0x32, 0x01, 0x42, 0x01, 0x01]  # 약풍으로 켜기  
+      command_off:  
+        data: [0x32, 0x01, 0x41, 0x01, 0x00]  
+      command_update:  
+        data: [0x32, 0x01, 0x01, 0x00]
+        
+      # 프리셋 모드 정의  
+      preset_modes: ["약", "중", "강"]  
+        
+      # 현재 속도 감지 (CEL 표현식)  
+      state_preset_mode: >-  
+        data[7] == 0x01 ? "약" :   
+        (data[7] == 0x02 ? "중" :   
+        (data[7] == 0x03 ? "강" : "off"))  
+        
+      # 속도 제어 명령 (CEL 표현식)  
+      command_preset_mode: >-  
+        xstr == "약" ? [0x32, 0x01, 0x42, 0x01, 0x01] :   
+        (xstr == "중" ? [0x32, 0x01, 0x42, 0x01, 0x02] :   
+        [0x32, 0x01, 0x42, 0x01, 0x03])
+
+automation:
+  - id: 'update_fan_state'
+    trigger:
+      - type: schedule
+        every: 1m
+    actions:
+      - action: command
+        target: id(heat_exchanger_fan).command_update()

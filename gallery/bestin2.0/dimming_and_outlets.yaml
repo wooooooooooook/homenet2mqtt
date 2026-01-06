@@ -1,8 +1,8 @@
 meta:
-  name: "Bestin2.0 조명 및 아웃렛 (방2개 조명2개씩, 아웃렛 2개씩)"
-  name_en: "Bestin2.0 Light and Outlet (2 rooms, 2 lights and 2 outlets each)"
-  description: "v1.8.0이상이 필요합니다. Bestin2.0 조명 및 아웃렛 설정입니다. 추가 방, 조명 등은 추가하여 사용하세요."
-  description_en: "Bestin2.0 light and outlet."
+  name: "Bestin2.0 디밍 조명 및 아웃렛 (방2개 조명2개씩, 아웃렛 2개씩)"
+  name_en: "Bestin2.0 Dimming Light and Outlet (2 rooms, 2 lights and 2 outlets each)"
+  description: "v1.8.0이상이 필요합니다. Bestin2.0 디밍 조명 및 아웃렛 설정입니다. 추가 방, 조명 등은 추가하여 사용하세요."
+  description_en: "Bestin2.0 dimming light and outlet."
   version: "1.0.0"
   author: "wooooooooooook"
   tags: ["light", "outlet", "bestin2.0"]
@@ -39,7 +39,7 @@ entities:
             int(has(args.COLOR_TEMP)?args.COLOR_TEMP:0xFF), 
             0x00, 0xFF]
           ack: >- 
-            [bitOr(0x30, args.room_number), 0x0A, 0x81]
+            [bitOr(0x30, args.room_number), 0x81]
           header: true
           checksum: true
         - action: script
@@ -62,7 +62,7 @@ entities:
             int(args.position), 
             int(args.ONOFF)]
           ack: >- 
-            [bitOr(0x30, args.room_number), 0x0A, 0x81]
+            [bitOr(0x30, args.room_number), 0x81]
           header: true
           checksum: true
         - action: script
