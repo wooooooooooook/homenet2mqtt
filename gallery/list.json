@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-01-06T07:40:02.075Z",
+  "generated_at": "2026-01-06T08:15:17.694Z",
   "vendors": [
     {
-      "id": "bestin2.0",
-      "name": "BESTIN 2.0",
+      "id": "bestin",
+      "name": "BESTIN",
       "requirements": {
         "serial": {
           "baud_rate": 9600,
@@ -26,7 +26,7 @@
       },
       "items": [
         {
-          "file": "bestin2.0/climate.yaml",
+          "file": "bestin/climate.yaml",
           "name": "Bestin2.0 난방",
           "name_en": "Bestin2.0 Climate",
           "description": "v1.8.0이상이 필요합니다. Bestin2.0 난방 설정입니다. 추가 방, 조명 등은 추가하여 사용하세요.",
@@ -48,36 +48,11 @@
           }
         },
         {
-          "file": "bestin2.0/dimming_and_outlets.yaml",
-          "name": "Bestin2.0 디밍 조명 및 아웃렛 (방2개 조명2개씩, 아웃렛 2개씩)",
-          "name_en": "Bestin2.0 Dimming Light and Outlet (2 rooms, 2 lights and 2 outlets each)",
-          "description": "v1.8.0이상이 필요합니다. Bestin2.0 디밍 조명 및 아웃렛 설정입니다. 추가 방, 조명 등은 추가하여 사용하세요.",
-          "description_en": "Bestin2.0 dimming light and outlet.",
-          "version": "1.0.0",
-          "author": "wooooooooooook",
-          "tags": [
-            "light",
-            "outlet",
-            "bestin2.0"
-          ],
-          "content_summary": {
-            "entities": {
-              "scripts": 3,
-              "number": 1,
-              "light": 4,
-              "switch": 8,
-              "sensor": 8
-            },
-            "automations": 0,
-            "scripts": 0
-          }
-        },
-        {
-          "file": "bestin2.0/energy485.yaml",
-          "name": "Bestin 조명 및 아웃렛 (energy485)",
-          "name_en": "Bestin Light and Outlet (energy485)",
-          "description": "v1.8.0이상이 필요합니다. Bestin 조명 및 아웃렛 설정입니다. 방1은 조명4개+콘센트3개, 방2는 조명2개+콘센트2개입니다.",
-          "description_en": "Bestin light and outlet. Room 1 has 4 lights + 3 outlets, Room 2 has 2 lights + 2 outlets.",
+          "file": "bestin/energy485.yaml",
+          "name": "Bestin general 조명 및 아웃렛 (energy485)",
+          "name_en": "Bestin general Light and Outlet (energy485)",
+          "description": "Bestin general gateway용 조명 및 아웃렛 설정입니다. 방1은 조명4개+콘센트3개, 방2는 조명2개+콘센트2개입니다.",
+          "description_en": "Bestin general gateway light and outlet. Room 1 has 4 lights + 3 outlets, Room 2 has 2 lights + 2 outlets.",
           "version": "2.0.0",
           "author": "wooooooooooook",
           "tags": [
@@ -98,23 +73,74 @@
           }
         },
         {
-          "file": "bestin2.0/fan.yaml",
-          "name": "Bestin2.0 환기팬",
-          "name_en": "Bestin2.0 Ventilation Fan",
-          "description": "v1.8.0이상이 필요합니다. Bestin2.0 환기팬 설정입니다. 3단 속도(약/중/강)와 자연환기 모드를 지원합니다.",
-          "description_en": "Bestin2.0 ventilation fan with 3-speed control and natural ventilation mode.",
+          "file": "bestin/fan.yaml",
+          "name": "Bestin 환기팬",
+          "name_en": "Bestin Ventilation Fan",
+          "description": "Bestin 환기팬 설정입니다. 3단 속도(약/중/강)와 자연환기 모드를 지원합니다.",
+          "description_en": "Bestin ventilation fan with 3-speed control and natural ventilation mode.",
           "version": "1.0.0",
           "author": "wooooooooooook",
           "tags": [
             "fan",
             "ventilation",
-            "bestin2.0"
+            "bestin"
           ],
           "content_summary": {
             "entities": {
               "scripts": 2,
               "number": 1,
               "fan": 1
+            },
+            "automations": 0,
+            "scripts": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "bestin2.0",
+      "name": "BESTIN2.0",
+      "requirements": {
+        "serial": {
+          "baud_rate": 38400,
+          "data_bits": 8,
+          "parity": "none",
+          "stop_bits": 1
+        },
+        "packet_defaults": {
+          "rx_checksum": "bestin_sum",
+          "tx_checksum": "bestin_sum",
+          "rx_header": [
+            2
+          ],
+          "tx_header": [
+            2
+          ],
+          "rx_footer": [],
+          "tx_footer": []
+        }
+      },
+      "items": [
+        {
+          "file": "bestin2.0/dimming_and_outlets.yaml",
+          "name": "Bestin2.0 디밍 조명 및 아웃렛 (방2개 조명2개씩, 아웃렛 2개씩)",
+          "name_en": "Bestin2.0 Dimming Light and Outlet (2 rooms, 2 lights and 2 outlets each)",
+          "description": "Bestin2.0 디밍 조명 및 아웃렛 설정입니다. 추가 방, 조명 등은 추가하여 사용하세요.",
+          "description_en": "Bestin2.0 dimming light and outlet.",
+          "version": "1.0.0",
+          "author": "wooooooooooook",
+          "tags": [
+            "light",
+            "outlet",
+            "bestin2.0"
+          ],
+          "content_summary": {
+            "entities": {
+              "scripts": 3,
+              "number": 1,
+              "light": 4,
+              "switch": 8,
+              "sensor": 8
             },
             "automations": 0,
             "scripts": 0
@@ -485,6 +511,26 @@
       },
       "items": [
         {
+          "file": "ezville/door_auto.yaml",
+          "name": "현관문열림자동",
+          "name_en": "door auto open",
+          "description": "Ezville 현관문열림자동 설정입니다. 벨울림 -> 통화시작, 문열기, 통화종료를 순차전송 ",
+          "description_en": "Ezville door auto open configuration. Bell ring -> call start, door open, call end in sequence.",
+          "version": "1.0.0",
+          "author": "gunfos",
+          "tags": [
+            "door auto open",
+            "ezville"
+          ],
+          "content_summary": {
+            "entities": {
+              "automation": 1
+            },
+            "automations": 0,
+            "scripts": 0
+          }
+        },
+        {
           "file": "ezville/elevator.yaml",
           "name": "엘리베이터 호출 설정",
           "name_en": "Elevator Call",
@@ -543,9 +589,10 @@
           ],
           "content_summary": {
             "entities": {
-              "fan": 1
+              "fan": 1,
+              "automation": 1
             },
-            "automations": 1,
+            "automations": 0,
             "scripts": 0
           }
         },
