@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-01-06T08:54:16.990Z",
+  "generated_at": "2026-01-06T13:43:28.674Z",
   "vendors": [
     {
       "id": "bestin",
@@ -27,15 +27,15 @@
       "items": [
         {
           "file": "bestin/climate.yaml",
-          "name": "Bestin2.0 난방",
-          "name_en": "Bestin2.0 Climate",
-          "description": "v1.8.0이상이 필요합니다. Bestin2.0 난방 설정입니다. 추가 방, 조명 등은 추가하여 사용하세요.",
-          "description_en": "Bestin2.0 climate.",
+          "name": "Bestin 난방",
+          "name_en": "Bestin Climate",
+          "description": "Bestin 난방 설정입니다. bestin1.0 bestin2.0 공통입니다.",
+          "description_en": "Bestin climate. bestin1.0 bestin2.0 common.",
           "version": "1.0.0",
           "author": "wooooooooooook",
           "tags": [
             "climate",
-            "bestin2.0"
+            "bestin"
           ],
           "content_summary": {
             "entities": {
@@ -48,7 +48,56 @@
           }
         },
         {
-          "file": "bestin/energy485.yaml",
+          "file": "bestin/doorlock.yaml",
+          "name": "Bestin 도어락",
+          "name_en": "Bestin Doorlock",
+          "description": "Bestin 도어락 설정입니다. bestin1.0 bestin2.0 공통입니다.",
+          "description_en": "Bestin doorlock. bestin1.0 bestin2.0 common.",
+          "version": "1.0.0",
+          "author": "wooooooooooook",
+          "tags": [
+            "lock",
+            "doorlock",
+            "bestin"
+          ],
+          "content_summary": {
+            "entities": {
+              "scripts": 2,
+              "number": 1,
+              "lock": 1
+            },
+            "automations": 0,
+            "scripts": 0
+          }
+        },
+        {
+          "file": "bestin/energy485_AIO.yaml",
+          "name": "Bestin aio 조명 및 아웃렛 (energy485)",
+          "name_en": "Bestin aio Light and Outlet (energy485)",
+          "description": "Bestin aio gateway용 조명 및 아웃렛 설정입니다. 방1은 조명4개+콘센트3개, 방2는 조명2개+콘센트2개입니다.",
+          "description_en": "Bestin aio gateway light and outlet. Room 1 has 4 lights + 3 outlets, Room 2 has 2 lights + 2 outlets.",
+          "version": "2.0.0",
+          "author": "wooooooooooook",
+          "tags": [
+            "light",
+            "outlet",
+            "bestin"
+          ],
+          "content_summary": {
+            "entities": {
+              "scripts": 3,
+              "number": 1,
+              "light": 6,
+              "switch": 4,
+              "binary_sensor": 4,
+              "sensor": 4
+            },
+            "automations": 0,
+            "scripts": 0
+          }
+        },
+        {
+          "file": "bestin/energy485_general.yaml",
           "name": "Bestin general 조명 및 아웃렛 (energy485)",
           "name_en": "Bestin general Light and Outlet (energy485)",
           "description": "Bestin general gateway용 조명 및 아웃렛 설정입니다. 방1은 조명4개+콘센트3개, 방2는 조명2개+콘센트2개입니다.",
@@ -76,8 +125,8 @@
           "file": "bestin/fan.yaml",
           "name": "Bestin 환기팬",
           "name_en": "Bestin Ventilation Fan",
-          "description": "Bestin 환기팬 설정입니다. 3단 속도(약/중/강)와 자연환기 모드를 지원합니다.",
-          "description_en": "Bestin ventilation fan with 3-speed control and natural ventilation mode.",
+          "description": "Bestin 환기팬 설정입니다. 3단 속도(약/중/강)와 자연환기 모드를 지원합니다. bestin1.0 bestin2.0 공통입니다.",
+          "description_en": "Bestin ventilation fan with 3-speed control and natural ventilation mode. bestin1.0 bestin2.0 common.",
           "version": "1.0.0",
           "author": "wooooooooooook",
           "tags": [
@@ -90,6 +139,72 @@
               "scripts": 2,
               "number": 1,
               "fan": 1
+            },
+            "automations": 0,
+            "scripts": 0
+          }
+        },
+        {
+          "file": "bestin/sensors.yaml",
+          "name": "Bestin General/Gen2 에너지 센서",
+          "name_en": "Bestin General/Gen2 Energy Sensors",
+          "description": "Bestin General/Gen2 게이트웨이용 에너지 센서 설정입니다.  전기, 수도, 온수, 가스, 난방 5개 요소의 총 사용량과 실시간 사용량을 제공합니다.",
+          "description_en": "Bestin General/Gen2 gateway energy sensors configuration. Provides total and realtime usage for 5 elements: electric, water, hotwater, gas, heat.",
+          "version": "1.0.0",
+          "author": "wooooooooooook",
+          "tags": [
+            "energy",
+            "sensor",
+            "bestin"
+          ],
+          "content_summary": {
+            "entities": {
+              "sensor": 10
+            },
+            "automations": 0,
+            "scripts": 0
+          }
+        },
+        {
+          "file": "bestin/sensors_AIO.yaml",
+          "name": "Bestin AIO 에너지 센서",
+          "name_en": "Bestin AIO Energy Sensors",
+          "description": "Bestin AIO 게이트웨이용 에너지 센서 설정입니다.  전기, 수도, 가스 3개 요소의 총 사용량과 실시간 사용량을 제공합니다.",
+          "description_en": "Bestin AIO gateway energy sensors configuration. Provides total and realtime usage for 3 elements: electric, water, gas.",
+          "version": "1.0.0",
+          "author": "wooooooooooook",
+          "tags": [
+            "energy",
+            "sensor",
+            "bestin",
+            "aio"
+          ],
+          "content_summary": {
+            "entities": {
+              "sensor": 6
+            },
+            "automations": 0,
+            "scripts": 0
+          }
+        },
+        {
+          "file": "bestin/valve.yaml",
+          "name": "Bestin 가스밸브",
+          "name_en": "Bestin Gas Valve",
+          "description": "Bestin 가스밸브 설정입니다. bestin1.0 bestin2.0 공통입니다.",
+          "description_en": "Bestin gas valve. bestin1.0 bestin2.0 common.",
+          "version": "1.0.0",
+          "author": "wooooooooooook",
+          "tags": [
+            "valve",
+            "gas",
+            "bestin"
+          ],
+          "content_summary": {
+            "entities": {
+              "scripts": 2,
+              "number": 1,
+              "valve": 1
             },
             "automations": 0,
             "scripts": 0
@@ -125,8 +240,8 @@
           "file": "bestin2.0/dimming_and_outlets.yaml",
           "name": "Bestin2.0 디밍 조명 및 아웃렛 (방2개 조명2개씩, 아웃렛 2개씩)",
           "name_en": "Bestin2.0 Dimming Light and Outlet (2 rooms, 2 lights and 2 outlets each)",
-          "description": "Bestin2.0 디밍 조명 및 아웃렛 설정입니다. 추가 방, 조명 등은 추가하여 사용하세요.",
-          "description_en": "Bestin2.0 dimming light and outlet.",
+          "description": "Bestin2.0 디밍 조명 및 아웃렛 설정입니다. 더 필요한 방, 조명 등은 추가하여 사용하세요. 디밍이 아닌경우 light엔티티에서 디밍관련 옵션들(brightness, color_temp)을 제거하고 사용하세요.",
+          "description_en": "Bestin2.0 dimming light and outlet configuration. Add more rooms or lights as needed. If it's not a dimming light, remove dimming-related options (brightness, color_temp) from the light entity.",
           "version": "1.0.0",
           "author": "wooooooooooook",
           "tags": [
