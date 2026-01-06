@@ -54,3 +54,11 @@
 - 구성의 config_files에 복제한 설정파일 이름들을 차례대로 입력하고 애드온을 재시작 하면 됩니다.
 
 ## [Config 작성법 문서 바로가기](https://github.com/wooooooooooook/RS485-HomeNet-to-MQTT-bridge/tree/main/docs/config-schema)
+
+
+## 문의 및 지원
+[GitHub Issues](https://github.com/wooooooooooook/RS485-HomeNet-to-MQTT-bridge/issues)
+[Discord](https://discord.gg/kGwhUBMe5z)
+
+## 라이센스
+이 프로젝트는 [MIT 라이센스](LICENSE)를 따릅니다.
