@@ -7,8 +7,7 @@ meta:
   author: "gunfos"
   tags: ["door auto open", "ezville"]
 
-entities:  
-  automation:
+automation:
     - id: 'door_auto'
       trigger:
         - type: packet

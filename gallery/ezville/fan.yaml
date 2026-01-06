@@ -48,11 +48,11 @@ entities:
         (xstr == "중" ? [0x32, 0x01, 0x42, 0x01, 0x02] :   
         [0x32, 0x01, 0x42, 0x01, 0x03])
 
-  automation:
-    - id: 'update_fan_state'
-      trigger:
-        - type: schedule
-          every: 1m
-      actions:
-        - action: command
-          target: id(heat_exchanger_fan).command_update()
+automation:
+  - id: 'update_fan_state'
+    trigger:
+      - type: schedule
+        every: 1m
+    actions:
+      - action: command
+        target: id(heat_exchanger_fan).command_update()
