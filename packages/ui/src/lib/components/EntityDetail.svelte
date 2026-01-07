@@ -1416,7 +1416,6 @@
   @media (max-width: 768px) {
     .modal-content-wrapper {
       border-radius: 0;
-      height: 100%;
     }
 
     .modal-header {
