@@ -300,7 +300,6 @@
 
   @media (max-width: 640px) {
     .modal-content-wrapper {
-      height: 100%;
       border-radius: 0;
     }
 
