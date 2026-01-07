@@ -301,7 +301,7 @@ export function validateConfig(
     ) {
       errors.push('serial.serial_idle은 숫자(ms) 또는 duration 문자열이어야 합니다.');
     } else if (typeof serial.serial_idle === 'number' && serial.serial_idle < 0) {
-      errors.push('serial.serial_idle은 0 이상이어야 합니다.');
+      errors.push('serial.serial_idle은 0 이상이어야 하며, 0이면 비활성화됩니다.');
     }
   }
 
