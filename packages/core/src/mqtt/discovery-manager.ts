@@ -622,7 +622,6 @@ export class DiscoveryManager {
 
         const presetModes = new Set<string>();
         const presetModeMappings: Array<[string, string]> = [
-          ['preset_none', 'none'],
           ['preset_home', 'home'],
           ['preset_away', 'away'],
           ['preset_boost', 'boost'],

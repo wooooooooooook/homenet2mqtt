@@ -84,5 +84,15 @@ describe('HomeNet to MQTT - Hyundai Imazu Protocol', () => {
     ctx.mockSerialPort.write.mockClear();
     await executeCommand(ctx, 'room_1_fan_1', 'speed', 100);
     console.log('Speed 100 calls:', ctx.mockSerialPort.write.mock.calls);
+
+    // Test speed 0
+    ctx.mockSerialPort.write.mockClear();
+    await executeCommand(ctx, 'room_1_fan_1', 'speed', 0);
+    console.log('Speed 0 calls:', ctx.mockSerialPort.write.mock.calls);
+    const speed0Call = ctx.mockSerialPort.write.mock.calls[0][0];
+    // Currently expects it to be same as Speed 1 (0x42 ... 0x01)
+    // 0xf7, 0x0b, 0x01, 0x2b, 0x02, 0x42, 0x11, 0x01, 0x00, ...
+    expect(speed0Call[5]).toBe(0x42); // Check byte 5 is 0x42 (Speed command marker in Imazu?)
+    expect(speed0Call[7]).toBe(0x01); // Check byte 7 is 0x01 (Level 1)
   });
 });
