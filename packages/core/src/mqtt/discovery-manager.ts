@@ -648,7 +648,7 @@ export class DiscoveryManager {
           payload.preset_modes = Array.from(presetModes);
           payload.preset_mode_command_topic = `${this.mqttTopicPrefix}/${id}/preset_mode/set`;
           payload.preset_mode_state_topic = `${this.mqttTopicPrefix}/${id}/state`;
-          payload.preset_mode_state_template = '{{ value_json.preset_mode }}';
+          payload.preset_mode_value_template = '{{ value_json.preset_mode }}';
         }
 
         payload.temperature_unit = 'C';

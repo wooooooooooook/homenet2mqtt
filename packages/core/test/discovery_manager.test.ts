@@ -249,6 +249,6 @@ describe('DiscoveryManager', () => {
       'homenet2mqtt/homedevice1/climate_custom/preset_mode/set',
     );
     expect(payload.preset_mode_state_topic).toBe('homenet2mqtt/homedevice1/climate_custom/state');
-    expect(payload.preset_mode_state_template).toBe('{{ value_json.preset_mode }}');
+    expect(payload.preset_mode_value_template).toBe('{{ value_json.preset_mode }}');
   });
 });

@@ -83,7 +83,7 @@
   - `preset_modes`: `state_preset_*`/`command_preset_*` 및 `custom_preset` 목록을 합쳐 노출
   - `preset_mode_command_topic`: `${MQTT_TOPIC_PREFIX}/${id}/preset_mode/set`
   - `preset_mode_state_topic`: `${MQTT_TOPIC_PREFIX}/${id}/state`
-  - `preset_mode_state_template`: `{{ value_json.preset_mode }}`
+  - `preset_mode_value_template`: `{{ value_json.preset_mode }}`
 - 고정 값
   - `temperature_unit`: `C`
   - `min_temp`: `15`, `max_temp`: `30`, `temp_step`: `1`
