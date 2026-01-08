@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-01-07T03:10:45.299Z",
+  "generated_at": "2026-01-08T04:18:34.693Z",
   "vendors": [
     {
       "id": "bestin",
@@ -631,7 +631,7 @@
           "name_en": "door auto open",
           "description": "Ezville 현관문열림자동 설정입니다. 벨울림 -> 통화시작, 문열기, 통화종료를 순차전송 ",
           "description_en": "Ezville door auto open configuration. Bell ring -> call start, door open, call end in sequence.",
-          "version": "1.0.0",
+          "version": "1.0.1",
           "author": "gunfos",
           "tags": [
             "door auto open",
@@ -1007,7 +1007,7 @@
           "name_en": "☑️Periodic light state request automation (Room 1)",
           "description": "상태 갱신을 위한 주기적 조명 상태요청 자동화입니다. 다른 방도 필요한 경우 복사하여 수정하시면 됩니다.",
           "description_en": "Periodic light state request automation for Hyundai Telecom wallpads.",
-          "version": "1.0.0",
+          "version": "1.0.1",
           "author": "wooooooooooook",
           "tags": [
             "hyundai",
