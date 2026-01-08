@@ -33,6 +33,9 @@
   let showSaveDialog = $state(false);
   let downloadError = $state<string | null>(null);
 
+  let isPaused = $state(false);
+  let pausedSnapshot = $state<RawPacketWithInterval[] | null>(null);
+
   // Status tracking
   let recordingDuration = $state(0);
   let timer: ReturnType<typeof setInterval> | null = null;
@@ -193,29 +196,42 @@
     }
   });
 
+  function togglePause() {
+    if (isPaused) {
+      isPaused = false;
+      pausedSnapshot = null;
+    } else {
+      isPaused = true;
+      pausedSnapshot = [...rawPackets];
+    }
+  }
+
+  const activePackets = $derived(isPaused && pausedSnapshot ? pausedSnapshot : rawPackets);
+
   // 가상 스크롤용 역순 패킷 목록 (최신 패킷이 위에 표시)
   // 필터링 시 최근 FILTER_SEARCH_LIMIT개 패킷만 검색하여 성능 개선
   const filteredPackets = $derived.by(() => {
+    const source = activePackets;
     // 필터가 없으면 전체 역순 반환
     if (!normalizedFilter || !cachedRegex) {
       // 역순 정렬 - slice로 복사 후 reverse
-      const len = rawPackets.length;
+      const len = source.length;
       const result = new Array(len);
       for (let i = 0; i < len; i++) {
-        result[i] = rawPackets[len - 1 - i];
+        result[i] = source[len - 1 - i];
       }
       return result;
     }
 
     // 필터링 시 최근 N개만 검색
-    const searchLimit = Math.min(rawPackets.length, FILTER_SEARCH_LIMIT);
-    const startIndex = rawPackets.length - searchLimit;
+    const searchLimit = Math.min(source.length, FILTER_SEARCH_LIMIT);
+    const startIndex = source.length - searchLimit;
     const regex = cachedRegex;
     const result: RawPacketWithInterval[] = [];
 
     // 역순으로 순회하며 필터링 (최신 패킷부터)
-    for (let i = rawPackets.length - 1; i >= startIndex; i--) {
-      const packet = rawPackets[i];
+    for (let i = source.length - 1; i >= startIndex; i--) {
+      const packet = source[i];
       // 문자열 생성 최소화
       const payload = packet.payload;
       const direction = packet.direction ?? 'RX';
@@ -513,11 +529,6 @@
         </div>
       {/if}
     </div>
-    <Button variant="secondary" class={isRecording ? 'recording' : ''} onclick={toggleRecording}>
-      {isRecording
-        ? `⏹ ${$t('analysis.raw_log.stop_rec')}`
-        : `⏺ ${$t('analysis.raw_log.start_rec')}`}
-    </Button>
   </div>
   <p class="description">{$t('analysis.raw_log.desc')}</p>
   <div class="filter-row">
@@ -577,7 +588,18 @@
       </div>
     </div>
   {/if}
-
+  {#if rawPackets.length !== 0}
+    <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-bottom: 0.5rem;">
+      <Button variant="secondary" onclick={togglePause}>
+        {isPaused ? `▶ ${$t('analysis.raw_log.resume')}` : `⏸ ${$t('analysis.raw_log.pause')}`}
+      </Button>
+      <Button variant="secondary" class={isRecording ? 'recording' : ''} onclick={toggleRecording}>
+        {isRecording
+          ? `⏹ ${$t('analysis.raw_log.stop_rec')}`
+          : `⏺ ${$t('analysis.raw_log.start_rec')}`}
+      </Button>
+    </div>
+  {/if}
   <div class="log-list raw-list">
     {#if rawPackets.length === 0}
       <p class="empty">{$t('analysis.raw_log.empty')}</p>

@@ -270,7 +270,7 @@
 
   const deleteCacheFile = async (filename: string) => {
     showConfirmDialog({
-      title: $t('settings.log_retention.delete_confirm_title_placeholder') || $t('common.delete'), // Need a title?
+      title: $t('settings.log_retention.delete_confirm_title'),
       message: $t('settings.log_retention.delete_confirm'),
       confirmText: $t('common.delete'),
       variant: 'danger',
