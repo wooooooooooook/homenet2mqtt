@@ -410,6 +410,8 @@ const loadFrontendSettings = async (): Promise<FrontendSettings> => {
 };
 
 // --- Express Middleware & Setup ---
+// Security: Trust proxy (Docker/Ingress) to resolve correct client IP for rate limiting
+app.set('trust proxy', 'loopback, linklocal, uniquelocal');
 app.disable('x-powered-by');
 app.use((_req, res, next) => {
   // 보안 헤더 설정
