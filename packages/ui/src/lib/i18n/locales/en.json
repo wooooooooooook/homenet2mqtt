@@ -128,6 +128,8 @@
       "title": "Raw Packet Log",
       "start": "Start Logging",
       "stop": "Stop Logging",
+      "pause": "Pause",
+      "resume": "Resume",
       "start_rec": "Start Recording",
       "stop_rec": "Stop Recording",
       "saved_title": "Log Saved",

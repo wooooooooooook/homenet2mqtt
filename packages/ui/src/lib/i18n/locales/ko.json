@@ -128,6 +128,8 @@
       "title": "Raw 패킷 로그",
       "start": "로깅 시작",
       "stop": "로깅 중지",
+      "pause": "일시정지",
+      "resume": "계속",
       "start_rec": "녹화 시작",
       "stop_rec": "녹화 중지",
       "saved_title": "로그 저장 완료",
