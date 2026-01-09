@@ -97,8 +97,6 @@ export function createSetupRoutes(ctx: SetupRoutesContext): Router {
 
                 if (bridgeObj.serial && typeof bridgeObj.serial === 'object') {
                     serialConfig = bridgeObj.serial as Record<string, unknown>;
-                } else if (Array.isArray(bridgeObj.serials) && bridgeObj.serials.length > 0) {
-                    serialConfig = bridgeObj.serials[0] as Record<string, unknown>;
                 }
 
                 const packetDefaults = bridgeObj.packet_defaults || DEFAULT_PACKET_DEFAULTS;
@@ -425,16 +423,6 @@ export function createSetupRoutes(ctx: SetupRoutesContext): Router {
 
                 updatedYaml = dumpConfigToYaml(parsedConfig, { lineWidth: 120 });
 
-                const bridgeConfigForCleanup =
-                    (parsedConfig as any).homenet_bridge ||
-                    (parsedConfig as any).homenetBridge ||
-                    parsedConfig;
-
-                if (bridgeConfigForCleanup && typeof bridgeConfigForCleanup === 'object') {
-                    delete bridgeConfigForCleanup.serials;
-                }
-
-                updatedYaml = dumpConfigToYaml(parsedConfig, { lineWidth: 120 });
             }
 
             await fs.mkdir(configDir, { recursive: true });

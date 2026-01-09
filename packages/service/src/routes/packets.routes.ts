@@ -19,12 +19,11 @@ function findBridgeInstanceByPortId(
     portId: string,
 ): BridgeInstance | undefined {
     for (const instance of bridges) {
-        const serials = instance.config.serials || [];
-        for (let i = 0; i < serials.length; i++) {
-            const pId = normalizePortId(serials[i].portId, i);
-            if (pId === portId) {
-                return instance;
-            }
+        const serial = instance.config.serial;
+        if (!serial) continue;
+        const pId = normalizePortId(serial.portId, 0);
+        if (pId === portId) {
+            return instance;
         }
     }
     return undefined;

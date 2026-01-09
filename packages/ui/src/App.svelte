@@ -281,7 +281,7 @@
 
   const getKnownPortIds = () =>
     bridgeInfo?.bridges?.reduce<string[]>(
-      (acc, bridge) => acc.concat(bridge.serials.map((serial) => serial.portId)),
+      (acc, bridge) => (bridge.serial ? acc.concat(bridge.serial.portId) : acc),
       [],
     ) ?? [];
   // portId는 명시적으로 전달받은 값만 사용합니다. 추론하여 기본값으로 대체하지 않습니다.
@@ -530,7 +530,7 @@
 
       const portIds =
         data.bridges?.reduce<string[]>(
-          (acc, bridge) => acc.concat(bridge.serials.map((serial) => serial.portId)),
+          (acc, bridge) => (bridge.serial ? acc.concat(bridge.serial.portId) : acc),
           [],
         ) ?? [];
       const defaultPortId = portIds[0] ?? null;
@@ -1096,7 +1096,7 @@
 
     // 1. Flatten all ports from all bridges
     const allPorts = bridgeInfo.bridges.reduce<PortMetadata[]>((acc, bridge) => {
-      if (bridge.serials.length === 0 && (bridge.error || bridge.status === 'error')) {
+      if (!bridge.serial && (bridge.error || bridge.status === 'error')) {
         // Serials가 없지만 에러가 있는 경우, placeholder 포트를 추가하여 UI 탭에 표시되도록 함
         return acc.concat([
           {
@@ -1110,14 +1110,18 @@
           },
         ]);
       }
-      return acc.concat(
-        bridge.serials.map((serial) => ({
-          ...serial,
-          configFile: bridge.configFile,
-          error: bridge.error,
-          status: bridge.status,
-        })),
-      );
+      if (bridge.serial) {
+        return acc.concat([
+          {
+            ...bridge.serial,
+            configFile: bridge.configFile,
+            error: bridge.error,
+            status: bridge.status,
+          },
+        ]);
+      }
+
+      return acc;
     }, []);
 
     // 2. Deduplicate by portId

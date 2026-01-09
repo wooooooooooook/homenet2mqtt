@@ -32,10 +32,10 @@ export function createPacketStreamHandler(ctx: PacketStreamContext) {
     const rebuildPortMappings = () => {
         const nextMap = new Map<string, string>();
         ctx.getCurrentConfigs().forEach((config) => {
-            config.serials?.forEach((serial: SerialConfig, index: number) => {
-                const portId = normalizePortId(serial.portId, index);
-                nextMap.set(portId, portId);
-            });
+            const serial = config.serial as SerialConfig | undefined;
+            if (!serial) return;
+            const portId = normalizePortId(serial.portId, 0);
+            nextMap.set(portId, portId);
         });
         state.topicPrefixToPortId = nextMap;
     };

@@ -183,7 +183,7 @@ export function createSystemRoutes(ctx: SystemRoutesContext): Router {
             if (configError || !config || !config.serial) {
                 return {
                     configFile,
-                    serials: [],
+                    serial: null,
                     mqttTopicPrefix: BASE_MQTT_PREFIX,
                     topic: `${BASE_MQTT_PREFIX}/homedevice1/raw`,
                     error: configError || 'Config not loaded',
@@ -192,20 +192,18 @@ export function createSystemRoutes(ctx: SystemRoutesContext): Router {
             }
 
             const pId = normalizePortId(config.serial.portId, 0);
-            const serialTopics = [
-                {
-                    portId: pId,
-                    path: config.serial.path,
-                    baudRate: config.serial.baud_rate,
-                    topic: `${BASE_MQTT_PREFIX}/${pId}`,
-                },
-            ];
+            const serialInfo = {
+                portId: pId,
+                path: config.serial.path,
+                baudRate: config.serial.baud_rate,
+                topic: `${BASE_MQTT_PREFIX}/${pId}`,
+            };
 
             return {
                 configFile,
-                serials: serialTopics,
+                serial: serialInfo,
                 mqttTopicPrefix: BASE_MQTT_PREFIX,
-                topic: `${serialTopics[0]?.topic || `${BASE_MQTT_PREFIX}/homedevice1`}/raw`,
+                topic: `${serialInfo?.topic || `${BASE_MQTT_PREFIX}/homedevice1`}/raw`,
                 error: configError || undefined,
                 status: configStatus,
             };

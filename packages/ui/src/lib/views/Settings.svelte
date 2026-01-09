@@ -1000,9 +1000,9 @@
               <div class="bridge-info">
                 <span class="file-name">{bridge.configFile}</span>
                 <div class="bridge-details">
-                  {#each bridge.serials as serial, index (`${serial.portId}-${index}`)}
-                    <span class="badge sm">{serial.portId}: {serial.path}</span>
-                  {/each}
+                  {#if bridge.serial}
+                    <span class="badge sm">{bridge.serial.portId}: {bridge.serial.path}</span>
+                  {/if}
                 </div>
               </div>
 

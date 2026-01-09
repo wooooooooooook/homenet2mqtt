@@ -19,9 +19,7 @@ export type ConfigStatus = 'idle' | 'starting' | 'started' | 'error' | 'stopped'
 
 // --- Config Types ---
 
-export type PersistableHomenetBridgeConfig = Omit<HomenetBridgeConfig, 'serials'> & {
-    serials?: HomenetBridgeConfig['serials'];
-};
+export type PersistableHomenetBridgeConfig = HomenetBridgeConfig;
 
 export type BackupFileInfo = {
     filename: string;

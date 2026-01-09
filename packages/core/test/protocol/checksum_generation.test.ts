@@ -20,7 +20,6 @@ describe('Command Generator - Checksum Logic', () => {
         parity: 'none',
         stop_bits: 1,
       },
-      serials: [],
       packet_defaults: defaults,
     }) as unknown as HomenetBridgeConfig;
 

@@ -21,7 +21,6 @@ describe('wait_until action', () => {
       parity: 'none',
       stop_bits: 1,
     },
-    serials: [],
     binary_sensor: [
       {
         id: 'test_sensor',
