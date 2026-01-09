@@ -754,12 +754,10 @@ app.post('/api/mqtt/cleanup', async (req, res) => {
   const activeBridge = bridges.find((b) => b.bridge);
 
   if (!activeBridge) {
-    return res
-      .status(503)
-      .json({
-        error:
-          'No active bridge found to perform MQTT cleanup. Please ensure at least one bridge is configured and running.',
-      });
+    return res.status(503).json({
+      error:
+        'No active bridge found to perform MQTT cleanup. Please ensure at least one bridge is configured and running.',
+    });
   }
 
   try {
