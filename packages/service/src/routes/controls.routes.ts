@@ -39,7 +39,6 @@ export interface ControlsRoutesContext {
     setCurrentConfigs: (index: number, config: HomenetBridgeConfig) => void;
     setCurrentRawConfigs: (index: number, config: HomenetBridgeConfig) => void;
     rebuildPortMappings: () => void;
-    stripLegacyKeysBeforeSave: (config: HomenetBridgeConfig) => PersistableHomenetBridgeConfig;
 }
 
 export function createControlsRoutes(ctx: ControlsRoutesContext): Router {
@@ -170,21 +169,16 @@ export function createControlsRoutes(ctx: ControlsRoutesContext): Router {
         const currentConfigs = ctx.getCurrentConfigs();
         for (let i = 0; i < currentConfigs.length; i += 1) {
             const config = currentConfigs[i];
-            const serials = Array.isArray(config.serial)
-                ? config.serial
-                : config.serial
-                    ? [config.serial]
-                    : [];
-            for (let j = 0; j < serials.length; j += 1) {
-                const serial = serials[j] as { portId?: string };
-                const configPortId = normalizePortId(serial.portId, j);
-                if (configPortId === portId) {
-                    return i;
-                }
+            if (!config.serial) continue;
+
+            const configPortId = normalizePortId(config.serial.portId, 0);
+            if (configPortId === portId) {
+                return i;
             }
         }
         return -1;
     };
+
 
     const findConfigIndexForEntity = (entityId: string): number => {
         const currentConfigs = ctx.getCurrentConfigs();
@@ -450,7 +444,7 @@ export function createControlsRoutes(ctx: ControlsRoutesContext): Router {
 
             automation.enabled = enabled;
 
-            loadedYamlFromFile.homenet_bridge = ctx.stripLegacyKeysBeforeSave(normalizedConfig);
+            loadedYamlFromFile.homenet_bridge = normalizedConfig;
             const newFileContent = dumpConfigToYaml(loadedYamlFromFile);
             await fs.writeFile(configPath, newFileContent, 'utf8');
 
@@ -592,7 +586,7 @@ export function createControlsRoutes(ctx: ControlsRoutesContext): Router {
 
             automationList.splice(index, 1);
 
-            loadedYamlFromFile.homenet_bridge = ctx.stripLegacyKeysBeforeSave(normalizedConfig);
+            loadedYamlFromFile.homenet_bridge = normalizedConfig;
             const newFileContent = dumpConfigToYaml(loadedYamlFromFile);
             await fs.writeFile(configPath, newFileContent, 'utf8');
 
@@ -662,7 +656,7 @@ export function createControlsRoutes(ctx: ControlsRoutesContext): Router {
 
             scriptsList.splice(index, 1);
 
-            loadedYamlFromFile.homenet_bridge = ctx.stripLegacyKeysBeforeSave(normalizedConfig);
+            loadedYamlFromFile.homenet_bridge = normalizedConfig;
             const newFileContent = dumpConfigToYaml(loadedYamlFromFile);
             await fs.writeFile(configPath, newFileContent, 'utf8');
 

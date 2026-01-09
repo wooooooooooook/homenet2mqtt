@@ -20,7 +20,6 @@ describe('Samsung SDS Elevator Automation', () => {
         parity: 'even',
         stop_bits: 1,
       } as any,
-      serials: [{ portId: 'samsung_sds' }] as any,
       packet_defaults: {
         tx_checksum: 'samsung_tx',
         rx_checksum: 'samsung_rx',
@@ -168,7 +167,6 @@ describe('Samsung SDS Elevator Automation', () => {
         parity: 'even',
         stop_bits: 1,
       } as any,
-      serials: [{ portId: 'samsung_sds' }] as any,
       packet_defaults: {
         tx_checksum: 'samsung_tx',
         rx_checksum: 'samsung_rx',

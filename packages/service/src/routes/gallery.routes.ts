@@ -31,7 +31,6 @@ export interface GalleryRoutesContext {
     setCurrentConfigs: (index: number, config: HomenetBridgeConfig) => void;
     setCurrentRawConfigs: (index: number, config: HomenetBridgeConfig) => void;
     rebuildPortMappings: () => void;
-    stripLegacyKeysBeforeSave: (config: HomenetBridgeConfig) => PersistableHomenetBridgeConfig;
 }
 
 export function createGalleryRoutes(ctx: GalleryRoutesContext): Router {
@@ -126,16 +125,13 @@ export function createGalleryRoutes(ctx: GalleryRoutesContext): Router {
             let configIndex = -1;
             for (let i = 0; i < currentConfigs.length; i++) {
                 const config = currentConfigs[i];
-                if (!config?.serials) continue;
+                if (!config?.serial) continue;
 
-                for (let j = 0; j < config.serials.length; j++) {
-                    const pId = normalizePortId(config.serials[j].portId, j);
-                    if (pId === portId) {
-                        configIndex = i;
-                        break;
-                    }
+                const pId = normalizePortId(config.serial.portId, 0);
+                if (pId === portId) {
+                    configIndex = i;
+                    break;
                 }
-                if (configIndex !== -1) break;
             }
 
             if (configIndex === -1) {
@@ -299,11 +295,10 @@ export function createGalleryRoutes(ctx: GalleryRoutesContext): Router {
             if (vendorRequirements) {
                 // Find the serial config for the selected port
                 let serialConfig: Record<string, unknown> | null = null;
-                for (const serial of currentConfig.serials || []) {
-                    const pId = normalizePortId(serial.portId, 0);
+                if (currentConfig.serial) {
+                    const pId = normalizePortId(currentConfig.serial.portId, 0);
                     if (pId === portId) {
-                        serialConfig = serial as unknown as Record<string, unknown>;
-                        break;
+                        serialConfig = currentConfig.serial as unknown as Record<string, unknown>;
                     }
                 }
 
@@ -398,17 +393,14 @@ export function createGalleryRoutes(ctx: GalleryRoutesContext): Router {
 
             for (let i = 0; i < currentConfigs.length; i++) {
                 const config = currentConfigs[i];
-                if (!config?.serials) continue;
+                if (!config?.serial) continue;
 
-                for (let j = 0; j < config.serials.length; j++) {
-                    const pId = normalizePortId(config.serials[j].portId, j);
-                    if (pId === portId) {
-                        targetConfigFile = currentConfigFiles[i];
-                        configIndex = i;
-                        break;
-                    }
+                const pId = normalizePortId(config.serial.portId, 0);
+                if (pId === portId) {
+                    targetConfigFile = currentConfigFiles[i];
+                    configIndex = i;
+                    break;
                 }
-                if (targetConfigFile) break;
             }
 
             if (!targetConfigFile || configIndex === -1) {
@@ -646,7 +638,7 @@ export function createGalleryRoutes(ctx: GalleryRoutesContext): Router {
             }
 
             // Write updated config
-            loadedYamlFromFile.homenet_bridge = ctx.stripLegacyKeysBeforeSave(normalizedConfig);
+            loadedYamlFromFile.homenet_bridge = normalizedConfig;
             const newFileContent = dumpConfigToYaml(loadedYamlFromFile);
             await fs.writeFile(configPath, newFileContent, 'utf8');
 

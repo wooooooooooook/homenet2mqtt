@@ -33,7 +33,6 @@ describe('DiscoveryManager', () => {
 
     mockConfig = {
       serial,
-      serials: [serial],
       mqtt: { brokerUrl: 'mqtt://localhost' },
       switch: [{ id: 'switch1', name: 'Test Switch', type: 'switch', state: {} }],
       devices: [

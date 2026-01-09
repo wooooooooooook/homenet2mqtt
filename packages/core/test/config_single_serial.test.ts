@@ -34,16 +34,6 @@ describe('설정 검증 - 단일 시리얼 제한', () => {
         parity: 'none',
         stop_bits: 1,
       } as any,
-      serials: [
-        {
-          portId: 'a',
-          path: '/dev/ttyUSB0',
-          baud_rate: 9600,
-          data_bits: 8,
-          parity: 'none',
-          stop_bits: 1,
-        },
-      ],
       light: [{ id: 'light1' }],
     } as unknown as HomenetBridgeConfig;
 

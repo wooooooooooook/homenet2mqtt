@@ -322,7 +322,7 @@ export class HomeNetBridge {
     if (!trimmedName) {
       return { success: false, error: 'New name must not be empty' };
     }
-    const portId = this.config.serials?.[0]?.portId ?? 'default';
+    const portId = this.config.serial?.portId ?? 'default';
     const ensuredUniqueId = uniqueId || entity.unique_id || `homenet_${portId}_${entity.id}`;
 
     entity.name = trimmedName;
@@ -797,13 +797,14 @@ export class HomeNetBridge {
     clearStateCache();
     this.commonMqttTopicPrefix = (this.options.mqttTopicPrefix || MQTT_TOPIC_PREFIX).trim();
 
-    this.config.serials.forEach((serial, index) => {
-      const normalizedPortId = normalizePortId(serial.portId, index);
-      const portPrefix = this.resolvePortTopicPrefix(serial, index);
+    if (this.config.serial) {
+      const serial = this.config.serial;
+      const normalizedPortId = normalizePortId(serial.portId, 0);
+      const portPrefix = this.resolvePortTopicPrefix(serial, 0);
       this.resolvedPortTopicPrefixes.set(normalizedPortId, portPrefix);
-    });
+    }
 
-    const defaultWillPortId = normalizePortId(this.config.serials[0]?.portId, 0);
+    const defaultWillPortId = normalizePortId(this.config.serial?.portId, 0);
     const mqttOptions: mqtt.IClientOptions = {
       will: {
         topic: `${this.getMqttTopicPrefix(defaultWillPortId)}/bridge/status`,
@@ -823,8 +824,9 @@ export class HomeNetBridge {
     this._mqttClient = new MqttClient(this.options.mqttUrl, mqttOptions);
     this.client = this._mqttClient.client; // Assign the client from the new MqttClient instance
 
-    for (let index = 0; index < this.config.serials.length; index += 1) {
-      const serialConfig = this.config.serials[index];
+    if (this.config.serial) {
+      const serialConfig = this.config.serial;
+      const index = 0;
       const normalizedPortId = normalizePortId(serialConfig.portId, index);
       const serialPath = this.resolveSerialPath(serialConfig);
 

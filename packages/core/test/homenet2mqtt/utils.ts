@@ -56,7 +56,7 @@ export async function setupTest(configPath: string): Promise<TestContext> {
   // The loadConfig should have already populated them.
   // We only touch retry/timeout/delay settings.
 
-  const portId = config.serials[0]?.portId || 'default';
+  const portId = config.serial.portId || 'default';
   clearStateCache();
 
   // Create fresh Mock SerialPort for each test to ensure isolation
@@ -94,7 +94,7 @@ export async function setupTest(configPath: string): Promise<TestContext> {
   const commandSender = async (_portId: string | undefined, packet: number[], _options?: any) => {
     // Directly write to the mock serial port
     const buffer = Buffer.from(packet);
-    mockSerialPort.write(buffer, () => {});
+    mockSerialPort.write(buffer, () => { });
   };
 
   // Create AutomationManager for script-based command support

@@ -52,10 +52,6 @@ export function normalizeConfig(config: HomenetBridgeConfig) {
   const normalizedSerial = config.serial ? normalizeSerialConfig(config.serial) : undefined;
   if (normalizedSerial) {
     config.serial = normalizedSerial;
-    config.serials = [normalizedSerial];
-  } else {
-    // 비정상 입력을 대비해 기본 구조만 유지하고, 검증 단계에서 에러를 던집니다.
-    config.serials = [];
   }
 
   const portId = normalizedSerial?.portId ?? 'default';
@@ -265,14 +261,6 @@ export function validateConfig(
 
   if (!config.serial) {
     errors.push('serial 설정은 필수입니다.');
-  }
-
-  if (!config.serials || !Array.isArray(config.serials) || config.serials.length === 0) {
-    errors.push('serial 설정에 최소 1개 이상의 포트가 필요합니다.');
-  } else if (config.serials.length !== 1) {
-    errors.push(
-      '각 설정 파일에는 단일 serial만 선언할 수 있습니다. 파일을 분리하여 포트를 나눠주세요.',
-    );
   }
 
   if (config.serial) {

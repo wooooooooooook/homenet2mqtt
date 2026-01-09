@@ -30,7 +30,6 @@ describe('StateManager Merging', () => {
 
     mockConfig = {
       serial,
-      serials: [serial],
       mqtt: { brokerUrl: 'mqtt://localhost' },
     } as any;
 

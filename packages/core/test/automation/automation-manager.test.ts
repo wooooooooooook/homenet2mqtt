@@ -16,7 +16,6 @@ const serial = {
 } as any;
 const baseConfig: HomenetBridgeConfig = {
   serial,
-  serials: [serial],
   light: [{ id: 'light_1', name: 'Light 1', type: 'light', state: { data: [0x01] } }],
 };
 

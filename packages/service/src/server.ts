@@ -18,7 +18,7 @@ import {
 import { activityLogService } from './activity-log.service.js';
 import { logCollectorService } from './log-collector.service.js';
 import { RawPacketLoggerService } from './raw-packet-logger.service.js';
-import { LogRetentionService, type LogRetentionSettings } from './log-retention.service.js';
+import { LogRetentionService } from './log-retention.service.js';
 import { RateLimiter } from './utils/rate-limiter.js';
 import { createSetupWizardService } from './services/setup.service.js';
 import { createConfigEditorService } from './services/config-editor.service.js';
@@ -28,20 +28,13 @@ import type {
   BridgeStatus,
   ConfigStatus,
   PersistableHomenetBridgeConfig,
-  BackupFileInfo,
-  FrontendSettings,
   RawPacketStreamMode,
-  CommandInfo,
-  ConfigEntityInfo,
 } from './types/index.js';
 import {
   CONFIG_DIR,
-  FRONTEND_SETTINGS_FILE,
   DEFAULT_CONFIG_FILENAME,
   CONFIG_INIT_MARKER,
   CONFIG_RESTART_FLAG,
-  ENTITY_TYPE_KEYS,
-  SUPPORTED_LOCALES,
   BASE_MQTT_PREFIX,
 } from './utils/constants.js';
 import {
@@ -51,11 +44,7 @@ import {
 } from './utils/helpers.js';
 import {
   initializeBackupDir,
-  listBackupFiles,
-  resolveBackupPath,
   saveBackup,
-  cleanupBackups,
-  deleteBackupFile,
 } from './services/backup.service.js';
 import { loadFrontendSettings } from './services/frontend-settings.service.js';
 import { registerRoutes } from './routes/index.js';
@@ -66,13 +55,6 @@ dotenv.config();
 // --- Path Constants ---
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-// Backup functions are now imported from ./services/backup.service.js
-
-const stripLegacyKeysBeforeSave = (config: HomenetBridgeConfig): PersistableHomenetBridgeConfig => {
-  const { serials: _legacySerials, ...configToSave } = config;
-  return configToSave;
-};
 
 const envConfigFiles = (() => {
   const parsed = parseEnvList('CONFIG_FILES', 'CONFIG_FILE', '설정 파일');
@@ -196,7 +178,7 @@ registerRoutes(app, {
     currentRawConfigs[index] = config;
   },
   rebuildPortMappings: () => rebuildPortMappings(),
-  stripLegacyKeysBeforeSave,
+
   // Logs routes context
   rawPacketLogger: {
     getStatus: () => rawPacketLogger.getStatus(),
@@ -535,8 +517,9 @@ async function loadAndStartBridges(filenames: string[]) {
         // Read file content for log collector
         try {
           const content = await fs.readFile(resolvedPaths[i], 'utf-8');
-          const portIds =
-            result.config.serials?.map((s, idx) => normalizePortId(s.portId, idx)) || [];
+          const portIds = result.config.serial
+            ? [normalizePortId(result.config.serial.portId, 0)]
+            : [];
           loadedConfigFilesForCollector.push({ name: filenames[i], content, portIds });
         } catch {
           // Ignore read error for log collector

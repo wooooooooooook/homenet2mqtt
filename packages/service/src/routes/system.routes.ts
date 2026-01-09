@@ -114,9 +114,9 @@ export function createSystemRoutes(ctx: SystemRoutesContext): Router {
         let targetBridgeInstance: BridgeInstance | undefined;
 
         for (const instance of bridges) {
-            const serials = instance.config.serials || [];
-            for (let i = 0; i < serials.length; i++) {
-                const pId = normalizePortId(serials[i].portId, i);
+            const config = instance.config;
+            if (config.serial) {
+                const pId = normalizePortId(config.serial.portId, 0);
                 if (pId === portId) {
                     targetBridgeInstance = instance;
                     break;
@@ -180,7 +180,7 @@ export function createSystemRoutes(ctx: SystemRoutesContext): Router {
             const configStatus = currentConfigStatuses[configIndex] || 'idle';
 
             // Handle case where config failed to load (empty object or null)
-            if (configError || !config || !config.serials) {
+            if (configError || !config || !config.serial) {
                 return {
                     configFile,
                     serials: [],
@@ -191,16 +191,15 @@ export function createSystemRoutes(ctx: SystemRoutesContext): Router {
                 };
             }
 
-            const serialTopics =
-                config.serials?.map((serial: HomenetBridgeConfig['serials'][number], index: number) => {
-                    const portId = normalizePortId(serial.portId, index);
-                    return {
-                        portId,
-                        path: serial.path,
-                        baudRate: serial.baud_rate,
-                        topic: `${BASE_MQTT_PREFIX}/${portId}`,
-                    };
-                }) ?? [];
+            const pId = normalizePortId(config.serial.portId, 0);
+            const serialTopics = [
+                {
+                    portId: pId,
+                    path: config.serial.path,
+                    baudRate: config.serial.baud_rate,
+                    topic: `${BASE_MQTT_PREFIX}/${pId}`,
+                },
+            ];
 
             return {
                 configFile,

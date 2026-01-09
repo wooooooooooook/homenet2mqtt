@@ -21,7 +21,7 @@ import type {
 } from '@rs485-homenet/core/config/types';
 import { ENTITY_TYPE_KEYS } from '../utils/constants.js';
 import type { RateLimiter } from '../utils/rate-limiter.js';
-import type { BridgeInstance, ConfigStatus, PersistableHomenetBridgeConfig } from '../types/index.js';
+import type { BridgeInstance, PersistableHomenetBridgeConfig } from '../types/index.js';
 import { saveBackup } from '../services/backup.service.js';
 
 export interface ConfigRoutesContext {
@@ -35,7 +35,6 @@ export interface ConfigRoutesContext {
     setCurrentConfigs: (index: number, config: HomenetBridgeConfig) => void;
     setCurrentRawConfigs: (index: number, config: HomenetBridgeConfig) => void;
     rebuildPortMappings: () => void;
-    stripLegacyKeysBeforeSave: (config: HomenetBridgeConfig) => PersistableHomenetBridgeConfig;
 }
 
 export function createConfigRoutes(ctx: ConfigRoutesContext): Router {
@@ -47,17 +46,11 @@ export function createConfigRoutes(ctx: ConfigRoutesContext): Router {
         const currentConfigs = ctx.getCurrentConfigs();
         for (let i = 0; i < currentConfigs.length; i += 1) {
             const config = currentConfigs[i];
-            const serials = Array.isArray(config.serial)
-                ? config.serial
-                : config.serial
-                    ? [config.serial]
-                    : [];
-            for (let j = 0; j < serials.length; j += 1) {
-                const serial = serials[j] as { portId?: string };
-                const configPortId = normalizePortId(serial.portId, j);
-                if (configPortId === portId) {
-                    return i;
-                }
+            if (!config.serial) continue;
+
+            const configPortId = normalizePortId(config.serial.portId, 0);
+            if (configPortId === portId) {
+                return i;
             }
         }
         return -1;
@@ -282,7 +275,7 @@ export function createConfigRoutes(ctx: ConfigRoutesContext): Router {
             }
 
             // 4. Update the original object structure with the modified data
-            loadedYamlFromFile.homenet_bridge = ctx.stripLegacyKeysBeforeSave(normalizedFullConfig);
+            loadedYamlFromFile.homenet_bridge = normalizedFullConfig;
 
             // 5. Write new config
             const newFileContent = dumpConfigToYaml(loadedYamlFromFile);

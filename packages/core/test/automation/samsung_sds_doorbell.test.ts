@@ -29,7 +29,6 @@ describe('Samsung SDS Doorbell Automation', () => {
       parity: 'even',
       stop_bits: 1,
     } as any,
-    serials: [{ portId: 'samsung_sds_door' }] as any,
     packet_defaults: {
       tx_checksum: 'samsung_tx',
       rx_checksum: 'samsung_rx',

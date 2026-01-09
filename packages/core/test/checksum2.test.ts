@@ -89,7 +89,6 @@ describe('2-Byte Checksum', () => {
 
       const mockConfig = {
         serial,
-        serials: [serial],
         packet_defaults: {
           tx_header: [0xf7],
           tx_checksum2: celScript,

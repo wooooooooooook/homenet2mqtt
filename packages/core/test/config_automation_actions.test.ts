@@ -13,16 +13,6 @@ describe('설정 검증 - automation actions/then 중복', () => {
         parity: 'none',
         stop_bits: 1,
       },
-      serials: [
-        {
-          portId: 'a',
-          path: '/dev/ttyUSB0',
-          baud_rate: 9600,
-          data_bits: 8,
-          parity: 'none',
-          stop_bits: 1,
-        },
-      ],
       automation: [
         {
           id: 'auto1',
@@ -46,16 +36,6 @@ describe('설정 검증 - automation actions/then 중복', () => {
         parity: 'none',
         stop_bits: 1,
       },
-      serials: [
-        {
-          portId: 'a',
-          path: '/dev/ttyUSB0',
-          baud_rate: 9600,
-          data_bits: 8,
-          parity: 'none',
-          stop_bits: 1,
-        },
-      ],
       automations: [
         {
           id: 'auto1',

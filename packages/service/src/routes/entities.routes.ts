@@ -30,7 +30,6 @@ export interface EntitiesRoutesContext {
     setCurrentRawConfigs: (index: number, config: HomenetBridgeConfig) => void;
     rebuildPortMappings: () => void;
     triggerRestart: () => Promise<void>;
-    stripLegacyKeysBeforeSave: (config: HomenetBridgeConfig) => PersistableHomenetBridgeConfig;
     configDir: string;
 }
 
@@ -81,17 +80,11 @@ export function createEntitiesRoutes(ctx: EntitiesRoutesContext): Router {
         const currentConfigs = ctx.getCurrentConfigs();
         for (let i = 0; i < currentConfigs.length; i += 1) {
             const config = currentConfigs[i];
-            const serials = Array.isArray(config.serial)
-                ? config.serial
-                : config.serial
-                    ? [config.serial]
-                    : [];
-            for (let j = 0; j < serials.length; j += 1) {
-                const serial = serials[j] as { portId?: string };
-                const configPortId = normalizePortId(serial.portId, j);
-                if (configPortId === portId) {
-                    return i;
-                }
+            if (!config.serial) continue;
+
+            const configPortId = normalizePortId(config.serial.portId, 0);
+            if (configPortId === portId) {
+                return i;
             }
         }
         return -1;
@@ -216,7 +209,7 @@ export function createEntitiesRoutes(ctx: EntitiesRoutesContext): Router {
                 targetEntity.unique_id = uniqueId;
             }
 
-            loadedYamlFromFile.homenet_bridge = ctx.stripLegacyKeysBeforeSave(normalizedConfig);
+            loadedYamlFromFile.homenet_bridge = normalizedConfig;
 
             const newFileContent = dumpConfigToYaml(loadedYamlFromFile);
 
@@ -309,7 +302,7 @@ export function createEntitiesRoutes(ctx: EntitiesRoutesContext): Router {
                 delete targetEntity.discovery_always;
             }
 
-            loadedYamlFromFile.homenet_bridge = ctx.stripLegacyKeysBeforeSave(normalizedConfig);
+            loadedYamlFromFile.homenet_bridge = normalizedConfig;
 
             const newFileContent = dumpConfigToYaml(loadedYamlFromFile);
 
@@ -411,7 +404,7 @@ export function createEntitiesRoutes(ctx: EntitiesRoutesContext): Router {
             }
 
             // Update the original object structure with the modified data
-            loadedYamlFromFile.homenet_bridge = ctx.stripLegacyKeysBeforeSave(normalizedConfig);
+            loadedYamlFromFile.homenet_bridge = normalizedConfig;
 
             // Write new config
             const newFileContent = dumpConfigToYaml(loadedYamlFromFile);

@@ -23,7 +23,6 @@ describe('choose and stop actions', () => {
         parity: 'none',
         stop_bits: 1,
       },
-      serials: [],
       automation,
     }) as HomenetBridgeConfig;
 

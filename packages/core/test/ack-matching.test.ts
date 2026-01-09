@@ -21,7 +21,7 @@ class MockStream extends Duplex {
   _write(chunk: any, encoding: BufferEncoding, callback: (error?: Error | null) => void): void {
     callback();
   }
-  _read(size: number): void {}
+  _read(size: number): void { }
 }
 
 describe('ACK Matching', () => {
@@ -111,7 +111,6 @@ describe('ACK Matching', () => {
           parity: 'none',
           stop_bits: 1,
         } as any,
-        serials: [{ portId: 'main', baud_rate: 9600, data_bits: 8, parity: 'none', stop_bits: 1 }],
         packet_defaults: {
           tx_retry_cnt: 2,
           tx_timeout: 100,

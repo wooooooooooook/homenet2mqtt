@@ -19,7 +19,6 @@ describe('ID Generation', () => {
     } as any;
     const config: HomenetBridgeConfig = {
       serial,
-      serials: [serial],
       packet_defaults: {},
       light: [
         {

@@ -48,7 +48,6 @@ describe('Climate Command Packet Generation', () => {
 
     mockConfig = {
       serial,
-      serials: [serial],
       mqtt: { brokerUrl: 'mqtt://localhost' },
       packet_defaults: {
         rx_timeout: '10ms',
