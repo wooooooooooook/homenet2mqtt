@@ -89,9 +89,14 @@ export function createLogsRoutes(ctx: LogsRoutesContext): Router {
             const bridges = ctx.getBridges();
 
             // Gather Metadata
-            const serials = currentConfigs
-                .flatMap((conf) => conf.serials || [])
-                .map((s) => ({ portId: s.portId, path: s.path, baudRate: s.baud_rate }));
+            const serial = currentConfigs
+                .map((conf) => conf?.serial)
+                .filter((serial): serial is NonNullable<typeof serial> => Boolean(serial))
+                .map((serial) => ({
+                    portId: serial.portId,
+                    path: serial.path,
+                    baudRate: serial.baud_rate,
+                }))[0] ?? null;
 
             // Prefer UI-provided stats (accumulated on client-side) over server-side stats
             let stats: Record<string, any> = {};
@@ -108,7 +113,7 @@ export function createLogsRoutes(ctx: LogsRoutesContext): Router {
 
             const meta = {
                 configFiles: currentConfigFiles,
-                serials,
+                serial,
                 stats,
             };
 

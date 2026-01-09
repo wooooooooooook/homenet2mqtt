@@ -82,7 +82,7 @@ export type BridgeSerialInfo = {
 
 export type BridgeEntry = {
   configFile: string;
-  serials: BridgeSerialInfo[];
+  serial: BridgeSerialInfo | null;
   mqttTopicPrefix: string;
   topic: string;
   error?: string;

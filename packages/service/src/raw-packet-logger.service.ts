@@ -52,12 +52,10 @@ export class RawPacketLoggerService {
           `Log Started: ${new Date().toISOString()}`,
           `Log Mode: ${this.logMode === 'valid' ? 'valid-only' : 'all'}`,
           `Config Files: ${Array.isArray(meta.configFiles) ? meta.configFiles.join(', ') : 'N/A'}`,
-          'Serials:',
-          ...(Array.isArray(meta.serials)
-            ? meta.serials.map(
-              (s: any) => ` - ${s.portId}: ${s.path} (Baud: ${s.baudRate || 'N/A'})`,
-            )
-            : [' - N/A']),
+          'Serial:',
+          meta.serial
+            ? ` - ${meta.serial.portId}: ${meta.serial.path} (Baud: ${meta.serial.baudRate || 'N/A'})`
+            : ' - N/A',
           'Packet Stats:',
           ...(meta.stats
             ? Object.entries(meta.stats).map(

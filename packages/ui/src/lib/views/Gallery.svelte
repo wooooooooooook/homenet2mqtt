@@ -49,7 +49,8 @@
   // Extract ports from bridgeInfo for the modal
   const ports = $derived(
     bridgeInfo?.bridges?.reduce<{ portId: string; path: string }[]>(
-      (acc, bridge) => acc.concat(bridge.serials.map((s) => ({ portId: s.portId, path: s.path }))),
+      (acc, bridge) =>
+        bridge.serial ? acc.concat({ portId: bridge.serial.portId, path: bridge.serial.path }) : acc,
       [],
     ) ?? [],
   );

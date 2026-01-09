@@ -112,22 +112,6 @@ const applySerialPathToConfig = (
         updated = true;
     }
 
-    const serials = (bridgeConfig as Record<string, unknown>).serials;
-    if (Array.isArray(serials)) {
-        (bridgeConfig as Record<string, unknown>).serials = serials.map((serial: unknown) => {
-            if (!serial || typeof serial !== 'object') return serial;
-            const updatedSerial: Record<string, unknown> = {
-                ...(serial as Record<string, unknown>),
-                path: normalizedPath,
-            };
-            if (normalizedPortId) {
-                updatedSerial.portId = normalizedPortId;
-            }
-            return updatedSerial;
-        });
-        updated = true;
-    }
-
     // Apply packet defaults
     if (packetDefaults) {
         (bridgeConfig as Record<string, unknown>).packet_defaults = { ...packetDefaults };
@@ -199,10 +183,6 @@ const buildEmptyConfig = (
 });
 
 const extractSerialConfig = (config: HomenetBridgeConfig): SerialConfig | null => {
-    if (Array.isArray(config.serials) && config.serials.length > 0) {
-        return config.serials[0];
-    }
-
     const legacySerial = (config as { serial?: SerialConfig }).serial;
     return legacySerial ?? null;
 };
@@ -349,21 +329,17 @@ export const createSetupWizardService = (deps: SetupWizardDeps): SetupWizardServ
         for (const config of loadedConfigs) {
             if (!config) continue;
 
-            const serials = config.serials || (config.serial ? [config.serial] : []);
+            const serial = config.serial;
+            if (!serial) continue;
 
-            for (let i = 0; i < serials.length; i++) {
-                const serial = serials[i];
-                if (!serial) continue;
+            if (serial.path === targetPath) {
+                return { error: 'SERIAL_PATH_DUPLICATE' };
+            }
 
-                if (serial.path === targetPath) {
-                    return { error: 'SERIAL_PATH_DUPLICATE' };
-                }
-
-                if (targetPortId) {
-                    const existingPortId = normalizePortId(serial.portId, i);
-                    if (existingPortId === targetPortId) {
-                        return { error: 'PORT_ID_DUPLICATE' };
-                    }
+            if (targetPortId) {
+                const existingPortId = normalizePortId(serial.portId, 0);
+                if (existingPortId === targetPortId) {
+                    return { error: 'PORT_ID_DUPLICATE' };
                 }
             }
         }
