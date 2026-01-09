@@ -2,6 +2,7 @@ import { PacketDefaults, ChecksumType, Checksum2Type } from './types.js';
 import { calculateChecksumFromBuffer, calculateChecksum2FromBuffer } from './utils/checksum.js';
 import { CelExecutor, CompiledScript } from './cel-executor.js';
 import { Buffer } from 'buffer';
+import { logger } from '../utils/logger.js';
 
 /**
  * Handles the low-level parsing of incoming byte streams into discrete packets.
@@ -76,14 +77,25 @@ export class PacketParser {
       checksumType !== 'none' &&
       !this.checksumTypes.has(checksumType)
     ) {
-      this.preparedChecksum = this.getExecutor().prepare(checksumType);
+      try {
+        this.preparedChecksum = this.getExecutor().prepare(checksumType);
+      } catch (err) {
+        logger.warn({ err, checksumType }, '[PacketParser] Failed to prepare CEL checksum script');
+      }
     }
 
     if (
       typeof checksum2Type === 'string' &&
       !this.checksum2Types.has(checksum2Type)
     ) {
-      this.preparedChecksum2 = this.getExecutor().prepare(checksum2Type);
+      try {
+        this.preparedChecksum2 = this.getExecutor().prepare(checksum2Type);
+      } catch (err) {
+        logger.warn(
+          { err, checksum2Type },
+          '[PacketParser] Failed to prepare CEL checksum2 script',
+        );
+      }
     }
   }
 
