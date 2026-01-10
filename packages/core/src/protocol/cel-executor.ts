@@ -236,15 +236,10 @@ export class CelExecutor {
       safeContext.data = contextData.data.map((d: any) => BigInt(d));
     } else if (Buffer.isBuffer(contextData.data) || contextData.data instanceof Uint8Array) {
       if (scriptUsesData) {
-        // Optimize: Convert Buffer/Uint8Array to BigInt[] using a loop instead of map
-        // to avoid intermediate array allocation and function call overhead.
-        const len = contextData.data.length;
-        const arr = new Array(len);
-        for (let i = 0; i < len; i++) {
-          // Use cached BigInts for byte values (0-255) to avoid constructor overhead
-          arr[i] = this.BIGINT_CACHE[contextData.data[i]];
-        }
-        safeContext.data = arr;
+        // Optimization: Use a Proxy to expose Buffer directly as a read-only List<BigInt>
+        // This avoids O(N) allocation and copying of BigInt arrays, reducing memory pressure
+        // and improving performance significantly in checksum sweeps (O(N^2) paths).
+        safeContext.data = this.createBufferProxy(contextData.data);
       } else {
         // If script doesn't use data, provide empty array to satisfy type requirements
         // without paying the conversion cost.
@@ -274,6 +269,44 @@ export class CelExecutor {
     }
 
     return safeContext;
+  }
+
+  /**
+   * Creates a Proxy around a Buffer/Uint8Array to verify it as a List<BigInt> in CEL.
+   * This avoids allocating a new Array and filling it with BigInts for every execution.
+   */
+  private createBufferProxy(buffer: Uint8Array): any {
+    // Target must be an array for Array.isArray checks (used by some CEL internals)
+    return new Proxy([], {
+      get: (target, prop, receiver) => {
+        // Fast path for integer indexed access (e.g. data[0])
+        if (typeof prop === 'string') {
+          const idx = Number(prop);
+          // Check against BUFFER length, not target length
+          if (Number.isInteger(idx) && idx >= 0 && idx < buffer.length) {
+            return this.BIGINT_CACHE[buffer[idx]];
+          }
+        }
+
+        // Handle length/size properties
+        if (prop === 'length') {
+          return buffer.length;
+        }
+
+        // Handle iteration (e.g. for macros like .map(), .exists())
+        if (prop === Symbol.iterator) {
+          const cache = this.BIGINT_CACHE;
+          return function* () {
+            for (let i = 0; i < buffer.length; i++) {
+              yield cache[buffer[i]];
+            }
+          };
+        }
+
+        // Fallback to Reflect for other properties (e.g. toString, etc.)
+        return Reflect.get(target, prop, receiver);
+      },
+    });
   }
 
   private handleError(error: unknown, script: string): string {
