@@ -47,6 +47,8 @@ RS485 기반의 월패드(홈넷) 신호를 MQTT 메시지로 변환하여 Home 
         PORT: '3000'
         # 로그 레벨 (debug, info, warn, error)
         LOG_LEVEL: info
+        # 타임존 (비워두면 서버는 UTC, 프론트는 브라우저 설정)
+        TIMEZONE: ''
         # MQTT 인증 설정
         MQTT_NEED_LOGIN: 'false'
         MQTT_USER: ''

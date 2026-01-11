@@ -1,7 +1,7 @@
+import './utils/runtime-env.js';
 import express from 'express';
 import path from 'node:path';
 import fs from 'node:fs/promises';
-import dotenv from 'dotenv';
 import { createServer } from 'node:http';
 import { fileURLToPath } from 'node:url';
 import yaml from 'js-yaml';
@@ -42,8 +42,6 @@ import { initializeBackupDir, saveBackup } from './services/backup.service.js';
 import { loadFrontendSettings } from './services/frontend-settings.service.js';
 import { registerRoutes } from './routes/index.js';
 import { createPacketStreamHandler } from './websocket/packet-stream.js';
-
-dotenv.config();
 
 // --- Path Constants ---
 const __filename = fileURLToPath(import.meta.url);

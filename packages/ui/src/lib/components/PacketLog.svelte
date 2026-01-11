@@ -2,6 +2,7 @@
   import { t } from 'svelte-i18n';
   import type { CommandPacket, ParsedPacket } from '../types';
   import VirtualList from '@humanspeak/svelte-virtual-list';
+  import { formatTime } from '../utils/time';
 
   let { parsedPackets = [], commandPackets = [] } = $props<{
     parsedPackets?: ParsedPacket[];
@@ -77,8 +78,7 @@
 
 {#snippet renderPacketItem(packet: MergedPacket, _index: number)}
   <div class="log-item {packet.type}">
-    <span class="time">[{packet.timeLabel ?? new Date(packet.timestamp).toLocaleTimeString()}]</span
-    >
+    <span class="time">[{packet.timeLabel ?? formatTime(packet.timestamp)}]</span>
 
     {#if packet.type === 'rx'}
       <span class="direction rx">RX</span>

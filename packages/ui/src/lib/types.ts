@@ -98,6 +98,7 @@ export type BridgeInfo = {
   error?: string | null;
   topic: string;
   restartRequired?: boolean;
+  timezone?: string;
 };
 
 export type CommandInfo = {

@@ -40,6 +40,7 @@ export interface SystemRoutesContext {
 export function createSystemRoutes(ctx: SystemRoutesContext): Router {
   const router = Router();
   const restartTokens = new Set<string>();
+  const timezoneOverride = process.env.TIMEZONE?.trim();
 
   // Helper to execute process restart
   const restartProcess = () => {
@@ -181,6 +182,7 @@ export function createSystemRoutes(ctx: SystemRoutesContext): Router {
         status: 'error',
         error: bridgeError || 'BRIDGE_NOT_CONFIGURED',
         topic: `${BASE_MQTT_PREFIX}/homedevice1/raw`,
+        timezone: timezoneOverride || undefined,
       });
     }
 
@@ -232,6 +234,7 @@ export function createSystemRoutes(ctx: SystemRoutesContext): Router {
       error: bridgeError,
       topic: firstTopic,
       restartRequired,
+      timezone: timezoneOverride || undefined,
     });
   });
 
