@@ -36,6 +36,7 @@
   import EntityDetail from './lib/components/EntityDetail.svelte';
   import ToastContainer from './lib/components/ToastContainer.svelte';
   import SettingsView from './lib/views/Settings.svelte';
+  import { getTimeZone, setTimeZone, withTimeZone } from './lib/utils/time';
 
   const MAX_PACKETS = 500000; // ~24 hours at 5 packets/sec
   const DASHBOARD_INACTIVE_KEY = 'dashboard.showInactiveEntities';
@@ -45,13 +46,19 @@
     second: '2-digit',
   };
   let cachedLogLocale = '';
-  let logTimeFormatter = new Intl.DateTimeFormat('en-US', LOG_TIME_FORMAT_OPTIONS);
+  let cachedLogTimeZone: string | undefined;
+  let logTimeFormatter = new Intl.DateTimeFormat('en-US', withTimeZone(LOG_TIME_FORMAT_OPTIONS));
 
   const getLogTimeFormatter = () => {
     const currentLocale = get(locale) === 'ko' ? 'ko-KR' : 'en-US';
-    if (currentLocale !== cachedLogLocale) {
+    const currentTimeZone = getTimeZone();
+    if (currentLocale !== cachedLogLocale || currentTimeZone !== cachedLogTimeZone) {
       cachedLogLocale = currentLocale;
-      logTimeFormatter = new Intl.DateTimeFormat(currentLocale, LOG_TIME_FORMAT_OPTIONS);
+      cachedLogTimeZone = currentTimeZone;
+      logTimeFormatter = new Intl.DateTimeFormat(
+        currentLocale,
+        withTimeZone(LOG_TIME_FORMAT_OPTIONS),
+      );
     }
     return logTimeFormatter;
   };
@@ -523,6 +530,7 @@
       const data = await apiRequest<BridgeInfo>('./api/bridge/info');
 
       bridgeInfo = data;
+      setTimeZone(data.timezone);
       bridgeStatusByPort = new Map();
       rawPackets = [];
       deviceStates.clear();

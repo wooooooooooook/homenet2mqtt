@@ -5,6 +5,7 @@
   import Button from './Button.svelte';
   import Dialog from './Dialog.svelte';
   import VirtualList from '@humanspeak/svelte-virtual-list';
+  import { formatTime } from '../utils/time';
 
   let {
     rawPackets = [],
@@ -479,7 +480,7 @@
 
 {#snippet renderPacketItem(packet: RawPacketWithInterval, _index: number)}
   <div class="log-item" class:tx-packet={packet.direction === 'TX'}>
-    <span class="time">[{new Date(packet.receivedAt).toLocaleTimeString()}]</span>
+    <span class="time">[{formatTime(packet.receivedAt)}]</span>
     <span class="direction" class:tx={packet.direction === 'TX'}>
       {#each getHighlightedParts(packet.direction ?? 'RX', normalizedFilter) as part, index (`${part}-${index}`)}
         {#if part.highlight}

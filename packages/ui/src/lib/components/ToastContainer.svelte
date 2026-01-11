@@ -1,17 +1,14 @@
 <script lang="ts">
   import type { ToastMessage } from '../types';
+  import { formatTime } from '../utils/time';
 
   let { toasts = [], onDismiss }: { toasts?: ToastMessage[]; onDismiss?: (id: string) => void } =
     $props();
 
-  const formatTimestamp = (timestamp: string) => {
-    try {
-      const date = new Date(timestamp);
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    } catch {
-      return timestamp;
-    }
-  };
+  const formatTimestamp = (timestamp: string) =>
+    Number.isNaN(Date.parse(timestamp))
+      ? timestamp
+      : formatTime(timestamp, [], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
   const handleDismiss = (id: string) => {
     onDismiss?.(id);

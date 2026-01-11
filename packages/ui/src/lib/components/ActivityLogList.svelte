@@ -2,6 +2,7 @@
   import { t, locale } from 'svelte-i18n';
   import VirtualList from '@humanspeak/svelte-virtual-list';
   import type { ActivityLog } from '../types';
+  import { formatTime } from '../utils/time';
 
   let {
     logs = [],
@@ -15,10 +16,9 @@
     height?: string;
   } = $props();
 
-  const formatTime = (timestamp: number) => {
-    const date = new Date(timestamp);
+  const formatActivityTime = (timestamp: number) => {
     const currentLocale = $locale === 'ko' ? 'ko-KR' : 'en-US';
-    return date.toLocaleTimeString(currentLocale, {
+    return formatTime(timestamp, currentLocale, {
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit',
@@ -30,7 +30,7 @@
 
 {#snippet renderActivityItem(activity: ActivityLog, _index: number)}
   <div class="activity-item">
-    <span class="time">[{formatTime(activity.timestamp)}]</span>
+    <span class="time">[{formatActivityTime(activity.timestamp)}]</span>
     <span class="message">
       {#if activity.code.startsWith('log.')}
         {$t(`logs.${activity.code.replace('log.', '')}`, { values: activity.params })}

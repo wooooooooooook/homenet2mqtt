@@ -28,6 +28,7 @@
    - `mqtt_user`: **필수** MQTT 사용자 아이디
    - `mqtt_passwd`: **필수** MQTT 비밀번호
    - `mqtt_topic_prefix`: MQTT 토픽 접두사. 기본값은 `homenet2mqtt`이며 변경할 필요 없습니다. 최종 토픽은 `${mqtt_topic_prefix}/{portId}/{entityId}/...` 형태로 발행됩니다.
+   - `timezone`: 타임존(IANA). 비워두면 서버는 UTC, 프론트는 브라우저 설정을 따릅니다. 예: `Asia/Seoul`
    - `config_files`: **비워두면 애드온 시작시 초기설정 마법사를 통해 자동으로 설정파일을 구성하여 사용하게됩니다.** 또는 직접 사용할 설정 파일 목록을 나열할 수 있습니다. 여러 개의 포트를 사용할 경우 쉼표로 구분하여 나열합니다. (예: `livingroom.yaml, room1.yaml`) 기본값(`default.homenet_bridge.yaml,`)
 
 6. 애드온을 재시작하면 설정 파일에 등록된 엔티티들이 MQTT Discovery를 통해 Home Assistant에 자동으로 등록됩니다.

@@ -7,6 +7,7 @@
   import Dialog from './Dialog.svelte';
   import Modal from './Modal.svelte';
   import ActivityLogList from './ActivityLogList.svelte';
+  import { formatTime } from '../utils/time';
   import type {
     UnifiedEntity,
     CommandInfo,
@@ -876,7 +877,7 @@
                 {#each mergedPackets as packet, index (`${packet.type}-${packet.timestamp}-${index}`)}
                   <div class="log-entry {packet.type}">
                     <span class="time">
-                      {packet.timeLabel ?? new Date(packet.timestamp).toLocaleTimeString()}
+                      {packet.timeLabel ?? formatTime(packet.timestamp)}
                     </span>
 
                     {#if packet.type === 'rx'}
