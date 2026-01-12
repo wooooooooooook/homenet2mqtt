@@ -1481,19 +1481,17 @@
     activePortId ? (packetStatsByPort.get(activePortId) ?? null) : null,
   );
 
-  const filteredActivityLogs = $derived.by<ActivityLog[]>(() =>
-    {
-      const baseLogs = activePortId
-        ? activityLogs.filter((log) => !log.portId || log.portId === activePortId)
-        : activityLogs;
-      const shouldHideAutomationScripts =
-        (frontendSettings ?? DEFAULT_FRONTEND_SETTINGS).activityLog?.hideAutomationScripts ?? false;
-      if (!shouldHideAutomationScripts) return baseLogs;
-      return baseLogs.filter(
-        (log) => !log.code.startsWith('log.automation_') && !log.code.startsWith('log.script_'),
-      );
-    },
-  );
+  const filteredActivityLogs = $derived.by<ActivityLog[]>(() => {
+    const baseLogs = activePortId
+      ? activityLogs.filter((log) => !log.portId || log.portId === activePortId)
+      : activityLogs;
+    const shouldHideAutomationScripts =
+      (frontendSettings ?? DEFAULT_FRONTEND_SETTINGS).activityLog?.hideAutomationScripts ?? false;
+    if (!shouldHideAutomationScripts) return baseLogs;
+    return baseLogs.filter(
+      (log) => !log.code.startsWith('log.automation_') && !log.code.startsWith('log.script_'),
+    );
+  });
 
   const portStatuses = $derived.by(() => {
     const defaultStatus = bridgeInfo?.status ?? 'idle';
