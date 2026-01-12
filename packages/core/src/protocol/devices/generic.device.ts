@@ -234,6 +234,10 @@ export class GenericDevice extends Device {
    */
   protected framePacket(commandData: number[]): number[] {
     const packetDefaults = this.protocolConfig.packet_defaults || {};
+    // DEBUG: Log packetDefaults to verify tx_checksum presence
+    if (logger.isLevelEnabled('debug')) {
+      logger.debug({ packetDefaults }, '[GenericDevice] framePacket defaults');
+    }
     const txHeader = packetDefaults.tx_header || [];
     const txFooter = packetDefaults.tx_footer || [];
 
@@ -253,6 +257,8 @@ export class GenericDevice extends Device {
         'xor_no_header',
         'samsung_rx',
         'samsung_tx',
+        'samsung_xor',
+        'bestin_sum',
         'none',
       ]);
 
