@@ -46,6 +46,31 @@ automation:
       - action: command
         target: id(elevator_call).command_off()
 
+  # CC 12 01 01 5E (엘리베이터 도착 알림)
+  - id: 'elevator_arrival_ack'
+    trigger:
+      - type: packet
+        match:
+          data: [0xCC, 0x12, 0x01, 0x01, 0x5E]
+          offset: 0
+    then:
+      - action: send_packet
+        data: [0xB0, 0x41, 0x01, 0x00, 0x70]
+        checksum: false
+
+  # CC 01 16 ... (디스플레이 정보 업데이트 - 날짜/시간 등)
+  - id: 'display_update_ack'
+    trigger:
+      - type: packet
+        match:
+          data: [0xCC, 0x01]
+          mask: [0xFF, 0xFF]
+          offset: 0
+    then:
+      - action: send_packet
+        data: [0xB0, 0x01, 0x01, 0x00, 0x30]
+        checksum: false
+
   # CC 10 01 01 5C	B0 41 01 00 70 응답 및 스위치 끄기 (엘리베이터 완료)
   - id: 'elevator_call_ack'
     trigger:

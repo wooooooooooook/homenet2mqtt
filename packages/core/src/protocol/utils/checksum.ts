@@ -5,6 +5,7 @@ export type ChecksumType =
   | 'xor_no_header'
   | 'samsung_rx'
   | 'samsung_tx'
+  | 'samsung_xor'
   | 'bestin_sum'
   | 'none';
 
@@ -33,6 +34,8 @@ export function calculateChecksum(header: ByteArray, data: ByteArray, type: Chec
       return samsungRx(data);
     case 'samsung_tx':
       return samsungTx(data);
+    case 'samsung_xor':
+      return samsungXorAllMsb0(header, data);
     case 'bestin_sum':
       return bestinSum(header, data);
     case 'none':
@@ -72,6 +75,8 @@ export function calculateChecksumFromBuffer(
       return samsungRxFromBuffer(buffer, headerStart, dataStop);
     case 'samsung_tx':
       return samsungTxFromBuffer(buffer, headerStart, dataStop);
+    case 'samsung_xor':
+      return samsungXorAllMsb0FromBuffer(buffer, dataStart, dataStop);
     case 'bestin_sum':
       return bestinSumFromBuffer(buffer, dataStart, dataStop);
     case 'none':
@@ -173,6 +178,25 @@ function samsungTxFromBuffer(buffer: ByteArray, start: number, end: number): num
   }
   crc ^= 0x80;
   return crc;
+}
+
+function samsungXorAllMsb0(header: ByteArray, data: ByteArray): number {
+  let crc = 0;
+  for (const byte of header) {
+    crc ^= byte;
+  }
+  for (const byte of data) {
+    crc ^= byte;
+  }
+  return crc & 0x7f;
+}
+
+function samsungXorAllMsb0FromBuffer(buffer: ByteArray, start: number, end: number): number {
+  let crc = 0;
+  for (let i = start; i < end; i++) {
+    crc ^= buffer[i];
+  }
+  return crc & 0x7f;
 }
 
 function bestinSum(header: ByteArray, data: ByteArray): number {

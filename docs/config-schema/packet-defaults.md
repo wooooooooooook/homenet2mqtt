@@ -46,8 +46,9 @@
 | `add_no_header` | 데이터 | `Sum(Data Bytes) & 0xFF` |
 | `xor` | 헤더 + 데이터 | `XOR(All Bytes)` |
 | `xor_no_header` | 데이터 | `XOR(Data Bytes)` |
-| `samsung_rx` | 데이터 | 초기값 `0xB0`.<br>1. `crc = 0xB0 ^ XOR(Data)`<br>2. 만약 `data[0] < 0x7C`이면, `crc ^= 0x80` |
-| `samsung_tx` | 데이터 | 초기값 `0x00`.<br>`crc = 0x00 ^ XOR(Data) ^ 0x80` |
+| `samsung_rx` (Deprecated) | 데이터 | 초기값 `0xB0`.<br>1. `crc = 0xB0 ^ XOR(Data)`<br>2. 만약 `data[0] < 0x7C`이면, `crc ^= 0x80` |
+| `samsung_tx` (Deprecated) | 데이터 | 초기값 `0x00`.<br>`crc = 0x00 ^ XOR(Data) ^ 0x80` |
+| `samsung_xor` | 패킷 전체 | 모든 바이트를 XOR한 후 최상위 비트를 0으로 설정 (`crc & 0x7F`) |
 | `bestin_sum` | 헤더 + 데이터 | 초기값 `3`.<br>각 바이트 `b`에 대해: `sum = ((b ^ sum) + 1) & 0xFF` |
 | `none` | - | 체크섬 검사를 하지 않음 |
 

@@ -42,6 +42,7 @@ export class PacketParser {
     'xor_no_header',
     'samsung_rx',
     'samsung_tx',
+    'samsung_xor',
     'none',
   ]);
   private readonly checksum2Types = new Set(['xor_add']);
@@ -62,7 +63,7 @@ export class PacketParser {
     const checksumType = this.defaults.rx_checksum;
     this.isStandard1Byte =
       typeof checksumType === 'string' &&
-      ['add', 'xor', 'add_no_header', 'xor_no_header', 'samsung_rx', 'samsung_tx'].includes(
+      ['add', 'xor', 'add_no_header', 'xor_no_header', 'samsung_rx', 'samsung_tx', 'samsung_xor'].includes(
         checksumType,
       );
 
@@ -225,6 +226,7 @@ export class PacketParser {
             const typeStr = this.defaults.rx_checksum as string;
             const isSamsungRx = typeStr === 'samsung_rx';
             const isSamsungTx = typeStr === 'samsung_tx';
+            const isSamsungXor = typeStr === 'samsung_xor';
             const isAdd = typeStr.startsWith('add');
             const isNoHeader = typeStr.includes('no_header') || isSamsungRx || isSamsungTx;
 
@@ -272,6 +274,8 @@ export class PacketParser {
                 if (currentDataEnd > startIdx && this.buffer[startIdx] < 0x7c) {
                   finalChecksum ^= 0x80;
                 }
+              } else if (isSamsungXor) {
+                finalChecksum &= 0x7f;
               }
 
               const expected = this.buffer[baseOffset + len - 1 - footerLen];
@@ -323,6 +327,7 @@ export class PacketParser {
             const typeStr = this.defaults.rx_checksum as string;
             const isSamsungRx = typeStr === 'samsung_rx';
             const isSamsungTx = typeStr === 'samsung_tx';
+            const isSamsungXor = typeStr === 'samsung_xor';
             const isAdd = typeStr.startsWith('add');
             // Samsung types also skip header (like _no_header types)
             const isNoHeader = typeStr.includes('no_header') || isSamsungRx || isSamsungTx;
@@ -378,6 +383,8 @@ export class PacketParser {
                 if (currentDataEnd > startIdx && this.buffer[startIdx] < 0x7c) {
                   finalChecksum ^= 0x80;
                 }
+              } else if (isSamsungXor) {
+                finalChecksum &= 0x7f;
               }
 
               const expected = this.buffer[baseOffset + len - 1];

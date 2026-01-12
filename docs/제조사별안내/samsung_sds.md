@@ -22,7 +22,7 @@ homenet_bridge:
 
 ## 패킷 기본 설정
 
-삼성 SDS 전용 checksum 방식을 사용합니다:
+삼성 SDS 구형 규격(`samsung_rx`, `samsung_tx`)은 하위 호환성을 위해 유지되나 **더 이상 권장되지 않습니다(Deprecated)**. 새로운 설정 시에는 패킷 전체 XOR 방식인 **`samsung_xor`** 사용을 권장합니다.
 
 ```yaml
   packet_defaults:

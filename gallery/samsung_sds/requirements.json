@@ -6,11 +6,9 @@
         "stop_bits": 1
     },
     "packet_defaults": {
-        "rx_checksum": "samsung_rx",
-        "tx_checksum": "samsung_tx",
-        "rx_header": [
-            176
-        ],
+        "rx_checksum": "samsung_xor",
+        "tx_checksum": "samsung_xor",
+        "rx_header": [],
         "tx_header": [],
         "rx_footer": [],
         "tx_footer": []

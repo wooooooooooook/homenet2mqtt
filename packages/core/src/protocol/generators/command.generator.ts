@@ -41,6 +41,7 @@ export class CommandGenerator {
     'xor_no_header',
     'samsung_rx',
     'samsung_tx',
+    'samsung_xor',
   ]);
 
   private readonly checksum2Types = new Set(['xor_add']);

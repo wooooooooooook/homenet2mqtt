@@ -3,7 +3,7 @@ meta:
   name_en: "Doorbell Set"
   description: "현관문세트를 사용하는 삼성 SDS 엘레베이터 설정입니다."
   description_en: "Samsung SDS doorbell set."
-  version: "1.0.0"
+  version: "1.0.1"
   author: "wooooooooooook"
   tags: ["doorbell", "switch", "samsung", "sds"]
 
@@ -107,7 +107,7 @@ automation:
           - condition: "states['door_state']['state'] == 'D_OPEN_P'"
             then:
               - action: send_packet
-                data: [0xB0, 0x3B, 0x06]  # 공용현관 문열기
+                data: [0xB0, 0x3B, 0x01]  # 공동현관 문열기 (GY: 01)
                 checksum: true
               - action: command
                 target: id(door_state).command_set('D_OPENED')
@@ -230,6 +230,17 @@ automation:
     then:
       - action: send_packet
         data: [0xB0, 0x3E, 0x06]
+        checksum: true
+
+  - id: 'response_end_universal'
+    trigger:
+      - type: packet
+        match:
+          data: [0xA4, 0x3E, 0x07]
+          offset: 0
+    then:
+      - action: send_packet
+        data: [0xB0, 0x3E, 0x07]
         checksum: true
 
   # ===== 벨 울림 감지 시 상태 변경 =====
