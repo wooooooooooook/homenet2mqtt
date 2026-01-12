@@ -39,7 +39,7 @@
     "saving": "Saving...",
     "log_retention": {
       "title": "Log Retention",
-      "desc": "Store logs (packet, raw packet, activity) on the server for the configured TTL. Default is 1 hour; enable only when debugging.",
+      "desc": "Store logs (packet, activity) on the server for the configured TTL. Default is 1 hour; enable only when debugging.",
       "enable": "Enable Log Retention",
       "enable_desc": "Uses server memory when enabled. When disabled, only logs during the current UI session are available.",
       "save_now": "Save & Download Current Logs",
