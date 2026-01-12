@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-01-12T01:56:24.542Z",
+  "generated_at": "2026-01-12T06:24:29.507Z",
   "vendors": [
     {
       "id": "bestin",
@@ -1548,11 +1548,9 @@
           "stop_bits": 1
         },
         "packet_defaults": {
-          "rx_checksum": "samsung_rx",
-          "tx_checksum": "samsung_tx",
-          "rx_header": [
-            176
-          ],
+          "rx_checksum": "samsung_xor",
+          "tx_checksum": "samsung_xor",
+          "rx_header": [],
           "tx_header": [],
           "rx_footer": [],
           "tx_footer": []
@@ -1565,7 +1563,7 @@
           "name_en": "Doorbell Set",
           "description": "현관문세트를 사용하는 삼성 SDS 엘레베이터 설정입니다.",
           "description_en": "Samsung SDS doorbell set.",
-          "version": "1.0.0",
+          "version": "1.0.1",
           "author": "wooooooooooook",
           "tags": [
             "doorbell",
@@ -1579,7 +1577,7 @@
               "switch": 2,
               "text": 1
             },
-            "automations": 15,
+            "automations": 16,
             "scripts": 0
           }
         },
@@ -1601,7 +1599,7 @@
             "entities": {
               "switch": 1
             },
-            "automations": 3,
+            "automations": 5,
             "scripts": 0
           }
         },
@@ -1655,7 +1653,7 @@
           "name_en": "Ventilator",
           "description": "삼성 SDS 환기팬 설정입니다. 3단 속도를 지원합니다.",
           "description_en": "Samsung SDS ventilator with 3-speed control.",
-          "version": "1.0.0",
+          "version": "1.1.0",
           "author": "wooooooooooook",
           "tags": [
             "fan",
@@ -1673,21 +1671,21 @@
         },
         {
           "file": "samsung_sds/gas_valve_close.yaml",
-          "name": "가스밸브 잠금 버튼",
-          "name_en": "Gas Valve Close Button",
-          "description": "삼성 SDS 가스밸브 잠금 버튼입니다.",
-          "description_en": "Samsung SDS gas valve close button.",
-          "version": "1.0.0",
+          "name": "가스밸브",
+          "name_en": "Gas Valve",
+          "description": "삼성 SDS 가스밸브 설정입니다. 가스밸브 잠금 기능을 지원합니다.",
+          "description_en": "Samsung SDS gas valve configuration. Supports gas valve closing.",
+          "version": "1.1.0",
           "author": "wooooooooooook",
           "tags": [
-            "button",
+            "valve",
             "gas",
             "samsung",
             "sds"
           ],
           "content_summary": {
             "entities": {
-              "button": 1
+              "valve": 1
             },
             "automations": 0,
             "scripts": 0
@@ -1699,7 +1697,7 @@
           "name_en": "☑️Heaters (4 Thermostats)",
           "description": "삼성 SDS 난방 온도조절기 4개 설정입니다. heating/idle 액션 상태 표시 지원.",
           "description_en": "Samsung SDS 4 heating thermostats with heating/idle action status.",
-          "version": "1.0.0",
+          "version": "1.1.0",
           "author": "wooooooooooook",
           "tags": [
             "climate",
@@ -1722,7 +1720,7 @@
           "name_en": "☑️Lights (4 Lights)",
           "description": "삼성 SDS 조명 4개 설정입니다.",
           "description_en": "Samsung SDS 4 lights configuration.",
-          "version": "1.0.0",
+          "version": "1.1.0",
           "author": "wooooooooooook",
           "tags": [
             "light",
