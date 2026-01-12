@@ -97,7 +97,7 @@ export const parseEnvList = (
   if (!raw.includes(',')) {
     logger.warn(
       `[service] ${source}에 단일 값이 입력되었습니다. 쉼표로 구분된 배열 형식(${source}=item1,item2)` +
-      ' 사용을 권장합니다.',
+        ' 사용을 권장합니다.',
     );
   }
 
@@ -164,7 +164,7 @@ export const normalizeFrontendSettings = (
           : DEFAULT_FRONTEND_SETTINGS.logRetention!.autoSaveEnabled,
       retentionCount:
         typeof value?.logRetention?.retentionCount === 'number' &&
-          value.logRetention.retentionCount > 0
+        value.logRetention.retentionCount > 0
           ? value.logRetention.retentionCount
           : DEFAULT_FRONTEND_SETTINGS.logRetention!.retentionCount,
       ttlHours:

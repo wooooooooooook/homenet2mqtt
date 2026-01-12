@@ -170,14 +170,7 @@ export const normalizeDeviceState = (
   const entityType = entityConfig.type;
 
   const applyOnOffState = () => {
-    const on = resolveFlag(
-      normalized,
-      cleanupKeys,
-      'on',
-      entityConfig.state_on,
-      payload,
-      options,
-    );
+    const on = resolveFlag(normalized, cleanupKeys, 'on', entityConfig.state_on, payload, options);
     const off = resolveFlag(
       normalized,
       cleanupKeys,

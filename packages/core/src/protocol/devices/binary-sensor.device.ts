@@ -21,8 +21,8 @@ export class BinarySensorDevice extends GenericDevice {
       payload,
       updates,
       {
-      headerLen: headerLength,
-      state: this.getState(),
+        headerLen: headerLength,
+        state: this.getState(),
       },
     );
 

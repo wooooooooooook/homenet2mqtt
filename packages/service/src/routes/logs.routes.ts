@@ -10,7 +10,10 @@ import type { RateLimiter } from '../utils/rate-limiter.js';
 import type { RawPacketLoggerService } from '../raw-packet-logger.service.js';
 import type { LogRetentionService } from '../log-retention.service.js';
 import { CONFIG_INIT_MARKER } from '../utils/constants.js';
-import { loadFrontendSettings, saveFrontendSettings } from '../services/frontend-settings.service.js';
+import {
+  loadFrontendSettings,
+  saveFrontendSettings,
+} from '../services/frontend-settings.service.js';
 import { fileExists } from '../utils/helpers.js';
 import type { RawPacketStreamMode, BridgeInstance } from '../types/index.js';
 

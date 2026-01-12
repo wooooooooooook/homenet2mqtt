@@ -811,13 +811,21 @@ export class AutomationManager {
 
     const headerLen = this.config.packet_defaults?.rx_header?.length ?? 0;
     const payload = packetBuffer ? packetBuffer.slice(headerLen) : Buffer.alloc(0);
-    const normalizedUpdates = normalizeDeviceState(entity as Record<string, any>, payload, updates, {
-      headerLen,
-      state: this.stateManager.getEntityState(action.target_id) ?? {},
-    });
+    const normalizedUpdates = normalizeDeviceState(
+      entity as Record<string, any>,
+      payload,
+      updates,
+      {
+        headerLen,
+        state: this.stateManager.getEntityState(action.target_id) ?? {},
+      },
+    );
 
     if (Object.keys(normalizedUpdates).length === 0) {
-      logger.debug({ action }, '[automation] update_state action skipped: normalized updates empty');
+      logger.debug(
+        { action },
+        '[automation] update_state action skipped: normalized updates empty',
+      );
       return;
     }
 
@@ -1068,7 +1076,7 @@ export class AutomationManager {
       try {
         const res = this.celExecutor.execute(payload, this.buildContext(context));
         if (res !== undefined) payload = res;
-      } catch { }
+      } catch {}
     }
 
     const finalPayload = typeof payload === 'string' ? payload : JSON.stringify(payload);

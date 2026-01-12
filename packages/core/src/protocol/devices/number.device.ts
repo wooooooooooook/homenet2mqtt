@@ -16,10 +16,15 @@ export class NumberDevice extends GenericDevice {
     const updates = super.parseData(packet) || {};
     const headerLength = this.protocolConfig.packet_defaults?.rx_header?.length || 0;
     const payload = packet.slice(headerLength);
-    const normalized = normalizeDeviceState({ ...this.config, type: 'number' } as NumberEntity, payload, updates, {
-      headerLen: headerLength,
-      state: this.getState(),
-    });
+    const normalized = normalizeDeviceState(
+      { ...this.config, type: 'number' } as NumberEntity,
+      payload,
+      updates,
+      {
+        headerLen: headerLength,
+        state: this.getState(),
+      },
+    );
 
     return Object.keys(normalized).length > 0 ? normalized : null;
   }
