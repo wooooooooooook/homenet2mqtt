@@ -1572,6 +1572,7 @@
             commandPackets={filteredCommandPackets}
             parsedPackets={filteredParsedPackets}
             rawPackets={filteredRawPackets}
+            {packetDictionary}
             {isStreaming}
             {portMetadata}
             selectedPortId={activePortId}
