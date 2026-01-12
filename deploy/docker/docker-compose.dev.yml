@@ -55,7 +55,7 @@ services:
       SIMULATOR_INTERVAL_MS: '100'
       SIMULATOR_PROTOCOL: 'tcp'
       SIMULATOR_PORT_PATH: '/tmp/ttyRS485'
-      SIMULATOR_DEVICE: 'samsung_sds'
+      SIMULATOR_DEVICE: 'userdata'
       SIMULATOR_SLOW: '20'
     volumes:
       - ../../:/workspace

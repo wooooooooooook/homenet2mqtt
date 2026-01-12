@@ -1,25 +1,63 @@
 meta:
   name: "가스밸브"
   name_en: "Gas Valve"
-  description: "삼성 SDS 가스밸브 설정입니다. 가스밸브 잠금 기능을 지원합니다."
-  description_en: "Samsung SDS gas valve configuration. Supports gas valve closing."
-  version: "1.1.0"
+  description: "삼성 SDS 가스밸브 설정입니다. 가스밸브 잠금 기능을 지원합니다. AB 41 00 요청 후 B0 41 응답만 상태로 인식합니다."
+  description_en: "Samsung SDS gas valve configuration. Supports gas valve closing. Only recognizes B0 41 response after AB 41 00 request as valid state."
+  version: "1.2.0"
   author: "wooooooooooook"
   tags: ["valve", "gas", "samsung", "sds"]
 
 entities:
+  # 요청 패킷 감지용 플래그 (내부용, Home Assistant에 노출 안 함)
+  binary_sensor:
+    - id: 'gas_valve_query_active'
+      name: 'Gas Valve Query Active'
+      optimistic: true
+
   valve:
     - id: 'gas_valve'
       name: 'Gas Valve'
       device_class: gas
-      state:
-        data: [0xB0, 0x41]
-      state_open:
-        offset: 2
-        data: [0x00]
-      state_closed:
-        offset: 2
-        data: [0x01]
+      # optimistic 모드로 automation이 상태 관리
+      optimistic: true
       command_close:
         data: [0xAB, 0x78, 0x00]
         ack: [0xB0, 0x78, 0x00]
+
+automation:
+  # 1. AB 41 00 요청 패킷 감지 → 플래그 ON (300ms TTL)
+  - id: 'gas_valve_query_flag'
+    mode: restart  # 새 요청이 오면 타이머 리셋
+    trigger:
+      - type: packet
+        match:
+          data: [0xAB, 0x41, 0x00]
+    then:
+      - action: update_state
+        target_id: gas_valve_query_active
+        state:
+          state: 'on'
+      - action: delay
+        milliseconds: 300ms
+      - action: update_state
+        target_id: gas_valve_query_active
+        state:
+          state: 'off'
+
+  # 2. B0 41 응답 패킷 감지 → 플래그가 ON일 때만 상태 업데이트
+  - id: 'gas_valve_state_update'
+    trigger:
+      - type: packet
+        match:
+          data: [0xB0, 0x41]
+    guard: "states.gas_valve_query_active.state == 'on'"
+    then:
+      - action: update_state
+        target_id: gas_valve
+        state:
+          state_open:
+            offset: 2
+            data: [0x00]
+          state_closed:
+            offset: 2
+            data: [0x01]
