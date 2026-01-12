@@ -94,6 +94,7 @@ trigger:
 ### 스케줄 트리거 (Schedule Trigger)
 
 주기적으로 또는 특정 시각(Cron)에 실행됩니다.
+(config에서 timezone 미설정시 UTC사용, 설정시 로컬타임존을 사용합니다.)
 
 ```yaml
 trigger:

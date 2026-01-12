@@ -1,6 +1,8 @@
 v1.12.1
 - fix: timezone을 설정해도 로그에 UTC로 기록되던 문제 수정. 
 - fix: 설정의 로그보관 옵션이 앱 재시작시 초기화되는 문제 수정. 
+- schedule 트리거의 timezone 적용 방식을 문서에 명확히 하였습니다. timezone 설정시 로컬타임존을 사용하며 미설정시 UTC를 사용합니다.
+
 
 v1.12.0
 - feat: timezone 옵션 추가. 

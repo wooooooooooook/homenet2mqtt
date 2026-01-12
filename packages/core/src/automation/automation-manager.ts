@@ -357,7 +357,7 @@ export class AutomationManager {
 
     if (trigger.cron) {
       try {
-        const cron = parser.parseExpression(trigger.cron, { utc: true });
+        const cron = parser.parseExpression(trigger.cron);
         const scheduleNext = () => {
           if (!this.isAutomationActive(automation.id)) return;
           const next = cron.next().toDate();
@@ -1068,7 +1068,7 @@ export class AutomationManager {
       try {
         const res = this.celExecutor.execute(payload, this.buildContext(context));
         if (res !== undefined) payload = res;
-      } catch {}
+      } catch { }
     }
 
     const finalPayload = typeof payload === 'string' ? payload : JSON.stringify(payload);
