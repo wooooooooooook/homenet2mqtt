@@ -12,6 +12,6 @@
         "tx_header": [],
         "rx_footer": [],
         "tx_footer": [],
-        "rx_valid_headers": [176, 173, 204, 164]
+        "rx_valid_headers": [176, 173, 171, 204, 164]
     }
 }

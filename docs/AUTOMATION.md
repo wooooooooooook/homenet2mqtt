@@ -91,6 +91,20 @@ trigger:
       offset: 1
 ```
 
+**이전 패킷 참조 (Previous Packet Context)**
+
+패킷 트리거는 `trigger.prev_packet` 변수를 통해 직전에 수신된 패킷을 참조할 수 있습니다. 이를 활용하여 특정 요청(`AB 41 00`) 직후에 오는 응답(`B0 41`)만 처리하는 등 순서 의존적인 로직을 구현할 수 있습니다.
+
+```yaml
+# 예: AB 41 00 요청 직후에 온 B0 41 응답만 처리
+trigger:
+  - type: packet
+    match:
+      data: [0xB0, 0x41]
+guard: "has(trigger.prev_packet) && trigger.prev_packet == [0xAB, 0x41, 0x00]"
+```
+
+
 ### 스케줄 트리거 (Schedule Trigger)
 
 주기적으로 또는 특정 시각(Cron)에 실행됩니다.

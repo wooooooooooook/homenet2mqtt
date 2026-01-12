@@ -5,7 +5,12 @@ v1.13.0
 - feat: [packet_defaults](https://github.com/wooooooooooook/RS485-HomeNet-to-MQTT-bridge/blob/main/docs/config-schema/packet-defaults.md)에 rx_valid_headers, rx_length_expr 옵션 도입 
   - **rx_valid_headers**: rx_header, rx_footer모두 없는경우 체크섬 충돌가능성이 있는데, rx_valid_headers 배열에 정의된 바이트로 시작하는 경우만 유효한 패킷으로 간주합니다. (삼성sds에서 rx_header를 b0로 쓰던것을 rx_header를 폐지한뒤 발생한 문제를 해결)
   - **rx_length_expr**: rx_length는 동적이지만 패킷에 길이를 나타내는 정보가 있는경우 사용하면 패킷파싱성능향상에 도움이됩니다. (bestin 설정에서 사용)
-- 설정에서 로그파일 목록 확인 및 삭제가능.
+- feat: automation의 packet trigger에 prev_packet 속성을 추가하여 가드로 사용가능.
+  - [AUTOMATION.md](https://github.com/wooooooooooook/RS485-HomeNet-to-MQTT-bridge/blob/main/docs/AUTOMATION.md)
+- feat: 엔티티 상세 모달에서 해당 엔티티의 활동로그 확인 기능 추가.
+- feat: 설정에서 로그파일 목록 확인 및 삭제 기능 추가.
+- feat: 활동로그에서 자동화/스크립트의 로그를 가리는 기능 추가. 
+- fix: internal 옵션 설정된 엔티티의 MQTT메시지가 발행되던 문제 수정.
 
 v1.12.1
 - fix: timezone을 설정해도 로그에 UTC로 기록되던 문제 수정. 

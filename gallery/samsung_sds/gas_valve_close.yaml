@@ -3,62 +3,39 @@ meta:
   name_en: "Gas Valve"
   description: "삼성 SDS 가스밸브 설정입니다. 가스밸브 잠금 기능을 지원합니다. AB 41 00 요청 후 B0 41 응답만 상태로 인식합니다."
   description_en: "Samsung SDS gas valve configuration. Supports gas valve closing. Only recognizes B0 41 response after AB 41 00 request as valid state."
-  version: "1.2.0"
+  version: "1.3.1"
   author: "wooooooooooook"
   tags: ["valve", "gas", "samsung", "sds"]
 
 entities:
-  # 요청 패킷 감지용 플래그 (내부용, Home Assistant에 노출 안 함)
-  binary_sensor:
-    - id: 'gas_valve_query_active'
-      name: 'Gas Valve Query Active'
-      optimistic: true
-      internal: true
-      # update_state를 위해 더미 state 정의 필요
-      state:
-        data: [0xFF, 0xFF, 0xFF, 0xFF]  # 절대 매칭되지 않는 패턴
-      state_on:
-        data: [0x01]
-      state_off:
-        data: [0x00]
-
   valve:
     - id: 'gas_valve'
       name: 'Gas Valve'
       device_class: gas
       # optimistic 모드로 automation이 상태 관리
       optimistic: true
+      # update_state 액션이 사용할 수 있도록 state 스키마 정의
+      state:
+        data: [0xFF, 0xFF]
+      state_open:
+        offset: 2
+        data: [0x00]
+      state_closed:
+        offset: 2
+        data: [0x01]
       command_close:
         data: [0xAB, 0x78, 0x00]
         ack: [0xB0, 0x78, 0x00]
 
 automation:
-  # 1. AB 41 00 요청 패킷 감지 → 플래그 ON (300ms TTL)
-  - id: 'gas_valve_query_flag'
-    mode: restart  # 새 요청이 오면 타이머 리셋
-    trigger:
-      - type: packet
-        match:
-          data: [0xAB, 0x41, 0x00]
-    then:
-      - action: update_state
-        target_id: gas_valve_query_active
-        state:
-          state: true
-      - action: delay
-        milliseconds: 300ms
-      - action: update_state
-        target_id: gas_valve_query_active
-        state:
-          state: false
-
-  # 2. B0 41 응답 패킷 감지 → 플래그가 ON일 때만 상태 업데이트
+  # B0 41 응답 패킷 감지 → 직전 패킷이 AB 41 00 요청일 때만 상태 업데이트
   - id: 'gas_valve_state_update'
     trigger:
       - type: packet
         match:
           data: [0xB0, 0x41]
-    guard: "states.gas_valve_query_active.state == 'on'"
+    # CEL expression: check previous packet
+    guard: "has(trigger.prev_packet) && trigger.prev_packet[0] == 0xAB && trigger.prev_packet[1] == 0x41"
     then:
       - action: update_state
         target_id: gas_valve

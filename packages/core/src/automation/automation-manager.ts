@@ -51,6 +51,7 @@ interface TriggerContext {
   type: TriggerContextType;
   state?: Record<string, any>;
   packet?: number[];
+  prev_packet?: number[];
   timestamp: number;
   args?: Record<string, any>;
 }
@@ -86,6 +87,7 @@ export class AutomationManager {
   private readonly runningAutomations = new Map<string, AbortController>();
   private readonly automationQueues = new Map<string, Array<() => Promise<void>>>();
   private isStarted = false;
+  private lastPacket: Buffer | undefined;
 
   constructor(
     private readonly config: HomenetBridgeConfig,
@@ -426,11 +428,13 @@ export class AutomationManager {
         const context: TriggerContext = {
           type: 'packet',
           packet: Array.from(packet),
+          prev_packet: this.lastPacket ? Array.from(this.lastPacket) : undefined,
           timestamp: Date.now(),
         };
         this.runAutomation(automation, trigger, context);
       }
     }
+    this.lastPacket = Buffer.from(packet);
   }
 
   private matchesPacket(trigger: AutomationTriggerPacket, packet: Buffer) {
@@ -554,7 +558,7 @@ export class AutomationManager {
       const actions = guardResult ? automation.then : automation.else;
       if (!actions || actions.length === 0) return;
 
-      logger.info(
+      logger.debug(
         { automation: automationId, trigger: trigger.type, mode },
         '[automation] Executing',
       );
@@ -594,7 +598,12 @@ export class AutomationManager {
             return;
           }
           logger.error(
-            { error, automation: automationId, action: action.action },
+            {
+              error: error instanceof Error ? error.message : String(error),
+              stack: error instanceof Error ? error.stack : undefined,
+              automation: automationId,
+              action: action.action,
+            },
             '[automation] Action failed',
           );
         }
@@ -1353,15 +1362,33 @@ export class AutomationManager {
   }
 
   private buildContext(context: TriggerContext) {
-    const stateSnapshot: Record<string, any> = {};
+    // Merge states from multiple sources:
+    // 1. StateManager (includes optimistic entity defaults)
+    // 2. Local event-driven states map (for backward compatibility with tests and event-driven updates)
+    let stateSnapshot: Record<string, any> = {};
+
+    // Start with StateManager's states if available
+    if (this.stateManager) {
+      stateSnapshot = { ...this.stateManager.getAllStates() };
+    }
+
+    // Overlay with local states (event-driven updates and test overrides)
     for (const [key, value] of this.states.entries()) {
       stateSnapshot[key] = value;
     }
 
     // CEL context: simple data
+    const safeTrigger = { ...context };
+    if (safeTrigger.packet) {
+      safeTrigger.packet = safeTrigger.packet.map((b) => BigInt(b)) as any;
+    }
+    if (safeTrigger.prev_packet) {
+      safeTrigger.prev_packet = safeTrigger.prev_packet.map((b) => BigInt(b)) as any;
+    }
+
     return {
       states: stateSnapshot, // access as states['entity_id']['property']
-      trigger: context,
+      trigger: safeTrigger,
       timestamp: Date.now(),
       args: context.args || {},
       // 'id' and 'command' helpers removed as they are functions
