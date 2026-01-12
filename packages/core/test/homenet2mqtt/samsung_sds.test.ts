@@ -48,10 +48,10 @@ describe('HomeNet to MQTT - Samsung SDS Protocol', () => {
     expect(publishMock).toHaveBeenCalledWith(
       'homenet2mqtt/homedevice1/room_0_heater/state',
       JSON.stringify({
-        action: 'off',
-        current_temperature: 25,
-        target_temperature: 26,
-        mode: 'off',
+        action: 'idle',
+        current_temperature: 23,
+        target_temperature: 22,
+        mode: 'heat',
       }),
       expect.objectContaining({ retain: true }),
     );

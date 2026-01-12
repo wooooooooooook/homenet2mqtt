@@ -8,6 +8,7 @@
 - `rx_checksum` / `tx_checksum`: 기본 1바이트 체크섬 계산기 (알고리즘 이름 문자열 또는 CEL 표현식).
 - `rx_checksum2` / `tx_checksum2`: 이중(2바이트) 체크섬 계산기 (알고리즘 이름 문자열 또는 CEL 표현식).
 - `rx_length`: 고정 길이 패킷일 때 전체 길이를 명시.
+- `rx_length_expr`: 동적 패킷 길이 계산을 위한 CEL 표현식(선택). 패킷에 패킷 길이 정보가 있는경우 성능향상에 도움이됩니다. 0을 반환하면 Checksum Sweep fallback.
 - `rx_valid_headers`: 유효한 패킷 시작 바이트 목록(선택). 체크섬이 유효해도 첫 바이트가 이 목록에 없으면 패킷으로 인식하지 않음.
 - `tx_delay`: 재전송 간격 대기 시간 (ms).
 - `tx_retry_cnt`: 명령 전송 실패 시 재시도 횟수.
@@ -128,6 +129,40 @@ homenet_bridge:
     tx_checksum: samsung_xor
     rx_valid_headers: [0xB0, 0xAD, 0xCC, 0xA4]
 ```
+
+## 동적 패킷 길이 계산 (`rx_length_expr`)
+
+패킷 내 특정 바이트가 길이를 나타내지만, 모든 패킷에 적용되지 않는 경우 CEL 표현식을 사용합니다.
+
+> [!NOTE]
+> `rx_length_expr`은 `rx_length`나 `rx_footer`가 없을 때(Strategy C: Checksum Sweep)만 적용됩니다.
+> `rx_length`가 함께 정의되면 무시되며 경고 로그가 출력됩니다.
+
+### 사용 예시: Bestin
+
+Bestin 패킷 구조:
+- `data[0]`: 헤더 (0x02)
+- `data[1]`: 디바이스 ID
+- `data[2]`: 패킷 길이 (일부 디바이스에서만 유효)
+
+```yaml
+homenet_bridge:
+  packet_defaults:
+    rx_header: [0x02]
+    rx_checksum: bestin_sum
+
+    # offset 1이 0x28(난방) 또는 0x2E(가스밸브)일 때만 offset 2가 길이
+    # 조명(0x3x), 환기팬(0x61) 등은 0 반환 → Checksum Sweep fallback
+    rx_length_expr: "data[1] == 0x28 || data[1] == 0x2E ? data[2] : 0"
+```
+
+### CEL 표현식 규칙
+
+| 반환값 | 동작 |
+|--------|------|
+| `> 0` | 해당 길이로 체크섬 검증 후 패킷 추출 |
+| `0` 또는 음수 | Checksum Sweep fallback (모든 길이 순회) |
+| 버퍼 길이 초과 | 더 많은 데이터 대기 |
 
 ## 작성 팁
 1. 헤더/푸터와 체크섬 계산 규칙을 모르면 우선 패킷 캡처를 진행한 뒤, 동일한 구간을 `state.data`로 맞춰 넣으세요.

@@ -18,17 +18,17 @@ entities:
       state:
         data: [0xB0, 0x7C, 0x01]
       state_temperature_current:
-        offset: 4
+        offset: 5
         length: 1
       state_temperature_target:
-        offset: 3
+        offset: 4
         length: 1
       state_off:
-        offset: 2
+        offset: 3
         data: [0x00]
         mask: [0x01]
       state_heat:
-        offset: 2
+        offset: 3
         data: [0x01]
         mask: [0x01]
       command_off:
@@ -51,17 +51,17 @@ entities:
       state:
         data: [0xB0, 0x7C, 0x02]
       state_temperature_current:
-        offset: 4
+        offset: 5
         length: 1
       state_temperature_target:
-        offset: 3
+        offset: 4
         length: 1
       state_off:
-        offset: 2
+        offset: 3
         data: [0x00]
         mask: [0x01]
       state_heat:
-        offset: 2
+        offset: 3
         data: [0x01]
         mask: [0x01]
       command_off:
@@ -84,17 +84,17 @@ entities:
       state:
         data: [0xB0, 0x7C, 0x03]
       state_temperature_current:
-        offset: 4
+        offset: 5
         length: 1
       state_temperature_target:
-        offset: 3
+        offset: 4
         length: 1
       state_off:
-        offset: 2
+        offset: 3
         data: [0x00]
         mask: [0x01]
       state_heat:
-        offset: 2
+        offset: 3
         data: [0x01]
         mask: [0x01]
       command_off:
@@ -117,17 +117,17 @@ entities:
       state:
         data: [0xB0, 0x7C, 0x04]
       state_temperature_current:
-        offset: 4
+        offset: 5
         length: 1
       state_temperature_target:
-        offset: 3
+        offset: 4
         length: 1
       state_off:
-        offset: 2
+        offset: 3
         data: [0x00]
         mask: [0x01]
       state_heat:
-        offset: 2
+        offset: 3
         data: [0x01]
         mask: [0x01]
       command_off:

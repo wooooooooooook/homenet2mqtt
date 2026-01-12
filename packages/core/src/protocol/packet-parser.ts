@@ -34,6 +34,7 @@ export class PacketParser {
   // Optimizations for CEL Checksums
   private preparedChecksum: CompiledScript | null = null;
   private preparedChecksum2: CompiledScript | null = null;
+  private preparedLengthExpr: CompiledScript | null = null;
   private reusableBufferView: ReusableBufferView | null = null;
 
   private readonly checksumTypes = new Set([
@@ -104,6 +105,24 @@ export class PacketParser {
           { err, checksum2Type },
           '[PacketParser] Failed to prepare CEL checksum2 script',
         );
+      }
+    }
+
+    // Prepare rx_length_expr for dynamic packet length calculation
+    if (this.defaults.rx_length_expr) {
+      if (this.defaults.rx_length && this.defaults.rx_length > 0) {
+        logger.warn(
+          '[PacketParser] Both rx_length and rx_length_expr are defined. rx_length takes precedence, rx_length_expr will be ignored.',
+        );
+      } else {
+        try {
+          this.preparedLengthExpr = executor.prepare(this.defaults.rx_length_expr);
+        } catch (err) {
+          logger.warn(
+            { err, expr: this.defaults.rx_length_expr },
+            '[PacketParser] Failed to prepare CEL rx_length_expr script',
+          );
+        }
       }
     }
   }
@@ -341,6 +360,44 @@ export class PacketParser {
         const checksumLen = this.getChecksumLength();
         const minLen = headerLen + checksumLen;
         if (checksumLen > 0 && bufferLength >= minLen) {
+          // Optimization: Use rx_length_expr to calculate packet length directly
+          // If the expression returns a valid length, verify only that length.
+          // If it returns 0 or the buffer is insufficient, fallback to checksum sweep.
+          if (this.preparedLengthExpr && this.reusableBufferView) {
+            this.reusableBufferView.update(this.buffer, this.readOffset, bufferLength);
+            try {
+              const exprResult = this.preparedLengthExpr.execute({
+                data: this.reusableBufferView.proxy,
+                len: bufferLength,
+              });
+              const dynamicLen = typeof exprResult === 'bigint' ? Number(exprResult) : exprResult;
+
+              if (typeof dynamicLen === 'number' && dynamicLen > 0 && dynamicLen <= bufferLength) {
+                // Dynamic length provided - verify only this length
+                if (this.verifyChecksum(this.buffer, this.readOffset, dynamicLen)) {
+                  // Validate first byte against valid headers if configured
+                  if (
+                    !this.validHeadersSet ||
+                    this.validHeadersSet.has(this.buffer[this.readOffset])
+                  ) {
+                    const packet = Buffer.from(
+                      this.buffer.subarray(this.readOffset, this.readOffset + dynamicLen),
+                    );
+                    packets.push(packet);
+                    this.consumeBytes(dynamicLen);
+                    this.lastScannedLength = 0;
+                    matchFound = true;
+                  }
+                }
+                // If checksum failed or header invalid, treat as no match (will shift 1 byte later)
+                if (matchFound) continue;
+              }
+              // If dynamicLen <= 0 or > bufferLength, fallback to checksum sweep
+            } catch (err) {
+              logger.debug({ err }, '[PacketParser] rx_length_expr execution failed, using sweep');
+            }
+          }
+
           const startLen = Math.max(minLen, this.lastScannedLength + 1);
 
           if (this.isStandard1Byte) {

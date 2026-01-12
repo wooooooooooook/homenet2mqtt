@@ -14,11 +14,11 @@ entities:
       state:
         data: [0xB0, 0x79, 0x21]
       state_on:
-        offset: 2
+        offset: 3
         data: [0x01]
         mask: [0x01]
       state_off:
-        offset: 2
+        offset: 3
         data: [0x00]
         mask: [0x01]
       command_on:
@@ -33,11 +33,11 @@ entities:
       state:
         data: [0xB0, 0x79, 0x13]
       state_on:
-        offset: 2
+        offset: 3
         data: [0x02]
         mask: [0x02]
       state_off:
-        offset: 2
+        offset: 3
         data: [0x00]
         mask: [0x02]
       command_on:
@@ -52,11 +52,11 @@ entities:
       state:
         data: [0xB0, 0x79, 0x14]
       state_on:
-        offset: 2
+        offset: 3
         data: [0x01]
         mask: [0x01]
       state_off:
-        offset: 2
+        offset: 3
         data: [0x00]
         mask: [0x01]
       command_on:
@@ -71,11 +71,11 @@ entities:
       state:
         data: [0xB0, 0x79, 0x15]
       state_on:
-        offset: 2
+        offset: 3
         data: [0x01]
         mask: [0x01]
       state_off:
-        offset: 2
+        offset: 3
         data: [0x00]
         mask: [0x01]
       command_on:

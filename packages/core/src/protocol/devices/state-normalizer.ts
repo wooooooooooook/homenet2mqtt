@@ -149,9 +149,7 @@ const resolveFlag = (
 ): boolean | undefined => {
   if (typeof updates[key] === 'boolean') {
     cleanupKeys.add(key);
-    if (updates[key]) {
-      return true;
-    }
+    return updates[key];
   }
   if (schema && matchesState(payload, schema, options)) {
     return true;

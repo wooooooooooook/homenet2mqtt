@@ -23,6 +23,7 @@ export interface PacketDefaults {
   rx_checksum?: ChecksumType | string;
   rx_checksum2?: Checksum2Type | string;
   rx_length?: number;
+  rx_length_expr?: string; // CEL expression to calculate packet length. Returns 0 to fallback to checksum sweep.
   rx_valid_headers?: number[];
   tx_header?: number[];
   tx_footer?: number[];

@@ -38,11 +38,11 @@ homenet_bridge:
       state:
         data: [0xB0, 0x79, 0x21]
       state_on:
-        offset: 2
+        offset: 3
         data: [0x01]
         mask: [0x01]
       state_off:
-        offset: 2
+        offset: 3
         data: [0x00]
         mask: [0x01]
       command_on:
@@ -57,11 +57,11 @@ homenet_bridge:
       state:
         data: [0xB0, 0x79, 0x13]
       state_on:
-        offset: 2
+        offset: 3
         data: [0x02]
         mask: [0x02]
       state_off:
-        offset: 2
+        offset: 3
         data: [0x00]
         mask: [0x02]
       command_on:
@@ -76,11 +76,11 @@ homenet_bridge:
       state:
         data: [0xB0, 0x79, 0x14]
       state_on:
-        offset: 2
+        offset: 3
         data: [0x01]
         mask: [0x01]
       state_off:
-        offset: 2
+        offset: 3
         data: [0x00]
         mask: [0x01]
       command_on:
@@ -95,11 +95,11 @@ homenet_bridge:
       state:
         data: [0xB0, 0x79, 0x15]
       state_on:
-        offset: 2
+        offset: 3
         data: [0x01]
         mask: [0x01]
       state_off:
-        offset: 2
+        offset: 3
         data: [0x00]
         mask: [0x01]
       command_on:
@@ -112,6 +112,8 @@ homenet_bridge:
   climate:
     - id: 'room_0_heater'
       name: 'Room 0 Heater'
+      packet_defaults:
+        rx_checksum: xor
       visual:
         min_temperature: 5 °C
         max_temperature: 40 °C
@@ -119,17 +121,17 @@ homenet_bridge:
       state:
         data: [0xB0, 0x7C, 0x01]
       state_temperature_current:
-        offset: 4
+        offset: 5
         length: 1
       state_temperature_target:
-        offset: 3
+        offset: 4
         length: 1
       state_off:
-        offset: 2
+        offset: 3
         data: [0x00]
         mask: [0x01]
       state_heat:
-        offset: 2
+        offset: 3
         data: [0x01]
         mask: [0x01]
       command_off:
@@ -152,17 +154,17 @@ homenet_bridge:
       state:
         data: [0xB0, 0x7C, 0x02]
       state_temperature_current:
-        offset: 4
+        offset: 5
         length: 1
       state_temperature_target:
-        offset: 3
+        offset: 4
         length: 1
       state_off:
-        offset: 2
+        offset: 3
         data: [0x00]
         mask: [0x01]
       state_heat:
-        offset: 2
+        offset: 3
         data: [0x01]
         mask: [0x01]
       command_off:
@@ -185,17 +187,17 @@ homenet_bridge:
       state:
         data: [0xB0, 0x7C, 0x03]
       state_temperature_current:
-        offset: 4
+        offset: 5
         length: 1
       state_temperature_target:
-        offset: 3
+        offset: 4
         length: 1
       state_off:
-        offset: 2
+        offset: 3
         data: [0x00]
         mask: [0x01]
       state_heat:
-        offset: 2
+        offset: 3
         data: [0x01]
         mask: [0x01]
       command_off:
@@ -218,17 +220,17 @@ homenet_bridge:
       state:
         data: [0xB0, 0x7C, 0x04]
       state_temperature_current:
-        offset: 4
+        offset: 5
         length: 1
       state_temperature_target:
-        offset: 3
+        offset: 4
         length: 1
       state_off:
-        offset: 2
+        offset: 3
         data: [0x00]
         mask: [0x01]
       state_heat:
-        offset: 2
+        offset: 3
         data: [0x01]
         mask: [0x01]
       command_off:
@@ -248,13 +250,13 @@ homenet_bridge:
       state:
         data: [0xB0, 0x4E]
       state_on:
-        offset: 3
+        offset: 4
         data: [0x00]
       state_off:
-        offset: 3
+        offset: 4
         data: [0x01]
       state_speed: >-
-        data[1] == 0x03 ? 1 : (data[1] == 0x02 ? 2 : (data[1] == 0x01 ? 3 : 0))
+        data[2] == 0x03 ? 1 : (data[2] == 0x02 ? 2 : (data[2] == 0x01 ? 3 : 0))
       command_on:
         data: [0xC2, 0x4F, 0x05, 0x00, 0x00]
         ack: [0xB0, 0x4F, 0x05]
