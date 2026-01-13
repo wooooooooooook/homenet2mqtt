@@ -40,6 +40,9 @@
 
   const MAX_PACKETS = 500000; // ~24 hours at 5 packets/sec
   const DASHBOARD_INACTIVE_KEY = 'dashboard.showInactiveEntities';
+  const DASHBOARD_ENTITY_KEY = 'dashboard.showEntities';
+  const DASHBOARD_AUTOMATION_KEY = 'dashboard.showAutomations';
+  const DASHBOARD_SCRIPT_KEY = 'dashboard.showScripts';
   const LOG_TIME_FORMAT_OPTIONS: Intl.DateTimeFormatOptions = {
     hour: '2-digit',
     minute: '2-digit',
@@ -143,6 +146,9 @@
   let selectedEntityKey = $state<string | null>(null);
   let isSidebarOpen = $state(false);
   let showInactiveEntities = $state(false);
+  let showEntityCards = $state(true);
+  let showAutomationCards = $state(true);
+  let showScriptCards = $state(true);
 
   // Helper to create/parse entity composite keys
   const makeEntityKey = (
@@ -436,9 +442,21 @@
 
   onMount(() => {
     if (typeof window !== 'undefined') {
-      const stored = window.localStorage.getItem(DASHBOARD_INACTIVE_KEY);
-      if (stored !== null) {
-        showInactiveEntities = stored === 'true';
+      const storedInactive = window.localStorage.getItem(DASHBOARD_INACTIVE_KEY);
+      if (storedInactive !== null) {
+        showInactiveEntities = storedInactive === 'true';
+      }
+      const storedEntity = window.localStorage.getItem(DASHBOARD_ENTITY_KEY);
+      if (storedEntity !== null) {
+        showEntityCards = storedEntity !== 'false';
+      }
+      const storedAutomation = window.localStorage.getItem(DASHBOARD_AUTOMATION_KEY);
+      if (storedAutomation !== null) {
+        showAutomationCards = storedAutomation !== 'false';
+      }
+      const storedScript = window.localStorage.getItem(DASHBOARD_SCRIPT_KEY);
+      if (storedScript !== null) {
+        showScriptCards = storedScript !== 'false';
       }
     }
     loadBridgeInfo(true);
@@ -715,6 +733,27 @@
     showInactiveEntities = !showInactiveEntities;
     if (typeof window !== 'undefined') {
       window.localStorage.setItem(DASHBOARD_INACTIVE_KEY, String(showInactiveEntities));
+    }
+  }
+
+  function toggleEntityCards() {
+    showEntityCards = !showEntityCards;
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(DASHBOARD_ENTITY_KEY, String(showEntityCards));
+    }
+  }
+
+  function toggleAutomationCards() {
+    showAutomationCards = !showAutomationCards;
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(DASHBOARD_AUTOMATION_KEY, String(showAutomationCards));
+    }
+  }
+
+  function toggleScriptCards() {
+    showScriptCards = !showScriptCards;
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(DASHBOARD_SCRIPT_KEY, String(showScriptCards));
     }
   }
 
@@ -1350,9 +1389,12 @@
   });
 
   const unifiedEntities = $derived.by<UnifiedEntity[]>(() => {
-    const filtered = showInactiveEntities
-      ? allUnifiedEntities
-      : allUnifiedEntities.filter((entity) => entity.isActive);
+    const filtered = allUnifiedEntities.filter((entity) => {
+      if (!showInactiveEntities && !entity.isActive) return false;
+      if (entity.category === 'automation') return showAutomationCards;
+      if (entity.category === 'script') return showScriptCards;
+      return showEntityCards;
+    });
     return filtered.sort((a, b) => a.displayName.localeCompare(b.displayName));
   });
 
@@ -1570,6 +1612,9 @@
             entities={dashboardEntities}
             selectedPortId={activePortId}
             showInactive={showInactiveEntities}
+            showEntities={showEntityCards}
+            showAutomations={showAutomationCards}
+            showScripts={showScriptCards}
             {hasInactiveEntities}
             activityLogs={filteredActivityLogs}
             {connectionStatus}
@@ -1578,6 +1623,9 @@
             onSelect={(entityId, portId, category) =>
               (selectedEntityKey = makeEntityKey(portId, entityId, category))}
             onToggleInactive={toggleInactiveEntities}
+            onToggleEntities={toggleEntityCards}
+            onToggleAutomations={toggleAutomationCards}
+            onToggleScripts={toggleScriptCards}
             onPortChange={(portId) => (selectedPortId = portId)}
           />
         {:else if activeView === 'analysis'}

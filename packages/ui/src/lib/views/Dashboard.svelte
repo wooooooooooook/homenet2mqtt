@@ -26,6 +26,9 @@
     entities,
     selectedPortId,
     showInactive,
+    showEntities,
+    showAutomations,
+    showScripts,
     hasInactiveEntities = false,
     activityLogs,
     connectionStatus = 'idle' as 'idle' | 'connecting' | 'connected' | 'error',
@@ -33,6 +36,9 @@
     portStatuses = [],
     onSelect,
     onToggleInactive,
+    onToggleEntities,
+    onToggleAutomations,
+    onToggleScripts,
     onPortChange,
   }: {
     bridgeInfo: BridgeInfo | null;
@@ -49,6 +55,9 @@
     entities: UnifiedEntity[];
     selectedPortId: string | null;
     showInactive: boolean;
+    showEntities: boolean;
+    showAutomations: boolean;
+    showScripts: boolean;
     hasInactiveEntities?: boolean;
     activityLogs: ActivityLog[];
     connectionStatus?: 'idle' | 'connecting' | 'connected' | 'error';
@@ -56,6 +65,9 @@
     portStatuses?: { portId: string; status: BridgeStatus | 'unknown'; message?: string }[];
     onSelect?: (entityId: string, portId: string | undefined, category: EntityCategory) => void;
     onToggleInactive?: () => void;
+    onToggleEntities?: () => void;
+    onToggleAutomations?: () => void;
+    onToggleScripts?: () => void;
     onPortChange?: (portId: string) => void;
   } = $props();
 
@@ -189,20 +201,34 @@
     {/if}
 
     <!-- Toggle for Inactive Entities -->
-    <div
-      class="toggle-container"
-      style="position: relative; display: flex; justify-content: flex-end;"
-    >
+    <div class="toggle-container">
       {#if hasInactiveEntities && !hintDismissed}
         <HintBubble onDismiss={() => (hintDismissed = true)} autoCloseMs={10000}>
           {$t('dashboard.hint_inactive_performance')}
         </HintBubble>
       {/if}
-      <Toggle
-        checked={showInactive}
-        onchange={onToggleInactive}
-        label={$t('dashboard.show_inactive_entities')}
-      />
+      <div class="toggle-group">
+        <Toggle
+          checked={showEntities}
+          onchange={onToggleEntities}
+          label={$t('dashboard.show_entities')}
+        />
+        <Toggle
+          checked={showAutomations}
+          onchange={onToggleAutomations}
+          label={$t('dashboard.show_automations')}
+        />
+        <Toggle
+          checked={showScripts}
+          onchange={onToggleScripts}
+          label={$t('dashboard.show_scripts')}
+        />
+        <Toggle
+          checked={showInactive}
+          onchange={onToggleInactive}
+          label={$t('dashboard.show_inactive_entities')}
+        />
+      </div>
     </div>
 
     <!-- Entity Grid Section -->
@@ -232,6 +258,19 @@
     display: flex;
     flex-direction: column;
     gap: 1rem;
+  }
+
+  .toggle-container {
+    position: relative;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .toggle-group {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.6rem 1rem;
   }
 
   .info-panel {

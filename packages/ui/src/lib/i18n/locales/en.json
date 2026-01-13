@@ -382,6 +382,9 @@
     "port_error": "Port Error: {error}",
     "no_configured_ports": "No configured ports found.",
     "port_tabs_aria": "Select Port",
+    "show_entities": "Show Entities",
+    "show_automations": "Show Automations",
+    "show_scripts": "Show Scripts",
     "show_inactive_entities": "Show Inactive Entities",
     "port_meta": {
       "path": "Path:",
