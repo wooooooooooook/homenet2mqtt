@@ -79,7 +79,6 @@ export class PacketParser {
     this.isStandard1Byte =
       typeof checksumType === 'string' &&
       checksumType !== 'none' &&
-      checksumType !== 'bestin_sum' && // bestin_sum은 복합 알고리즘이라 incremental 최적화 불가
       this.checksumTypes.has(checksumType);
 
     const checksum2Type = this.defaults.rx_checksum2;
@@ -266,11 +265,14 @@ export class PacketParser {
             const isSamsungRx = typeStr === 'samsung_rx';
             const isSamsungTx = typeStr === 'samsung_tx';
             const isSamsungXor = typeStr === 'samsung_xor';
+            const isBestinSum = typeStr === 'bestin_sum';
             const isAdd = typeStr.startsWith('add');
             const isNoHeader = typeStr.includes('no_header') || isSamsungRx || isSamsungTx;
 
             if (isSamsungRx) {
               runningChecksum = 0xb0;
+            } else if (isBestinSum) {
+              runningChecksum = 3;
             }
 
             const baseOffset = this.readOffset;
@@ -292,7 +294,11 @@ export class PacketParser {
 
               // Update running checksum up to currentDataEnd
               if (processedIdx < currentDataEnd) {
-                if (isAdd) {
+                if (isBestinSum) {
+                  for (let i = processedIdx; i < currentDataEnd; i++) {
+                    runningChecksum = ((this.buffer[i] ^ runningChecksum) + 1) & 0xff;
+                  }
+                } else if (isAdd) {
                   for (let i = processedIdx; i < currentDataEnd; i++) {
                     runningChecksum += this.buffer[i];
                   }
@@ -428,6 +434,7 @@ export class PacketParser {
             const isSamsungRx = typeStr === 'samsung_rx';
             const isSamsungTx = typeStr === 'samsung_tx';
             const isSamsungXor = typeStr === 'samsung_xor';
+            const isBestinSum = typeStr === 'bestin_sum';
             const isAdd = typeStr.startsWith('add');
             // Samsung types also skip header (like _no_header types)
             const isNoHeader = typeStr.includes('no_header') || isSamsungRx || isSamsungTx;
@@ -437,9 +444,11 @@ export class PacketParser {
             // we update the checksum incrementally as we advance the length.
             let runningChecksum = 0;
 
-            // Samsung RX starts with 0xB0, others 0
+            // Samsung RX starts with 0xB0, Bestin starts with 3, others 0
             if (isSamsungRx) {
               runningChecksum = 0xb0;
+            } else if (isBestinSum) {
+              runningChecksum = 3;
             }
 
             const baseOffset = this.readOffset;
@@ -447,7 +456,11 @@ export class PacketParser {
             const initialDataEnd = baseOffset + startLen - checksumLen;
 
             // Calculate initial checksum for the starting packet length
-            if (isAdd) {
+            if (isBestinSum) {
+              for (let i = startIdx; i < initialDataEnd; i++) {
+                runningChecksum = ((this.buffer[i] ^ runningChecksum) + 1) & 0xff;
+              }
+            } else if (isAdd) {
               for (let i = startIdx; i < initialDataEnd; i++) {
                 runningChecksum += this.buffer[i];
               }
@@ -465,7 +478,9 @@ export class PacketParser {
                 // Packet length increased by 1, so data section extended by 1.
                 // The new data byte is at `len - 1 - checksumLen`.
                 const newByte = this.buffer[baseOffset + len - 1 - checksumLen];
-                if (isAdd) {
+                if (isBestinSum) {
+                  runningChecksum = ((newByte ^ runningChecksum) + 1) & 0xff;
+                } else if (isAdd) {
                   runningChecksum += newByte;
                 } else {
                   runningChecksum ^= newByte;
