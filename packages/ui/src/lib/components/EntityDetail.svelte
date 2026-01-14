@@ -65,6 +65,7 @@
   let isTogglingDiscoveryAlways = $state(false);
   let forceActiveError = $state<string | null>(null);
 
+  let tabsContainer = $state<HTMLElement>();
   let commandInputs = $state<Record<string, any>>({});
   let executingCommands = $state(new Set<string>());
 
@@ -636,6 +637,33 @@
       console.error('Failed to copy ID', err);
     }
   }
+
+  function handleTabKeydown(e: KeyboardEvent) {
+    if (!tabsContainer) return;
+    const tabs = Array.from(tabsContainer.querySelectorAll('[role="tab"]')) as HTMLElement[];
+    if (tabs.length === 0) return;
+
+    const index = tabs.indexOf(document.activeElement as HTMLElement);
+    if (index === -1) return;
+
+    let nextIndex = index;
+
+    if (e.key === 'ArrowRight') {
+      nextIndex = (index + 1) % tabs.length;
+    } else if (e.key === 'ArrowLeft') {
+      nextIndex = (index - 1 + tabs.length) % tabs.length;
+    } else if (e.key === 'Home') {
+      nextIndex = 0;
+    } else if (e.key === 'End') {
+      nextIndex = tabs.length - 1;
+    } else {
+      return;
+    }
+
+    e.preventDefault();
+    tabs[nextIndex].focus();
+    tabs[nextIndex].click();
+  }
 </script>
 
 <Modal open={isOpen} width="1400px" onclose={close} oncancel={close}>
@@ -652,8 +680,11 @@
         >
           <span class="entity-id">{entity.id}</span>
           {#if idCopied}
-            <span class="copy-feedback" transition:fade={{ duration: 200 }}
-              >{$t('common.copied') || 'Copied!'}</span
+            <span
+              class="copy-feedback"
+              role="status"
+              aria-live="polite"
+              transition:fade={{ duration: 200 }}>{$t('common.copied') || 'Copied!'}</span
             >
           {/if}
         </button>
@@ -663,13 +694,21 @@
       >
     </header>
 
-    <div class="modal-tabs" role="tablist">
+    <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+    <div
+      class="modal-tabs"
+      role="tablist"
+      tabindex="-1"
+      bind:this={tabsContainer}
+      onkeydown={handleTabKeydown}
+    >
       {#if isDeviceEntity}
         <button
           role="tab"
           id="tab-status"
           aria-selected={activeTab === 'status'}
           aria-controls="panel-status"
+          tabindex={activeTab === 'status' ? 0 : -1}
           class:active={activeTab === 'status'}
           onclick={() => (activeTab = 'status')}>{$t('entity_detail.tabs.status')}</button
         >
@@ -679,6 +718,7 @@
           id="tab-execute"
           aria-selected={activeTab === 'execute'}
           aria-controls="panel-execute"
+          tabindex={activeTab === 'execute' ? 0 : -1}
           class:active={activeTab === 'execute'}
           onclick={() => (activeTab = 'execute')}>{$t('entity_detail.tabs.execute')}</button
         >
@@ -688,6 +728,7 @@
         id="tab-config"
         aria-selected={activeTab === 'config'}
         aria-controls="panel-config"
+        tabindex={activeTab === 'config' ? 0 : -1}
         class:active={activeTab === 'config'}
         onclick={() => (activeTab = 'config')}>{$t('entity_detail.tabs.config')}</button
       >
@@ -696,6 +737,7 @@
         id="tab-logs"
         aria-selected={activeTab === 'logs'}
         aria-controls="panel-logs"
+        tabindex={activeTab === 'logs' ? 0 : -1}
         class:active={activeTab === 'logs'}
         onclick={() => (activeTab = 'logs')}>{$t('entity_detail.tabs.logs')}</button
       >
@@ -705,6 +747,7 @@
           id="tab-packets"
           aria-selected={activeTab === 'packets'}
           aria-controls="panel-packets"
+          tabindex={activeTab === 'packets' ? 0 : -1}
           class:active={activeTab === 'packets'}
           onclick={() => (activeTab = 'packets')}>{$t('entity_detail.tabs.packets')}</button
         >
@@ -714,6 +757,7 @@
         id="tab-manage"
         aria-selected={activeTab === 'manage'}
         aria-controls="panel-manage"
+        tabindex={activeTab === 'manage' ? 0 : -1}
         class:active={activeTab === 'manage'}
         onclick={() => (activeTab = 'manage')}>{$t('entity_detail.tabs.manage')}</button
       >
