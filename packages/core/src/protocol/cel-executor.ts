@@ -113,7 +113,7 @@ export class ReusableBufferView {
  * - `states` (map): The global state map of all entities.
  * - `trigger` (map): Context specific to automation triggers.
  *
- * **Registered Helper Functions:**
+ * **Available Helper Functions:**
  * - `bcd_to_int(int) -> int`: Converts a BCD encoded byte to an integer (e.g., `0x12` -> `12`).
  * - `int_to_bcd(int) -> int`: Converts an integer to a BCD encoded byte (e.g., `12` -> `0x12`).
  * - `bitAnd(int, int) -> int`: Bitwise AND (`&`).
@@ -122,6 +122,8 @@ export class ReusableBufferView {
  * - `bitNot(int) -> int`: Bitwise NOT (`~`).
  * - `bitShiftLeft(int, int) -> int`: Bitwise Left Shift (`<<`).
  * - `bitShiftRight(int, int) -> int`: Bitwise Right Shift (`>>`).
+ * - `double(value) -> double`: Converts a number to a double (Standard CEL).
+ * - `has(expr) -> bool`: Checks if a field exists in a map (Standard CEL macro).
  *
  * @see {@link ../../../docs/CEL_GUIDE.md} for comprehensive usage examples.
  */
