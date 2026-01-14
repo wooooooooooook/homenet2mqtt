@@ -75,6 +75,9 @@
     rx_checksum: "bitXor(bitXor(data[0], data[1]), 0xFF)"
     ```
 
+> [!TIP]
+> 체크섬 계산 결과로 리스트(예: 2바이트 체크섬)를 반환하는 경우, 리스트 내 모든 요소의 타입이 일치해야 합니다. 동적 값(`dyn`)이 포함된다면 `int()`로 캐스팅하세요. (참고: [CEL 가이드](../CEL_GUIDE.md#자주-발생하는-문제와-팁-troubleshooting))
+
 ## 기본 예제 (양방향 동일 헤더/푸터)
 `kocom.homenet_bridge.yaml`은 동일한 헤더·푸터와 단순 합산 체크섬을 사용합니다.
 

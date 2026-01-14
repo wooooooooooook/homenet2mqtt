@@ -168,6 +168,29 @@ packet_defaults:
 *   **입력값**: `expression`, `data`, `x`, `xstr`, `state`, `states`, `trigger`
 *   **주의**: 입력값은 JSON 형식으로 작성해야 하며, `data`는 `0x` 16진수 배열도 지원합니다. `xstr`가 있으면 문자열 입력으로 처리됩니다. 평가 실패 시 오류 메시지가 표시됩니다.
 
+## 자주 발생하는 문제와 팁 (Troubleshooting)
+
+### 리스트 내 타입 혼용 오류 (`List elements must have the same type`)
+
+CEL에서 리스트(배열)를 생성할 때, 모든 요소는 동일한 타입이어야 합니다. `0x02`와 같은 숫자는 `int` 타입이지만, `states['...']`와 같은 맵 접근이나 일부 함수의 반환값은 `dyn` (동적) 타입으로 추론될 수 있습니다.
+
+이 경우 `int(...)`를 사용하여 명시적으로 타입을 변환(캐스팅)해주어야 합니다.
+
+**❌ 잘못된 예시 (오류 발생)**
+```yaml
+# 0x02는 int, states['light_1']['value']는 dyn 타입이므로 오류 발생
+command_on:
+  - action: send_packet
+    data: "[0x02, 0x80, states['light_1']['value']]"
+```
+
+**✅ 올바른 예시**
+```yaml
+# int()로 감싸서 모든 요소를 int 타입으로 통일
+command_on:
+  - action: send_packet
+    data: "[0x02, 0x80, int(states['light_1']['value'])]"
+```
 
 ## 제한 사항 (Limitations)
 
