@@ -40,6 +40,7 @@ export class PacketParser {
     x: 0n,
     xstr: '',
     data: null as any,
+    len: 0n,
     state: {},
     states: {},
     trigger: {},
@@ -419,10 +420,11 @@ export class PacketParser {
           if (this.preparedLengthExpr && this.reusableBufferView) {
             this.reusableBufferView.update(this.buffer, this.readOffset, bufferLength);
             try {
-              const exprResult = this.preparedLengthExpr.execute({
-                data: this.reusableBufferView.proxy,
-                len: bufferLength,
-              });
+              // Optimization: Use reusableContext for rx_length_expr
+              // We need to set 'len' in reusableContext to current buffer length
+              this.reusableContext.len = BigInt(bufferLength);
+              const exprResult = this.preparedLengthExpr.executeRaw(this.reusableContext);
+
               const dynamicLen = typeof exprResult === 'bigint' ? Number(exprResult) : exprResult;
 
               if (typeof dynamicLen === 'number' && dynamicLen > 0 && dynamicLen <= bufferLength) {
@@ -816,10 +818,12 @@ export class PacketParser {
           // Prepared CEL Expression for 2-byte checksum
           if (this.reusableBufferView) {
             this.reusableBufferView.update(buffer, offset, checksumStart - offset);
-            const result = this.preparedChecksum2.execute({
-              data: this.reusableBufferView.proxy,
-              len: checksumStart - offset,
-            });
+
+            // Optimization: Reuse context object for 2-byte checksum
+            this.reusableContext.len = BigInt(checksumStart - offset);
+
+            const result = this.preparedChecksum2.executeRaw(this.reusableContext);
+
             if (Array.isArray(result) && result.length === 2) {
               return result[0] === buffer[checksumStart] && result[1] === buffer[checksumStart + 1];
             }

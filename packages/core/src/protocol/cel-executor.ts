@@ -40,6 +40,7 @@ interface ScriptCacheEntry {
   usesStates: boolean;
   usesTrigger: boolean;
   usesArgs: boolean;
+  usesLen: boolean;
 }
 
 /**
@@ -162,6 +163,7 @@ export class CelExecutor {
     this.env.registerVariable('states', 'map');
     this.env.registerVariable('trigger', 'map');
     this.env.registerVariable('args', 'map');
+    this.env.registerVariable('len', 'int');
 
     // Helper: BCD to Int
     this.env.registerFunction('bcd_to_int(int): int', (bcd: bigint) => {
@@ -324,8 +326,9 @@ export class CelExecutor {
       const usesStates = script.includes('states');
       const usesTrigger = script.includes('trigger');
       const usesArgs = script.includes('args');
+      const usesLen = script.includes('len');
 
-      entry = { parsed, usesData, usesState, usesStates, usesTrigger, usesArgs };
+      entry = { parsed, usesData, usesState, usesStates, usesTrigger, usesArgs, usesLen };
       this.scriptCache.set(script, entry);
     }
     return entry;
@@ -388,6 +391,10 @@ export class CelExecutor {
 
     if (entry.usesArgs) {
       safeContext.args = contextData.args || {};
+    }
+
+    if (entry.usesLen && typeof contextData.len === 'number') {
+      safeContext.len = BigInt(contextData.len);
     }
 
     return safeContext;
