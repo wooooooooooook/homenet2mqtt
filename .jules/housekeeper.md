@@ -8,4 +8,4 @@
 
 ## 2025-05-23 - Broken Test Script in Simulator
 **Observation:** `packages/simulator/package.json` contains a test script pointing to `packages/simulator/test/simulator.test.ts`, which does not exist.
-**Action:** None taken. Future upkeep should add tests or update the script.
+**Action:** Created `packages/simulator/test/simulator.test.ts` with a placeholder test and updated `package.json` to use standard `vitest` invocation.
