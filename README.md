@@ -87,6 +87,27 @@ RS485 기반의 월패드(홈넷) 신호를 MQTT 메시지로 변환하여 Home 
 
 - [Config 작성법 (상세 스키마)](https://github.com/wooooooooooook/RS485-HomeNet-to-MQTT-bridge/tree/main/docs/config-schema)
 
+## ❓ 자주 묻는 질문 (Troubleshooting)
+
+### 1. "Permission denied" 또는 시리얼 포트 열기 실패
+- **증상**: Docker 컨테이너 로그에 `Error: Permission denied, cannot open /dev/ttyUSB0` 와 같은 에러가 발생합니다.
+- **해결**:
+  - 리눅스 호스트의 경우 사용자가 `dialout` 그룹에 포함되어 있는지 확인하세요.
+  - Docker 실행 시 `--device /dev/ttyUSB0:/dev/ttyUSB0` 옵션을 정확히 사용했는지 확인하세요.
+  - Synology NAS 등 일부 환경에서는 USB 드라이버 설치가 필요할 수 있습니다.
+
+### 2. MQTT 연결 실패
+- **증상**: `Connection refused` 또는 `Not authorized` 에러 발생.
+- **해결**:
+  - Home Assistant 애드온 사용 시: 별도의 설정 없이 자동으로 연결되지만, 실패한다면 애드온 설정에서 `username`/`password`를 확인하세요.
+  - Docker 사용 시: `MQTT_URL`이 정확한지 확인하세요. (예: `mqtt://192.168.1.100:1883`). `localhost`는 컨테이너 자신을 가리키므로, 호스트 IP를 입력해야 할 수 있습니다.
+
+### 3. 패킷이 전혀 들어오지 않음
+- **증상**: 로그에 패킷 수신 기록이 없음.
+- **해결**:
+  - RS485 선의 A/B (또는 +, -) 극성이 바뀌지 않았는지 확인해보세요.
+  - 월패드 제조사에 맞는 Serial 설정(Baud rate 등)이 맞는지 확인하세요.
+
 ## 문의 및 지원
 [GitHub Issues](https://github.com/wooooooooooook/RS485-HomeNet-to-MQTT-bridge/issues)
 [Discord](https://discord.gg/kGwhUBMe5z)
