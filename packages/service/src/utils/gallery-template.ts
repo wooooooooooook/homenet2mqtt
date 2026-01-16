@@ -1,5 +1,6 @@
 type ParameterType = 'integer' | 'string' | 'integer[]' | 'object[]';
 import { Environment } from '@marcbachmann/cel-js';
+import type { DiscoveryResult } from '../services/discovery.service.js';
 
 export interface GalleryParameterDefinition {
   name: string;
@@ -11,6 +12,8 @@ export interface GalleryParameterDefinition {
   label_en?: string;
   description?: string;
   schema?: Record<string, unknown>;
+  hidden?: boolean;
+  computed?: boolean;
 }
 
 export interface GallerySnippet {
@@ -18,10 +21,12 @@ export interface GallerySnippet {
   parameters?: GalleryParameterDefinition[];
   discovery?: {
     match: {
-      data: number[];
+      data?: number[];
       mask?: number[];
       offset?: number;
-      any_of?: Array<{ data: number[]; mask?: number[]; offset?: number }>;
+      any_of?: Array<{ data?: number[]; mask?: number[]; offset?: number }>;
+      regex?: string;
+      condition?: string;
     };
     dimensions: Array<{
       parameter: string;
@@ -60,16 +65,48 @@ const TEMPLATE_EXPRESSION = /{{\s*([^}]+)\s*}}/g;
 function resolveParameterValues(
   definitions: GalleryParameterDefinition[] | undefined,
   providedValues: Record<string, unknown> | undefined,
+  discoveryResult?: DiscoveryResult,
 ): Record<string, unknown> {
   if (!definitions || definitions.length === 0) return {};
 
   const resolved: Record<string, unknown> = {};
 
   for (const definition of definitions) {
-    const value =
+    let value =
       providedValues && Object.prototype.hasOwnProperty.call(providedValues, definition.name)
         ? providedValues[definition.name]
         : definition.default;
+
+    // Dynamic Default Evaluation (CEL)
+    if (
+      typeof value === 'string' &&
+      discoveryResult &&
+      (value.includes('{{') || value.includes('discovery.'))
+    ) {
+      const defaultStr = value;
+      // Try to evaluate as CEL if it looks dynamic
+      try {
+        // Prepare context with discovery results
+        const context = {
+          discovery: {
+            results: discoveryResult.parameterValues,
+            count: discoveryResult.matchedPacketCount,
+          },
+        };
+
+        // If it's a template string {{ ... }}, extract content
+        const celExpr = defaultStr.replace(/^{{\s*/, '').replace(/\s*}}$/, '');
+        value = evaluateExpression(celExpr, context);
+      } catch (e) {
+        // If evaluation fails, fall back to literal string or undefined?
+        // console.error(`[gallery] CEL Error resolving default:`, e);
+      }
+    }
+
+    // Handle hidden/computed parameters
+    if (value === undefined && (definition.hidden || definition.computed)) {
+      // Intentionally empty block - fall through to error check if truly missing
+    }
 
     if (value === undefined) {
       throw new Error(`[gallery] Missing parameter: ${definition.name}`);
@@ -97,6 +134,10 @@ function validateParameterValue(definition: GalleryParameterDefinition, value: u
 
   if (type === 'string') {
     if (typeof value !== 'string') {
+      // Auto-convert numbers to string if type is string
+      if (typeof value === 'number') {
+        return String(value);
+      }
       throw new Error(`[gallery] Parameter ${name} must be a string`);
     }
     return value;
@@ -137,79 +178,6 @@ function coerceInteger(value: unknown, name: string): number {
   throw new Error(`[gallery] Parameter ${name} must be an integer`);
 }
 
-function evaluateExpression(expression: string, context: Record<string, unknown>): unknown {
-  const env = new Environment();
-
-  // Register Core Helper Functions
-  // Helper: BCD to Int
-  env.registerFunction('bcd_to_int(int): int', (bcd: bigint) => {
-    const val = Number(bcd);
-    const res = (val >> 4) * 10 + (val & 0x0f);
-    return BigInt(res);
-  });
-
-  // Helper: Int to BCD
-  env.registerFunction('int_to_bcd(int): int', (val: bigint) => {
-    const v = Number(val);
-    const res = (Math.floor(v / 10) % 10 << 4) | v % 10;
-    return BigInt(res);
-  });
-
-  // Helper: Bitwise Operations
-  env.registerFunction('bitAnd(int, int): int', (a: bigint, b: bigint) => a & b);
-  env.registerFunction('bitOr(int, int): int', (a: bigint, b: bigint) => a | b);
-  env.registerFunction('bitXor(int, int): int', (a: bigint, b: bigint) => a ^ b);
-  env.registerFunction('bitNot(int): int', (a: bigint) => ~a);
-  env.registerFunction('bitShiftLeft(int, int): int', (a: bigint, b: bigint) => a << b);
-  env.registerFunction('bitShiftRight(int, int): int', (a: bigint, b: bigint) => a >> b);
-
-  // Helper: Formatting Functions
-  env.registerFunction('hex(int): string', (val: bigint) => {
-    return `0x${Number(val).toString(16).padStart(2, '0')}`;
-  });
-  env.registerFunction('pad(dyn, int): string', (val: unknown, length: bigint) => {
-    return String(typeof val === 'bigint' ? Number(val) : val).padStart(Number(length), '0');
-  });
-
-  // Dynamically register variables from context
-  const safeContext: Record<string, any> = {};
-
-  for (const [key, value] of Object.entries(context)) {
-    let type = 'dyn'; // Default to dynamic
-    if (typeof value === 'number' && Number.isInteger(value)) {
-      type = 'int';
-      // CEL expects int as BigInt in execute
-      safeContext[key] = BigInt(value);
-    } else {
-      safeContext[key] = value;
-      if (typeof value === 'string') {
-        type = 'string';
-      } else if (Array.isArray(value)) {
-        type = 'list';
-      } else if (typeof value === 'object' && value !== null) {
-        type = 'map';
-      }
-    }
-    env.registerVariable(key, type);
-  }
-
-  try {
-    const ast = env.parse(expression);
-    const result = ast(safeContext); // Use safeContext with BigInts
-
-    // Convert BigInt results from CEL back to Number
-    if (typeof result === 'bigint') {
-      return Number(result);
-    }
-    return result;
-  } catch (error) {
-    const err = error as Error;
-    throw new Error(`[gallery] CEL Evaluation failed for "${expression}": ${err.message}`);
-  }
-}
-
-
-
 function resolveTemplateValue(template: string, context: Record<string, unknown>): unknown {
   const trimmed = template.trim();
   const fullMatch = trimmed.match(/^{{\s*([^}]+)\s*}}$/);
@@ -225,6 +193,93 @@ function resolveTemplateValue(template: string, context: Record<string, unknown>
 
 function evaluateTemplateExpression(expression: string, context: Record<string, unknown>): unknown {
   return evaluateExpression(expression.trim(), context);
+}
+
+/**
+ * Recursively convert values for CEL compatibility.
+ * Specifically handles converting integers to BigInt.
+ */
+function convertForCel(val: unknown): unknown {
+  if (typeof val === 'number' && Number.isInteger(val)) {
+    return BigInt(val);
+  }
+  if (Array.isArray(val)) {
+    return val.map(convertForCel);
+  }
+  if (val && typeof val === 'object' && val !== null) {
+    if (val.constructor === Object) {
+      const newVal: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(val)) {
+        newVal[k] = convertForCel(v);
+      }
+      return newVal;
+    }
+  }
+  return val;
+}
+
+function evaluateExpression(expression: string, context: Record<string, unknown>): unknown {
+  const env = new Environment();
+
+  // Register Helper Functions (replicated for local context)
+  env.registerFunction('bcd_to_int(int): int', (bcd: bigint) => {
+    const val = Number(bcd);
+    const res = (val >> 4) * 10 + (val & 0x0f);
+    return BigInt(res);
+  });
+  env.registerFunction('int_to_bcd(int): int', (val: bigint) => {
+    const v = Number(val);
+    const res = (Math.floor(v / 10) % 10 << 4) | v % 10;
+    return BigInt(res);
+  });
+  env.registerFunction('bitAnd(int, int): int', (a: bigint, b: bigint) => a & b);
+  env.registerFunction('bitOr(int, int): int', (a: bigint, b: bigint) => a | b);
+  env.registerFunction('bitXor(int, int): int', (a: bigint, b: bigint) => a ^ b);
+  env.registerFunction('bitNot(int): int', (a: bigint) => ~a);
+  env.registerFunction('bitShiftLeft(int, int): int', (a: bigint, b: bigint) => a << b);
+  env.registerFunction('bitShiftRight(int, int): int', (a: bigint, b: bigint) => a >> b);
+  env.registerFunction('hex(int): string', (val: bigint) => {
+    return `0x${Number(val).toString(16).padStart(2, '0')}`;
+  });
+  env.registerFunction('pad(dyn, int): string', (val: unknown, length: bigint) => {
+    return String(typeof val === 'bigint' ? Number(val) : val).padStart(Number(length), '0');
+  });
+
+  // Dynamically register variables from context
+  const safeContext: Record<string, any> = {};
+
+  for (const [key, value] of Object.entries(context)) {
+    const safeValue = convertForCel(value);
+    safeContext[key] = safeValue;
+
+    let type = 'dyn'; // Default to dynamic
+    if (typeof safeValue === 'bigint') {
+      type = 'int';
+    } else {
+      if (typeof safeValue === 'string') {
+        type = 'string';
+      } else if (Array.isArray(safeValue)) {
+        type = 'list';
+      } else if (typeof safeValue === 'object' && safeValue !== null) {
+        type = 'map';
+      }
+    }
+    env.registerVariable(key, type);
+  }
+
+  try {
+    const ast = env.parse(expression);
+    const result = ast(safeContext);
+
+    // Convert BigInt results from CEL back to Number
+    if (typeof result === 'bigint') {
+      return Number(result);
+    }
+    return result;
+  } catch (error) {
+    const err = error as Error;
+    throw new Error(`[gallery] CEL Evaluation failed for "${expression}": ${err.message}`);
+  }
 }
 
 function expandRepeatBlock(
@@ -317,8 +372,9 @@ function expandNode(node: unknown, context: Record<string, unknown>): unknown {
 export function expandGalleryTemplate(
   snippet: GallerySnippet,
   parameterValues?: Record<string, unknown>,
+  discoveryResult?: DiscoveryResult,
 ): GallerySnippet {
-  const parameters = resolveParameterValues(snippet.parameters, parameterValues);
+  const parameters = resolveParameterValues(snippet.parameters, parameterValues, discoveryResult);
   const context = { ...parameters };
 
   const expandedEntities = snippet.entities

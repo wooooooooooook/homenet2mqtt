@@ -2,22 +2,26 @@
  * Discovery Service - Evaluates discovery schemas against packet dictionary
  */
 
+import { CelExecutor } from '@rs485-homenet/core';
+
 // ============================================================================
 // Types
 // ============================================================================
 
 export interface DiscoveryMatch {
-  data: number[];
+  data?: number[];
   mask?: number[];
   offset?: number;
   any_of?: DiscoveryMatch[];
+  regex?: string; // Regex on Hex String (e.g. "B0 41 .* 02")
+  condition?: string; // CEL Expression (e.g. "data[2] == 0x30 && data[5] > 0x10")
 }
 
 export interface DiscoveryDimension {
   parameter: string;
   offset: number;
   mask?: number;
-  transform?: string; // Simple expression like "bitAnd(x, 0x0F)"
+  transform?: string; // CEL Expression (x is the value)
   detect?: 'active_bits';
 }
 
@@ -65,27 +69,65 @@ function hexToBytes(hex: string): number[] {
   return bytes;
 }
 
+function bytesToHex(bytes: number[]): string {
+  return bytes.map((b) => b.toString(16).padStart(2, '0').toUpperCase()).join(' ');
+}
+
 /**
  * Check if a single match condition applies to a packet
  */
 function matchesCondition(packet: number[], match: DiscoveryMatch): boolean {
-  const offset = match.offset ?? 0;
-  const data = match.data;
-  const mask = match.mask ?? data.map(() => 0xff);
-
-  // Check if packet is long enough
-  if (packet.length < offset + data.length) {
-    return false;
+  // 1. Regex Match (on Hex String)
+  if (match.regex) {
+    const hexString = bytesToHex(packet);
+    try {
+      const regex = new RegExp(match.regex);
+      if (!regex.test(hexString)) {
+        return false;
+      }
+    } catch (e) {
+      // Invalid regex - treat as no match
+      return false;
+    }
   }
 
-  // Check each byte
-  for (let i = 0; i < data.length; i++) {
-    const packetByte = packet[offset + i];
-    const dataByte = data[i];
-    const maskByte = mask[i] ?? 0xff;
+  // 2. CEL Condition Match
+  if (match.condition) {
+    try {
+      const result = CelExecutor.shared().execute(match.condition, {
+        data: packet,
+        len: packet.length,
+      });
+      if (!result) {
+        return false;
+      }
+    } catch (e) {
+      return false; // Error in CEL execution -> treat as no match
+    }
+  }
 
-    if ((packetByte & maskByte) !== (dataByte & maskByte)) {
+  // 3. Binary Data Match (if data is present)
+  // Ensure we don't skip this if regex/condition matched but data is also provided.
+  // All non-undefined constraints must match efficiently.
+  if (match.data) {
+    const offset = match.offset ?? 0;
+    const data = match.data;
+    const mask = match.mask ?? data.map(() => 0xff);
+
+    // Check if packet is long enough
+    if (packet.length < offset + data.length) {
       return false;
+    }
+
+    // Check each byte
+    for (let i = 0; i < data.length; i++) {
+      const packetByte = packet[offset + i];
+      const dataByte = data[i];
+      const maskByte = mask[i] ?? 0xff;
+
+      if ((packetByte & maskByte) !== (dataByte & maskByte)) {
+        return false;
+      }
     }
   }
 
@@ -106,30 +148,25 @@ function matchesPacket(packet: number[], match: DiscoveryMatch): boolean {
 }
 
 /**
- * Evaluate simple transform expression
- * Supports: bitAnd(x, value), x & value, x
+ * Evaluate transform expression using CEL
  */
 function evaluateTransform(value: number, transform: string): number {
-  // bitAnd(x, 0x0F) or bitAnd(x, 15)
-  const bitAndMatch = transform.match(/bitAnd\s*\(\s*x\s*,\s*(0x[0-9a-fA-F]+|\d+)\s*\)/);
-  if (bitAndMatch) {
-    const mask = parseInt(bitAndMatch[1], bitAndMatch[1].startsWith('0x') ? 16 : 10);
-    return value & mask;
-  }
-
-  // x & 0x0F (fallback for simple expressions)
-  const andMatch = transform.match(/x\s*&\s*(0x[0-9a-fA-F]+|\d+)/);
-  if (andMatch) {
-    const mask = parseInt(andMatch[1], andMatch[1].startsWith('0x') ? 16 : 10);
-    return value & mask;
-  }
-
-  // Just x
+  if (!transform) return value;
+  
+  // Optimization: Handle simple 'x' quickly
   if (transform.trim() === 'x') {
     return value;
   }
 
-  return value;
+  try {
+    const result = CelExecutor.shared().execute(transform, { x: value });
+    return Number(result); 
+  } catch (e) {
+    // Fallback or error logging? For now returning original value to be safe, 
+    // or arguably should return 0 or throw?
+    // Given discovery context, safer to return 0 or log.
+    return 0; 
+  }
 }
 
 /**
@@ -152,7 +189,7 @@ function extractDimensionValue(
     value = value & mask;
   }
 
-  // Apply transform if specified
+  // Apply transform if specified (CEL)
   if (transform) {
     value = evaluateTransform(value, transform);
   }

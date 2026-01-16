@@ -19,6 +19,7 @@ import { CommandGenerator } from './protocol/generators/command.generator.js';
 import type { EntityConfig } from './domain/entities/base.entity.js';
 import { normalizeConfig, validateConfig } from './config/index.js';
 import { normalizePortId } from './utils/port.js';
+import { CelExecutor } from './protocol/cel-executor.js';
 
 dotenv.config();
 
@@ -33,6 +34,7 @@ export {
   normalizeConfig,
   normalizePortId,
   validateConfig,
+  CelExecutor,
 };
 export type {
   EntityConfig,
