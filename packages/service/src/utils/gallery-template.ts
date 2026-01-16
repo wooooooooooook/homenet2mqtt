@@ -163,6 +163,14 @@ function evaluateExpression(expression: string, context: Record<string, unknown>
   env.registerFunction('bitShiftLeft(int, int): int', (a: bigint, b: bigint) => a << b);
   env.registerFunction('bitShiftRight(int, int): int', (a: bigint, b: bigint) => a >> b);
 
+  // Helper: Formatting Functions
+  env.registerFunction('hex(int): string', (val: bigint) => {
+    return `0x${Number(val).toString(16).padStart(2, '0')}`;
+  });
+  env.registerFunction('pad(dyn, int): string', (val: unknown, length: bigint) => {
+    return String(typeof val === 'bigint' ? Number(val) : val).padStart(Number(length), '0');
+  });
+
   // Dynamically register variables from context
   const safeContext: Record<string, any> = {};
 
@@ -200,33 +208,7 @@ function evaluateExpression(expression: string, context: Record<string, unknown>
   }
 }
 
-function applyFilters(value: unknown, filters: string[]): unknown {
-  let result = value;
-  for (const filterRaw of filters) {
-    const [filterName, filterArg] = filterRaw.split(':').map((part) => part.trim());
 
-    if (filterName === 'hex') {
-      if (typeof result !== 'number') {
-        throw new Error('[gallery] hex filter requires a number');
-      }
-      result = `0x${result.toString(16).padStart(2, '0')}`;
-      continue;
-    }
-
-    if (filterName === 'pad') {
-      const length = filterArg ? Number.parseInt(filterArg, 10) : 0;
-      if (!Number.isInteger(length) || length <= 0) {
-        throw new Error('[gallery] pad filter requires a positive length');
-      }
-      result = String(result).padStart(length, '0');
-      continue;
-    }
-
-    throw new Error(`[gallery] Unsupported filter: ${filterName}`);
-  }
-
-  return result;
-}
 
 function resolveTemplateValue(template: string, context: Record<string, unknown>): unknown {
   const trimmed = template.trim();
@@ -242,9 +224,7 @@ function resolveTemplateValue(template: string, context: Record<string, unknown>
 }
 
 function evaluateTemplateExpression(expression: string, context: Record<string, unknown>): unknown {
-  const [baseExpression, ...filterParts] = expression.split('|').map((part) => part.trim());
-  const result = evaluateExpression(baseExpression, context);
-  return filterParts.length > 0 ? applyFilters(result, filterParts) : result;
+  return evaluateExpression(expression.trim(), context);
 }
 
 function expandRepeatBlock(

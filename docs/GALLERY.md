@@ -120,7 +120,7 @@ entities:
 
 표현식 문법: `{{expression}}`
 
-보안 강화를 위해 템플릿 표현식은 JavaScript가 아닌 **[Common Expression Language (CEL)](https://github.com/google/cel-spec)**을 사용합니다.
+템플릿 표현식은 **[Common Expression Language (CEL)](https://github.com/google/cel-spec)**을 사용합니다.
 - JavaScript 문법과 유사하지만 더 엄격하며 안전합니다.
 - `process`, `window`, `require` 등 글로벌 객체에 접근할 수 없습니다.
 - `Math` 함수는 지원되지 않으므로 기본 사칙연산만 사용해야 합니다.
@@ -133,8 +133,8 @@ entities:
 | `{{i + 1}}` | 산술 연산 | `2`, `3`, ... |
 | `{{i * 2}}` | 곱셈 | `2`, `4`, ... |
 | `{{room.name}}` | 객체 속성 접근 | `"거실"` |
-| `{{i | hex}}` | 필터: 16진수 변환 | `0x01` |
-| `{{i | pad:2}}` | 필터: 자릿수 패딩 | `"01"` |
+| `{{hex(i)}}` | 헬퍼 함수: 16진수 변환 | `"0x01"` |
+| `{{pad(i, 2)}}` | 헬퍼 함수: 자릿수 패딩 | `"01"` |
 
 **주의사항:**
 - 변수는 `parameters`나 `$repeat`에서 정의된 것만 사용할 수 있습니다.

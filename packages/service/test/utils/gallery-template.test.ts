@@ -86,7 +86,7 @@ describe('Security Check', () => {
      expect((result.entities as any).light[1].name).toBe(0);
   });
 
-  it('should allow pipe filters', () => {
+  it('should allow CEL helper functions for formatting', () => {
      const snippet = {
        parameters: [
          { name: 'val', type: 'integer', default: 10 }
@@ -95,12 +95,12 @@ describe('Security Check', () => {
          light: [
            {
               id: 'test',
-              name: '{{ val | pad:3 }}'
+              name: '{{ pad(val, 3) }}'
            }
          ]
        }
      };
      const result = expandGalleryTemplate(snippet as any, {});
      expect((result.entities as any).light[0].name).toBe('010');
-  });
+   });
 });
