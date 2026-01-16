@@ -64,8 +64,18 @@
 
   const parsedSet = $derived.by(() => new Set(parsedPackets));
 
-  function copyPacket(packet: string) {
-    navigator.clipboard.writeText(packet.toLowerCase());
+  let copiedState = $state<Record<string, boolean>>({});
+
+  async function copyPacket(packet: string) {
+    try {
+      await navigator.clipboard.writeText(packet.toLowerCase());
+      copiedState[packet] = true;
+      setTimeout(() => {
+        copiedState[packet] = false;
+      }, 2000);
+    } catch (err) {
+      console.error('Failed to copy', err);
+    }
   }
 </script>
 
@@ -157,6 +167,14 @@
                 </span>
               {/if}
             </div>
+            <button
+              class="copy-btn"
+              aria-label={$t('common.copy')}
+              title={$t('common.copy')}
+              onclick={() => copyPacket(packet)}
+            >
+              {copiedState[packet] ? '✅' : '📋'}
+            </button>
           </div>
         {/each}
       {/if}
@@ -325,5 +343,31 @@
 
   .error {
     color: var(--danger-color);
+  }
+
+  .copy-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 1.1rem;
+    padding: 0.4rem;
+    border-radius: 6px;
+    color: var(--text-secondary, #94a3b8);
+    transition: all 0.2s;
+    opacity: 0.5;
+  }
+
+  .packet-item:hover .copy-btn {
+    opacity: 1;
+  }
+
+  .copy-btn:focus-visible {
+    opacity: 1;
+    outline: 2px solid var(--primary-color, #3b82f6);
+  }
+
+  .copy-btn:hover {
+    background: rgba(148, 163, 184, 0.1);
+    color: #e2e8f0;
   }
 </style>

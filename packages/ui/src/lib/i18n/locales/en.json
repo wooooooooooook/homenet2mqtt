@@ -286,6 +286,7 @@
     "success": "Success",
     "delete": "Delete",
     "delete_confirm": "Are you sure?",
+    "copy": "Copy",
     "copied": "Copied!",
     "status": {
       "idle": "Idle",
