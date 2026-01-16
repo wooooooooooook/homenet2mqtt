@@ -77,31 +77,7 @@ function resolveParameterValues(
         ? providedValues[definition.name]
         : definition.default;
 
-    // Dynamic Default Evaluation (CEL)
-    if (
-      typeof value === 'string' &&
-      discoveryResult &&
-      (value.includes('{{') || value.includes('discovery.'))
-    ) {
-      const defaultStr = value;
-      // Try to evaluate as CEL if it looks dynamic
-      try {
-        // Prepare context with discovery results
-        const context = {
-          discovery: {
-            results: discoveryResult.parameterValues,
-            count: discoveryResult.matchedPacketCount,
-          },
-        };
 
-        // If it's a template string {{ ... }}, extract content
-        const celExpr = defaultStr.replace(/^{{\s*/, '').replace(/\s*}}$/, '');
-        value = evaluateExpression(celExpr, context);
-      } catch (e) {
-        // If evaluation fails, fall back to literal string or undefined?
-        // console.error(`[gallery] CEL Error resolving default:`, e);
-      }
-    }
 
     // Handle hidden/computed parameters
     if (value === undefined && (definition.hidden || definition.computed)) {

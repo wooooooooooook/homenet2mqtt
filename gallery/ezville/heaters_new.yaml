@@ -12,20 +12,22 @@ parameters:
     type: integer
     default: 5
     min: 1
-    max: 8
+    max: 9
     label: "난방 개수"
     label_en: "Number of Heaters"
 
 discovery:
   match:
     data: [0x36, 0x1F, 0x81]
-    mask: [0xFF, 0x1F, 0xFF] # Room ID masking? 아니면 공통?
-    # Ezville 난방 패킷은 [0x36, 0x1F, 0x81] 공통 사용
+    mask: [0xFF, 0x1F, 0xFF] 
+  dimensions:
+    - parameter: "heater_count"
+      offset: 6
   ui:
     label: "난방"
     label_en: "heaters"
-    summary: "난방 시스템 발견됨"
-    summary_en: "Heating system discovered"
+    summary: "난방 {{heater_count}}개 발견됨"
+    summary_en: "{{heater_count}} heaters discovered"
 
 entities:
   climate:

@@ -3,9 +3,19 @@ meta:
   name_en: "Ventilator"
   description: "삼성 SDS 환기팬 설정입니다. 3단 속도를 지원합니다."
   description_en: "Samsung SDS ventilator with 3-speed control."
-  version: "1.1.0"
+  version: "2.0.0"
   author: "wooooooooooook"
   tags: ["fan", "ventilation", "samsung", "sds"]
+
+discovery:
+  match:
+    data: [0xB0, 0x4E]
+    mask: [0xFF, 0xFF]
+  ui:
+    label: "환기팬"
+    label_en: "Ventilator"
+    summary: "환기팬 발견됨"
+    summary_en: "Ventilator discovered"
 
 entities:
   fan:

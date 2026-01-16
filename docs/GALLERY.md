@@ -56,24 +56,9 @@ parameters:
 | `hidden` | UI에 표시되지 않는 숨겨진 파라미터입니다. | `hidden: true` |
 | `computed` | 계산된 파라미터입니다 (보통 `hidden`과 함께 사용). | `computed: true` |
 
-#### 동적 기본값 (Dynamic Defaults)
 
-`default` 필드에 CEL 표현식을 사용하여 Discovery 결과에 따라 기본값을 동적으로 설정할 수 있습니다.
 
-- **문법**: `{{ expression }}`
-- **Context**:
-  - `discovery.results`: Discovery를 통해 추출된 결과 값 (Map)
-  - `discovery.count`: 매칭된 패킷 수
-
-```yaml
-parameters:
-  - name: light_count
-    type: integer
-    default: '{{ discovery.results.max_id }}' # 발견된 최대 ID 사용
-    label: "조명 개수"
-```
-
-### 반복 블록 (`$repeat`)
+### 반복 블록 (`$repeat`) 
 
 단일 레벨 반복:
 

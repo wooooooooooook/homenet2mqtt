@@ -50,7 +50,6 @@ entities:
     - $repeat:
         over: rooms
         as: room
-        index: room_idx
       $nested:
         # 일괄 제어 (All Lights)
         - id: 'room_{{room.room_id}}_all_lights'

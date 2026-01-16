@@ -1,0 +1,101 @@
+meta:
+  name: "대기전력차단 콘센트 설정"
+  name_en: "Standby Power Cutoff Outlets"
+  description: "삼성 SDS 대기전력차단 콘센트 설정입니다. 개수를 지정할 수 있습니다. 전원 제어 및 전력량(W) 모니터링을 지원합니다."
+  description_en: "Samsung SDS Standby Power Cutoff Outlet configuration with configurable count. Supports power control and power consumption (W) monitoring."
+  version: "2.0.0"
+  author: "wooooooooooook"
+  tags: ["outlet", "plug", "switch", "sensor", "power", "samsung", "sds"]
+
+parameters:
+  - name: outlet_count
+    type: integer
+    default: 5
+    min: 1
+    max: 8
+    label: "콘센트 개수"
+    label_en: "Number of Outlets"
+
+discovery:
+  match:
+    data: [0xB0, 0x4A]
+    mask: [0xFF, 0xFF]
+  dimensions:
+    - parameter: "outlet_count"
+      offset: 2
+  inference:
+    strategy: max
+  ui:
+    label: "대기전력차단 콘센트"
+    label_en: "outlets"
+    summary: "{{outlet_count}}개 콘센트 발견됨"
+    summary_en: "{{outlet_count}} outlets discovered"
+
+entities:
+  switch:
+    # 전원 스위치
+    - $repeat:
+        count: '{{outlet_count}}'
+        as: i
+        start: 1
+      id: 'outlet_{{i}}'
+      name: 'Outlet {{i}}'
+      icon: 'mdi:power-socket-eu'
+      state:
+        data: [0xB0, 0x4A, '{{i}}']
+      state_on:
+        offset: 3
+        data: [0x01]
+        mask: [0x0F]
+      state_off:
+        offset: 3
+        data: [0x00]
+        mask: [0x0F]
+      command_on:
+        data: [0xC6, 0x6E, '{{i}}', 0x01, 0x00, 0x00, 0x00, 0x00, 0x00]
+        ack: [0xB0, 0x6E, '{{i}}']
+      command_off:
+        data: [0xC6, 0x6E, '{{i}}', 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+        ack: [0xB0, 0x6E, '{{i}}']
+
+    # 대기전력 차단 스위치
+    - $repeat:
+        count: '{{outlet_count}}'
+        as: i
+        start: 1
+      id: 'outlet_{{i}}_standby_cutoff'
+      name: 'Outlet {{i}} Standby Cutoff'
+      icon: 'mdi:leaf-circle-outline'
+      state:
+        data: [0xB0, 0x4A, '{{i}}']
+      state_on:
+        offset: 3
+        data: [0x10]
+        mask: [0xF0]
+      state_off:
+        offset: 3
+        data: [0x00]
+        mask: [0xF0]
+      command_on:
+        data: [0xC6, 0x4B, '{{i}}', 0x01, 0x00, 0x00, 0x00, 0x00, 0x00]
+        ack: [0xB0, 0x4B, '{{i}}', 0x01]
+      command_off:
+        data: [0xC6, 0x4B, '{{i}}', 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+        ack: [0xB0, 0x4B, '{{i}}', 0x00]
+
+  sensor:
+    - $repeat:
+        count: '{{outlet_count}}'
+        as: i
+        start: 1
+      id: 'outlet_{{i}}_power'
+      name: 'Outlet {{i}} Power'
+      device_class: 'power'
+      state_class: 'measurement'
+      unit_of_measurement: 'W'
+      icon: 'mdi:lightning-bolt'
+      state:
+        data: [0xB0, 0x4A, '{{i}}']
+      state_number:
+        offset: 4
+        length: 2

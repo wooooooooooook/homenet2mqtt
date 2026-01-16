@@ -71,35 +71,7 @@ describe('Discovery Logic Improvements', () => {
 });
 
 describe('Gallery Template Improvements', () => {
-  it('should resolve dynamic default values using CEL', () => {
-    const snippet: GallerySnippet = {
-      parameters: [
-        {
-          name: 'count',
-          type: 'integer',
-          default: '{{ discovery.count * 2 }}',
-        },
-      ],
-    };
 
-    const discoveryResult = {
-      matched: true,
-      matchedPacketCount: 5,
-      parameterValues: {},
-    };
-
-    const expanded = expandGalleryTemplate(snippet, {}, discoveryResult);
-    // expanded parameters are resolved and put into context, but expandGalleryTemplate removes parameters from output.
-    // However, we can check if entities are expanded correctly or check intermediate if we could.
-    // Instead, let's put the parameter into an entity field to verify.
-    
-    snippet.entities = {
-      test_value: '{{ count }}'
-    };
-    
-    const result = expandGalleryTemplate(snippet, {}, discoveryResult);
-    expect(result.entities?.test_value).toBe(10); // 5 * 2
-  });
 
   it('should handle hidden parameters', () => {
     const snippet: GallerySnippet = {
