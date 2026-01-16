@@ -1,11 +1,13 @@
 <script lang="ts">
   import { t } from 'svelte-i18n';
   import { onMount } from 'svelte';
-  import type { BridgeInfo } from '../types';
+  import type { BridgeSerialInfo, BridgeStatus } from '../types';
   import GalleryItemCard from '../components/GalleryItemCard.svelte';
   import GalleryPreviewModal from '../components/GalleryPreviewModal.svelte';
+  import PortToolbar from '../components/PortToolbar.svelte';
 
   const GALLERY_LIST_URL = './api/gallery/list';
+  const REQUEST_TIMEOUT_MS = 8000;
 
   interface ContentSummary {
     entities: Record<string, number>;
@@ -68,21 +70,16 @@
   }
 
   let {
-    bridgeInfo,
+    portMetadata,
+    portStatuses = [],
+    selectedPortId,
+    onPortChange,
   }: {
-    bridgeInfo: BridgeInfo | null;
+    portMetadata: Array<BridgeSerialInfo & { configFile: string }>;
+    portStatuses?: { portId: string; status: BridgeStatus | 'unknown'; message?: string }[];
+    selectedPortId: string | null;
+    onPortChange?: (portId: string) => void;
   } = $props();
-
-  // Extract ports from bridgeInfo for the modal
-  const ports = $derived(
-    bridgeInfo?.bridges?.reduce<{ portId: string; path: string }[]>(
-      (acc, bridge) =>
-        bridge.serial
-          ? acc.concat({ portId: bridge.serial.portId, path: bridge.serial.path })
-          : acc,
-      [],
-    ) ?? [],
-  );
 
   let galleryData: GalleryData | null = $state(null);
   let loading = $state(true);
@@ -100,11 +97,45 @@
   // Discovery results
   let discoveryResults = $state<Record<string, DiscoveryResult>>({});
   let discoveryLoading = $state(false);
+  let compatibilityByVendor = $state<Record<string, boolean>>({});
+  let compatibilityRequestId = $state(0);
+  let compatibilityCache = $state<Map<string, Record<string, boolean>>>(new Map());
+  let compatibilityTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  let discoveryTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  let discoveryPortId: string | null = null;
+  let discoveryRequestInFlight = false;
+  let galleryAbortController = $state<AbortController | null>(null);
+  let discoveryAbortController = $state<AbortController | null>(null);
+  let compatibilityAbortController = $state<AbortController | null>(null);
 
-  async function loadDiscovery() {
+  const portIds = $derived.by<string[]>(() =>
+    portMetadata.map((port: BridgeSerialInfo & { configFile: string }) => port.portId),
+  );
+  const activePortId = $derived.by<string | null>(() =>
+    selectedPortId && portIds.includes(selectedPortId) ? selectedPortId : (portIds[0] ?? null),
+  );
+
+  async function loadDiscovery(portId: string | null) {
+    if (!portId) {
+      discoveryResults = {};
+      discoveryPortId = null;
+      discoveryRequestInFlight = false;
+      return;
+    }
+    if (discoveryRequestInFlight && discoveryPortId === portId) return;
     discoveryLoading = true;
+    discoveryPortId = portId;
+    discoveryRequestInFlight = true;
+    if (discoveryAbortController) {
+      discoveryAbortController.abort();
+    }
+    const controller = new AbortController();
+    discoveryAbortController = controller;
+    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
     try {
-      const response = await fetch('./api/gallery/discovery');
+      const response = await fetch(`./api/gallery/discovery?portId=${encodeURIComponent(portId)}`, {
+        signal: controller.signal,
+      });
       if (response.ok) {
         const data = await response.json();
         if (data.available && data.results) {
@@ -114,6 +145,11 @@
     } catch {
       // Ignore discovery errors - it's optional
     } finally {
+      clearTimeout(timeoutId);
+      if (discoveryAbortController === controller) {
+        discoveryAbortController = null;
+      }
+      discoveryRequestInFlight = false;
       discoveryLoading = false;
     }
   }
@@ -121,21 +157,145 @@
   async function loadGallery() {
     loading = true;
     error = null;
+    if (galleryAbortController) {
+      galleryAbortController.abort();
+    }
+    const controller = new AbortController();
+    galleryAbortController = controller;
+    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
     try {
-      const response = await fetch(GALLERY_LIST_URL);
+      const response = await fetch(GALLERY_LIST_URL, { signal: controller.signal });
       if (!response.ok) throw new Error('Failed to fetch gallery');
       galleryData = await response.json();
     } catch (e) {
-      error = e instanceof Error ? e.message : 'Unknown error';
+      if (e instanceof Error && e.name === 'AbortError') {
+        error = 'Request timeout';
+      } else {
+        error = e instanceof Error ? e.message : 'Unknown error';
+      }
     } finally {
+      clearTimeout(timeoutId);
+      if (galleryAbortController === controller) {
+        galleryAbortController = null;
+      }
       loading = false;
     }
   }
 
   onMount(() => {
     loadGallery();
-    loadDiscovery();
   });
+
+  async function loadCompatibility(portId: string, vendors: Vendor[], cacheKey: string) {
+    const compatibleKey = cacheKey;
+    const cached = compatibilityCache.get(compatibleKey);
+    if (cached) {
+      compatibilityByVendor = cached;
+      return;
+    }
+
+    const vendorsWithRequirements = vendors.filter((vendor) => vendor.requirements);
+    if (vendorsWithRequirements.length === 0) {
+      compatibilityByVendor = {};
+      compatibilityCache = new Map(compatibilityCache).set(compatibleKey, {});
+      return;
+    }
+
+    if (compatibilityAbortController) {
+      compatibilityAbortController.abort();
+    }
+    const controller = new AbortController();
+    compatibilityAbortController = controller;
+    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    const requestId = compatibilityRequestId + 1;
+    compatibilityRequestId = requestId;
+    try {
+      const response = await fetch('./api/gallery/compatibility', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
+        body: JSON.stringify({
+          portId,
+          vendors: vendorsWithRequirements.map((vendor) => ({
+            id: vendor.id,
+            requirements: vendor.requirements,
+          })),
+        }),
+      });
+      if (!response.ok) throw new Error('Failed to fetch compatibility');
+      const data = await response.json();
+      if (compatibilityRequestId !== requestId) return;
+      compatibilityByVendor = data.compatibilityByVendorId ?? {};
+      compatibilityCache = new Map(compatibilityCache).set(
+        compatibleKey,
+        data.compatibilityByVendorId ?? {},
+      );
+    } catch {
+      if (compatibilityRequestId !== requestId) return;
+      compatibilityByVendor = {};
+    } finally {
+      clearTimeout(timeoutId);
+      if (compatibilityAbortController === controller) {
+        compatibilityAbortController = null;
+      }
+    }
+  }
+
+  $effect(() => {
+    if (!activePortId) {
+      discoveryResults = {};
+      discoveryPortId = null;
+      discoveryRequestInFlight = false;
+      return;
+    }
+
+    if (activePortId === discoveryPortId) return;
+
+    if (discoveryTimeoutId) {
+      clearTimeout(discoveryTimeoutId);
+      discoveryTimeoutId = null;
+    }
+
+    const timeoutId = setTimeout(() => {
+      loadDiscovery(activePortId);
+    }, 300);
+    discoveryTimeoutId = timeoutId;
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  });
+
+  $effect(() => {
+    if (!galleryData || !activePortId) {
+      compatibilityByVendor = {};
+      return;
+    }
+
+    const vendors = galleryData.vendors;
+    const vendorKey = vendors.map((vendor) => vendor.id).join('|');
+    const cacheKey = `${activePortId}:${galleryData.generated_at ?? 'unknown'}:${vendorKey}`;
+
+    if (compatibilityTimeoutId) {
+      clearTimeout(compatibilityTimeoutId);
+      compatibilityTimeoutId = null;
+    }
+
+    const timeoutId = setTimeout(() => {
+      loadCompatibility(activePortId, vendors, cacheKey);
+    }, 300);
+    compatibilityTimeoutId = timeoutId;
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  });
+
+  function resolveCompatibility(vendorId: string) {
+    if (!activePortId) return false;
+    const vendorCompatibility = compatibilityByVendor[vendorId];
+    return vendorCompatibility ?? true;
+  }
 
   const filteredItems = $derived(() => {
     if (!galleryData) return [];
@@ -179,8 +339,17 @@
       );
     }
 
-    // Sort: items with discovery first, then items with parameters
-    items.sort((a, b) => {
+    const decoratedItems = items.map((item) => ({
+      ...item,
+      isCompatible: resolveCompatibility(item.vendorId),
+    }));
+
+    // Sort: compatible items first, then items with discovery, then items with parameters
+    decoratedItems.sort((a, b) => {
+      const aCompatible = a.isCompatible ? 1 : 0;
+      const bCompatible = b.isCompatible ? 1 : 0;
+      if (bCompatible !== aCompatible) return bCompatible - aCompatible;
+
       // Discovery match takes priority
       const aDiscovered = discoveryResults[a.file]?.matched ? 2 : 0;
       const bDiscovered = discoveryResults[b.file]?.matched ? 2 : 0;
@@ -192,7 +361,7 @@
       return bHasParams - aHasParams;
     });
 
-    return items;
+    return decoratedItems;
   });
 
   function openPreview(
@@ -227,6 +396,8 @@
       </button>
     </div>
   {:else if galleryData}
+    <PortToolbar {portIds} {activePortId} {portStatuses} {onPortChange} />
+
     <div class="filters">
       <div class="search-box">
         <input
@@ -275,8 +446,9 @@
       {#each filteredItems() as item (item.file)}
         <GalleryItemCard
           {item}
+          isCompatible={item.isCompatible}
           discoveryResult={discoveryResults[item.file]}
-          onViewDetails={() => openPreview(item)}
+          onViewDetails={() => item.isCompatible && openPreview(item)}
         />
       {:else}
         <div class="no-items">
@@ -290,7 +462,7 @@
 {#if showPreviewModal && selectedItem}
   <GalleryPreviewModal
     item={selectedItem}
-    {ports}
+    portId={activePortId}
     vendorRequirements={selectedItem.vendorRequirements}
     discoveryResult={discoveryResults[selectedItem.file]}
     onClose={closePreview}
