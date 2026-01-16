@@ -109,6 +109,61 @@ export function createGalleryRoutes(ctx: GalleryRoutesContext): Router {
     }
   });
 
+// Helper to check if a config matches vendor requirements
+function checkConfigRequirements(
+  config: HomenetBridgeConfig,
+  requirements: { serial?: Record<string, unknown>; packet_defaults?: Record<string, unknown> },
+): boolean {
+  if (!config.serial) return false;
+
+  // Check serial settings
+  if (requirements.serial) {
+    const serialFields = ['baud_rate', 'data_bits', 'parity', 'stop_bits'];
+    for (const field of serialFields) {
+      const expected = requirements.serial[field];
+      const actual = config.serial[field as keyof typeof config.serial];
+      if (expected !== undefined && actual !== undefined && expected !== actual) {
+        return false;
+      }
+    }
+  }
+
+  // Check packet_defaults
+  if (requirements.packet_defaults) {
+    const packetDefaults = config.packet_defaults || {};
+    const packetFields = [
+      'rx_length',
+      'rx_checksum',
+      'tx_checksum',
+      'rx_header',
+      'tx_header',
+      'rx_footer',
+      'tx_footer',
+    ];
+
+    for (const field of packetFields) {
+      const expected = requirements.packet_defaults[field];
+      const actual = packetDefaults[field as keyof typeof packetDefaults];
+
+      if (expected !== undefined) {
+        // Normalize values: treat empty arrays, null, and undefined as equivalent (empty/default)
+        const normalizeValue = (v: unknown): string | unknown => {
+          if (v === null || v === undefined) return '__EMPTY__';
+          if (Array.isArray(v) && v.length === 0) return '__EMPTY__';
+          if (Array.isArray(v)) return JSON.stringify(v);
+          return v;
+        };
+
+        if (normalizeValue(expected) !== normalizeValue(actual)) {
+          return false;
+        }
+      }
+    }
+  }
+
+  return true;
+}
+
   // Evaluate discovery schemas against packet dictionary
   router.get('/api/gallery/discovery', async (req, res) => {
     if (!ctx.configRateLimiter.check(req.ip || 'unknown')) {
@@ -138,6 +193,7 @@ export function createGalleryRoutes(ctx: GalleryRoutesContext): Router {
       const galleryList = (await listResponse.json()) as {
         vendors: Array<{
           id: string;
+          requirements?: any;
           items: Array<{
             file: string;
             discovery?: DiscoverySchema;
@@ -146,13 +202,39 @@ export function createGalleryRoutes(ctx: GalleryRoutesContext): Router {
       };
 
       const results: Record<string, DiscoveryResult> = {};
+      const currentConfigs = ctx.getCurrentConfigs();
 
       // Process each vendor and item
       for (const vendor of galleryList.vendors) {
+        // If vendor has requirements, check if ANY active config matches them
+        if (vendor.requirements) {
+          const isCompatible = currentConfigs.some((config) =>
+            checkConfigRequirements(config, vendor.requirements),
+          );
+
+          if (!isCompatible) {
+            continue; // Skip this vendor if no active config matches requirements
+          }
+        }
+
         for (const item of vendor.items) {
           // Check if item has discovery schema (included in list_new.json)
           if (item.discovery) {
-            const result = evaluateDiscovery(item.discovery, packetDictionary, unmatchedPackets);
+            let defaultOffset = 0;
+            // Check vendor requirements for rx_header length
+            if (
+              vendor.requirements?.packet_defaults?.rx_header &&
+              Array.isArray(vendor.requirements.packet_defaults.rx_header)
+            ) {
+              defaultOffset = vendor.requirements.packet_defaults.rx_header.length;
+            }
+
+            const result = evaluateDiscovery(
+              item.discovery,
+              packetDictionary,
+              unmatchedPackets,
+              defaultOffset,
+            );
             results[item.file] = result;
           }
         }
