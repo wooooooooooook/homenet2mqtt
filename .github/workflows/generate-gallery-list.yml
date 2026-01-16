@@ -96,10 +96,8 @@ jobs:
                 const doc = yaml.load(content);
                 if (!doc.meta) continue;
 
-                // Check if has parameters or discovery section
+                // Check if has parameters
                 const hasParameters = Array.isArray(doc.parameters) && doc.parameters.length > 0;
-                const hasDiscovery = doc.discovery !== undefined && doc.discovery !== null;
-                const hasAdvancedFeatures = hasParameters || hasDiscovery;
 
                 // Count entities, automations, and scripts
                 const contentSummary = {
@@ -124,7 +122,8 @@ jobs:
                   contentSummary.scripts = doc.scripts.length;
                 }
 
-                const item = {
+                // Base item for legacy list (no discovery)
+                const legacyItem = {
                   file: `${vendorId}/${file}`,
                   name: doc.meta.name || file,
                   name_en: doc.meta.name_en || null,
@@ -137,38 +136,32 @@ jobs:
                   content_summary: contentSummary
                 };
 
-                // Add to appropriate list based on features
-                // - hasParameters: list_new.json only (requires new UI)
-                // - discovery only (no parameters): both lists (legacy compatible)
-                // - neither: list.json only
-                if (hasParameters) {
-                  // Has parameters - new list only
-                  if (!vendorsNew[vendorId]) {
-                    vendorsNew[vendorId] = createVendorEntry();
-                  }
-                  vendorsNew[vendorId].items.push(item);
-                } else {
-                  // No parameters - add to legacy list
+                // Extended item for new list (includes discovery)
+                const newItem = {
+                  ...legacyItem,
+                  discovery: doc.discovery || null
+                };
+
+                // list.json: only items WITHOUT parameters (legacy compatible)
+                if (!hasParameters) {
                   if (!vendorsLegacy[vendorId]) {
                     vendorsLegacy[vendorId] = createVendorEntry();
                   }
-                  vendorsLegacy[vendorId].items.push(item);
-                  
-                  // Also add to new list if has discovery
-                  if (hasDiscovery) {
-                    if (!vendorsNew[vendorId]) {
-                      vendorsNew[vendorId] = createVendorEntry();
-                    }
-                    vendorsNew[vendorId].items.push(item);
-                  }
+                  vendorsLegacy[vendorId].items.push(legacyItem);
                 }
+
+                // list_new.json: ALL items with discovery info
+                if (!vendorsNew[vendorId]) {
+                  vendorsNew[vendorId] = createVendorEntry();
+                }
+                vendorsNew[vendorId].items.push(newItem);
               } catch (err) {
                 console.error(`Error parsing ${filePath}:`, err.message);
               }
             }
           }
 
-          // Generate list.json (without parameters/discovery)
+          // Generate list.json (without parameters - legacy)
           const resultLegacy = {
             generated_at: new Date().toISOString(),
             vendors: Object.values(vendorsLegacy).filter(v => v.items.length > 0)

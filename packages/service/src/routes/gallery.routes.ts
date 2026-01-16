@@ -129,7 +129,7 @@ export function createGalleryRoutes(ctx: GalleryRoutesContext): Router {
       const packetDictionary = ctx.logRetentionService.getPacketDictionary();
       const unmatchedPackets = ctx.logRetentionService.getUnmatchedPackets();
 
-      // Fetch gallery list
+      // Fetch gallery list (list_new.json includes discovery info)
       const listResponse = await fetch(GALLERY_LIST_URL);
       if (!listResponse.ok) {
         return res.status(listResponse.status).json({ error: 'Failed to fetch gallery list' });
@@ -138,7 +138,10 @@ export function createGalleryRoutes(ctx: GalleryRoutesContext): Router {
       const galleryList = (await listResponse.json()) as {
         vendors: Array<{
           id: string;
-          items: Array<{ file: string }>;
+          items: Array<{
+            file: string;
+            discovery?: DiscoverySchema;
+          }>;
         }>;
       };
 
@@ -147,26 +150,10 @@ export function createGalleryRoutes(ctx: GalleryRoutesContext): Router {
       // Process each vendor and item
       for (const vendor of galleryList.vendors) {
         for (const item of vendor.items) {
-          const filePath = `${vendor.id}/${item.file}`;
-
-          try {
-            // Fetch the YAML file
-            const fileUrl = `${GALLERY_RAW_BASE_URL}/${filePath}`;
-            const fileResponse = await fetch(fileUrl);
-            if (!fileResponse.ok) continue;
-
-            const yamlContent = await fileResponse.text();
-            const snippet = yaml.load(yamlContent) as GallerySnippet;
-
-            // Check if snippet has discovery schema
-            if (snippet?.discovery) {
-              const discovery = snippet.discovery as DiscoverySchema;
-              const result = evaluateDiscovery(discovery, packetDictionary, unmatchedPackets);
-              results[filePath] = result;
-            }
-          } catch {
-            // Skip files that fail to parse
-            continue;
+          // Check if item has discovery schema (included in list_new.json)
+          if (item.discovery) {
+            const result = evaluateDiscovery(item.discovery, packetDictionary, unmatchedPackets);
+            results[item.file] = result;
           }
         }
       }
