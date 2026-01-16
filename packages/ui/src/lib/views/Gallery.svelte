@@ -182,8 +182,8 @@
     // Sort: items with discovery first, then items with parameters
     items.sort((a, b) => {
       // Discovery match takes priority
-      const aDiscovered = discoveryResults[`${a.vendorId}/${a.file}`]?.matched ? 2 : 0;
-      const bDiscovered = discoveryResults[`${b.vendorId}/${b.file}`]?.matched ? 2 : 0;
+      const aDiscovered = discoveryResults[a.file]?.matched ? 2 : 0;
+      const bDiscovered = discoveryResults[b.file]?.matched ? 2 : 0;
       if (bDiscovered !== aDiscovered) return bDiscovered - aDiscovered;
 
       // Then items with parameters
@@ -275,7 +275,7 @@
       {#each filteredItems() as item (item.file)}
         <GalleryItemCard
           {item}
-          discoveryResult={discoveryResults[`${item.vendorId}/${item.file}`]}
+          discoveryResult={discoveryResults[item.file]}
           onViewDetails={() => openPreview(item)}
         />
       {:else}
@@ -292,7 +292,7 @@
     item={selectedItem}
     {ports}
     vendorRequirements={selectedItem.vendorRequirements}
-    discoveryResult={discoveryResults[`${selectedItem.vendorId}/${selectedItem.file}`]}
+    discoveryResult={discoveryResults[selectedItem.file]}
     onClose={closePreview}
   />
 {/if}
