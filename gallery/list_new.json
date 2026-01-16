@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-01-16T04:41:37.762Z",
+  "generated_at": "2026-01-16T06:31:31.899Z",
   "vendors": [
     {
       "id": "bestin",
@@ -1897,7 +1897,7 @@
               "type": "integer",
               "default": 5,
               "min": 1,
-              "max": 8,
+              "max": 9,
               "label": "난방 개수",
               "label_en": "Number of Heaters"
             }
@@ -1922,11 +1922,17 @@
                 255
               ]
             },
+            "dimensions": [
+              {
+                "parameter": "heater_count",
+                "offset": 6
+              }
+            ],
             "ui": {
               "label": "난방",
               "label_en": "heaters",
-              "summary": "난방 시스템 발견됨",
-              "summary_en": "Heating system discovered"
+              "summary": "난방 {{heater_count}}개 발견됨",
+              "summary_en": "{{heater_count}} heaters discovered"
             }
           }
         },
@@ -3159,7 +3165,7 @@
           "name_en": "Lights (Room 0-3, 8 Lights)",
           "description": "코콤 조명 8개 설정입니다. (각 방 2개씩)",
           "description_en": "Kocom 8 lights configuration (2 per room).",
-          "version": "2.0.0",
+          "version": "1.0.0",
           "author": "wooooooooooook",
           "tags": [
             "light",
@@ -3169,6 +3175,45 @@
           "content_summary": {
             "entities": {
               "light": 8
+            },
+            "automations": 0,
+            "scripts": 0
+          },
+          "discovery": null
+        },
+        {
+          "file": "kocom/lights_new.yaml",
+          "name": "☑️조명 설정",
+          "name_en": "☑️Lights",
+          "description": "코콤 조명 설정입니다. 방 개수를 설정할 수 있으며, 방당 2개 조명이 생성됩니다.",
+          "description_en": "Kocom lights configuration. Configure room count, with 2 lights per room.",
+          "version": "2.0.0",
+          "author": "wooooooooooook",
+          "tags": [
+            "light",
+            "kocom"
+          ],
+          "parameters": [
+            {
+              "name": "rooms",
+              "type": "integer[]",
+              "label": "방 번호 목록",
+              "label_en": "Room ID List",
+              "default": [
+                0,
+                1,
+                2,
+                3
+              ],
+              "schema": {
+                "min": 0,
+                "max": 15
+              }
+            }
+          ],
+          "content_summary": {
+            "entities": {
+              "light": 1
             },
             "automations": 0,
             "scripts": 0
@@ -3188,11 +3233,21 @@
                 255
               ]
             },
+            "dimensions": [
+              {
+                "parameter": "room_idx",
+                "offset": 4
+              }
+            ],
+            "inference": {
+              "strategy": "count",
+              "output": "rooms"
+            },
             "ui": {
               "label": "조명",
               "label_en": "lights",
-              "summary": "조명 시스템 발견",
-              "summary_en": "Lighting system discovered"
+              "summary": "{room_count}개 방 발견됨",
+              "summary_en": "{room_count} rooms discovered"
             }
           }
         }
@@ -3890,7 +3945,7 @@
           "name_en": "Ventilator",
           "description": "삼성 SDS 환기팬 설정입니다. 3단 속도를 지원합니다.",
           "description_en": "Samsung SDS ventilator with 3-speed control.",
-          "version": "1.1.0",
+          "version": "2.0.0",
           "author": "wooooooooooook",
           "tags": [
             "fan",
@@ -3906,7 +3961,24 @@
             "automations": 0,
             "scripts": 0
           },
-          "discovery": null
+          "discovery": {
+            "match": {
+              "data": [
+                176,
+                78
+              ],
+              "mask": [
+                255,
+                255
+              ]
+            },
+            "ui": {
+              "label": "환기팬",
+              "label_en": "Ventilator",
+              "summary": "환기팬 발견됨",
+              "summary_en": "Ventilator discovered"
+            }
+          }
         },
         {
           "file": "samsung_sds/gas_valve_close.yaml",
@@ -3958,6 +4030,67 @@
           "discovery": null
         },
         {
+          "file": "samsung_sds/heaters_new.yaml",
+          "name": "난방 설정",
+          "name_en": "Heaters",
+          "description": "삼성 SDS 난방 온도조절기 설정입니다. 개수를 지정할 수 있습니다. heating/idle 액션 상태 표시 지원.",
+          "description_en": "Samsung SDS heating thermostats with configurable count. Supports heating/idle action status.",
+          "version": "2.0.0",
+          "author": "wooooooooooook",
+          "tags": [
+            "climate",
+            "heater",
+            "thermostat",
+            "samsung",
+            "sds"
+          ],
+          "parameters": [
+            {
+              "name": "heater_count",
+              "type": "integer",
+              "default": 4,
+              "min": 1,
+              "max": 8,
+              "label": "난방 개수",
+              "label_en": "Number of Heaters"
+            }
+          ],
+          "content_summary": {
+            "entities": {
+              "climate": 1
+            },
+            "automations": 0,
+            "scripts": 0
+          },
+          "discovery": {
+            "match": {
+              "data": [
+                176,
+                124
+              ],
+              "mask": [
+                255,
+                255
+              ]
+            },
+            "dimensions": [
+              {
+                "parameter": "heater_count",
+                "offset": 2
+              }
+            ],
+            "inference": {
+              "strategy": "max"
+            },
+            "ui": {
+              "label": "난방",
+              "label_en": "heaters",
+              "summary": "{{heater_count}}개 난방기 발견됨",
+              "summary_en": "{{heater_count}} heaters discovered"
+            }
+          }
+        },
+        {
           "file": "samsung_sds/lights.yaml",
           "name": "☑️조명 설정 (4개)",
           "name_en": "☑️Lights (4 Lights)",
@@ -4007,6 +4140,70 @@
             "scripts": 0
           },
           "discovery": null
+        },
+        {
+          "file": "samsung_sds/outlet_new.yaml",
+          "name": "대기전력차단 콘센트 설정",
+          "name_en": "Standby Power Cutoff Outlets",
+          "description": "삼성 SDS 대기전력차단 콘센트 설정입니다. 개수를 지정할 수 있습니다. 전원 제어 및 전력량(W) 모니터링을 지원합니다.",
+          "description_en": "Samsung SDS Standby Power Cutoff Outlet configuration with configurable count. Supports power control and power consumption (W) monitoring.",
+          "version": "2.0.0",
+          "author": "wooooooooooook",
+          "tags": [
+            "outlet",
+            "plug",
+            "switch",
+            "sensor",
+            "power",
+            "samsung",
+            "sds"
+          ],
+          "parameters": [
+            {
+              "name": "outlet_count",
+              "type": "integer",
+              "default": 5,
+              "min": 1,
+              "max": 8,
+              "label": "콘센트 개수",
+              "label_en": "Number of Outlets"
+            }
+          ],
+          "content_summary": {
+            "entities": {
+              "switch": 2,
+              "sensor": 1
+            },
+            "automations": 0,
+            "scripts": 0
+          },
+          "discovery": {
+            "match": {
+              "data": [
+                176,
+                74
+              ],
+              "mask": [
+                255,
+                255
+              ]
+            },
+            "dimensions": [
+              {
+                "parameter": "outlet_count",
+                "offset": 2
+              }
+            ],
+            "inference": {
+              "strategy": "max"
+            },
+            "ui": {
+              "label": "대기전력차단 콘센트",
+              "label_en": "outlets",
+              "summary": "{{outlet_count}}개 콘센트 발견됨",
+              "summary_en": "{{outlet_count}} outlets discovered"
+            }
+          }
         }
       ]
     }
