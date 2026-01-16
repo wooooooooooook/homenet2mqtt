@@ -1,4 +1,5 @@
 type ParameterType = 'integer' | 'string' | 'integer[]' | 'object[]';
+import vm from 'node:vm';
 
 export interface GalleryParameterDefinition {
   name: string;
@@ -120,8 +121,12 @@ function evaluateExpression(expression: string, context: Record<string, unknown>
     throw new Error(`[gallery] Unsupported expression: ${expression}`);
   }
 
-  const evaluator = new Function('context', `with (context) { return (${expression}); }`);
-  return evaluator(context);
+  // Use vm.runInNewContext instead of new Function/eval for security
+  // This prevents access to global objects like 'process'
+  return vm.runInNewContext(expression, {
+    ...context,
+    Math, // Allow Math functions
+  });
 }
 
 function applyFilters(value: unknown, filters: string[]): unknown {
