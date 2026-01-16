@@ -100,7 +100,7 @@
   let compatibilityByVendor = $state<Record<string, boolean>>({});
   let compatibilityRequestId = $state(0);
   let compatibilityCache = $state<Map<string, Record<string, boolean>>>(new Map());
-  let compatibilityTimeoutId = $state<ReturnType<typeof setTimeout> | null>(null);
+  let compatibilityTimeoutId: ReturnType<typeof setTimeout> | null = null;
   let discoveryTimeoutId: ReturnType<typeof setTimeout> | null = null;
   let discoveryPortId: string | null = null;
   let discoveryRequestInFlight = false;
