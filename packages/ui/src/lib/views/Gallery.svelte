@@ -101,9 +101,9 @@
   let compatibilityRequestId = $state(0);
   let compatibilityCache = $state<Map<string, Record<string, boolean>>>(new Map());
   let compatibilityTimeoutId = $state<ReturnType<typeof setTimeout> | null>(null);
-  let discoveryTimeoutId = $state<ReturnType<typeof setTimeout> | null>(null);
-  let discoveryPortId = $state<string | null>(null);
-  let discoveryLoadedPortId = $state<string | null>(null);
+  let discoveryTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  let discoveryPortId: string | null = null;
+  let discoveryRequestInFlight = false;
   let galleryAbortController = $state<AbortController | null>(null);
   let discoveryAbortController = $state<AbortController | null>(null);
   let compatibilityAbortController = $state<AbortController | null>(null);
@@ -119,12 +119,13 @@
     if (!portId) {
       discoveryResults = {};
       discoveryPortId = null;
-      discoveryLoadedPortId = null;
+      discoveryRequestInFlight = false;
       return;
     }
-    if (discoveryLoading && discoveryPortId === portId) return;
+    if (discoveryRequestInFlight && discoveryPortId === portId) return;
     discoveryLoading = true;
     discoveryPortId = portId;
+    discoveryRequestInFlight = true;
     if (discoveryAbortController) {
       discoveryAbortController.abort();
     }
@@ -148,9 +149,7 @@
       if (discoveryAbortController === controller) {
         discoveryAbortController = null;
       }
-      if (discoveryPortId === portId) {
-        discoveryLoadedPortId = portId;
-      }
+      discoveryRequestInFlight = false;
       discoveryLoading = false;
     }
   }
@@ -246,9 +245,11 @@
     if (!activePortId) {
       discoveryResults = {};
       discoveryPortId = null;
-      discoveryLoadedPortId = null;
+      discoveryRequestInFlight = false;
       return;
     }
+
+    if (activePortId === discoveryPortId) return;
 
     if (discoveryTimeoutId) {
       clearTimeout(discoveryTimeoutId);
@@ -256,7 +257,6 @@
     }
 
     const timeoutId = setTimeout(() => {
-      if (activePortId === discoveryLoadedPortId || discoveryLoading) return;
       loadDiscovery(activePortId);
     }, 300);
     discoveryTimeoutId = timeoutId;
