@@ -98,6 +98,8 @@
   let discoveryLoading = $state(false);
   let compatibilityByVendor = $state<Record<string, boolean>>({});
   let compatibilityRequestId = $state(0);
+  let compatibilityCache = $state<Map<string, Record<string, boolean>>>(new Map());
+  let compatibilityTimeoutId = $state<ReturnType<typeof setTimeout> | null>(null);
 
   const portIds = $derived.by<string[]>(() =>
     portMetadata.map((port: BridgeSerialInfo & { configFile: string }) => port.portId),
@@ -143,6 +145,18 @@
   });
 
   async function loadCompatibility(portId: string, vendors: Vendor[]) {
+    const compatibleKey = `${portId}:${JSON.stringify(
+      vendors.map((vendor) => ({
+        id: vendor.id,
+        requirements: vendor.requirements ?? null,
+      })),
+    )}`;
+    const cached = compatibilityCache.get(compatibleKey);
+    if (cached) {
+      compatibilityByVendor = cached;
+      return;
+    }
+
     const requestId = compatibilityRequestId + 1;
     compatibilityRequestId = requestId;
     try {
@@ -161,6 +175,10 @@
       const data = await response.json();
       if (compatibilityRequestId !== requestId) return;
       compatibilityByVendor = data.compatibilityByVendorId ?? {};
+      compatibilityCache = new Map(compatibilityCache).set(
+        compatibleKey,
+        data.compatibilityByVendorId ?? {},
+      );
     } catch {
       if (compatibilityRequestId !== requestId) return;
       compatibilityByVendor = {};
@@ -174,7 +192,22 @@
       compatibilityByVendor = {};
       return;
     }
-    loadCompatibility(activePortId, galleryData.vendors);
+
+    const vendors = galleryData.vendors;
+
+    if (compatibilityTimeoutId) {
+      clearTimeout(compatibilityTimeoutId);
+      compatibilityTimeoutId = null;
+    }
+
+    const timeoutId = setTimeout(() => {
+      loadCompatibility(activePortId, vendors);
+    }, 300);
+    compatibilityTimeoutId = timeoutId;
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
   });
 
   function resolveCompatibility(vendorId: string) {
