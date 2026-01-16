@@ -3,7 +3,7 @@ meta:
   name_en: "☑️Smart Plugs (4 Outlets)"
   description: "코맥스 스마트 콘센트 4개 설정입니다. 전력 사용량 센서도 포함되어 있습니다."
   description_en: "Commax 4 smart plugs with power consumption sensors."
-  version: "1.0.0"
+  version: "1.0.1"
   author: "wooooooooooook"
   tags: ["switch", "plug", "outlet", "power", "sensor", "commax"]
 
@@ -140,5 +140,8 @@ entities:
       state:
         data: [0xF9, 0x00, 0x04, 0x11]
         mask: [0xFF, 0x00, 0xFF, 0xFF]
-      state_value: >-
-        double((bcd_to_int(data[4]) * 10000) + (bcd_to_int(data[5]) * 100) + bcd_to_int(data[6])) * 0.1
+      state_value:
+        offset: 4
+        length: 3
+        decode: bcd
+        precision: 1

@@ -3,9 +3,17 @@ meta:
   name_en: "Gas Valve"
   description: "코맥스 가스밸브 설정입니다. 닫기 전용 밸브입니다."
   description_en: "Commax gas valve configuration. Close-only valve."
-  version: "1.0.0"
+  version: "2.0.0"
   author: "wooooooooooook"
   tags: ["valve", "gas", "commax"]
+
+discovery:
+  match:
+    data: [0x90]
+  dimensions: []
+  ui:
+    label: "가스밸브"
+    label_en: "Gas Valve"
 
 entities:
   #상태      Head,   ON,   ID, 0x00, 0x00, 0x00, 0x00, add checksum

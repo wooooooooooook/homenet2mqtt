@@ -1,0 +1,90 @@
+meta:
+  name: "☑️난방 설정"
+  name_en: "☑️Heaters"
+  description: "코맥스 난방 온도조절기 설정입니다. 개수를 지정할 수 있습니다."
+  description_en: "Commax heating thermostats with temperature control. You can specify the count."
+  version: "2.0.0"
+  author: "wooooooooooook"
+  tags: ["climate", "heater", "thermostat", "commax"]
+parameters:
+  - name: heater_count
+    type: integer
+    default: 4
+    min: 1
+    max: 9
+    label: "난방 개수"
+    label_en: "Number of Heaters"
+discovery:
+  match:
+    data: [0x82]
+    mask: [0xFE]
+  dimensions:
+    - parameter: "heater_count"
+      offset: 2
+  inference:
+    strategy: max
+  ui:
+    label: "난방기"
+    label_en: "heaters"
+    summary: "{heater_count}개 난방기 발견됨"
+    summary_en: "{heater_count} heaters discovered"
+entities:
+  #상태      Head,   ON,   ID,  Cur,  Tar, 0x00, 0x00, add checksum
+  #상태 ON   0x82, 0x81, 0x01, 0xXX, 0xXX, 0x00, 0x00, add checksum
+  #상태 OFF  0x82, 0x80, 0x01, 0xXX, 0xXX, 0x00, 0x00, add checksum
+  #상태 HEAT 0x82, 0x83, 0x01, 0xXX, 0xXX, 0x00, 0x00, add checksum
+  #응답 ON   0x84, 0x81, 0x01, 0xXX, 0xXX, 0x00, 0x00, add checksum
+  #응답 OFF  0x84, 0x80, 0x01, 0xXX, 0xXX, 0x00, 0x00, add checksum
+  #응답 HEAT 0x84, 0x83, 0x01, 0xXX, 0xXX, 0x00, 0x00, add checksum
+
+  #명령        Head,   ID,  CMD,   ON, 0x00, 0x00, 0x00, add checksum
+  #명령 ON     0x04, 0x01, 0x04, 0x81, 0x00, 0x00, 0x00, add checksum
+  #명령 OFF    0x04, 0x01, 0x04, 0x00, 0x00, 0x00, 0x00, add checksum
+  #명령 CHANGE 0x04, 0x01, 0x03, 0xXX, 0x00, 0x00, 0x00, add checksum
+  climate:
+    - $repeat:
+        count: '{{heater_count}}'
+        as: i
+        start: 1
+      id: 'heater_{{i}}'
+      name: 'Heater {{i}}'
+      visual:
+        min_temperature: 5 °C
+        max_temperature: 40 °C
+        temperature_step: 1 °C
+      state:
+        data: [0x80, 0x00, '{{i}}']
+        mask: [0xF9, 0x00, 0xFF]
+      state_temperature_current:
+        offset: 3
+        signed: False
+        decode: bcd
+      state_temperature_target:
+        offset: 4
+        signed: False
+        decode: bcd
+      state_off:
+        offset: 1
+        data: [0x80]
+      state_heat:
+        offset: 1
+        data: [0x00]
+        mask: [0x0F]
+        inverted: True
+      state_action_off:
+        offset: 1
+        data: [0x80]
+      state_action_idle:
+        offset: 1
+        data: [0x81]
+      state_action_heating:
+        offset: 1
+        data: [0x83]
+      command_off:
+        data: [0x04, '{{i}}', 0x04, 0x00, 0x00, 0x00, 0x00]
+        ack: [0x84, 0x80, '{{i}}']
+      command_heat:
+        data: [0x04, '{{i}}', 0x04, 0x81, 0x00, 0x00, 0x00]
+        ack: [0x84, 0x81, '{{i}}']
+      command_temperature: >-
+        [[0x04, {{i}}, 0x03, int_to_bcd(x), 0x00, 0x00, 0x00], [0x84, 0x00, {{i}}], [0xFF, 0x00, 0xFF]]

@@ -1,9 +1,9 @@
 meta:
   name: "☑️조명 설정 (4개)"
   name_en: "☑️Lights (4 Lights)"
-  description: "코맥스 조명 4개 + 일괄소등 스위치 설정입니다."
-  description_en: "Commax 4 lights with master light breaker switch."
-  version: "1.0.0"
+  description: "코맥스 조명 4개 설정입니다."
+  description_en: "Commax 4 lights."
+  version: "1.0.1"
   author: "wooooooooooook"
   tags: ["light", "commax"]
 
@@ -30,24 +30,6 @@ entities:
   #명령 ON   0x31, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, add checksum
   #명령 OFF  0x31, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, add checksum
   light:
-    - id: 'light_breaker'
-      name: 'Light Breaker'
-      state:
-        data: [0xA0, 0x00, 0x01]
-        mask: [0xF0, 0x00, 0xFF]
-      state_on:
-        offset: 1
-        data: [0x01]
-      state_off:
-        offset: 1
-        data: [0x00]
-      command_on:
-        data: [0x22, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00]
-        ack: [0xA2, 0x01, 0x01]
-      command_off:
-        data: [0x22, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00]
-        ack: [0xA2, 0x00, 0x01]
-
     - id: 'light_1'
       name: 'Light 1'
       state:

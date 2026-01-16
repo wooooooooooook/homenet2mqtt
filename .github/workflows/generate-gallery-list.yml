@@ -138,16 +138,29 @@ jobs:
                 };
 
                 // Add to appropriate list based on features
-                if (hasAdvancedFeatures) {
+                // - hasParameters: list_new.json only (requires new UI)
+                // - discovery only (no parameters): both lists (legacy compatible)
+                // - neither: list.json only
+                if (hasParameters) {
+                  // Has parameters - new list only
                   if (!vendorsNew[vendorId]) {
                     vendorsNew[vendorId] = createVendorEntry();
                   }
                   vendorsNew[vendorId].items.push(item);
                 } else {
+                  // No parameters - add to legacy list
                   if (!vendorsLegacy[vendorId]) {
                     vendorsLegacy[vendorId] = createVendorEntry();
                   }
                   vendorsLegacy[vendorId].items.push(item);
+                  
+                  // Also add to new list if has discovery
+                  if (hasDiscovery) {
+                    if (!vendorsNew[vendorId]) {
+                      vendorsNew[vendorId] = createVendorEntry();
+                    }
+                    vendorsNew[vendorId].items.push(item);
+                  }
                 }
               } catch (err) {
                 console.error(`Error parsing ${filePath}:`, err.message);
