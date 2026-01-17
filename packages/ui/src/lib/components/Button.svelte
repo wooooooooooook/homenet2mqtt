@@ -37,7 +37,8 @@
   // If a title is provided, we want it to be visible even when disabled.
   // Native 'disabled' attribute suppresses mouse events, preventing the title tooltip.
   // So we use aria-disabled only when title is present, allowing hover.
-  let useNativeDisabled = $derived((disabled || isLoading) && !title);
+  // We also avoid native disabled for loading state to preserve focus.
+  let useNativeDisabled = $derived(disabled && !title);
   let isDisabled = $derived(disabled || isLoading);
 </script>
 
@@ -52,7 +53,7 @@
   aria-label={ariaLabel}
   aria-busy={isLoading}
   {title}
-  tabindex={isDisabled ? -1 : undefined}
+  tabindex={disabled ? -1 : undefined}
 >
   {#if isLoading}
     <span class="spinner" aria-hidden="true"></span>
