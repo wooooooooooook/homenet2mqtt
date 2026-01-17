@@ -77,8 +77,6 @@ function resolveParameterValues(
         ? providedValues[definition.name]
         : definition.default;
 
-
-
     // Handle hidden/computed parameters
     if (value === undefined && (definition.hidden || definition.computed)) {
       // Intentionally empty block - fall through to error check if truly missing
@@ -283,9 +281,7 @@ function expandRepeatBlock(
     list.forEach((item, index) => iterations.push({ value: item, index }));
   } else if (repeat.count !== undefined) {
     const countValue =
-      typeof repeat.count === 'string'
-        ? resolveTemplateValue(repeat.count, context)
-        : repeat.count;
+      typeof repeat.count === 'string' ? resolveTemplateValue(repeat.count, context) : repeat.count;
     const count = coerceInteger(countValue, repeat.as);
     const start = repeat.start ?? 1;
     for (let i = 0; i < count; i += 1) {

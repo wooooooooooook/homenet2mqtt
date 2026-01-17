@@ -62,6 +62,11 @@
 
 > **참고**: 체크섬 필드에 알고리즘 이름 대신 CEL 표현식을 작성하면 커스텀 로직을 적용할 수 있습니다.
 > 예: `rx_checksum: "data[0] + data[1]"`
+>
+> **사용 가능한 컨텍스트 변수**:
+> * `data`: 패킷 데이터 (List of int)
+> * `len`: 패킷 길이 (int)
+> * 상세 내용은 [CEL 가이드](../CEL_GUIDE.md#6-체크섬-계산-rx_checksum-tx_checksum)를 참고하세요.
 
 ### 체크섬 문제 해결 (Troubleshooting)
 
@@ -160,6 +165,10 @@ homenet_bridge:
 ```
 
 ### CEL 표현식 규칙
+
+**사용 가능한 컨텍스트 변수:**
+*   `data`: 현재 수신 버퍼 데이터 (List of int).
+*   `len`: 현재 수신 버퍼의 남은 길이 (int).
 
 | 반환값 | 동작 |
 |--------|------|

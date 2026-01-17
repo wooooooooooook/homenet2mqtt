@@ -641,7 +641,7 @@ export class HomeNetBridge extends EventEmitter {
           this.emit('status', { portId: normalizedPortId, status: 'started' });
         });
       }
-      
+
       // Create a shared states Map for this port context
       const states = new Map<string, Record<string, any>>();
       const packetProcessor = new PacketProcessor(

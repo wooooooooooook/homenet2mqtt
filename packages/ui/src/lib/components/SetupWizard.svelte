@@ -203,20 +203,14 @@
     return val;
   }
 
-  function handleChecksumChange(
-    key: 'rx_checksum' | 'tx_checksum',
-    value: string,
-  ) {
+  function handleChecksumChange(key: 'rx_checksum' | 'tx_checksum', value: string) {
     packetDefaults[key] = value;
     if (!value) return;
     const otherKey = key === 'rx_checksum' ? 'rx_checksum2' : 'tx_checksum2';
     packetDefaults[otherKey] = '';
   }
 
-  function handleChecksum2Change(
-    key: 'rx_checksum2' | 'tx_checksum2',
-    value: string,
-  ) {
+  function handleChecksum2Change(key: 'rx_checksum2' | 'tx_checksum2', value: string) {
     packetDefaults[key] = value;
     if (!value) return;
     const otherKey = key === 'rx_checksum2' ? 'rx_checksum' : 'tx_checksum';
@@ -771,7 +765,9 @@
               disabled={submitting}
               aria-describedby="serial-port-id-hint"
             />
-            <p id="serial-port-id-hint" class="field-hint">{$t('setup_wizard.serial_port_id_hint')}</p>
+            <p id="serial-port-id-hint" class="field-hint">
+              {$t('setup_wizard.serial_port_id_hint')}
+            </p>
           </div>
 
           {#if selectedExample === EMPTY_CONFIG_VALUE}
@@ -950,7 +946,9 @@
                 bind:value={packetDefaults.rx_timeout}
                 aria-describedby="rx-timeout-hint"
               />
-              <p id="rx-timeout-hint" class="field-hint">{$t('setup_wizard.pdf_rx_timeout_hint')}</p>
+              <p id="rx-timeout-hint" class="field-hint">
+                {$t('setup_wizard.pdf_rx_timeout_hint')}
+              </p>
             </div>
             <div class="form-group">
               <label for="tx_delay">{$t('setup_wizard.pdf_tx_delay')}</label>
@@ -973,7 +971,9 @@
                 bind:value={packetDefaults.tx_timeout}
                 aria-describedby="tx-timeout-hint"
               />
-              <p id="tx-timeout-hint" class="field-hint">{$t('setup_wizard.pdf_tx_timeout_hint')}</p>
+              <p id="tx-timeout-hint" class="field-hint">
+                {$t('setup_wizard.pdf_tx_timeout_hint')}
+              </p>
             </div>
             <div class="form-group">
               <label for="tx_retry_cnt">{$t('setup_wizard.pdf_tx_retry_cnt')}</label>

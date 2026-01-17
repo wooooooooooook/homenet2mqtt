@@ -9,7 +9,7 @@ describe('PacketParser Valid Headers Optimization Performance', () => {
     const parser = new PacketParser({
       rx_length: len,
       rx_checksum: 'add',
-      rx_valid_headers: [0xAA]
+      rx_valid_headers: [0xaa],
     });
 
     const size = 10000;
@@ -23,8 +23,8 @@ describe('PacketParser Valid Headers Optimization Performance', () => {
     // Insert valid packets every 100 bytes
     let packetCount = 0;
     for (let i = 0; i < size - len; i += 100) {
-      buf[i] = 0xAA; // Valid Header
-      let sum = 0xAA;
+      buf[i] = 0xaa; // Valid Header
+      let sum = 0xaa;
       for (let j = 1; j < len - 1; j++) {
         sum += buf[i + j];
       }
@@ -37,7 +37,9 @@ describe('PacketParser Valid Headers Optimization Performance', () => {
     const end = process.hrtime.bigint();
 
     const elapsedMs = Number(end - start) / 1e6;
-    console.log(`[Fixed+ValidHeader] Parsed ${packets.length} packets in ${elapsedMs.toFixed(2)} ms from ${size} bytes`);
+    console.log(
+      `[Fixed+ValidHeader] Parsed ${packets.length} packets in ${elapsedMs.toFixed(2)} ms from ${size} bytes`,
+    );
 
     expect(packets.length).toBe(packetCount);
   });
@@ -45,9 +47,9 @@ describe('PacketParser Valid Headers Optimization Performance', () => {
   it('measures performance of footer delimited scanning with valid headers (Noisy)', () => {
     // Protocol with Footer 0xFF, Add Checksum, Valid Header 0xAA
     const parser = new PacketParser({
-      rx_footer: [0xFF],
+      rx_footer: [0xff],
       rx_checksum: 'add',
-      rx_valid_headers: [0xAA]
+      rx_valid_headers: [0xaa],
     });
 
     const size = 10000;
@@ -62,17 +64,17 @@ describe('PacketParser Valid Headers Optimization Performance', () => {
     const packetLen = 10;
     let packetCount = 0;
     for (let i = 0; i < size - packetLen; i += 100) {
-      buf[i] = 0xAA; // Valid Header
-      buf[i + packetLen - 1] = 0xFF; // Footer
+      buf[i] = 0xaa; // Valid Header
+      buf[i + packetLen - 1] = 0xff; // Footer
 
       // Calculate checksum (add, exclude footer)
       // Checksum at i+8. Sum 0..7.
       // header at i.
       let sum = 0;
-      for(let k = 0; k < 8; k++) {
-         sum += buf[i+k];
+      for (let k = 0; k < 8; k++) {
+        sum += buf[i + k];
       }
-      buf[i+8] = sum & 0xff;
+      buf[i + 8] = sum & 0xff;
 
       packetCount++;
     }
@@ -82,7 +84,9 @@ describe('PacketParser Valid Headers Optimization Performance', () => {
     const end = process.hrtime.bigint();
 
     const elapsedMs = Number(end - start) / 1e6;
-    console.log(`[Footer+ValidHeader] Parsed ${packets.length} packets in ${elapsedMs.toFixed(2)} ms from ${size} bytes`);
+    console.log(
+      `[Footer+ValidHeader] Parsed ${packets.length} packets in ${elapsedMs.toFixed(2)} ms from ${size} bytes`,
+    );
 
     expect(packets.length).toBe(packetCount);
   });

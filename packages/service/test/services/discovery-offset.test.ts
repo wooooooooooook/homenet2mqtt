@@ -1,4 +1,3 @@
-
 import { describe, it, expect } from 'vitest';
 import { evaluateDiscovery, type DiscoverySchema } from '../../src/services/discovery.service.js';
 
@@ -18,22 +17,12 @@ describe('Discovery Service - Default Offset', () => {
     };
 
     // With defaultOffset = 1 (skipping B0)
-    const resultWithOffset = evaluateDiscovery(
-      discovery,
-      packetDictionary,
-      unmatchedPackets,
-      1
-    );
+    const resultWithOffset = evaluateDiscovery(discovery, packetDictionary, unmatchedPackets, 1);
     expect(resultWithOffset.matched).toBe(true);
     expect(resultWithOffset.matchedPacketCount).toBe(1);
 
     // With defaultOffset = 0 (matching B0 against 01 -> fail)
-    const resultWithoutOffset = evaluateDiscovery(
-      discovery,
-      packetDictionary,
-      unmatchedPackets,
-      0
-    );
+    const resultWithoutOffset = evaluateDiscovery(discovery, packetDictionary, unmatchedPackets, 0);
     expect(resultWithoutOffset.matched).toBe(false);
   });
 
@@ -52,45 +41,35 @@ describe('Discovery Service - Default Offset', () => {
       discovery,
       packetDictionary,
       unmatchedPackets,
-      0 // defaultOffset ignored
+      0, // defaultOffset ignored
     );
     expect(result.matched).toBe(true);
   });
 
   it('should handle undefined defaultOffset as 0', () => {
-     const discovery: DiscoverySchema = {
+    const discovery: DiscoverySchema = {
       match: {
         // No offset, no defaultOffset -> offset 0. Should match 'B0'
-        data: [0xB0],
+        data: [0xb0],
       },
       dimensions: [],
     };
 
-    const result = evaluateDiscovery(
-      discovery,
-      packetDictionary,
-      unmatchedPackets,
-      undefined
-    );
-     expect(result.matched).toBe(true);
+    const result = evaluateDiscovery(discovery, packetDictionary, unmatchedPackets, undefined);
+    expect(result.matched).toBe(true);
   });
 
   it('should handle undefined dimensions smoothly', () => {
     const discovery: DiscoverySchema = {
       match: {
-        data: [0xB0],
+        data: [0xb0],
       },
       // dimensions explicitly undefined
       dimensions: undefined as any,
     };
 
-    const result = evaluateDiscovery(
-      discovery,
-      packetDictionary,
-      unmatchedPackets,
-      0
-    );
-     expect(result.matched).toBe(true);
-     expect(result.parameterValues).toEqual({});
+    const result = evaluateDiscovery(discovery, packetDictionary, unmatchedPackets, 0);
+    expect(result.matched).toBe(true);
+    expect(result.parameterValues).toEqual({});
   });
 });

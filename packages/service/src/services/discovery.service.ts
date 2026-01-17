@@ -156,7 +156,7 @@ function matchesPacket(packet: number[], match: DiscoveryMatch, defaultOffset?: 
  */
 function evaluateTransform(value: number, transform: string): number {
   if (!transform) return value;
-  
+
   // Optimization: Handle simple 'x' quickly
   if (transform.trim() === 'x') {
     return value;
@@ -164,22 +164,19 @@ function evaluateTransform(value: number, transform: string): number {
 
   try {
     const result = CelExecutor.shared().execute(transform, { x: value });
-    return Number(result); 
+    return Number(result);
   } catch (e) {
-    // Fallback or error logging? For now returning original value to be safe, 
+    // Fallback or error logging? For now returning original value to be safe,
     // or arguably should return 0 or throw?
     // Given discovery context, safer to return 0 or log.
-    return 0; 
+    return 0;
   }
 }
 
 /**
  * Extract value from a packet for a dimension
  */
-function extractDimensionValue(
-  packet: number[],
-  dimension: DiscoveryDimension,
-): number | null {
+function extractDimensionValue(packet: number[], dimension: DiscoveryDimension): number | null {
   const { offset, mask, transform, detect } = dimension;
 
   if (packet.length <= offset) {
@@ -343,10 +340,7 @@ export function evaluateDiscovery(
 
           // Also provide counts
           parameterValues[dimNames[0]] = Object.keys(groups).length;
-          parameterValues[dimNames[1]] = Math.max(
-            ...Object.values(groups).map((s) => s.size),
-            0,
-          );
+          parameterValues[dimNames[1]] = Math.max(...Object.values(groups).map((s) => s.size), 0);
         }
       }
       break;
