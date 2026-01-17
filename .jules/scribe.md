@@ -19,3 +19,7 @@
 ## 2024-05-25 - CEL List Operations Gap
 **Learning:** Users cannot implement basic custom checksums (like simple Sum or XOR of all bytes) for variable-length packets using CEL because loops are prohibited and no aggregate helper functions (e.g., `sum(list)`, `xor_sum(list)`) exist.
 **Action:** Consider implementing high-performance aggregate helper functions in `CelExecutor` to enable variable-length packet processing without violating the "no loops" sandbox principle.
+
+## 2024-05-25 - CEL Context Variable Discrepancy
+**Learning:** The documentation for `tx_checksum` incorrectly stated that `state` and `states` were available, but the code does not inject them. Also `rx_length_expr` context was undocumented.
+**Action:** When documenting CEL expressions, verify the exact context object passed to `execute` in the corresponding source file (e.g., `GenericDevice.ts`, `PacketParser.ts`).

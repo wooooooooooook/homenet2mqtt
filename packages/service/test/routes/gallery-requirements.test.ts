@@ -1,10 +1,9 @@
-
 import { describe, it, expect } from 'vitest';
 import { HomenetBridgeConfig } from '@rs485-homenet/core';
 
-// We need to test the checkConfigRequirements logic. 
-// Since it's not exported from gallery.routes.ts and is inside the file scope, 
-// we'll copy the logic here for unit testing to ensure correctness, 
+// We need to test the checkConfigRequirements logic.
+// Since it's not exported from gallery.routes.ts and is inside the file scope,
+// we'll copy the logic here for unit testing to ensure correctness,
 // or simpler, we can extract it to a utility file if we wanted to be cleaner.
 // For now, I will create a test that mocks the matching logic to verify expected behavior.
 
@@ -73,14 +72,14 @@ describe('checkConfigRequirements', () => {
         stop_bits: 1,
       },
       packet_defaults: {
-        rx_header: [0xAA],
+        rx_header: [0xaa],
       },
       mqtt: { broker_url: '' }, // minimal required
     };
 
     const requirements = {
       serial: { baud_rate: 9600, parity: 'none' },
-      packet_defaults: { rx_header: [0xAA] },
+      packet_defaults: { rx_header: [0xaa] },
     };
 
     expect(checkConfigRequirements(config, requirements)).toBe(true);
@@ -115,13 +114,13 @@ describe('checkConfigRequirements', () => {
         stop_bits: 1,
       },
       packet_defaults: {
-        rx_header: [0xAA],
+        rx_header: [0xaa],
       },
       mqtt: { broker_url: '' },
     };
 
     const requirements = {
-      packet_defaults: { rx_header: [0xBB] },
+      packet_defaults: { rx_header: [0xbb] },
     };
 
     expect(checkConfigRequirements(config, requirements)).toBe(false);
@@ -144,17 +143,17 @@ describe('checkConfigRequirements', () => {
 
     // requirement expects null (should match empty array)
     const req1 = {
-        packet_defaults: { rx_header: null }
+      packet_defaults: { rx_header: null },
     };
     expect(checkConfigRequirements(config, req1)).toBe(true);
 
     // requirement expects undefined (should be ignored effectively if not present in object loop, but if passed explicitly as undefined it might trigger match logic depending on loop, but here JSON.stringify handles it)
-    // Actually our logic says: if expected !== undefined. 
-    // If I explicitly pass undefined in the object, the loop 'for (const field of packetFields)' 
+    // Actually our logic says: if expected !== undefined.
+    // If I explicitly pass undefined in the object, the loop 'for (const field of packetFields)'
     // will see expected as undefined and skip the check.
-    
+
     // Test explicit empty array requirement matching null config
-     const config2: HomenetBridgeConfig = {
+    const config2: HomenetBridgeConfig = {
       serial: {
         port: '/dev/ttyUSB0',
         baud_rate: 9600,
@@ -163,13 +162,13 @@ describe('checkConfigRequirements', () => {
         stop_bits: 1,
       },
       packet_defaults: {
-          // rx_header undefined
+        // rx_header undefined
       },
       mqtt: { broker_url: '' },
     };
-    
+
     const req2 = {
-        packet_defaults: { rx_header: [] }
+      packet_defaults: { rx_header: [] },
     };
     expect(checkConfigRequirements(config2, req2)).toBe(true);
   });

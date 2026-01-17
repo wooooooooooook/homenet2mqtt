@@ -43,7 +43,7 @@ describe('Discovery Logic Improvements', () => {
   it('should transform dimensions using CEL', () => {
     const schema: DiscoverySchema = {
       match: {
-        data: [0xB0],
+        data: [0xb0],
       },
       dimensions: [
         {
@@ -55,7 +55,7 @@ describe('Discovery Logic Improvements', () => {
           parameter: 'shifted',
           offset: 1,
           transform: 'bitShiftLeft(x, 1)',
-        }
+        },
       ],
       inference: { strategy: 'max' },
     };
@@ -71,8 +71,6 @@ describe('Discovery Logic Improvements', () => {
 });
 
 describe('Gallery Template Improvements', () => {
-
-
   it('should handle hidden parameters', () => {
     const snippet: GallerySnippet = {
       parameters: [
@@ -84,8 +82,8 @@ describe('Gallery Template Improvements', () => {
         },
       ],
       entities: {
-        val: '{{ hidden_val }}'
-      }
+        val: '{{ hidden_val }}',
+      },
     };
 
     // Should not throw missing parameter error even if not provided in input

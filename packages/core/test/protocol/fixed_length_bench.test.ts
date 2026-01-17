@@ -40,7 +40,9 @@ describe('PacketParser Fixed Length Optimization Performance', () => {
     const end = process.hrtime.bigint();
 
     const elapsedMs = Number(end - start) / 1e6;
-    console.log(`[Noisy] Parsed ${packets.length} packets in ${elapsedMs.toFixed(2)} ms from ${size} bytes`);
+    console.log(
+      `[Noisy] Parsed ${packets.length} packets in ${elapsedMs.toFixed(2)} ms from ${size} bytes`,
+    );
 
     expect(packets.length).toBe(packetCount);
   });
@@ -76,7 +78,9 @@ describe('PacketParser Fixed Length Optimization Performance', () => {
     const end = process.hrtime.bigint();
 
     const elapsedMs = Number(end - start) / 1e6;
-    console.log(`[Clean] Parsed ${packets.length} packets in ${elapsedMs.toFixed(2)} ms from ${size} bytes`);
+    console.log(
+      `[Clean] Parsed ${packets.length} packets in ${elapsedMs.toFixed(2)} ms from ${size} bytes`,
+    );
 
     expect(packets.length).toBe(packetCount);
   });

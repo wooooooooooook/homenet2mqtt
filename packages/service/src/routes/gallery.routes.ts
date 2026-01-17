@@ -157,60 +157,60 @@ export function createGalleryRoutes(ctx: GalleryRoutesContext): Router {
     return res.json({ compatibilityByVendorId });
   });
 
-// Helper to check if a config matches vendor requirements
-function checkConfigRequirements(
-  config: HomenetBridgeConfig,
-  requirements: { serial?: Record<string, unknown>; packet_defaults?: Record<string, unknown> },
-): boolean {
-  if (!config.serial) return false;
+  // Helper to check if a config matches vendor requirements
+  function checkConfigRequirements(
+    config: HomenetBridgeConfig,
+    requirements: { serial?: Record<string, unknown>; packet_defaults?: Record<string, unknown> },
+  ): boolean {
+    if (!config.serial) return false;
 
-  // Check serial settings
-  if (requirements.serial) {
-    const serialFields = ['baud_rate', 'data_bits', 'parity', 'stop_bits'];
-    for (const field of serialFields) {
-      const expected = requirements.serial[field];
-      const actual = config.serial[field as keyof typeof config.serial];
-      if (expected !== undefined && actual !== undefined && expected !== actual) {
-        return false;
-      }
-    }
-  }
-
-  // Check packet_defaults
-  if (requirements.packet_defaults) {
-    const packetDefaults = config.packet_defaults || {};
-    const packetFields = [
-      'rx_length',
-      'rx_checksum',
-      'tx_checksum',
-      'rx_header',
-      'tx_header',
-      'rx_footer',
-      'tx_footer',
-    ];
-
-    for (const field of packetFields) {
-      const expected = requirements.packet_defaults[field];
-      const actual = packetDefaults[field as keyof typeof packetDefaults];
-
-      if (expected !== undefined) {
-        // Normalize values: treat empty arrays, null, and undefined as equivalent (empty/default)
-        const normalizeValue = (v: unknown): string | unknown => {
-          if (v === null || v === undefined) return '__EMPTY__';
-          if (Array.isArray(v) && v.length === 0) return '__EMPTY__';
-          if (Array.isArray(v)) return JSON.stringify(v);
-          return v;
-        };
-
-        if (normalizeValue(expected) !== normalizeValue(actual)) {
+    // Check serial settings
+    if (requirements.serial) {
+      const serialFields = ['baud_rate', 'data_bits', 'parity', 'stop_bits'];
+      for (const field of serialFields) {
+        const expected = requirements.serial[field];
+        const actual = config.serial[field as keyof typeof config.serial];
+        if (expected !== undefined && actual !== undefined && expected !== actual) {
           return false;
         }
       }
     }
-  }
 
-  return true;
-}
+    // Check packet_defaults
+    if (requirements.packet_defaults) {
+      const packetDefaults = config.packet_defaults || {};
+      const packetFields = [
+        'rx_length',
+        'rx_checksum',
+        'tx_checksum',
+        'rx_header',
+        'tx_header',
+        'rx_footer',
+        'tx_footer',
+      ];
+
+      for (const field of packetFields) {
+        const expected = requirements.packet_defaults[field];
+        const actual = packetDefaults[field as keyof typeof packetDefaults];
+
+        if (expected !== undefined) {
+          // Normalize values: treat empty arrays, null, and undefined as equivalent (empty/default)
+          const normalizeValue = (v: unknown): string | unknown => {
+            if (v === null || v === undefined) return '__EMPTY__';
+            if (Array.isArray(v) && v.length === 0) return '__EMPTY__';
+            if (Array.isArray(v)) return JSON.stringify(v);
+            return v;
+          };
+
+          if (normalizeValue(expected) !== normalizeValue(actual)) {
+            return false;
+          }
+        }
+      }
+    }
+
+    return true;
+  }
 
   // Evaluate discovery schemas against packet dictionary
   router.get('/api/gallery/discovery', async (req, res) => {
@@ -254,10 +254,10 @@ function checkConfigRequirements(
       const portId = typeof req.query.portId === 'string' ? req.query.portId : null;
       const configForPort =
         portId !== null
-          ? currentConfigs.find((config, index) => {
+          ? (currentConfigs.find((config, index) => {
               if (!config.serial) return false;
               return normalizePortId(config.serial.portId, index) === portId;
-            }) ?? null
+            }) ?? null)
           : null;
 
       // Process each vendor and item
