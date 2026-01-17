@@ -235,15 +235,167 @@ export class PacketParser {
           let currentOffset = this.readOffset;
           const maxOffset = this.writeOffset - packetLen;
 
+          // Optimization: Prepare sliding window checksum state
+          let useSlidingWindow = false;
+          let runningChecksum = 0;
+          let runningChecksum2: number[] = [0, 0]; // [crc, temp]
+          let windowStartRel = 0;
+          let windowEndRel = 0;
+          let checksumIndexRel = 0;
+
+          const typeStr = this.defaults.rx_checksum as string;
+          const isSamsungRx = typeStr === 'samsung_rx';
+          const isSamsungTx = typeStr === 'samsung_tx';
+          const isSamsungXor = typeStr === 'samsung_xor';
+          // bestin_sum is not commutative/associative in a way that supports simple sliding window
+          const isBestinSum = typeStr === 'bestin_sum';
+          const isAdd =
+            typeStr &&
+            typeStr.startsWith('add') &&
+            !isSamsungRx &&
+            !isSamsungTx &&
+            !isSamsungXor &&
+            !isBestinSum;
+          const isXor =
+            typeStr &&
+            typeStr.startsWith('xor') &&
+            !isSamsungRx &&
+            !isSamsungTx &&
+            !isSamsungXor &&
+            !isBestinSum;
+
+          const headerLen = this.defaults.rx_header?.length || 0;
+          const footerLen = this.defaults.rx_footer?.length || 0;
+
+          if (this.isStandard1Byte && !isBestinSum) {
+            useSlidingWindow = true;
+            const isNoHeader =
+              typeStr.includes('no_header') || isSamsungRx || isSamsungTx || isSamsungXor;
+
+            windowStartRel = isNoHeader ? headerLen : 0;
+            // Checksum is usually at the end of data (before footer)
+            // rx_checksum=1 byte.
+            // Data ends at packetLen - 1 - footerLen
+            windowEndRel = packetLen - 1 - footerLen;
+            checksumIndexRel = windowEndRel;
+
+            // Initialize checksum for the first window at currentOffset
+            if (currentOffset <= maxOffset) {
+              const startIdx = currentOffset + windowStartRel;
+              const endIdx = currentOffset + windowEndRel;
+
+              if (isSamsungRx) {
+                runningChecksum = 0xb0;
+              } else if (isSamsungTx) {
+                runningChecksum = 0x00;
+              } else {
+                runningChecksum = 0;
+              }
+
+              if (isAdd) {
+                for (let i = startIdx; i < endIdx; i++) {
+                  runningChecksum = (runningChecksum + this.buffer[i]) & 0xff;
+                }
+              } else {
+                for (let i = startIdx; i < endIdx; i++) {
+                  runningChecksum ^= this.buffer[i];
+                }
+              }
+            }
+          } else if (this.isStandard2Byte) {
+            useSlidingWindow = true;
+            // xor_add (checksum2)
+            // Always includes header (no _no_header variant currently for checksum2)
+            windowStartRel = 0;
+            // Checksum is 2 bytes.
+            // Data ends at packetLen - 2 - footerLen
+            windowEndRel = packetLen - 2 - footerLen;
+            checksumIndexRel = windowEndRel;
+
+            if (currentOffset <= maxOffset) {
+              const startIdx = currentOffset + windowStartRel;
+              const endIdx = currentOffset + windowEndRel;
+
+              // runningChecksum2 = [crc, temp]
+              let crc = 0;
+              let temp = 0;
+              for (let i = startIdx; i < endIdx; i++) {
+                const b = this.buffer[i];
+                crc += b;
+                temp ^= b;
+              }
+              runningChecksum2[0] = crc;
+              runningChecksum2[1] = temp;
+            }
+          }
+
           while (currentOffset <= maxOffset) {
             // Optimization: Check header first before expensive checksum
             if (this.validHeadersSet && !this.validHeadersSet.has(this.buffer[currentOffset])) {
+              // Even if we skip, we MUST update the sliding window checksum for the shift
+              if (useSlidingWindow) {
+                const leavingByte = this.buffer[currentOffset + windowStartRel];
+                const enteringByte = this.buffer[currentOffset + windowEndRel];
+
+                if (this.isStandard1Byte) {
+                  if (isAdd) {
+                    runningChecksum = (runningChecksum - leavingByte + enteringByte) & 0xff;
+                  } else {
+                    runningChecksum = runningChecksum ^ leavingByte ^ enteringByte;
+                  }
+                } else {
+                  // xor_add
+                  const bOut = leavingByte;
+                  const bIn = enteringByte;
+                  runningChecksum2[0] = runningChecksum2[0] - bOut + bIn; // crc
+                  runningChecksum2[1] = runningChecksum2[1] ^ bOut ^ bIn; // temp
+                }
+              }
+
               currentOffset++;
               continue;
             }
 
             // Check Checksum for current window
-            if (this.verifyChecksum(this.buffer, currentOffset, packetLen)) {
+            let checksumValid = false;
+
+            if (useSlidingWindow) {
+              if (this.isStandard1Byte) {
+                let finalChecksum = runningChecksum;
+                if (isSamsungTx) {
+                  finalChecksum ^= 0x80;
+                } else if (isSamsungRx) {
+                  // Check first byte of data (if it exists)
+                  // Data starts at currentOffset + headerLen
+                  const dataStartIdx = currentOffset + headerLen;
+                  if (
+                    dataStartIdx < currentOffset + windowEndRel &&
+                    this.buffer[dataStartIdx] < 0x7c
+                  ) {
+                    finalChecksum ^= 0x80;
+                  }
+                } else if (isSamsungXor) {
+                  finalChecksum &= 0x7f;
+                }
+
+                const expected = this.buffer[currentOffset + checksumIndexRel];
+                checksumValid = (finalChecksum & 0xff) === expected;
+              } else {
+                // xor_add
+                // Finalize: crc += temp
+                const temp = runningChecksum2[1] & 0xff;
+                const crc = (runningChecksum2[0] + temp) & 0xff;
+
+                const expectedHigh = this.buffer[currentOffset + checksumIndexRel];
+                const expectedLow = this.buffer[currentOffset + checksumIndexRel + 1];
+
+                checksumValid = temp === expectedHigh && crc === expectedLow;
+              }
+            } else {
+              checksumValid = this.verifyChecksum(this.buffer, currentOffset, packetLen);
+            }
+
+            if (checksumValid) {
               const packet = Buffer.from(
                 this.buffer.subarray(currentOffset, currentOffset + packetLen),
               );
@@ -255,7 +407,27 @@ export class PacketParser {
               matchFound = true;
               break;
             }
+
             // If verification failed, try next byte
+            if (useSlidingWindow) {
+              const leavingByte = this.buffer[currentOffset + windowStartRel];
+              const enteringByte = this.buffer[currentOffset + windowEndRel];
+
+              if (this.isStandard1Byte) {
+                if (isAdd) {
+                  runningChecksum = (runningChecksum - leavingByte + enteringByte) & 0xff;
+                } else {
+                  runningChecksum = runningChecksum ^ leavingByte ^ enteringByte;
+                }
+              } else {
+                // xor_add
+                const bOut = leavingByte;
+                const bIn = enteringByte;
+                runningChecksum2[0] = runningChecksum2[0] - bOut + bIn; // crc
+                runningChecksum2[1] = runningChecksum2[1] ^ bOut ^ bIn; // temp
+              }
+            }
+
             currentOffset++;
           }
 
