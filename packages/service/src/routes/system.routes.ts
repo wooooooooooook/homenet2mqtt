@@ -140,6 +140,8 @@ export function createSystemRoutes(ctx: SystemRoutesContext): Router {
       const config = currentConfigs[configIndex];
       const configError = currentConfigErrors[configIndex];
       const configStatus = currentConfigStatuses[configIndex] || 'idle';
+      const bridgeInstance = ctx.getBridges().find((b) => b.configFile === configFile);
+      const mqttConnected = bridgeInstance?.bridge.isMqttConnected ?? false;
 
       // Handle case where config failed to load (empty object or null)
       if (configError || !config || !config.serial) {
@@ -151,6 +153,7 @@ export function createSystemRoutes(ctx: SystemRoutesContext): Router {
           error: resolveErrorCode(configError) || 'Config not loaded',
           errorInfo: configError ?? null,
           status: configStatus,
+          mqttConnected,
         };
       }
 
@@ -170,10 +173,12 @@ export function createSystemRoutes(ctx: SystemRoutesContext): Router {
         error: resolveErrorCode(configError) || undefined,
         errorInfo: configError ?? null,
         status: configStatus,
+        mqttConnected,
       };
     });
 
     const firstTopic = bridgesInfo[0]?.topic ?? `${BASE_MQTT_PREFIX}/homedevice1/raw`;
+    const anyMqttConnected = bridgesInfo.some((b) => b.mqttConnected);
 
     // .restart-required 파일 존재 여부 확인
     const restartRequired = await fileExists(CONFIG_RESTART_FLAG);
@@ -188,6 +193,7 @@ export function createSystemRoutes(ctx: SystemRoutesContext): Router {
       topic: firstTopic,
       restartRequired,
       timezone: timezoneOverride || undefined,
+      mqttConnected: anyMqttConnected,
     });
   });
 

@@ -164,6 +164,13 @@ export class HomeNetBridge extends EventEmitter {
     this.startPromise = null;
   }
 
+  /**
+   * Returns true if the MQTT client is connected.
+   */
+  get isMqttConnected(): boolean {
+    return this._mqttClient?.isConnected ?? false;
+  }
+
   async clearRetainedMessages(): Promise<number> {
     if (!this._mqttClient || !this._mqttClient.isConnected) {
       throw new Error('MQTT client is not connected');

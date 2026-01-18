@@ -616,7 +616,12 @@
         selectedPortId = defaultPortId;
       }
 
-      startMqttStream();
+      // Initialize connectionStatus from API response (for cases where MQTT is already connected)
+      if ((data as any).mqttConnected) {
+        connectionStatus = 'connected';
+      }
+
+      connectWebSocket();
 
       if (bridgeInfo.configFiles && bridgeInfo.configFiles.length > 0) {
         loadCommands();
@@ -790,7 +795,7 @@
   let socketErrorHandler: (() => void) | null = null;
   let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
-  function startMqttStream() {
+  function connectWebSocket() {
     if (typeof window === 'undefined' || !bridgeInfo) return;
 
     closeStream();
@@ -835,7 +840,7 @@
       }
     };
 
-    const handleMqttMessage = (data: MqttMessageEvent & { portId?: string }) => {
+    const handleDeviceStateMessage = (data: MqttMessageEvent & { portId?: string }) => {
       const portId = data.portId ?? extractPortIdFromTopic(data.topic);
       if (isBridgeStatusTopic(data.topic) && portId) {
         bridgeStatusByPort.set(portId, data.payload);
@@ -992,7 +997,7 @@
 
     const messageHandlers: Partial<Record<StreamEvent, (data: any) => void>> = {
       status: handleStatus,
-      'mqtt-message': handleMqttMessage,
+      'mqtt-message': handleDeviceStateMessage,
       'raw-data': handleRawPacketFallback,
       'raw-data-with-interval': handleRawPacketWithInterval,
       'packet-interval-stats': handlePacketStats,
@@ -1005,8 +1010,6 @@
 
     socket.addEventListener('open', () => {
       isSocketOpen = true;
-      connectionStatus = 'connecting';
-      statusMessage = { key: 'mqtt.connecting' };
     });
 
     socket.addEventListener('message', (event) => {
@@ -1029,7 +1032,7 @@
 
       if (reconnectTimer) clearTimeout(reconnectTimer);
       reconnectTimer = setTimeout(() => {
-        startMqttStream();
+        connectWebSocket();
       }, 3000);
     };
 
