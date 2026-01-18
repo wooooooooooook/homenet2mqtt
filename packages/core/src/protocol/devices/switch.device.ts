@@ -22,19 +22,13 @@ export class SwitchDevice extends GenericDevice {
     return Object.keys(normalized).length > 0 ? normalized : null;
   }
 
-  public constructCommand(commandName: string, value?: any): number[] | CommandResult | null {
-    const cmd = super.constructCommand(commandName, value);
-    if (cmd) return cmd;
-
-    const entityConfig = this.config as any;
-    if (commandName === 'on' && entityConfig.command_on?.data) {
-      return [...entityConfig.command_on.data];
-    }
-    if (commandName === 'off' && entityConfig.command_off?.data) {
-      return [...entityConfig.command_off.data];
-    }
-
-    return null;
+  public constructCommand(
+    commandName: string,
+    value?: any,
+    states?: Map<string, Record<string, any>>,
+  ): number[] | CommandResult | null {
+    // Delegate all commands to GenericDevice which handles command_* with data
+    return super.constructCommand(commandName, value, states);
   }
 
   public getOptimisticState(commandName: string, _value?: any): Record<string, any> | null {

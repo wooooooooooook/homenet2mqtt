@@ -41,13 +41,6 @@ export class FanDevice extends GenericDevice {
       return super.constructCommand(commandName, value, states);
     }
 
-    if (commandName === 'on' && entityConfig.command_on?.data) {
-      return super.constructCommand(commandName, value, states);
-    }
-    if (commandName === 'off' && entityConfig.command_off?.data) {
-      return super.constructCommand(commandName, value, states);
-    }
-
     // Handle speed command
     if (commandName === 'speed' && entityConfig.command_speed?.data && value !== undefined) {
       const command = [...entityConfig.command_speed.data];
@@ -111,7 +104,8 @@ export class FanDevice extends GenericDevice {
       return this.framePacket(command);
     }
 
-    return null;
+    // Fallback to GenericDevice for any other command_* that has data defined
+    return super.constructCommand(commandName, value, states);
   }
 
   public getOptimisticState(commandName: string, _value?: any): Record<string, any> | null {

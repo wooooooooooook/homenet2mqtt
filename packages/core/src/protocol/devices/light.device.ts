@@ -42,14 +42,6 @@ export class LightDevice extends GenericDevice {
       return super.constructCommand(commandName, value, states);
     }
 
-    // Handle standard on/off commands - Let GenericDevice handle simple data commands
-    if (commandName === 'on' && entityConfig.command_on?.data) {
-      return super.constructCommand(commandName, value, states);
-    }
-    if (commandName === 'off' && entityConfig.command_off?.data) {
-      return super.constructCommand(commandName, value, states);
-    }
-
     // Handle brightness command
     if (
       commandName === 'brightness' &&
@@ -121,7 +113,8 @@ export class LightDevice extends GenericDevice {
       return this.framePacket(command);
     }
 
-    return null;
+    // Fallback to GenericDevice for any other command_* that has data defined
+    return super.constructCommand(commandName, value, states);
   }
 
   public getOptimisticState(commandName: string, _value?: any): Record<string, any> | null {

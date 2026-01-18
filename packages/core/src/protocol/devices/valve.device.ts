@@ -41,18 +41,6 @@ export class ValveDevice extends GenericDevice {
       return super.constructCommand(commandName, value, states);
     }
 
-    if (commandName === 'open' && entityConfig.command_open?.data) {
-      return super.constructCommand(commandName, value, states);
-    }
-    if (commandName === 'close' && entityConfig.command_close?.data) {
-      return super.constructCommand(commandName, value, states);
-    }
-
-    // Handle stop command
-    if (commandName === 'stop' && entityConfig.command_stop?.data) {
-      return super.constructCommand(commandName, value, states);
-    }
-
     // Handle position command (0-100%)
     if (commandName === 'position' && entityConfig.command_position?.data && value !== undefined) {
       const command = [...entityConfig.command_position.data];
@@ -64,6 +52,7 @@ export class ValveDevice extends GenericDevice {
       return this.framePacket(command);
     }
 
-    return null;
+    // Fallback to GenericDevice for any other command_* that has data defined
+    return super.constructCommand(commandName, value, states);
   }
 }
