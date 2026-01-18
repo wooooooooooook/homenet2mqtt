@@ -397,7 +397,12 @@
         "validation_integer": "정수 값을 입력하세요.",
         "validation_array": "JSON 배열 형식으로 입력하세요.",
         "validation_object_array": "객체 배열(JSON) 형식으로 입력하세요.",
-        "validation_json": "JSON 형식이 올바르지 않습니다."
+        "validation_json": "JSON 형식이 올바르지 않습니다.",
+        "type_integer": "정수",
+        "type_string": "문자열",
+        "type_boolean": "불리언",
+        "min": "최소",
+        "max": "최대"
       }
     }
   },

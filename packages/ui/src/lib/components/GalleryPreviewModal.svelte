@@ -24,6 +24,16 @@
     vendorId: string;
   }
 
+  interface SchemaField {
+    type: 'integer' | 'string' | 'boolean';
+    min?: number;
+    max?: number;
+    label?: string;
+    label_en?: string;
+    description?: string;
+    description_en?: string;
+  }
+
   interface GalleryParameterDefinition {
     name: string;
     type: 'integer' | 'string' | 'integer[]' | 'object[]';
@@ -34,7 +44,7 @@
     label_en?: string;
     description?: string;
     description_en?: string;
-    schema?: Record<string, unknown>;
+    schema?: Record<string, SchemaField>;
   }
 
   interface VendorRequirements {
@@ -199,6 +209,36 @@
       return parameter.description_en || parameter.description || '';
     }
     return parameter.description || '';
+  }
+
+  function resolveSchemaFieldLabel(field: SchemaField, fieldName: string): string {
+    if ($locale?.startsWith('en')) {
+      return field.label_en || field.label || fieldName;
+    }
+    return field.label || fieldName;
+  }
+
+  function formatSchemaFieldType(field: SchemaField): string {
+    const typeName =
+      field.type === 'integer'
+        ? $t('gallery.preview.parameters.type_integer')
+        : field.type === 'string'
+          ? $t('gallery.preview.parameters.type_string')
+          : field.type === 'boolean'
+            ? $t('gallery.preview.parameters.type_boolean')
+            : field.type;
+    return typeName;
+  }
+
+  function formatSchemaFieldConstraints(field: SchemaField): string {
+    const constraints: string[] = [];
+    if (field.min !== undefined) {
+      constraints.push(`${$t('gallery.preview.parameters.min')}: ${field.min}`);
+    }
+    if (field.max !== undefined) {
+      constraints.push(`${$t('gallery.preview.parameters.max')}: ${field.max}`);
+    }
+    return constraints.join(', ');
   }
 
   function updateParameterInput(name: string, value: string) {
@@ -550,6 +590,24 @@
                         )}
                     />
                   {:else}
+                    {#if parameter.schema && Object.keys(parameter.schema).length > 0}
+                      <div class="schema-chips">
+                        {#each Object.entries(parameter.schema) as [fieldName, field] (fieldName)}
+                          <div class="schema-chip">
+                            <span class="schema-chip-name">{fieldName}</span>
+                            <span class="schema-chip-label"
+                              >{resolveSchemaFieldLabel(field, fieldName)}</span
+                            >
+                            <span class="schema-chip-type">{formatSchemaFieldType(field)}</span>
+                            {#if formatSchemaFieldConstraints(field)}
+                              <span class="schema-chip-constraints"
+                                >{formatSchemaFieldConstraints(field)}</span
+                              >
+                            {/if}
+                          </div>
+                        {/each}
+                      </div>
+                    {/if}
                     <textarea
                       id={`parameter-${parameter.name}`}
                       rows="4"
@@ -1353,5 +1411,67 @@
     justify-content: flex-end;
     gap: 0.5rem;
     margin-top: 1.5rem;
+  }
+
+  /* Schema Chips Styles */
+  .schema-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .schema-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.625rem;
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.25);
+    border-radius: 6px;
+    font-size: 0.75rem;
+    line-height: 1.3;
+  }
+
+  .schema-chip-name {
+    font-family: 'Fira Code', 'Consolas', monospace;
+    font-weight: 600;
+    color: #60a5fa;
+  }
+
+  .schema-chip-label {
+    color: #e2e8f0;
+  }
+
+  .schema-chip-label::before {
+    content: '-';
+    margin-right: 0.25rem;
+    color: #64748b;
+  }
+
+  .schema-chip-type {
+    color: #a78bfa;
+    font-weight: 500;
+  }
+
+  .schema-chip-type::before {
+    content: '(';
+    color: #64748b;
+  }
+
+  .schema-chip-type::after {
+    content: ')';
+    color: #64748b;
+  }
+
+  .schema-chip-constraints {
+    color: #fbbf24;
+    font-size: 0.7rem;
+  }
+
+  .schema-chip-constraints::before {
+    content: '|';
+    margin-right: 0.25rem;
+    color: #64748b;
   }
 </style>

@@ -396,7 +396,12 @@
         "validation_integer": "Please enter an integer value.",
         "validation_array": "Please enter a JSON array.",
         "validation_object_array": "Please enter a JSON array of objects.",
-        "validation_json": "Invalid JSON format."
+        "validation_json": "Invalid JSON format.",
+        "type_integer": "Integer",
+        "type_string": "String",
+        "type_boolean": "Boolean",
+        "min": "Min",
+        "max": "Max"
       }
     }
   },
