@@ -56,6 +56,8 @@ RS485 기반의 월패드(홈넷) 신호를 MQTT 메시지로 변환하여 Home 
          MQTT_USER: ''
          MQTT_PASSWD: ''
          MQTT_TOPIC_PREFIX: homenet2mqtt
+         # HSTS 활성화 (HTTPS 사용 시 'true'로 설정)
+         ENABLE_HSTS: 'false'
        volumes:
          # 설정 파일 볼륨
          - ./h2m-config:/config

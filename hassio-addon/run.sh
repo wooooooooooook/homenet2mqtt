@@ -14,6 +14,7 @@ if [ -f "$CONFIG_PATH" ]; then
   export MQTT_PASSWD=$(jq --raw-output '.mqtt_passwd // ""' $CONFIG_PATH)
   export MQTT_TOPIC_PREFIX=$(jq --raw-output '.mqtt_topic_prefix // "homenet2mqtt"' $CONFIG_PATH)
   export TIMEZONE=$(jq --raw-output '.timezone // ""' $CONFIG_PATH)
+  export ENABLE_HSTS=$(jq --raw-output '.enable_hsts // "false"' $CONFIG_PATH)
   CONFIG_FILES=$(jq --raw-output '.config_files // [] | join(",")' $CONFIG_PATH)
   LEGACY_CONFIG_FILE=$(jq --raw-output '.config_file // ""' $CONFIG_PATH)
   
@@ -86,6 +87,7 @@ echo "  MQTT_NEED_LOGIN: $MQTT_NEED_LOGIN"
 echo "  MQTT_USER: $MQTT_USER"
 echo "  MQTT_TOPIC_PREFIX: $MQTT_TOPIC_PREFIX"
 echo "  TIMEZONE: $TIMEZONE"
+echo "  ENABLE_HSTS: $ENABLE_HSTS"
 
 # Run the service with restart flag support for initialization flow
 while true; do

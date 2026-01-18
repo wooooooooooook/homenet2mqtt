@@ -24,6 +24,7 @@ options:
     - default.homenet_bridge.yaml
   mqtt_topic_prefix: homenet2mqtt
   timezone: ""
+  enable_hsts: false
 hassio_role: default
 hassio_api: true
 uart: true
@@ -39,6 +40,7 @@ schema:
   config_files:
     - str
   timezone: str?
+  enable_hsts: bool?
 ingress: true
 ingress_port: 3000
 ingress_stream: true
