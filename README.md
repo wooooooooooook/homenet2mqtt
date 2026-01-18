@@ -133,8 +133,10 @@ RS485 기반의 월패드(홈넷) 신호를 MQTT 메시지로 변환하여 Home 
   - 브라우저의 광고 차단 확장 프로그램이 간혹 웹소켓 연결을 차단할 수 있습니다. 시크릿 모드에서 시도해보세요.
 
 ## 문의 및 지원
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/wooooooooooook/RS485-HomeNet-to-MQTT-bridge)
 
 [GitHub Issues](https://github.com/wooooooooooook/RS485-HomeNet-to-MQTT-bridge/issues)
+
 [Discord](https://discord.gg/kGwhUBMe5z)
 
 ## ⚖️ 라이선스
