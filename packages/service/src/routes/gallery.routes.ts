@@ -256,9 +256,19 @@ export function createGalleryRoutes(ctx: GalleryRoutesContext): Router {
         });
       }
 
-      // Get packet dictionary and unmatched packets
-      const packetDictionary = ctx.logRetentionService.getPacketDictionary();
-      const unmatchedPackets = ctx.logRetentionService.getUnmatchedPackets();
+      const currentConfigs = ctx.getCurrentConfigs();
+      const portId = typeof req.query.portId === 'string' ? req.query.portId : undefined;
+      const configForPort =
+        portId !== undefined
+          ? (currentConfigs.find((config, index) => {
+              if (!config.serial) return false;
+              return normalizePortId(config.serial.portId, index) === portId;
+            }) ?? null)
+          : null;
+
+      // Get packet dictionary and unmatched packets (filtered by portId if provided)
+      const packetDictionary = ctx.logRetentionService.getPacketDictionary(portId);
+      const unmatchedPackets = ctx.logRetentionService.getUnmatchedPackets(portId);
 
       // Fetch gallery list (list_new.json includes discovery info)
       const listResponse = await fetch(GALLERY_LIST_URL);
@@ -278,15 +288,6 @@ export function createGalleryRoutes(ctx: GalleryRoutesContext): Router {
       };
 
       const results: Record<string, DiscoveryResult> = {};
-      const currentConfigs = ctx.getCurrentConfigs();
-      const portId = typeof req.query.portId === 'string' ? req.query.portId : null;
-      const configForPort =
-        portId !== null
-          ? (currentConfigs.find((config, index) => {
-              if (!config.serial) return false;
-              return normalizePortId(config.serial.portId, index) === portId;
-            }) ?? null)
-          : null;
 
       // Process each vendor and item
       for (const vendor of galleryList.vendors) {
