@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-01-16T06:31:31.899Z",
+  "generated_at": "2026-01-18T07:58:19.250Z",
   "vendors": [
     {
       "id": "bestin",
@@ -102,12 +102,6 @@
             ],
             "inference": {
               "strategy": "max"
-            },
-            "ui": {
-              "label": "난방",
-              "label_en": "heating",
-              "summary": "{room_count}개 방 발견됨",
-              "summary_en": "{room_count} rooms discovered"
             }
           }
         },
@@ -144,12 +138,6 @@
                 255,
                 255
               ]
-            },
-            "ui": {
-              "label": "도어락",
-              "label_en": "doorlock",
-              "summary": "도어락 발견됨",
-              "summary_en": "Doorlock discovered"
             }
           }
         },
@@ -280,12 +268,6 @@
             "inference": {
               "strategy": "unique_tuples",
               "output": "rooms"
-            },
-            "ui": {
-              "label": "조명/콘센트",
-              "label_en": "lights/outlets",
-              "summary": "{room_count}개 방 발견됨",
-              "summary_en": "{room_count} rooms discovered"
             }
           }
         },
@@ -416,12 +398,6 @@
             "inference": {
               "strategy": "unique_tuples",
               "output": "rooms"
-            },
-            "ui": {
-              "label": "조명/콘센트",
-              "label_en": "lights/outlets",
-              "summary": "{room_count}개 방 발견됨",
-              "summary_en": "{room_count} rooms discovered"
             }
           }
         },
@@ -458,12 +434,6 @@
                 255,
                 0
               ]
-            },
-            "ui": {
-              "label": "환기팬",
-              "label_en": "ventilation fan",
-              "summary": "환기팬 발견됨",
-              "summary_en": "Ventilation fan discovered"
             }
           }
         },
@@ -498,12 +468,6 @@
                 255,
                 255
               ]
-            },
-            "ui": {
-              "label": "에너지 센서",
-              "label_en": "energy sensors",
-              "summary": "에너지 센서 발견됨 (전기/수도/온수/가스/난방)",
-              "summary_en": "Energy sensors discovered (electric/water/hotwater/gas/heat)"
             }
           }
         },
@@ -541,12 +505,6 @@
                 255,
                 255
               ]
-            },
-            "ui": {
-              "label": "에너지 센서",
-              "label_en": "energy sensors",
-              "summary": "AIO 에너지 센서 발견됨 (전기/수도/가스)",
-              "summary_en": "AIO energy sensors discovered (electric/water/gas)"
             }
           }
         },
@@ -583,12 +541,6 @@
                 255,
                 255
               ]
-            },
-            "ui": {
-              "label": "가스밸브",
-              "label_en": "gas valve",
-              "summary": "가스밸브 발견됨",
-              "summary_en": "Gas valve discovered"
             }
           }
         }
@@ -739,12 +691,6 @@
             "inference": {
               "strategy": "unique_tuples",
               "output": "rooms"
-            },
-            "ui": {
-              "label": "조명/콘센트",
-              "label_en": "lights/outlets",
-              "summary": "{room_count}개 방 발견됨",
-              "summary_en": "{room_count} rooms discovered"
             }
           }
         }
@@ -800,11 +746,7 @@
                 35
               ]
             },
-            "dimensions": [],
-            "ui": {
-              "label": "엘리베이터",
-              "label_en": "Elevator"
-            }
+            "dimensions": []
           }
         },
         {
@@ -836,11 +778,7 @@
                 38
               ]
             },
-            "dimensions": [],
-            "ui": {
-              "label": "엘리베이터",
-              "label_en": "Elevator"
-            }
+            "dimensions": []
           }
         },
         {
@@ -914,12 +852,6 @@
             ],
             "inference": {
               "strategy": "max"
-            },
-            "ui": {
-              "label": "환기팬",
-              "label_en": "fans",
-              "summary": "{fan_count}개 환기팬 발견됨",
-              "summary_en": "{fan_count} fans discovered"
             }
           }
         },
@@ -950,11 +882,7 @@
                 144
               ]
             },
-            "dimensions": [],
-            "ui": {
-              "label": "가스밸브",
-              "label_en": "Gas Valve"
-            }
+            "dimensions": []
           }
         },
         {
@@ -1030,12 +958,6 @@
             ],
             "inference": {
               "strategy": "max"
-            },
-            "ui": {
-              "label": "난방기",
-              "label_en": "heaters",
-              "summary": "{heater_count}개 난방기 발견됨",
-              "summary_en": "{heater_count} heaters discovered"
             }
           }
         },
@@ -1072,11 +994,7 @@
                 255
               ]
             },
-            "dimensions": [],
-            "ui": {
-              "label": "일괄소등",
-              "label_en": "Light Breaker"
-            }
+            "dimensions": []
           }
         },
         {
@@ -1148,12 +1066,6 @@
             ],
             "inference": {
               "strategy": "max"
-            },
-            "ui": {
-              "label": "조명",
-              "label_en": "lights",
-              "summary": "{light_count}개 조명 발견됨",
-              "summary_en": "{light_count} lights discovered"
             }
           }
         },
@@ -1236,12 +1148,6 @@
             ],
             "inference": {
               "strategy": "max"
-            },
-            "ui": {
-              "label": "스마트 콘센트",
-              "label_en": "plugs",
-              "summary": "{plug_count}개 콘센트 발견됨",
-              "summary_en": "{plug_count} plugs discovered"
             }
           }
         }
@@ -1310,12 +1216,6 @@
                 255,
                 255
               ]
-            },
-            "ui": {
-              "label": "엘리베이터",
-              "label_en": "elevator",
-              "summary": "엘리베이터 발견됨",
-              "summary_en": "Elevator discovered"
             }
           }
         },
@@ -1377,12 +1277,6 @@
                 255,
                 255
               ]
-            },
-            "ui": {
-              "label": "환기팬",
-              "label_en": "fan",
-              "summary": "환기팬 발견됨",
-              "summary_en": "Fan discovered"
             }
           }
         },
@@ -1419,12 +1313,6 @@
                 255,
                 255
               ]
-            },
-            "ui": {
-              "label": "가스밸브",
-              "label_en": "gas valve",
-              "summary": "가스밸브 발견됨",
-              "summary_en": "Gas valve discovered"
             }
           }
         },
@@ -1500,15 +1388,10 @@
             "dimensions": [
               {
                 "parameter": "heater_count",
-                "offset": 0
+                "offset": 0,
+                "transform": "int((len(data) - 7) / 2)"
               }
-            ],
-            "ui": {
-              "label": "난방",
-              "label_en": "heaters",
-              "summary": "난방 시스템 발견됨",
-              "summary_en": "Heating system discovered"
-            }
+            ]
           }
         },
         {
@@ -1611,12 +1494,6 @@
             "inference": {
               "strategy": "unique_tuples",
               "output": "rooms"
-            },
-            "ui": {
-              "label": "조명",
-              "label_en": "lights",
-              "summary": "{room_count}개 방 발견됨",
-              "summary_en": "{room_count} rooms discovered"
             }
           }
         }
@@ -1678,12 +1555,6 @@
                 255,
                 255
               ]
-            },
-            "ui": {
-              "label": "현관문 자동 열림",
-              "label_en": "Door Auto Open",
-              "summary": "현관문 자동 열림 기능 발견됨",
-              "summary_en": "Door Auto Open feature discovered"
             }
           }
         },
@@ -1720,12 +1591,6 @@
                 255,
                 255
               ]
-            },
-            "ui": {
-              "label": "엘리베이터 호출",
-              "label_en": "Elevator Call",
-              "summary": "엘리베이터 호출 버튼 발견됨",
-              "summary_en": "Elevator Call Button discovered"
             }
           }
         },
@@ -1761,12 +1626,6 @@
               "mask": [
                 255
               ]
-            },
-            "ui": {
-              "label": "에너지 센서",
-              "label_en": "Energy Sensors",
-              "summary": "에너지 센서 발견됨",
-              "summary_en": "Energy Sensors discovered"
             }
           }
         },
@@ -1802,12 +1661,6 @@
                 255,
                 255
               ]
-            },
-            "ui": {
-              "label": "전열교환기",
-              "label_en": "Heat Exchanger Fan",
-              "summary": "전열교환기 발견됨",
-              "summary_en": "Heat Exchanger Fan discovered"
             }
           }
         },
@@ -1844,12 +1697,6 @@
                 255,
                 255
               ]
-            },
-            "ui": {
-              "label": "가스밸브",
-              "label_en": "Gas Valve",
-              "summary": "가스밸브 발견됨",
-              "summary_en": "Gas Valve discovered"
             }
           }
         },
@@ -1927,13 +1774,7 @@
                 "parameter": "heater_count",
                 "offset": 6
               }
-            ],
-            "ui": {
-              "label": "난방",
-              "label_en": "heaters",
-              "summary": "난방 {{heater_count}}개 발견됨",
-              "summary_en": "{{heater_count}} heaters discovered"
-            }
+            ]
           }
         },
         {
@@ -2042,12 +1883,6 @@
             "inference": {
               "strategy": "unique_tuples",
               "output": "rooms"
-            },
-            "ui": {
-              "label": "조명",
-              "label_en": "lights",
-              "summary": "{room_count}개 방 발견됨",
-              "summary_en": "{room_count} rooms discovered"
             }
           }
         },
@@ -2151,12 +1986,6 @@
             "inference": {
               "strategy": "unique_tuples",
               "output": "rooms"
-            },
-            "ui": {
-              "label": "콘센트",
-              "label_en": "outlets",
-              "summary": "{room_count}개 방 발견됨",
-              "summary_en": "{room_count} rooms discovered"
             }
           }
         },
@@ -2261,12 +2090,6 @@
             "inference": {
               "strategy": "unique_tuples",
               "output": "rooms"
-            },
-            "ui": {
-              "label": "스마트 콘센트 (F7)",
-              "label_en": "smart outlets (F7)",
-              "summary": "{room_count}개 방 발견됨",
-              "summary_en": "{room_count} rooms discovered"
             }
           }
         }
@@ -2338,12 +2161,6 @@
                 255,
                 255
               ]
-            },
-            "ui": {
-              "label": "엘리베이터",
-              "label_en": "Elevator",
-              "summary": "엘리베이터 발견됨",
-              "summary_en": "Elevator discovered"
             }
           }
         },
@@ -2411,12 +2228,6 @@
                 255,
                 255
               ]
-            },
-            "ui": {
-              "label": "환기시스템",
-              "label_en": "Ventilation System",
-              "summary": "환기시스템 발견됨",
-              "summary_en": "Ventilation System discovered"
             }
           }
         },
@@ -2494,12 +2305,6 @@
                 255,
                 255
               ]
-            },
-            "ui": {
-              "label": "난방",
-              "label_en": "heaters",
-              "summary": "난방 시스템 발견됨",
-              "summary_en": "Heating system discovered"
             }
           }
         },
@@ -2566,12 +2371,6 @@
                 255,
                 255
               ]
-            },
-            "ui": {
-              "label": "일괄소등 스위치",
-              "label_en": "All Lights Off Switch",
-              "summary": "일괄소등 스위치 발견됨",
-              "summary_en": "All Lights Off Switch discovered"
             }
           }
         },
@@ -2679,12 +2478,6 @@
             "inference": {
               "strategy": "unique_tuples",
               "output": "rooms"
-            },
-            "ui": {
-              "label": "조명",
-              "label_en": "lights",
-              "summary": "{room_count}개 방 발견됨",
-              "summary_en": "{room_count} rooms discovered"
             }
           }
         },
@@ -2840,12 +2633,6 @@
             "inference": {
               "strategy": "unique_tuples",
               "output": "rooms"
-            },
-            "ui": {
-              "label": "스마트 콘센트",
-              "label_en": "smart plugs",
-              "summary": "{room_count}개 방 발견됨",
-              "summary_en": "{room_count} rooms discovered"
             }
           }
         }
@@ -2977,12 +2764,6 @@
                 240,
                 240
               ]
-            },
-            "ui": {
-              "label": "현관문세트",
-              "label_en": "Doorbell Set",
-              "summary": "현관문세트 발견됨",
-              "summary_en": "Doorbell Set discovered"
             }
           }
         },
@@ -3027,12 +2808,6 @@
                 255,
                 255
               ]
-            },
-            "ui": {
-              "label": "엘리베이터",
-              "label_en": "Elevator",
-              "summary": "엘리베이터 발견됨",
-              "summary_en": "Elevator discovered"
             }
           }
         },
@@ -3071,12 +2846,6 @@
                 255,
                 255
               ]
-            },
-            "ui": {
-              "label": "가스밸브",
-              "label_en": "Gas Valve",
-              "summary": "가스밸브 발견됨",
-              "summary_en": "Gas Valve discovered"
             }
           }
         },
@@ -3150,12 +2919,6 @@
                 255,
                 255
               ]
-            },
-            "ui": {
-              "label": "난방",
-              "label_en": "heaters",
-              "summary": "난방 시스템 발견됨",
-              "summary_en": "Heating system discovered"
             }
           }
         },
@@ -3242,12 +3005,6 @@
             "inference": {
               "strategy": "count",
               "output": "rooms"
-            },
-            "ui": {
-              "label": "조명",
-              "label_en": "lights",
-              "summary": "{room_count}개 방 발견됨",
-              "summary_en": "{room_count} rooms discovered"
             }
           }
         }
@@ -3328,12 +3085,6 @@
                 255,
                 255
               ]
-            },
-            "ui": {
-              "label": "엘리베이터",
-              "label_en": "Elevator",
-              "summary": "엘리베이터 발견됨",
-              "summary_en": "Elevator discovered"
             }
           }
         },
@@ -3373,12 +3124,6 @@
                 255,
                 255
               ]
-            },
-            "ui": {
-              "label": "가스버너 잠금",
-              "label_en": "Gas Burner Lock",
-              "summary": "가스버너 잠금장치 발견됨",
-              "summary_en": "Gas Burner Lock discovered"
             }
           }
         },
@@ -3454,12 +3199,6 @@
                 255,
                 255
               ]
-            },
-            "ui": {
-              "label": "난방",
-              "label_en": "heaters",
-              "summary": "난방 시스템 발견됨",
-              "summary_en": "Heating system discovered"
             }
           }
         },
@@ -3499,12 +3238,6 @@
                 255,
                 255
               ]
-            },
-            "ui": {
-              "label": "거실 조명",
-              "label_en": "Living Room Lights",
-              "summary": "거실 조명 발견됨",
-              "summary_en": "Living Room Lights discovered"
             }
           }
         }
@@ -3586,12 +3319,6 @@
                 255,
                 255
               ]
-            },
-            "ui": {
-              "label": "엘리베이터",
-              "label_en": "Elevator",
-              "summary": "엘리베이터 발견됨",
-              "summary_en": "Elevator discovered"
             }
           }
         },
@@ -3631,12 +3358,6 @@
                 255,
                 255
               ]
-            },
-            "ui": {
-              "label": "가스밸브",
-              "label_en": "Gas Valve",
-              "summary": "가스밸브 발견됨",
-              "summary_en": "Gas Valve discovered"
             }
           }
         },
@@ -3712,12 +3433,6 @@
                 255,
                 255
               ]
-            },
-            "ui": {
-              "label": "난방",
-              "label_en": "heaters",
-              "summary": "난방 시스템 발견됨",
-              "summary_en": "Heating system discovered"
             }
           }
         },
@@ -3757,12 +3472,6 @@
                 255,
                 255
               ]
-            },
-            "ui": {
-              "label": "거실 조명",
-              "label_en": "Living Room Lights",
-              "summary": "거실 조명 발견됨",
-              "summary_en": "Living Room Lights discovered"
             }
           }
         },
@@ -3803,12 +3512,6 @@
                 255,
                 255
               ]
-            },
-            "ui": {
-              "label": "나비엔 환기팬",
-              "label_en": "Navien Ventilator",
-              "summary": "나비엔 환기팬 발견됨",
-              "summary_en": "Navien Ventilator discovered"
             }
           }
         }
@@ -3971,12 +3674,6 @@
                 255,
                 255
               ]
-            },
-            "ui": {
-              "label": "환기팬",
-              "label_en": "Ventilator",
-              "summary": "환기팬 발견됨",
-              "summary_en": "Ventilator discovered"
             }
           }
         },
@@ -4081,12 +3778,6 @@
             ],
             "inference": {
               "strategy": "max"
-            },
-            "ui": {
-              "label": "난방",
-              "label_en": "heaters",
-              "summary": "{{heater_count}}개 난방기 발견됨",
-              "summary_en": "{{heater_count}} heaters discovered"
             }
           }
         },
@@ -4196,12 +3887,6 @@
             ],
             "inference": {
               "strategy": "max"
-            },
-            "ui": {
-              "label": "대기전력차단 콘센트",
-              "label_en": "outlets",
-              "summary": "{{outlet_count}}개 콘센트 발견됨",
-              "summary_en": "{{outlet_count}} outlets discovered"
             }
           }
         }
