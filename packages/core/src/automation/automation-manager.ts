@@ -1071,6 +1071,18 @@ export class AutomationManager {
       }
     }
 
+    // Emit command-packet event for packet log display
+    const hexPacket = Buffer.from(packet).toString('hex').toUpperCase();
+    eventBus.emit('command-packet', {
+      entity: entity.name || entity.id,
+      entityId: entity.id,
+      command: parsed.command,
+      value: commandValue,
+      packet: hexPacket,
+      portId: this.contextPortId,
+      timestamp: new Date().toISOString(),
+    });
+
     await this.commandManager.send(entity, packet, {
       priority: isLowPriority ? 'low' : 'normal',
       ackMatch,
