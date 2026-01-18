@@ -1674,6 +1674,7 @@
       {activePortId}
       {portStatuses}
       onPortChange={(portId) => (selectedPortId = portId)}
+      hasLoadError={!!infoError}
       onAddBridge={() => {
         if (activeView !== 'dashboard') {
           activeView = 'dashboard';

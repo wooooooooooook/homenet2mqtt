@@ -11,6 +11,7 @@
     portStatuses = [],
     onPortChange,
     onAddBridge,
+    hasLoadError = false,
   }: {
     onToggleSidebar?: () => void;
     portIds?: string[];
@@ -23,12 +24,16 @@
     }[];
     onPortChange?: (portId: string) => void;
     onAddBridge?: () => void;
+    hasLoadError?: boolean;
   } = $props();
 
   let isDropdownOpen = $state(false);
   let useDropdownMode = $state(false);
   let errorBubblePortId = $state<string | null>(null);
   let portTabsContainer: HTMLDivElement | undefined = $state();
+  let headerElement: HTMLElement | undefined = $state();
+  let leftSectionElement: HTMLDivElement | undefined = $state();
+  let measureContainer: HTMLDivElement | undefined = $state();
   let headerRightSection: HTMLDivElement | undefined = $state();
 
   function getPortStatus(portId: string): BridgeStatus | 'unknown' {
@@ -89,26 +94,23 @@
     if (typeof window === 'undefined') return;
 
     const checkOverflow = () => {
-      if (!portTabsContainer || !headerRightSection) return;
+      if (!measureContainer || !headerElement || !leftSectionElement) return;
 
-      // 임시로 드롭다운 모드 해제하여 실제 필요 너비 측정
-      useDropdownMode = false;
+      const headerWidth = headerElement.clientWidth;
+      const leftWidth = leftSectionElement.getBoundingClientRect().width;
+      const tabsWidth = measureContainer.scrollWidth;
 
-      requestAnimationFrame(() => {
-        if (!portTabsContainer || !headerRightSection) return;
+      // Header padding (2rem * 2) + safe gap (approx 100px)
+      const availableWidth = headerWidth - leftWidth - 100;
 
-        const containerWidth = headerRightSection.clientWidth;
-        const tabsWidth = portTabsContainer.scrollWidth;
-
-        // 탭들이 컨테이너보다 넓으면 드롭다운 모드로 전환
-        useDropdownMode = tabsWidth > containerWidth - 20;
-      });
+      // 탭들이 사용 가능한 공간보다 넓으면 드롭다운 모드로 전환
+      useDropdownMode = tabsWidth > availableWidth;
     };
 
     const resizeObserver = new ResizeObserver(checkOverflow);
 
-    if (headerRightSection) {
-      resizeObserver.observe(headerRightSection);
+    if (headerElement) {
+      resizeObserver.observe(headerElement);
     }
 
     // 포트 추가/변경 시에도 체크
@@ -130,8 +132,8 @@
   });
 </script>
 
-<header class="header">
-  <div class="left-section">
+<header class="header" bind:this={headerElement}>
+  <div class="left-section" bind:this={leftSectionElement}>
     <button
       class="ghost mobile-menu-btn"
       type="button"
@@ -204,10 +206,16 @@
                   {/if}
                 </div>
               {/each}
-              <button class="dropdown-item add-bridge-item" type="button" onclick={handleAddBridge}>
-                <span class="add-icon">+</span>
-                {$t('settings.bridge_config.add_button')}
-              </button>
+              {#if !hasLoadError}
+                <button
+                  class="dropdown-item add-bridge-item"
+                  type="button"
+                  onclick={handleAddBridge}
+                >
+                  <span class="add-icon">+</span>
+                  {$t('settings.bridge_config.add_button')}
+                </button>
+              {/if}
             </div>
           {/if}
         </div>
@@ -240,29 +248,48 @@
               {/if}
             </div>
           {/each}
-          <button
-            class="port-tab add-bridge-btn"
-            type="button"
-            onclick={handleAddBridge}
-            aria-label={$t('settings.bridge_config.add_button')}
-            title={$t('settings.bridge_config.add_button')}
-          >
-            +
-          </button>
+          {#if !hasLoadError}
+            <button
+              class="port-tab add-bridge-btn"
+              type="button"
+              onclick={handleAddBridge}
+              aria-label={$t('settings.bridge_config.add_button')}
+              title={$t('settings.bridge_config.add_button')}
+            >
+              +
+            </button>
+          {/if}
         </div>
       {/if}
     {:else}
       <!-- 포트가 없을 때 Add 버튼만 표시 -->
-      <button
-        class="port-tab add-bridge-btn"
-        type="button"
-        onclick={handleAddBridge}
-        aria-label={$t('settings.bridge_config.add_button')}
-        title={$t('settings.bridge_config.add_button')}
-      >
-        +
-      </button>
+      {#if !hasLoadError}
+        <button
+          class="port-tab add-bridge-btn"
+          type="button"
+          onclick={handleAddBridge}
+          aria-label={$t('settings.bridge_config.add_button')}
+          title={$t('settings.bridge_config.add_button')}
+        >
+          +
+        </button>
+      {/if}
     {/if}
+
+    <!-- 너비 측정용 보이지 않는 컨테이너 -->
+    <div class="port-tabs measurement-tabs" bind:this={measureContainer} aria-hidden="true">
+      {#each portIds as portId (portId)}
+        <div class="port-button-wrapper">
+          <button class="port-tab" type="button" tabindex="-1">
+            <span class="port-status-dot" aria-hidden="true"></span>
+            {portId}
+          </button>
+        </div>
+      {/each}
+      {#if !hasLoadError}
+        <button class="port-tab add-bridge-btn" type="button" tabindex="-1"> + </button>
+      {/if}
+    </div>
   </div>
 </header>
 
@@ -586,5 +613,17 @@
     .logo-text {
       display: none;
     }
+  }
+
+  .measurement-tabs {
+    position: absolute;
+    visibility: hidden;
+    pointer-events: none;
+    top: 0;
+    left: 0;
+    width: max-content;
+    height: 0;
+    overflow: hidden;
+    z-index: -100;
   }
 </style>
