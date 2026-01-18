@@ -129,30 +129,115 @@
     return { ...entry, timestampMs, timeLabel, searchText };
   };
 
+  // Optimized insertion that mutates the array in-place to avoid O(N) copy on every packet
+  // Svelte 5 fine-grained reactivity handles array mutation efficiently.
   const insertSortedLogEntry = <T extends { timestamp: string; timestampMs?: number }>(
     logs: T[],
     entry: T,
   ) => {
     const entryTimestamp = entry.timestampMs ?? parseTimestampMs(entry.timestamp);
-    const nextLogs = [...logs];
-    let left = 0;
-    let right = nextLogs.length;
 
-    while (left < right) {
-      const mid = (left + right) >> 1;
-      const midTimestamp = nextLogs[mid].timestampMs ?? parseTimestampMs(nextLogs[mid].timestamp);
-      if (midTimestamp >= entryTimestamp) {
-        left = mid + 1;
+    // Optimization: If the new entry is newer than the last entry, just push (common case)
+    if (
+      logs.length === 0 ||
+      (logs[0].timestampMs ?? parseTimestampMs(logs[0].timestamp)) < entryTimestamp
+    ) {
+      // Since we sort descending (newest first) in the UI usually?
+      // Wait, the previous code was binary searching.
+      // Let's check the sort order.
+      // The display logic in App.svelte seemed to use .sort((a,b) => b-a) for history,
+      // but insertSortedLogEntry seems to maintain existing order.
+      // Let's assume we want to maintain time order.
+      // PacketLog expects chronological order or reverse?
+      // mergePackets logic:
+      // while (rxIndex < rxLen || txIndex < txLen)
+      // if ( ... rxTimestamp >= txTimestamp )
+      // It seems to expect sorted arrays.
+      // If sorting is ascending or descending?
+      // mergePackets: checks rxTimestamp >= txTimestamp.
+      // If arrays are DESCENDING (newest first):
+      // rx[0] is newest. tx[0] is newest.
+      // if rx >= tx, take rx. This produces a merged DESCENDING list.
+      // So we need to maintain DESCENDING order in the logs.
+
+      // Let's check the previous sort in loadPacketHistory:
+      // .sort((a, b) => (b.timestampMs ?? 0) - (a.timestampMs ?? 0));
+      // So yes, DESCENDING (newest at index 0).
+
+      // If Newest (Largest TS) -> Index 0.
+      // If entry > logs[0], unshift?
+      // Unshift is O(N).
+      // If we keep arrays generic, O(N) unshift is unavoidable for array.
+      // BUT, Svelte 5 proxies might optimize or we can use a ring buffer?
+      // No, standard array unshift is O(N).
+      // However, existing `insertSortedLogEntry` was doing `[...logs]` which is O(N) copy, THEN splice.
+      // In-place `unshift` is still O(N) shift, but avoids the allocation/GC overhead of copying the whole array.
+      // Also `push` is O(1).
+
+      // Maybe we should store logs in ASCENDING order (push to end O(1)), and iterate backwards or reverse in UI?
+      // PacketLog `mergePackets` iterates 0..N.
+      // If we change storage order, we break `mergePackets`.
+      // Let's stick to in-place mutation first.
+
+      /* 
+           Wait, binary search logic was:
+           midTimestamp >= entryTimestamp -> left = mid + 1
+           Else -> right = mid
+           
+           If logs[mid] (element) > entry (new), we go RIGHT (index increases).
+           So larger timestamps are at LOWER indices.
+           So it IS Descending. (Newest at 0).
+           
+           So we usually insert at 0. `unshift`.
+        */
+
+      // Fast path for newest packet
+      if (
+        logs.length === 0 ||
+        entryTimestamp >= (logs[0].timestampMs ?? parseTimestampMs(logs[0].timestamp))
+      ) {
+        logs.unshift(entry);
       } else {
-        right = mid;
+        // Binary search for insertion point
+        let left = 0;
+        let right = logs.length;
+
+        while (left < right) {
+          const mid = (left + right) >> 1;
+          const midTimestamp = logs[mid].timestampMs ?? parseTimestampMs(logs[mid].timestamp);
+          if (midTimestamp >= entryTimestamp) {
+            left = mid + 1;
+          } else {
+            right = mid;
+          }
+        }
+        logs.splice(left, 0, entry);
+      }
+
+      if (logs.length > MAX_PACKETS) {
+        logs.length = MAX_PACKETS;
+      }
+    } else {
+      // Fallback or logic check?
+      // Re-implementing the whole binary search logic in-place.
+      let left = 0;
+      let right = logs.length;
+
+      while (left < right) {
+        const mid = (left + right) >> 1;
+        const midTimestamp = logs[mid].timestampMs ?? parseTimestampMs(logs[mid].timestamp);
+        if (midTimestamp >= entryTimestamp) {
+          left = mid + 1; // Element is newer, go right to find older place
+        } else {
+          right = mid;
+        }
+      }
+      logs.splice(left, 0, entry);
+
+      if (logs.length > MAX_PACKETS) {
+        logs.length = MAX_PACKETS;
       }
     }
-
-    nextLogs.splice(left, 0, entry);
-    if (nextLogs.length > MAX_PACKETS) {
-      nextLogs.length = MAX_PACKETS;
-    }
-    return nextLogs;
   };
 
   // -- State --
@@ -206,32 +291,12 @@
   let parsedPacketLogs = $state<PacketLogEntry[]>([]);
 
   // Derived: resolved packets with packet string (for UI display)
-  const commandPackets = $derived.by<CommandPacket[]>(() =>
-    commandPacketLogs.map((log) => ({
-      entity: log.entity,
-      entityId: log.entityId,
-      command: log.command,
-      value: log.value,
-      packet: packetDictionary[log.packetId] || '',
-      timestamp: log.timestamp,
-      portId: log.portId,
-      timestampMs: log.timestampMs,
-      timeLabel: log.timeLabel,
-      searchText: log.searchText,
-    })),
-  );
-  const parsedPackets = $derived.by<ParsedPacket[]>(() =>
-    parsedPacketLogs.map((log) => ({
-      entityId: log.entityId,
-      packet: packetDictionary[log.packetId] || '',
-      state: log.state,
-      timestamp: log.timestamp,
-      portId: log.portId,
-      timestampMs: log.timestampMs,
-      timeLabel: log.timeLabel,
-      searchText: log.searchText,
-    })),
-  );
+  // Derived: parsedEntitiesByPayload is used for discovery suggestions, so we keep it or optimize it.
+  // It iterates parsedPacketLogs which is fine, but we should make sure it's not too heavy.
+  // Actually, parsedEntitiesByPayload iterates 'parsedPacketLogs'. If logs are large, this is also heavy.
+  // But typically user only cares about this when discovery is open?
+  // Let's optimize it later if needed. The main blocker was mapping all packets for the logs view.
+
   const parsedEntitiesByPayload = $derived.by<Record<string, string[]>>(() => {
     const entries = new Map<string, Set<string>>();
     for (const log of parsedPacketLogs) {
@@ -923,7 +988,7 @@
         },
         data.packet,
       );
-      commandPacketLogs = insertSortedLogEntry(commandPacketLogs, logEntry);
+      insertSortedLogEntry(commandPacketLogs, logEntry);
 
       if (!isToastEnabled('command')) return;
 
@@ -955,7 +1020,7 @@
         },
         data.packet,
       );
-      parsedPacketLogs = insertSortedLogEntry(parsedPacketLogs, logEntry);
+      insertSortedLogEntry(parsedPacketLogs, logEntry);
     };
 
     const handleStateChange = (data: StateChangeEvent) => {
@@ -1519,27 +1584,48 @@
   });
 
   const selectedEntityParsedPackets = $derived.by<ParsedPacket[]>(() =>
-    selectedEntity && parsedPackets && selectedEntity.category === 'entity'
-      ? parsedPackets
+    selectedEntity && selectedEntity.category === 'entity'
+      ? parsedPacketLogs
           .filter(
             (p) =>
               p.entityId === selectedEntity.id &&
               (!selectedEntity.portId || !p.portId || p.portId === selectedEntity.portId),
           )
           .slice(0, 20)
+          .map((log) => ({
+            entityId: log.entityId,
+            packet: packetDictionary[log.packetId] || '',
+            state: log.state,
+            timestamp: log.timestamp,
+            portId: log.portId,
+            timestampMs: log.timestampMs,
+            timeLabel: log.timeLabel,
+            searchText: log.searchText,
+          }))
       : [],
   );
 
-  // Command packets ARE structured with entity property but we now have entityId
   const selectedEntityCommandPackets = $derived.by<CommandPacket[]>(() =>
-    selectedEntity && commandPackets && selectedEntity.category === 'entity'
-      ? commandPackets
+    selectedEntity && selectedEntity.category === 'entity'
+      ? commandPacketLogs
           .filter(
             (p) =>
               p.entityId === selectedEntity.id &&
               (!selectedEntity.portId || !p.portId || p.portId === selectedEntity.portId),
           )
           .slice(0, 20)
+          .map((log) => ({
+            entity: log.entity,
+            entityId: log.entityId,
+            command: log.command,
+            value: log.value,
+            packet: packetDictionary[log.packetId] || '',
+            timestamp: log.timestamp,
+            portId: log.portId,
+            timestampMs: log.timestampMs,
+            timeLabel: log.timeLabel,
+            searchText: log.searchText,
+          }))
       : [],
   );
 
@@ -1584,16 +1670,16 @@
     activePortId ? (entitiesByPort[activePortId] ?? []) : unifiedEntities,
   );
 
-  const filteredCommandPackets = $derived.by<CommandPacket[]>(() =>
+  const filteredCommandLogs = $derived.by<CommandLogEntry[]>(() =>
     activePortId
-      ? commandPackets.filter((packet) => !packet.portId || packet.portId === activePortId)
-      : commandPackets,
+      ? commandPacketLogs.filter((log) => !log.portId || log.portId === activePortId)
+      : commandPacketLogs,
   );
 
-  const filteredParsedPackets = $derived.by<ParsedPacket[]>(() =>
+  const filteredParsedLogs = $derived.by<PacketLogEntry[]>(() =>
     activePortId
-      ? parsedPackets.filter((packet) => !packet.portId || packet.portId === activePortId)
-      : parsedPackets,
+      ? parsedPacketLogs.filter((log) => !log.portId || log.portId === activePortId)
+      : parsedPacketLogs,
   );
 
   const filteredRawPackets = $derived.by<RawPacketWithInterval[]>(() =>
@@ -1713,8 +1799,10 @@
         {:else if activeView === 'analysis'}
           <Analysis
             stats={filteredPacketStats}
-            commandPackets={filteredCommandPackets}
-            parsedPackets={filteredParsedPackets}
+            commandPackets={[]}
+            parsedPackets={[]}
+            commandLogs={filteredCommandLogs}
+            parsedLogs={filteredParsedLogs}
             rawPackets={filteredRawPackets}
             {packetDictionary}
             {isStreaming}

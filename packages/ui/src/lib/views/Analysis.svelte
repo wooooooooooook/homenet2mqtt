@@ -5,6 +5,8 @@
     RawPacketWithInterval,
     ParsedPacket,
     BridgeSerialInfo,
+    PacketLogEntry,
+    CommandLogEntry,
   } from '../types';
   import PacketLog from '../components/PacketLog.svelte';
   import RawPacketLog from '../components/RawPacketLog.svelte';
@@ -13,8 +15,8 @@
 
   let {
     stats,
-    commandPackets,
-    parsedPackets,
+    parsedPackets, // Legacy prop, kept for compatibility if needed elsewhere
+    commandPackets, // Legacy prop, kept for compatibility if needed elsewhere
     rawPackets,
     packetDictionary,
     isStreaming,
@@ -27,10 +29,12 @@
     recordingStartTime = $bindable(),
     recordedFile = $bindable(),
     logRetentionEnabled,
+    parsedLogs = [],
+    commandLogs = [],
   }: {
     stats: PacketStatsType | null;
-    commandPackets: CommandPacket[];
     parsedPackets: ParsedPacket[];
+    commandPackets: CommandPacket[];
     rawPackets: RawPacketWithInterval[];
     packetDictionary: Record<string, string>;
     isStreaming: boolean;
@@ -43,6 +47,8 @@
     recordingStartTime: number | null;
     recordedFile: { filename: string; path: string } | null;
     logRetentionEnabled: boolean;
+    parsedLogs: PacketLogEntry[];
+    commandLogs: CommandLogEntry[];
   } = $props();
   const portIds = $derived.by<string[]>(() =>
     portMetadata.map((port: BridgeSerialInfo & { configFile: string }) => port.portId),
@@ -50,7 +56,7 @@
 </script>
 
 <div class="analysis-view">
-  <PacketLog {commandPackets} {parsedPackets} />
+  <PacketLog {commandLogs} {parsedLogs} {packetDictionary} />
   <RawPacketLog
     {rawPackets}
     {packetDictionary}

@@ -279,6 +279,8 @@
     "english": "English",
     "korean": "한국어",
     "close": "닫기",
+    "pause": "일시정지",
+    "resume": "계속",
     "retry": "다시 시도",
     "cancel": "취소",
     "confirm": "확인",

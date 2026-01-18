@@ -47,23 +47,25 @@
 
   // DEBUG: Log all error states for debugging
   $effect(() => {
-    console.log('[SystemTopology] Error States Debug:', {
-      bridgeStatus,
-      mqttStatus,
-      portMetadataStatus: portMetadata?.status,
-      globalError,
-      mqttError,
-      serialError,
-      portMetadataError: portMetadata?.error,
-      portMetadataErrorInfo: portMetadata?.errorInfo,
-      // Derived states
-      hasSerialError,
-      hasCoreError,
-      hasMqttError,
-      hasSerialWarning,
-      hasCoreWarning,
-      hasMqttWarning,
-    });
+    if (import.meta.env.DEV) {
+      console.log('[SystemTopology] Error States Debug:', {
+        bridgeStatus,
+        mqttStatus,
+        portMetadataStatus: portMetadata?.status,
+        globalError,
+        mqttError,
+        serialError,
+        portMetadataError: portMetadata?.error,
+        portMetadataErrorInfo: portMetadata?.errorInfo,
+        // Derived states
+        hasSerialError,
+        hasCoreError,
+        hasMqttError,
+        hasSerialWarning,
+        hasCoreWarning,
+        hasMqttWarning,
+      });
+    }
   });
 
   function isGreen(status: string | undefined) {

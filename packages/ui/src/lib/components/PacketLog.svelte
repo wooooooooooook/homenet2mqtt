@@ -1,42 +1,54 @@
 <script lang="ts">
   import { t } from 'svelte-i18n';
-  import type { CommandPacket, ParsedPacket } from '../types';
+  import type { CommandLogEntry, PacketLogEntry } from '../types';
   import VirtualList from '@humanspeak/svelte-virtual-list';
   import { formatTime } from '../utils/time';
 
-  let { parsedPackets = [], commandPackets = [] } = $props<{
-    parsedPackets?: ParsedPacket[];
-    commandPackets?: CommandPacket[];
+  let {
+    parsedLogs = [],
+    commandLogs = [],
+    packetDictionary = {},
+  } = $props<{
+    parsedLogs?: PacketLogEntry[];
+    commandLogs?: CommandLogEntry[];
+    packetDictionary?: Record<string, string>;
   }>();
 
   let showRx = $state(true);
   let showTx = $state(true);
+  let isPaused = $state(false);
   let searchQuery = $state('');
   let debouncedQuery = $state('');
   const SEARCH_DEBOUNCE_MS = 200;
   let searchDebounceHandle: ReturnType<typeof setTimeout> | null = null;
 
-  type MergedPacket = ({ type: 'rx' } & ParsedPacket) | ({ type: 'tx' } & CommandPacket);
+  type MergedPacket = { type: 'rx'; data: PacketLogEntry } | { type: 'tx'; data: CommandLogEntry };
 
-  const getTimestampMs = (packet: ParsedPacket | CommandPacket) =>
+  const getTimestampMs = (packet: PacketLogEntry | CommandLogEntry) =>
     packet.timestampMs ?? new Date(packet.timestamp).getTime();
 
-  const mergePackets = (rxPackets: ParsedPacket[], txPackets: CommandPacket[]) => {
+  const mergePackets = (rxPackets: PacketLogEntry[], txPackets: CommandLogEntry[]) => {
+    // Snapshot or use raw arrays to avoid excessive proxy overhead if passed as proxies
+    // However, since we just iterate and push to a new array, the overhead is mainly in property access.
+    // If the arrays are huge, using $state.snapshot might be better, but let's first rely on the logic change.
     const merged: MergedPacket[] = [];
     let rxIndex = 0;
     let txIndex = 0;
 
-    while (rxIndex < rxPackets.length || txIndex < txPackets.length) {
+    const rxLen = rxPackets.length;
+    const txLen = txPackets.length;
+
+    while (rxIndex < rxLen || txIndex < txLen) {
       const rxPacket = rxPackets[rxIndex];
       const txPacket = txPackets[txIndex];
       const rxTimestamp = rxPacket ? getTimestampMs(rxPacket) : -Infinity;
       const txTimestamp = txPacket ? getTimestampMs(txPacket) : -Infinity;
 
       if (txPacket === undefined || (rxPacket && rxTimestamp >= txTimestamp)) {
-        merged.push({ ...rxPacket, type: 'rx' } as const);
+        merged.push({ type: 'rx', data: rxPacket });
         rxIndex += 1;
       } else if (txPacket) {
-        merged.push({ ...txPacket, type: 'tx' } as const);
+        merged.push({ type: 'tx', data: txPacket });
         txIndex += 1;
       }
     }
@@ -61,39 +73,54 @@
     };
   });
 
-  const mergedPackets = $derived.by(() => {
+  // Calculate merged logs normally
+  const displayPackets = $derived.by(() => {
     const query = debouncedQuery;
-    const rxPackets = showRx ? parsedPackets : [];
-    const txPackets = showTx ? commandPackets : [];
+    const rxPackets = showRx ? parsedLogs : [];
+    const txPackets = showTx ? commandLogs : [];
+
+    // Use searchText pre-calculated in logs for filtering
     const filteredRx = query
-      ? rxPackets.filter((packet: ParsedPacket) => packet.searchText?.includes(query))
+      ? rxPackets.filter((packet: PacketLogEntry) => packet.searchText?.includes(query))
       : rxPackets;
     const filteredTx = query
-      ? txPackets.filter((packet: CommandPacket) => packet.searchText?.includes(query))
+      ? txPackets.filter((packet: CommandLogEntry) => packet.searchText?.includes(query))
       : txPackets;
 
     return mergePackets(filteredRx, filteredTx);
+  });
+
+  // When not paused, sync viewPackets with displayPackets
+  // When paused, viewPackets remains properly frozen
+  let viewPackets = $state<MergedPacket[]>([]);
+
+  $effect(() => {
+    if (!isPaused) {
+      viewPackets = displayPackets;
+    }
   });
 </script>
 
 {#snippet renderPacketItem(packet: MergedPacket, _index: number)}
   <div class="log-item {packet.type}">
-    <span class="time">[{packet.timeLabel ?? formatTime(packet.timestamp)}]</span>
+    <span class="time">[{packet.data.timeLabel ?? formatTime(packet.data.timestamp)}]</span>
 
     {#if packet.type === 'rx'}
       <span class="direction rx">RX</span>
-      <span class="entity">{packet.entityId}</span>
-      <span class="payload">{packet.packet.toUpperCase()}</span>
-      {#if packet.state}
-        <span class="state-preview">→ {JSON.stringify(packet.state)}</span>
+      <span class="entity">{packet.data.entityId}</span>
+      <span class="payload">{(packetDictionary[packet.data.packetId] || '').toUpperCase()}</span>
+      {#if (packet.data as PacketLogEntry).state}
+        <span class="state-preview">→ {JSON.stringify((packet.data as PacketLogEntry).state)}</span>
       {/if}
     {:else}
       <span class="direction tx">TX</span>
-      <span class="entity">{packet.entityId}</span>
-      <span class="payload">{packet.packet.toUpperCase()}</span>
+      <span class="entity">{packet.data.entityId}</span>
+      <span class="payload">{(packetDictionary[packet.data.packetId] || '').toUpperCase()}</span>
       <span class="command-info">
-        {packet.command}
-        {#if packet.value !== undefined}<span class="value">({packet.value})</span>{/if}
+        {(packet.data as CommandLogEntry).command}
+        {#if (packet.data as CommandLogEntry).value !== undefined}<span class="value"
+            >({(packet.data as CommandLogEntry).value})</span
+          >{/if}
       </span>
     {/if}
   </div>
@@ -123,6 +150,39 @@
         </label>
       </div>
     </div>
+
+    <div class="header-right">
+      <button
+        class="pause-btn"
+        class:paused={isPaused}
+        onclick={() => (isPaused = !isPaused)}
+        title={isPaused ? $t('common.resume') : $t('common.pause')}
+      >
+        {#if isPaused}
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            width="16"
+            height="16"
+          >
+            <path d="M8 5v14l11-7z" />
+          </svg>
+          {$t('common.resume', { default: 'Resume' })}
+        {:else}
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            width="16"
+            height="16"
+          >
+            <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+          </svg>
+          {$t('common.pause', { default: 'Pause' })}
+        {/if}
+      </button>
+    </div>
   </div>
   <p class="description">{$t('analysis.packet_log.desc')}</p>
   <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
@@ -132,11 +192,11 @@
     role="log"
     aria-label={$t('analysis.packet_log.title')}
   >
-    {#if mergedPackets.length === 0}
+    {#if viewPackets.length === 0}
       <p class="empty">{$t('analysis.packet_log.empty')}</p>
     {:else}
       <VirtualList
-        items={mergedPackets}
+        items={viewPackets}
         renderItem={renderPacketItem}
         defaultEstimatedItemHeight={32}
         bufferSize={10}
@@ -306,5 +366,44 @@
     text-align: center;
     color: #64748b;
     font-style: italic;
+  }
+
+  /* Right-side actions */
+  .header-right {
+    display: flex;
+    align-items: center;
+  }
+
+  .pause-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(30, 41, 59, 0.5);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    color: #e2e8f0;
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .pause-btn:hover {
+    background: rgba(30, 41, 59, 0.8);
+    border-color: rgba(148, 163, 184, 0.4);
+  }
+
+  .pause-btn.paused {
+    background: rgba(245, 158, 11, 0.15);
+    border-color: rgba(245, 158, 11, 0.4);
+    color: #fbbf24;
+  }
+
+  .pause-btn.paused:hover {
+    background: rgba(245, 158, 11, 0.25);
+  }
+
+  .pause-btn svg {
+    flex-shrink: 0;
   }
 </style>

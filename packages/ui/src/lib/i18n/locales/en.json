@@ -279,6 +279,8 @@
     "english": "English",
     "korean": "Korean",
     "close": "Close",
+    "pause": "Pause",
+    "resume": "Resume",
     "retry": "Retry",
     "cancel": "Cancel",
     "confirm": "Confirm",
