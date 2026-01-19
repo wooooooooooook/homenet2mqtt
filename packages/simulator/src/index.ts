@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { createServer } from 'node:net';
+import { createServer, Socket } from 'node:net';
 import { pathToFileURL } from 'node:url';
 import * as pty from '@homebridge/node-pty-prebuilt-multiarch';
 import { SerialPort } from 'serialport';
@@ -178,9 +178,9 @@ export function createTcpSimulator(
   } = options;
   const packets = userPackets ?? getPacketsForDevice(device);
   const normalizedPackets = normalizePackets(packets);
-  const clients = new Set<any>();
+  const clients = new Set<Socket>();
 
-  const server = createServer((socket: any) => {
+  const server = createServer((socket: Socket) => {
     clients.add(socket);
     socket.on('close', () => clients.delete(socket));
     socket.on('error', () => clients.delete(socket));

@@ -9,3 +9,7 @@
 ## 2025-05-23 - Broken Test Script in Simulator
 **Observation:** `packages/simulator/package.json` contains a test script pointing to `packages/simulator/test/simulator.test.ts`, which does not exist.
 **Action:** Created `packages/simulator/test/simulator.test.ts` with a placeholder test and updated `package.json` to use standard `vitest` invocation.
+
+## 2025-05-23 - Simulator Excluded from Root Lint
+**Observation:** The root `pnpm lint` script explicitly excludes `packages/simulator` (`--filter '!@rs485-homenet/simulator'`).
+**Action:** Manually verified `packages/simulator` linting. It should be integrated back into the main lint workflow in the future.
