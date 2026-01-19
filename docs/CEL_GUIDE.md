@@ -64,6 +64,13 @@ YAML 파일에서 `state_value`, `command_temperature` 등의 속성에 CEL 표�
 *   `double(value)`: 값을 실수형(double)으로 변환 (나눗셈 등을 위해 사용)
 *   `has(expr)`: 선택적 필드 존재 여부 확인 (예: `has(state.value)`)
 
+### 갤러리 템플릿 전용 함수 (Gallery Template Only)
+
+갤러리 템플릿(`gallery/**/*.yaml`) 작성 시에만 사용할 수 있는 추가적인 헬퍼 함수입니다. 이 함수들은 일반적인 설정 파일(`state_value`, `command_*` 등)에서는 사용할 수 없습니다.
+
+*   `hex(int)`: 정수를 16진수 문자열(두 자리 0 패딩)로 변환 (예: `hex(10)` -> `"0x0a"`)
+*   `pad(value, length)`: 값(숫자 또는 문자열)을 지정된 길이만큼 0으로 패딩하여 문자열로 반환 (예: `pad(5, 3)` -> `"005"`)
+
 ## 사용 예시 (Config Examples)
 
 ### 1. 전력량 측정 (Commax 스마트 플러그)
