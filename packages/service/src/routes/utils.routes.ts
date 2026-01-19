@@ -76,6 +76,13 @@ export function createUtilsRoutes(ctx: UtilsRoutesContext): Router {
       return res.status(400).json({ error: 'script must be a non-empty string' });
     }
 
+    const MAX_SCRIPT_LENGTH = 2048; // 2KB limit for CEL expressions
+    if (script.length > MAX_SCRIPT_LENGTH) {
+      return res.status(400).json({
+        error: `Script length exceeds limit of ${MAX_SCRIPT_LENGTH} characters`,
+      });
+    }
+
     const { context, error, status } = parseCelContext(req.body);
     if (error) {
       return res.status(status ?? 400).json({ error });
