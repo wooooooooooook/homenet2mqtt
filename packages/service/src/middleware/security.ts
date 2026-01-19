@@ -10,6 +10,9 @@ export const globalSecurityHeaders = (_req: Request, res: Response, next: NextFu
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   // Referrer 정보 노출 최소화
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  // Cross-Origin Isolation (Defense in Depth)
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+  res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
   // CSP: 스크립트 및 스타일 인라인 허용 (Svelte 호환), WebSocket 허용
   res.setHeader(
     'Content-Security-Policy',
