@@ -992,7 +992,9 @@
           <hr class="params-divider" />
 
           <h4>{$t('setup_wizard.pdf_header_footer_title')}</h4>
-          <p class="step-desc-sm">{$t('setup_wizard.pdf_header_footer_desc')}</p>
+          <p id="header-footer-desc" class="step-desc-sm">
+            {$t('setup_wizard.pdf_header_footer_desc')}
+          </p>
 
           <div class="form-grid">
             <div class="form-group">
@@ -1000,6 +1002,8 @@
               <input
                 type="text"
                 id="rx_header"
+                aria-describedby="header-footer-desc"
+                placeholder="[0xAA, 0x55]"
                 value={typeof packetDefaults.rx_header !== 'string'
                   ? JSON.stringify(packetDefaults.rx_header ?? [])
                   : packetDefaults.rx_header}
@@ -1011,6 +1015,8 @@
               <input
                 type="text"
                 id="rx_footer"
+                aria-describedby="header-footer-desc"
+                placeholder="[0xAA, 0x55]"
                 value={typeof packetDefaults.rx_footer !== 'string'
                   ? JSON.stringify(packetDefaults.rx_footer ?? [])
                   : packetDefaults.rx_footer}
@@ -1025,6 +1031,8 @@
               <input
                 type="text"
                 id="tx_header"
+                aria-describedby="header-footer-desc"
+                placeholder="[0xAA, 0x55]"
                 value={typeof packetDefaults.tx_header !== 'string'
                   ? JSON.stringify(packetDefaults.tx_header ?? [])
                   : packetDefaults.tx_header}
@@ -1036,6 +1044,8 @@
               <input
                 type="text"
                 id="tx_footer"
+                aria-describedby="header-footer-desc"
+                placeholder="[0xAA, 0x55]"
                 value={typeof packetDefaults.tx_footer !== 'string'
                   ? JSON.stringify(packetDefaults.tx_footer ?? [])
                   : packetDefaults.tx_footer}
@@ -1050,6 +1060,7 @@
               <input
                 type="text"
                 id="rx_checksum"
+                placeholder="sum"
                 value={packetDefaults.rx_checksum ?? ''}
                 oninput={(e) => handleChecksumChange('rx_checksum', e.currentTarget.value)}
                 disabled={Boolean(packetDefaults.rx_checksum2)}
@@ -1064,6 +1075,7 @@
               <input
                 type="text"
                 id="tx_checksum"
+                placeholder="sum"
                 value={packetDefaults.tx_checksum ?? ''}
                 oninput={(e) => handleChecksumChange('tx_checksum', e.currentTarget.value)}
                 disabled={Boolean(packetDefaults.tx_checksum2)}
@@ -1081,6 +1093,7 @@
               <input
                 type="text"
                 id="rx_checksum2"
+                placeholder="xor_add"
                 value={packetDefaults.rx_checksum2 ?? ''}
                 oninput={(e) => handleChecksum2Change('rx_checksum2', e.currentTarget.value)}
                 disabled={Boolean(packetDefaults.rx_checksum)}
@@ -1095,6 +1108,7 @@
               <input
                 type="text"
                 id="tx_checksum2"
+                placeholder="xor_add"
                 value={packetDefaults.tx_checksum2 ?? ''}
                 oninput={(e) => handleChecksum2Change('tx_checksum2', e.currentTarget.value)}
                 disabled={Boolean(packetDefaults.tx_checksum)}
@@ -1112,6 +1126,7 @@
               <input
                 type="text"
                 id="rx_valid_headers"
+                placeholder="[0xB0, 0xAB]"
                 value={typeof packetDefaults.rx_valid_headers !== 'string'
                   ? JSON.stringify(packetDefaults.rx_valid_headers ?? [])
                   : packetDefaults.rx_valid_headers}
