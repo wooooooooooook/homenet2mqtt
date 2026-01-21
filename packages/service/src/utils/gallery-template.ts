@@ -16,8 +16,20 @@ export interface GalleryParameterDefinition {
   computed?: boolean;
 }
 
+export interface GalleryMeta {
+  name?: string;
+  name_en?: string;
+  description?: string;
+  description_en?: string;
+  version?: string;
+  author?: string;
+  tags?: string[];
+  min_version?: string;
+  [key: string]: unknown;
+}
+
 export interface GallerySnippet {
-  meta?: Record<string, unknown>;
+  meta?: GalleryMeta;
   parameters?: GalleryParameterDefinition[];
   discovery?: {
     match: {
@@ -128,12 +140,27 @@ function validateParameterValue(definition: GalleryParameterDefinition, value: u
     if (!Array.isArray(value)) {
       throw new Error(`[gallery] Parameter ${name} must be an object array`);
     }
+
+    // Prepare defaults from schema
+    const itemDefaults: Record<string, unknown> = {};
+    if (definition.schema?.properties) {
+      const properties = definition.schema.properties as Record<string, { default?: unknown }>;
+      for (const [key, prop] of Object.entries(properties)) {
+        if (prop && typeof prop === 'object' && prop.default !== undefined) {
+          itemDefaults[key] = prop.default;
+        }
+      }
+    }
+
+    const mergedValue = [];
     for (const item of value) {
       if (!item || typeof item !== 'object') {
         throw new Error(`[gallery] Parameter ${name} must contain objects`);
       }
+      // Merge defaults (item specific values override defaults)
+      mergedValue.push({ ...itemDefaults, ...item });
     }
-    return value;
+    return mergedValue;
   }
 
   throw new Error(`[gallery] Unsupported parameter type: ${type}`);
@@ -315,6 +342,7 @@ function expandNode(node: unknown, context: Record<string, unknown>): unknown {
   if (Array.isArray(node)) {
     const expandedList = node.flatMap((item) => {
       const expanded = expandNode(item, context);
+      if (expanded === null) return []; // Filter out null (from $if false)
       return Array.isArray(expanded) ? expanded : [expanded];
     });
     return expandedList;
@@ -322,6 +350,24 @@ function expandNode(node: unknown, context: Record<string, unknown>): unknown {
 
   if (node && typeof node === 'object') {
     const record = node as Record<string, unknown>;
+
+    // $if conditional processing
+    if (record.$if !== undefined) {
+      const condition = record.$if;
+      const conditionValue =
+        typeof condition === 'string' ? resolveTemplateValue(condition, context) : condition;
+
+      if (!conditionValue) {
+        return null; // Condition not met, exclude this node
+      }
+
+      // Condition met, process remaining properties (excluding $if)
+      const filtered = Object.fromEntries(
+        Object.entries(record).filter(([key]) => key !== '$if'),
+      );
+      return expandNode(filtered, context);
+    }
+
     if (record.$repeat) {
       return expandRepeatBlock(record, context);
     }

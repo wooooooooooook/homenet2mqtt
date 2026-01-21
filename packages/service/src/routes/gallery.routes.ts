@@ -9,6 +9,7 @@ import yaml from 'js-yaml';
 import { HomenetBridgeConfig, logger, normalizeConfig, normalizePortId } from '@rs485-homenet/core';
 import { dumpConfigToYaml } from '../utils/yaml-dumper.js';
 import { expandGalleryTemplate, type GallerySnippet } from '../utils/gallery-template.js';
+import { getAppVersion, checkMinVersion } from '../utils/version-utils.js';
 import {
   CONFIG_DIR,
   GALLERY_RAW_BASE_URL,
@@ -382,6 +383,19 @@ export function createGalleryRoutes(ctx: GalleryRoutesContext): Router {
       if (!galleryYaml) {
         return res.status(400).json({ error: 'Invalid YAML content' });
       }
+
+      // Check minimum version requirement
+      const appVersion = await getAppVersion();
+      const versionCheck = checkMinVersion(galleryYaml.meta?.min_version, appVersion);
+      if (!versionCheck.compatible) {
+        return res.status(400).json({
+          error: 'Incompatible version',
+          message: versionCheck.message,
+          minVersion: versionCheck.minVersion,
+          appVersion: versionCheck.appVersion,
+        });
+      }
+
       const expandedGalleryYaml = expandGalleryTemplate(galleryYaml, parameterValues);
 
       const currentConfig = currentConfigs[configIndex];
@@ -648,6 +662,19 @@ export function createGalleryRoutes(ctx: GalleryRoutesContext): Router {
       if (!galleryYaml) {
         return res.status(400).json({ error: 'Invalid YAML content' });
       }
+
+      // Check minimum version requirement
+      const appVersion = await getAppVersion();
+      const versionCheck = checkMinVersion(galleryYaml.meta?.min_version, appVersion);
+      if (!versionCheck.compatible) {
+        return res.status(400).json({
+          error: 'Incompatible version',
+          message: versionCheck.message,
+          minVersion: versionCheck.minVersion,
+          appVersion: versionCheck.appVersion,
+        });
+      }
+
       const expandedGalleryYaml = expandGalleryTemplate(galleryYaml, parameterValues);
 
       // Read the current config file

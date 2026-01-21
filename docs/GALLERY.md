@@ -26,6 +26,21 @@
 - **하위 호환성 유지**: 기존 정적 YAML 스니펫은 그대로 적용
 - **안전한 표현식 평가**: Common Expression Language (CEL) 기반의 안전한 샌드박스 실행
 
+### 메타데이터 (`meta`)
+
+스니펫의 기본 정보를 정의합니다.
+
+```yaml
+meta:
+  name: "My Template"
+  author: "User"
+  version: "1.0.0"
+  min_version: "1.15.0"  # 최소 요구 애드온 버전
+  tags: ["light", "kocom"]
+```
+
+`min_version`을 명시하면 해당 버전보다 낮은 애드온에서는 스니펫 적용이 차단되고 업데이트 안내 메시지가 표시됩니다.
+
 ### 파라미터 정의 (`parameters`)
 
 ```yaml
@@ -55,6 +70,22 @@ parameters:
 | --- | --- | --- |
 | `hidden` | UI에 표시되지 않는 숨겨진 파라미터입니다. | `hidden: true` |
 | `computed` | 계산된 파라미터입니다 (보통 `hidden`과 함께 사용). | `computed: true` |
+
+> **Tip:** `object[]` 타입의 경우, 배열 아이템에 일부 속성이 누락되어 있으면 `schema.properties`에 정의된 `default` 값이 자동으로 병합됩니다. 예를 들어 Discovery 결과에 `light_count`가 없더라도 스키마에 `default: 2`가 있다면 자동으로 채워집니다.
+
+### 조건부 포함 (`$if`)
+
+특정 조건에 따라 엔티티나 노드를 포함하거나 제외할 수 있습니다.
+
+```yaml
+entities:
+  light:
+    - $if: '{{light_count >= 2}}'
+      id: 'light_2'
+      name: 'Light 2'
+```
+
+조건식(CEL)이 `true`로 평가되면 해당 노드가 포함되고, `false`이면 결과에서 완전히 제거됩니다. `$repeat` 블록 내부나 `nested` 구조에서도 사용할 수 있습니다.
 
 
 
@@ -258,4 +289,17 @@ inference:
   # 또는 다차원용
   strategy: "unique_tuples"
   output: "room_lights"       # object[] 파라미터로 출력
+```
+
+#### 예시: 다차원 추론 (`unique_tuples`)
+방 번호(`room_idx`)와 조명 개수(`count`)를 조합하여 객체 배열을 생성하는 예시입니다.
+
+```yaml
+inference:
+  strategy: "unique_tuples"
+  output: "rooms"  # parameters에 있는 'rooms' (object[]) 변수에 결과 저장
+```
+
+이 전략은 발견된 각 파라미터 조합을 유일한 튜플로 만들어 배열로 반환합니다. 결과는 다음과 같은 형태가 됩니다:
+`[{room_idx: 1, count: 2}, {room_idx: 2, count: 1}]`
 ```
