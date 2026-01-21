@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-01-21T01:14:16.623Z",
+  "generated_at": "2026-01-21T01:57:57.235Z",
   "vendors": [
     {
       "id": "bestin",
@@ -2977,6 +2977,43 @@
           }
         },
         {
+          "file": "kocom/fan.yaml",
+          "name": "환풍기",
+          "name_en": "Fan",
+          "description": "코콤 환풍기 설정입니다. (속도 조절 지원, 기본값: 거실)",
+          "description_en": "Kocom Fan configuration. Supports speed control. Default: Livingroom.",
+          "version": "1.0.0",
+          "author": "wooooooooooook",
+          "tags": [
+            "fan",
+            "kocom"
+          ],
+          "parameters": [],
+          "content_summary": {
+            "entities": {
+              "fan": 1
+            },
+            "automations": 0,
+            "scripts": 0
+          },
+          "discovery": {
+            "match": {
+              "data": [
+                48,
+                208,
+                0,
+                72
+              ],
+              "mask": [
+                255,
+                255,
+                255,
+                255
+              ]
+            }
+          }
+        },
+        {
           "file": "kocom/gas_valve.yaml",
           "name": "가스밸브 설정",
           "name_en": "Gas Valve",
@@ -3146,20 +3183,18 @@
                 }
               ],
               "schema": {
-                "properties": {
-                  "room_idx": {
-                    "type": "integer",
-                    "label": "방 번호",
-                    "min": 0,
-                    "max": 15
-                  },
-                  "light_count": {
-                    "type": "integer",
-                    "label": "조명 개수",
-                    "default": 2,
-                    "min": 1,
-                    "max": 4
-                  }
+                "room_idx": {
+                  "type": "integer",
+                  "label": "방 번호",
+                  "min": 0,
+                  "max": 15
+                },
+                "light_count": {
+                  "type": "integer",
+                  "label": "조명 개수",
+                  "default": 2,
+                  "min": 1,
+                  "max": 4
                 }
               }
             }
@@ -3301,7 +3336,6 @@
           "stop_bits": 1
         },
         "packet_defaults": {
-          "rx_length": 21,
           "rx_checksum": "add_no_header",
           "tx_checksum": "add_no_header",
           "rx_header": [
@@ -3534,7 +3568,6 @@
           "stop_bits": 1
         },
         "packet_defaults": {
-          "rx_length": 21,
           "rx_checksum": "add_no_header",
           "tx_checksum": "add_no_header",
           "rx_header": [
