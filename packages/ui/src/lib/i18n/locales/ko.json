@@ -242,7 +242,7 @@
       "trigger_placeholder": "예: {\"topic\": \"homeassistant\"}",
       "run": "실행",
       "running": "실행 중...",
-      "json_help": "입력값은 JSON 형식으로 작성하세요.",
+      "json_help": "입력값은 JSON 형식으로 작성하세요. (작은따옴표 객체 표기도 허용)",
       "result_label": "결과",
       "result_hint": "결과가 null이면 표현식/입력값을 확인하세요.",
       "invalid_json": "입력값이 JSON 형식이 아닙니다.",

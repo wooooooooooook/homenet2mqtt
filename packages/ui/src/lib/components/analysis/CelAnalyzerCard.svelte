@@ -49,10 +49,26 @@
     }
   };
 
+  const normalizeSingleQuoteJson = (input: string) =>
+    input.replace(/'(?:\\.|[^'\\])*'/g, (match) => {
+      const inner = match.slice(1, -1);
+      const escaped = inner.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+      return `"${escaped}"`;
+    });
+
+  const parseJsonValue = (input: string) => {
+    try {
+      return JSON.parse(input);
+    } catch {
+      const normalized = normalizeSingleQuoteJson(input);
+      return JSON.parse(normalized);
+    }
+  };
+
   const parseJsonInput = (input: string, label: string) => {
     if (!input.trim()) return undefined;
     try {
-      return JSON.parse(input);
+      return parseJsonValue(input);
     } catch {
       throw new Error(`${label} ${$t('analysis.cel_analyzer.invalid_json')}`);
     }
@@ -61,7 +77,7 @@
   const parseDataInput = (input: string) => {
     if (!input.trim()) return undefined;
     try {
-      const jsonValue = JSON.parse(input);
+      const jsonValue = parseJsonValue(input);
       if (!Array.isArray(jsonValue)) {
         throw new Error($t('analysis.cel_analyzer.must_be_array'));
       }

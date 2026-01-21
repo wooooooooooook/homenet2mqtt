@@ -242,7 +242,7 @@
       "trigger_placeholder": "e.g. {\"topic\": \"homeassistant\"}",
       "run": "Run",
       "running": "Running...",
-      "json_help": "Provide inputs in JSON format.",
+      "json_help": "Provide inputs in JSON format (single-quoted objects are accepted).",
       "result_label": "Result",
       "result_hint": "If the result is null, double-check the expression and inputs.",
       "invalid_json": "is not valid JSON.",
