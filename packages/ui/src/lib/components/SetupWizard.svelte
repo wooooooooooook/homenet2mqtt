@@ -1202,7 +1202,7 @@
                     </label>
                   </div>
                   <div class="entity-items">
-                    {#each items as item (item.id)}
+                    {#each items as item, i (item.id || i)}
                       <label class="checkbox-label entity-item">
                         <input
                           type="checkbox"
