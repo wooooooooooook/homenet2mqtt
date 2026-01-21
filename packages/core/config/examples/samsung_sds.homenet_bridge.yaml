@@ -15,6 +15,7 @@ homenet_bridge:
     rx_checksum: samsung_xor
     tx_checksum: samsung_xor
     rx_valid_headers: [0xB0, 0xAB, 0xAD, 0xCC, 0xA4]
+    # B0: 장치 응답(상태), AB: 가스밸브, AD: 현관스위치(구형), CC: 현관스위치(신형), A4: 인터폰
 
   light:
     - id: 'light_1'

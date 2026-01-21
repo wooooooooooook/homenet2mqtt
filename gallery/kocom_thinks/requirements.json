@@ -6,7 +6,6 @@
         "stop_bits": 1
     },
     "packet_defaults": {
-        "rx_length": 21,
         "rx_checksum": "add_no_header",
         "tx_checksum": "add_no_header",
         "rx_header": [

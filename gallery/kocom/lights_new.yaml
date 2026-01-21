@@ -23,18 +23,17 @@ parameters:
       - room_idx: 3
         light_count: 2
     schema:
-      properties:
-        room_idx:
-          type: integer
-          label: "방 번호"
-          min: 0
-          max: 15
-        light_count:
-          type: integer
-          label: "조명 개수"
-          default: 2
-          min: 1
-          max: 4
+      room_idx:
+        type: integer
+        label: "방 번호"
+        min: 0
+        max: 15
+      light_count:
+        type: integer
+        label: "조명 개수"
+        default: 2
+        min: 1
+        max: 4
 
 discovery:
   match:
@@ -48,8 +47,8 @@ discovery:
     output: "rooms"
 
 automation:
-  - id: 'query_all_lights_on_startup'
-    name: '모든 조명 상태 조회 (시작 시)'
+  - id: 'query_all_lights'
+    name: '모든 조명 상태 조회 (시작 시, 30분마다)'
     trigger:
       - type: startup
       - type: schedule

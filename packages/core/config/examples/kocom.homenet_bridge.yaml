@@ -9,6 +9,7 @@ homenet_bridge:
 
   packet_defaults: # New section for global packet defaults
     rx_timeout: 10ms
+    rx_length: 21
     tx_delay: 50ms
     tx_timeout: 500ms
     tx_retry_cnt: 3
@@ -293,6 +294,7 @@ homenet_bridge:
 
   valve:
     - name: 'Gas Valve'
+      id: 'gas_valve'
       state:
         data: [0x30, 0xd0, 0x00, 0x2c, 0x00]
         mask: [0xff, 0xf0, 0xff, 0xff, 0xff]
@@ -326,6 +328,7 @@ homenet_bridge:
 
   sensor:
     - name: 'Elevator Floors'
+      id: 'elevator_floors'
       icon: 'mdi:elevator'
       unit_of_measurement: '층'
       state:
@@ -335,6 +338,7 @@ homenet_bridge:
         offset: 9
 
     - name: 'Elevator Direction'
+      id: 'elevator_direction'
       icon: 'mdi:elevator'
       state:
         data: [0x30, 0xd0, 0x00, 0x01, 0x00, 0x44, 0x00]
@@ -349,6 +353,7 @@ homenet_bridge:
 
   button:
     - name: 'Elevator Call'
+      id: 'elevator_call'
       icon: 'mdi:elevator'
       command_press:
         data:

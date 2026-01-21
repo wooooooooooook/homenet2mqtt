@@ -342,6 +342,7 @@
     "has_parameters": "파라미터 설정 가능",
     "tags": "태그",
     "incompatible_port": "포트 비호환",
+    "incompatible_version": "호환되지 않는 버전입니다. Homenet2MQTT를 v{minVersion} 이상으로 업데이트해주세요. (현재: v{appVersion})",
     "download_count": "다운로드 횟수",
     "view_details": "상세보기",
     "preview": {

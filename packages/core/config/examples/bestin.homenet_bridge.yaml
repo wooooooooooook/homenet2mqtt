@@ -8,8 +8,8 @@ homenet_bridge:
 
   packet_defaults:
     rx_timeout: 10ms
-    tx_delay: 220ms # Gen2 게이트웨이는 0.22초 간격 사용
-    tx_timeout: 500ms
+    tx_delay: 20ms # Gen2 게이트웨이는 0.22초 간격 사용
+    tx_timeout: 200ms
     tx_retry_cnt: 3
 
     rx_header: [0x02] # 모든 패킷은 0x02로 시작

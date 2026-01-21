@@ -341,6 +341,7 @@
     "has_parameters": "Configurable parameters",
     "tags": "Tags",
     "incompatible_port": "Port incompatible",
+    "incompatible_version": "Incompatible version. Please update Homenet2MQTT to v{minVersion} or later. (Current: v{appVersion})",
     "download_count": "Download count",
     "view_details": "View Details",
     "preview": {

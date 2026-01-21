@@ -93,6 +93,21 @@
     return '[script]';
   }
 
+  function resolveErrorMessage(error: any) {
+    const message =
+      error instanceof Error ? error.message : typeof error === 'string' ? error : 'Unknown error';
+    const errorCode = (error as any)?.error;
+
+    if (errorCode === 'Incompatible version' || message === 'Incompatible version') {
+      const minVersion = (error as any).minVersion || '?';
+      const appVersion = (error as any).appVersion || '?';
+      return $t('gallery.incompatible_version', {
+        values: { minVersion, appVersion },
+      });
+    }
+    return message;
+  }
+
   async function loadYamlContent() {
     loadingYaml = true;
     yamlError = null;
@@ -304,7 +319,10 @@
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Failed to check conflicts');
+        // Throw object to preserve extra fields (minVersion, appVersion)
+        const error = new Error(data.error || 'Failed to check conflicts');
+        Object.assign(error, data);
+        throw error;
       }
 
       const data = await response.json();
@@ -337,10 +355,10 @@
         // No conflicts and compatible, apply directly
         await applySnippet();
       }
-    } catch (e) {
-      const message = e instanceof Error ? e.message : 'Unknown error';
-      parameterError = message;
-      applyError = message;
+    } catch (e: any) {
+      const resolvedMessage = resolveErrorMessage(e);
+      parameterError = resolvedMessage;
+      applyError = resolvedMessage;
     } finally {
       checkingConflicts = false;
     }
@@ -390,14 +408,17 @@
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Failed to apply snippet');
+        // Throw object to preserve extra fields (minVersion, appVersion)
+        const error = new Error(data.error || 'Failed to apply snippet');
+        Object.assign(error, data);
+        throw error;
       }
 
       applySuccess = true;
-    } catch (e) {
-      const message = e instanceof Error ? e.message : 'Unknown error';
-      parameterError = message;
-      applyError = message;
+    } catch (e: any) {
+      const resolvedMessage = resolveErrorMessage(e);
+      parameterError = resolvedMessage;
+      applyError = resolvedMessage;
     } finally {
       applying = false;
     }

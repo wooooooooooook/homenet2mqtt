@@ -48,10 +48,12 @@ discovery:
     output: "rooms"
 
 automation:
-  - id: 'query_all_outlets_on_startup'
-    name: '모든 콘센트 상태 조회 (시작 시)'
+  - id: 'query_all_outlets'
+    name: '모든 콘센트 상태 조회 (시작 시, 30분마다)'
     trigger:
       - type: startup
+      - type: schedule
+        every: 30m
     then:
       - $repeat:
           over: rooms
