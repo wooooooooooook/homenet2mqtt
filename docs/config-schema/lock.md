@@ -30,7 +30,7 @@
   - `payload_lock`: `LOCK`, `payload_unlock`: `UNLOCK`
 
 ## 예제: 가스 밸브 잠금 제어
-`kocom_theart.homenet_bridge.yaml`에서는 상태 비트로 잠금/해제를 구분합니다.【F:packages/core/config/examples/kocom_theart.homenet_bridge.yaml†L496-L540】
+상태 비트로 잠금/해제를 구분하는 예시입니다.
 
 ```yaml
 lock:

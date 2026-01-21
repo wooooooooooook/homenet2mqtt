@@ -36,7 +36,7 @@ text_sensor:
 ```
 
 ## 예제 2: CEL 표현식 (상태 매핑)
-`kocom_thinks.homenet_bridge.yaml`은 패킷 오프셋 8 바이트를 확인해 방향을 한글 문자열로 치환합니다.
+패킷 오프셋 8 바이트를 확인해 방향을 한글 문자열로 치환하는 예시입니다.
 
 ```yaml
 text_sensor:

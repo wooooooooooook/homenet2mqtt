@@ -89,7 +89,7 @@
   - `min_temp`: `15`, `max_temp`: `30`, `temp_step`: `1`
 
 ## 예제: 온도·습도 설정
-`kocom_thinks.homenet_bridge.yaml`은 현재/목표 온도와 상태 비트를 분리해 읽고, `command_temperature`를 통해 온도를 설정합니다.【F:packages/core/config/examples/kocom_thinks.homenet_bridge.yaml†L601-L641】
+현재/목표 온도와 상태 비트를 분리해 읽고, `command_temperature`로 온도를 설정하는 예시입니다.
 
 ```yaml
 climate:

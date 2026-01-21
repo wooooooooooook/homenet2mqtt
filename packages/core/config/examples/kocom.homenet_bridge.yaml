@@ -9,7 +9,6 @@ homenet_bridge:
 
   packet_defaults: # New section for global packet defaults
     rx_timeout: 10ms
-    rx_length: 21
     tx_delay: 50ms
     tx_timeout: 500ms
     tx_retry_cnt: 3

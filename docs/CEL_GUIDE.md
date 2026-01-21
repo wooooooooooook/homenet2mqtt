@@ -66,6 +66,8 @@ YAML 파일에서 `state_value`, `command_temperature` 등의 속성에 CEL 표�
 *   `get_from_states(entity_id, attribute)`: `states` 맵에서 엔티티/속성 값을 안전하게 조회 (없으면 `undefined`)
 *   `get_from_state(attribute)`: 현재 `state` 맵에서 속성을 안전하게 조회 (없으면 `undefined`)
 
+> **Tip**: `states['id']['field']`나 `state['field']`처럼 직접 접근하면 키가 없을 때 오류가 날 수 있습니다. 조건 분기나 기본값 처리가 필요하다면 `get_from_states`, `get_from_state`를 사용하는 편이 안전합니다.
+
 ## 사용 예시 (Config Examples)
 
 ### 1. 전력량 측정 (Commax 스마트 플러그)
