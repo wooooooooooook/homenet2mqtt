@@ -19,7 +19,7 @@ function calculateBestinSum(data: number[]): number {
 
 describe('Bestin Climate Test', () => {
   it('should parse heating status packets for all rooms', async () => {
-    const ctx = await setupTest('bestin2.0.homenet_bridge.yaml');
+    const ctx = await setupTest('bestin.homenet_bridge.yaml');
     const { stateManager, config, publishMock } = ctx;
 
     // Room 1 난방 엔티티가 있는지 확인
@@ -27,7 +27,7 @@ describe('Bestin Climate Test', () => {
 
     if (!room1Entity) {
       console.log(
-        'room1_heating 엔티티가 없습니다. 이 테스트는 bestin2.0.homenet_bridge.yaml에 climate 엔티티가 있어야 합니다.',
+        'room1_heating 엔티티가 없습니다. 이 테스트는 bestin.homenet_bridge.yaml에 climate 엔티티가 있어야 합니다.',
       );
       expect(true).toBe(true);
       return;
@@ -54,14 +54,14 @@ describe('Bestin Climate Test', () => {
   });
 
   it('should generate correct command packets for heating control', async () => {
-    const ctx = await setupTest('bestin2.0.homenet_bridge.yaml');
+    const ctx = await setupTest('bestin.homenet_bridge.yaml');
     const { mockSerialPort, sharedStates, config, automationManager } = ctx;
 
     // Room 1 난방 엔티티가 있는지 확인
     const room1Entity = findEntityById(config, 'room1_heating');
     if (!room1Entity) {
       console.log(
-        'room1_heating 엔티티가 없습니다. 이 테스트는 bestin2.0.homenet_bridge.yaml에 climate 엔티티가 있어야 합니다.',
+        'room1_heating 엔티티가 없습니다. 이 테스트는 bestin.homenet_bridge.yaml에 climate 엔티티가 있어야 합니다.',
       );
       expect(true).toBe(true);
       return;

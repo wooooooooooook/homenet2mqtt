@@ -19,7 +19,7 @@ function calculateBestinSum(data: number[]): number {
 
 describe('Bestin Fan Test', () => {
   it('should parse fan status packets correctly', async () => {
-    const ctx = await setupTest('bestin2.0.homenet_bridge.yaml');
+    const ctx = await setupTest('bestin.homenet_bridge.yaml');
     const { stateManager, config, publishMock } = ctx;
 
     // Fan 엔티티가 있는지 확인
@@ -27,7 +27,7 @@ describe('Bestin Fan Test', () => {
 
     if (!fanEntity) {
       console.log(
-        'ventilation_fan 엔티티가 없습니다. 이 테스트는 bestin2.0.homenet_bridge.yaml에 fan 엔티티가 있어야 합니다.',
+        'ventilation_fan 엔티티가 없습니다. 이 테스트는 bestin.homenet_bridge.yaml에 fan 엔티티가 있어야 합니다.',
       );
       expect(true).toBe(true);
       return;
@@ -52,7 +52,7 @@ describe('Bestin Fan Test', () => {
   });
 
   it('should parse fan OFF status correctly', async () => {
-    const ctx = await setupTest('bestin2.0.homenet_bridge.yaml');
+    const ctx = await setupTest('bestin.homenet_bridge.yaml');
     const { stateManager, config } = ctx;
 
     const fanEntity = findEntityById(config, 'ventilation_fan');
@@ -80,7 +80,7 @@ describe('Bestin Fan Test', () => {
   });
 
   it('should parse natural ventilation preset mode', async () => {
-    const ctx = await setupTest('bestin2.0.homenet_bridge.yaml');
+    const ctx = await setupTest('bestin.homenet_bridge.yaml');
     const { stateManager, config } = ctx;
 
     const fanEntity = findEntityById(config, 'ventilation_fan');
@@ -107,7 +107,7 @@ describe('Bestin Fan Test', () => {
   });
 
   it('should generate correct command packets for fan control', async () => {
-    const ctx = await setupTest('bestin2.0.homenet_bridge.yaml');
+    const ctx = await setupTest('bestin.homenet_bridge.yaml');
     const { mockSerialPort, sharedStates, config, automationManager } = ctx;
 
     const fanEntity = findEntityById(config, 'ventilation_fan');
@@ -148,7 +148,7 @@ describe('Bestin Fan Test', () => {
   });
 
   it('should generate correct speed control packet', async () => {
-    const ctx = await setupTest('bestin2.0.homenet_bridge.yaml');
+    const ctx = await setupTest('bestin.homenet_bridge.yaml');
     const { mockSerialPort, sharedStates, config, automationManager } = ctx;
 
     const fanEntity = findEntityById(config, 'ventilation_fan');
