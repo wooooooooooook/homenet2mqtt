@@ -713,6 +713,13 @@
     "loading_entities": "엔티티 목록을 불러오는 중...",
     "no_entities_found": "이 예제 설정에는 선택 가능한 엔티티가 없습니다."
   },
+  "editor": {
+    "yaml_diagnostics": "YAML 진단",
+    "yaml_syntax_error": "YAML 문법 오류",
+    "yaml_schema_warning": "스키마 경고",
+    "yaml_missing_bridge": "homenet_bridge 최상위 설정이 필요합니다.",
+    "yaml_missing_serial_path": "브릿지 연결을 위해 serial.path 설정이 필요합니다."
+  },
   "entity_types": {
     "light": "조명",
     "climate": "난방/에어컨",

@@ -12,9 +12,18 @@
     "test": "echo \"No tests yet\""
   },
   "dependencies": {
+    "@codemirror/autocomplete": "^6.18.0",
+    "@codemirror/commands": "^6.6.0",
+    "@codemirror/lang-yaml": "^6.1.1",
+    "@codemirror/language": "^6.11.0",
+    "@codemirror/lint": "^6.6.0",
+    "@codemirror/state": "^6.4.1",
+    "@codemirror/view": "^6.28.0",
     "@humanspeak/svelte-virtual-list": "^0.3.6",
+    "ajv": "^8.17.1",
     "svelte": "^5.0.0",
-    "svelte-i18n": "^4.0.1"
+    "svelte-i18n": "^4.0.1",
+    "yaml": "^2.5.0"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^4.0.0",

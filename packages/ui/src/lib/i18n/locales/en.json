@@ -712,6 +712,13 @@
     "loading_entities": "Loading entity list...",
     "no_entities_found": "No selectable entities found in this example configuration."
   },
+  "editor": {
+    "yaml_diagnostics": "YAML Diagnostics",
+    "yaml_syntax_error": "YAML Syntax Error",
+    "yaml_schema_warning": "Schema Warning",
+    "yaml_missing_bridge": "Missing homenet_bridge root configuration.",
+    "yaml_missing_serial_path": "serial.path is required for the bridge connection."
+  },
   "entity_types": {
     "light": "Light",
     "climate": "Thermostat/AC",

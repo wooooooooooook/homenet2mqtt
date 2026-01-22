@@ -3,6 +3,7 @@
   import { fade, scale } from 'svelte/transition';
   import { t } from 'svelte-i18n';
   import Button from './Button.svelte';
+  import YamlEditor from './YamlEditor.svelte';
   import Toggle from '$lib/components/Toggle.svelte';
   import Dialog from './Dialog.svelte';
   import Modal from './Modal.svelte';
@@ -906,13 +907,15 @@
               </div>
             {:else}
               <div class="config-editor-container">
-                <textarea
-                  class="config-editor"
-                  bind:value={editingConfig}
-                  spellcheck="false"
-                  aria-label={$t('entity_detail.tabs.config')}
-                  aria-busy={isSaving}
-                ></textarea>
+                <div class="config-editor">
+                  <YamlEditor
+                    bind:value={editingConfig}
+                    ariaLabel={$t('entity_detail.tabs.config')}
+                    placeholderText="homenet_bridge:
+  serial:
+    ..."
+                  />
+                </div>
                 <div class="config-actions">
                   <Button
                     variant="success"
@@ -1416,21 +1419,7 @@
 
   .config-editor {
     flex: 1;
-    background: #0f172a;
-    padding: 1rem;
-    border-radius: 8px;
-    border: 1px solid #334155;
-    color: #e2e8f0;
-    font-family: 'Fira Code', monospace;
-    font-size: 0.9rem;
-    line-height: 1.5;
-    resize: vertical;
     min-height: 400px;
-    outline: none;
-  }
-
-  .config-editor:focus {
-    border-color: #38bdf8;
   }
 
   .config-actions {

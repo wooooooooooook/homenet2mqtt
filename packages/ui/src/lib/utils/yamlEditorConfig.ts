@@ -1,0 +1,200 @@
+export const entityTypes = [
+  'binary_sensor',
+  'button',
+  'climate',
+  'fan',
+  'light',
+  'lock',
+  'number',
+  'select',
+  'sensor',
+  'switch',
+  'text',
+  'text_sensor',
+  'valve',
+] as const;
+
+export const bridgeKeys = [
+  'serial',
+  'packet_defaults',
+  'scripts',
+  'automation',
+  ...entityTypes,
+];
+
+export const serialKeys = ['portId', 'path', 'baud_rate', 'data_bits', 'parity', 'stop_bits'];
+
+export const packetDefaultKeys = [
+  'rx_timeout',
+  'tx_delay',
+  'tx_timeout',
+  'tx_retry_cnt',
+  'rx_length',
+  'tx_length',
+  'rx_checksum',
+  'tx_checksum',
+  'rx_checksum2',
+  'tx_checksum2',
+  'rx_header',
+  'tx_header',
+  'rx_footer',
+  'tx_footer',
+  'rx_valid_headers',
+];
+
+export const entityKeys = [
+  'id',
+  'name',
+  'device',
+  'device_class',
+  'icon',
+  'unit',
+  'qos',
+  'retain',
+  'state',
+  'state_on',
+  'state_off',
+  'state_open',
+  'state_closed',
+  'state_opening',
+  'state_closing',
+  'state_speed',
+  'state_temperature_current',
+  'state_temperature_target',
+  'state_action_off',
+  'state_action_idle',
+  'state_action_heating',
+  'state_text',
+  'state_value',
+  'command_on',
+  'command_off',
+  'command_toggle',
+  'command_open',
+  'command_close',
+  'command_stop',
+  'command_speed',
+  'command_temperature',
+  'command_press',
+  'command_set',
+  'visual',
+  'schema',
+  'ack',
+  'data',
+  'mask',
+  'offset',
+  'length',
+  'decode',
+  'signed',
+  'mapping',
+  'precision',
+  'endian',
+  'scale',
+  'checksum',
+];
+
+export const serialValueSuggestions = {
+  parity: ['none', 'even', 'odd'],
+  data_bits: ['7', '8'],
+  stop_bits: ['1', '2'],
+  baud_rate: ['9600', '19200', '38400', '57600', '115200'],
+};
+
+export const checksumSuggestions = [
+  'add',
+  'xor',
+  'add_no_header',
+  'xor_add',
+  'samsung_xor',
+  'bestin_sum',
+  'crc8',
+];
+
+const entityArraySchema = {
+  type: 'array',
+  items: {
+    type: 'object',
+    required: ['id'],
+    properties: {
+      id: { type: 'string' },
+      name: { type: 'string' },
+    },
+    additionalProperties: true,
+  },
+};
+
+const automationSchema = {
+  type: 'array',
+  items: {
+    type: 'object',
+    required: ['id'],
+    properties: {
+      id: { type: 'string' },
+      name: { type: 'string' },
+    },
+    additionalProperties: true,
+  },
+};
+
+export const yamlConfigSchema = {
+  type: 'object',
+  required: ['homenet_bridge'],
+  properties: {
+    homenet_bridge: {
+      type: 'object',
+      required: ['serial'],
+      properties: {
+        serial: {
+          type: 'object',
+          required: ['path'],
+          properties: {
+            portId: { type: 'string' },
+            path: { type: 'string' },
+            baud_rate: { type: 'number' },
+            data_bits: { type: 'number' },
+            parity: { type: 'string' },
+            stop_bits: { type: 'number' },
+          },
+          additionalProperties: true,
+        },
+        packet_defaults: {
+          type: 'object',
+          properties: {
+            rx_timeout: { type: 'string' },
+            tx_delay: { type: 'string' },
+            tx_timeout: { type: 'string' },
+            tx_retry_cnt: { type: 'number' },
+            rx_length: { type: 'number' },
+            tx_length: { type: 'number' },
+            rx_checksum: { type: 'string' },
+            tx_checksum: { type: 'string' },
+            rx_checksum2: { type: 'string' },
+            tx_checksum2: { type: 'string' },
+            rx_header: { type: 'array' },
+            tx_header: { type: 'array' },
+            rx_footer: { type: 'array' },
+            tx_footer: { type: 'array' },
+            rx_valid_headers: { type: 'array' },
+          },
+          additionalProperties: true,
+        },
+        scripts: { type: 'object' },
+        automation: automationSchema,
+        binary_sensor: entityArraySchema,
+        button: entityArraySchema,
+        climate: entityArraySchema,
+        fan: entityArraySchema,
+        light: entityArraySchema,
+        lock: entityArraySchema,
+        number: entityArraySchema,
+        select: entityArraySchema,
+        sensor: entityArraySchema,
+        switch: entityArraySchema,
+        text: entityArraySchema,
+        text_sensor: entityArraySchema,
+        valve: entityArraySchema,
+      },
+      additionalProperties: true,
+    },
+  },
+  additionalProperties: true,
+};

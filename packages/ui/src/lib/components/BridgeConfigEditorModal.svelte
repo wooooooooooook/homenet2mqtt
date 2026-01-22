@@ -2,6 +2,7 @@
   import { t } from 'svelte-i18n';
   import Button from './Button.svelte';
   import Modal from './Modal.svelte';
+  import YamlEditor from './YamlEditor.svelte';
 
   let {
     filename,
@@ -124,18 +125,17 @@
         </div>
       {/if}
 
-      <textarea
-        class="yaml-editor"
-        bind:value={content}
-        spellcheck="false"
-        disabled={isLoading}
-        aria-label={$t('settings.bridge_config.edit_title')}
-        aria-describedby={hintId}
-        aria-busy={isLoading || isSaving}
-        placeholder="homenet_bridge:
+      <div class="yaml-editor">
+        <YamlEditor
+          bind:value={content}
+          disabled={isLoading}
+          ariaLabel={$t('settings.bridge_config.edit_title')}
+          ariaDescribedBy={hintId}
+          placeholderText="homenet_bridge:
   serial:
     ..."
-      ></textarea>
+        />
+      </div>
 
       <div id={hintId} class="editor-hint">
         {$t('settings.bridge_config.edit_hint')}
@@ -266,27 +266,7 @@
 
   .yaml-editor {
     flex: 1;
-    background: rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(148, 163, 184, 0.2);
-    border-radius: 8px;
-    color: #e2e8f0;
-    font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
-    font-size: 0.85rem;
-    line-height: 1.6;
-    padding: 1rem;
-    resize: none;
-    tab-size: 2;
-  }
-
-  .yaml-editor:focus {
-    outline: none;
-    border-color: rgba(59, 130, 246, 0.5);
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-  }
-
-  .yaml-editor:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+    min-height: 0;
   }
 
   .editor-hint {
