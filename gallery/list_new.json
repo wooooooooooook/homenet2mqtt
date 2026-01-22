@@ -31,7 +31,7 @@
           "name_en": "Bestin Climate",
           "description": "Bestin 난방 설정입니다. bestin1.0 bestin2.0 공통입니다.",
           "description_en": "Bestin climate. bestin1.0 bestin2.0 common.",
-          "version": "1.1.0",
+          "version": "1.1.1",
           "author": "wooooooooooook",
           "tags": [
             "climate",
@@ -55,7 +55,7 @@
           "name_en": "Bestin Climate",
           "description": "Bestin 난방 설정입니다. 방 개수를 지정할 수 있습니다. bestin1.0 bestin2.0 공통입니다.",
           "description_en": "Bestin climate with configurable room count. bestin1.0 bestin2.0 common.",
-          "version": "2.1.0",
+          "version": "2.1.1",
           "author": "wooooooooooook",
           "tags": [
             "climate",
@@ -576,7 +576,7 @@
           "name_en": "Bestin2.0 Dimming Light and Outlet (2 rooms, 2 lights and 2 outlets each)",
           "description": "Bestin2.0 디밍 조명 및 아웃렛 설정입니다. 더 필요한 방, 조명 등은 추가하여 사용하세요. 디밍이 아닌경우 light엔티티에서 디밍관련 옵션들(brightness, color_temp)을 제거하고 사용하세요.",
           "description_en": "Bestin2.0 dimming light and outlet configuration. Add more rooms or lights as needed. If it's not a dimming light, remove dimming-related options (brightness, color_temp) from the light entity.",
-          "version": "1.1.0",
+          "version": "1.1.1",
           "author": "wooooooooooook",
           "tags": [
             "light",
@@ -603,7 +603,7 @@
           "name_en": "Bestin2.0 Dimming Light and Outlet",
           "description": "Bestin2.0 디밍 조명 및 아웃렛 설정입니다. 방 개수와 방별 조명/콘센트 개수를 설정할 수 있습니다. 디밍이 아닌경우 light엔티티에서 디밍관련 옵션들(brightness, color_temp)을 제거하고 사용하세요.",
           "description_en": "Bestin2.0 dimming light and outlet configuration. You can configure room count and lights/outlets per room. If it's not a dimming light, remove dimming-related options (brightness, color_temp) from the light entity.",
-          "version": "2.1.0",
+          "version": "2.1.1",
           "author": "wooooooooooook",
           "tags": [
             "light",
@@ -1322,7 +1322,7 @@
           "name_en": "Heaters (4 Thermostats)",
           "description": "CVNet 난방 온도조절기 4개 설정입니다.",
           "description_en": "CVNet 4 heating thermostats.",
-          "version": "1.1.0",
+          "version": "1.1.1",
           "author": "wooooooooooook",
           "tags": [
             "climate",
@@ -1346,7 +1346,7 @@
           "name_en": "Heaters",
           "description": "CVNet 난방 온도조절기 설정입니다. 개수를 지정할 수 있습니다.",
           "description_en": "CVNet heating thermostats. You can specify the number of thermostats.",
-          "version": "2.1.0",
+          "version": "2.1.1",
           "author": "wooooooooooook",
           "tags": [
             "climate",
@@ -2837,7 +2837,7 @@
           "name_en": "Doorbell Set",
           "description": "현대 이마주 현관문세트 설정입니다. 개인현관문과 공동현관문의 벨 감지, 통화, 문열기 기능을 지원합니다. 주방폰에 baud_rate 3880으로 연결이 필요하다고 생각됩니다.",
           "description_en": "Hyundai Imazu doorbell set configuration. Supports bell detection, calling, and door opening for private and common entrances. It is thought that it needs to connect to the kitchen phone with baud_rate 3880.",
-          "version": "1.1.0",
+          "version": "1.1.1",
           "author": "wooooooooooook",
           "tags": [
             "doorbell",
@@ -2897,7 +2897,7 @@
           "name_en": "Doorbell Set",
           "description": "코콤 현관문세트 설정입니다. 개인현관문과 공동현관문의 벨 감지, 통화, 문열기 기능을 지원합니다.",
           "description_en": "Kocom doorbell set configuration. Supports bell detection, calling, and door opening for private and common entrances.",
-          "version": "2.1.0",
+          "version": "2.1.1",
           "author": "wooooooooooook",
           "tags": [
             "doorbell",
@@ -3863,7 +3863,7 @@
           "name_en": "Doorbell Set",
           "description": "삼성 SDS 현관문 세트 설정입니다. https://github.com/n-andflash/ha_addons/blob/master/sds_wallpad/DOCS_PACKETS.md#%EC%9D%B8%ED%84%B0%ED%8F%B0-A1A6",
           "description_en": "Samsung SDS doorbell set.",
-          "version": "1.2.0",
+          "version": "1.2.1",
           "author": "wooooooooooook",
           "tags": [
             "doorbell",
@@ -3889,7 +3889,7 @@
           "name_en": "Elevator - New Style mode ",
           "description": "현관스위치 헤더가 CC인 신형현관스위치를 사용하는 삼성 SDS 엘레베이터 설정입니다. 현관스위치를 제거하고 사용해야합니다.",
           "description_en": "Samsung SDS elevator. Use with new-style doorbell with header CC. Remove doorbell and use.",
-          "version": "1.1.0",
+          "version": "1.1.1",
           "author": "wooooooooooook",
           "tags": [
             "elevator",
@@ -3913,7 +3913,7 @@
           "name_en": "Elevator - Old Style full mode",
           "description": "현관스위치 헤더가 AD인 구형현관스위치를 사용하는 삼성 SDS 엘레베이터 설정입니다. 현관스위치를 제거하고 사용해야합니다.",
           "description_en": "Samsung SDS elevator. Use with old-style doorbell with header AD. Remove doorbell and use.",
-          "version": "1.1.0",
+          "version": "1.1.1",
           "author": "wooooooooooook",
           "tags": [
             "elevator",
@@ -3937,7 +3937,7 @@
           "name_en": "Elevator - Old Style minimal mode",
           "description": "현관스위치 헤더가 AD인 구형현관스위치를 사용하는 삼성 SDS 엘레베이터 설정입니다. 현관스위치를 제거하지 않은 상태에서 사용합니다. 성공률이 낮습니다.",
           "description_en": "Samsung SDS elevator. Use with old-style doorbell with header AD. Success rate is low.",
-          "version": "1.1.0",
+          "version": "1.1.1",
           "author": "wooooooooooook",
           "tags": [
             "elevator",
