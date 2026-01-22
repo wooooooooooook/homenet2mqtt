@@ -4,6 +4,7 @@ meta:
   description: "Bestin 가스밸브 설정입니다. bestin1.0 bestin2.0 공통입니다."
   description_en: "Bestin gas valve. bestin1.0 bestin2.0 common."
   version: "2.1.0"
+  min_version: "1.16.0"
   author: "wooooooooooook"
   tags: ["valve", "gas", "bestin"]
 

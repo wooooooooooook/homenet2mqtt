@@ -4,6 +4,7 @@ meta:
   description: "코콤 조명 8개 설정입니다. (각 방 2개씩)"
   description_en: "Kocom 8 lights configuration (2 per room)."
   version: "1.1.0"
+  min_version: "1.16.0"
   author: "wooooooooooook"
   tags: ["light", "kocom"]
 

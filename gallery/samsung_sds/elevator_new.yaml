@@ -4,6 +4,7 @@ meta:
   description: "현관스위치 헤더가 CC인 신형현관스위치를 사용하는 삼성 SDS 엘레베이터 설정입니다. 현관스위치를 제거하고 사용해야합니다."
   description_en: "Samsung SDS elevator. Use with new-style doorbell with header CC. Remove doorbell and use."
   version: "1.1.0"
+  min_version: "1.16.0"
   author: "wooooooooooook"
   tags: ["elevator", "switch", "samsung", "sds"]
 

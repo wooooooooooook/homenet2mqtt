@@ -4,6 +4,7 @@ meta:
   description: "코콤 현관문세트 설정입니다. 개인현관문과 공동현관문의 벨 감지, 통화, 문열기 기능을 지원합니다."
   description_en: "Kocom doorbell set configuration. Supports bell detection, calling, and door opening for private and common entrances."
   version: "2.1.0"
+  min_version: "1.16.0"
   author: "wooooooooooook"
   tags: ["doorbell", "kocom", "switch", "button"]
 

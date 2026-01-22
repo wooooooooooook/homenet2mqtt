@@ -4,6 +4,7 @@ meta:
   description: "Bestin 난방 설정입니다. bestin1.0 bestin2.0 공통입니다."
   description_en: "Bestin climate. bestin1.0 bestin2.0 common."
   version: "1.1.0"
+  min_version: "1.16.0"
   author: "wooooooooooook"
   tags: ["climate", "bestin"]
 
