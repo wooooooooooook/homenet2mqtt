@@ -1,3 +1,7 @@
+v1.16.0
+- feat: CEL에서 states, state에 안전하게 접근하기위한 헬퍼함수 추가 [CEL가이드](https://github.com/wooooooooooook/RS485-HomeNet-to-MQTT-bridge/blob/main/docs/CEL_GUIDE.md#%ED%97%AC%ED%8D%BC-%ED%95%A8%EC%88%98)
+- 헬퍼함수 적용하여 갤러리 파일들 업데이트
+
 v1.15.0
 - feat: 갤러리 템플릿에 $if 지원 추가
 - kocom 갤러리에 전등, 콘센트, 환풍기 업데이트
