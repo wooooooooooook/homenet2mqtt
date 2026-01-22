@@ -166,7 +166,9 @@
 
   const handleLoadState = () => {
     error = null;
-    const target = stateOptions.find((option: AnalyzerStateOption) => option.id === selectedStateId);
+    const target = stateOptions.find(
+      (option: AnalyzerStateOption) => option.id === selectedStateId,
+    );
     if (!target) return;
     stateInput = JSON.stringify(target.state, null, 2);
   };
@@ -296,17 +298,13 @@
         ></textarea>
         <div class="inline-actions">
           <select bind:value={selectedStateId} disabled={!hasStateOptions}>
-            <option value="" disabled>{$t('analysis.cel_analyzer.state_select_placeholder')}</option>
+            <option value="" disabled>{$t('analysis.cel_analyzer.state_select_placeholder')}</option
+            >
             {#each stateOptions as option (option.id)}
               <option value={option.id}>{option.label}</option>
             {/each}
           </select>
-          <button
-            type="button"
-            class="ghost"
-            onclick={handleLoadState}
-            disabled={!selectedStateId}
-          >
+          <button type="button" class="ghost" onclick={handleLoadState} disabled={!selectedStateId}>
             {$t('analysis.cel_analyzer.state_fetch')}
           </button>
         </div>
