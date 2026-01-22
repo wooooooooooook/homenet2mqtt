@@ -20,7 +20,7 @@ entities:
         - action: update_state
           target_id: "sequence_number"
           state:
-            state_number: "has(state.number) ? bitAnd(state.number + 1, 0xFF) : 0"
+            state_number: "bitAnd(int(get_from_state('number', -1)) + 1, 0xFF)"
 
     - id: "make_gas_packet"
       name: "Gas Valve Packet Make"
@@ -31,7 +31,7 @@ entities:
         - action: send_packet
           data: >-
             [0x31, 0x02,
-            get_from_states('sequence_number', 'number') != null ? int(get_from_states('sequence_number', 'number')) : 0,
+            int(get_from_states('sequence_number', 'number', 0)),
             0x00, 0x00, 0x00, 0x00, 0x00]
           ack: >-
             [0x31, 0x82]
