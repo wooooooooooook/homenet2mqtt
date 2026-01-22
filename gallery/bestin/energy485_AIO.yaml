@@ -17,7 +17,7 @@ entities:
         - action: update_state
           target_id: "sequence_number"
           state:
-            state_number: "get_from_state('number') != null ? bitAnd(int(get_from_state('number')) + 1, 0xFF) : 0"
+            state_number: "get_from_state('number') == null ? 0 : bitAnd(int(get_from_state('number')) + 1, 0xFF)"
 
     - id: "make_light_packet"
       name: "Light Packet Make"
@@ -43,7 +43,7 @@ entities:
             [0x02, 
             int(0x50 + args.room_number),
             0x0A, 0x12,
-            int(get_from_states('sequence_number', 'number') != null ? get_from_states('sequence_number', 'number') : 0),
+            int(get_from_states('sequence_number', 'number')),
             int(args.ONOFF ? 0x01 : 0x00),
             int(args.position == 4 ? 0x10 : bitShiftLeft(0x01, args.position)),
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
@@ -79,7 +79,7 @@ entities:
             [0x02, 
             int(0x50 + args.room_number),
             0x0C, 0x12,
-            int(get_from_states('sequence_number', 'number') != null ? get_from_states('sequence_number', 'number') : 0),
+            int(get_from_states('sequence_number', 'number')),
             0x00, 0x00, 0x00,
             0x01,
             int(args.position + 1),

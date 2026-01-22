@@ -20,7 +20,7 @@ entities:
         - action: update_state
           target_id: "sequence_number"
           state:
-            state_number: "get_from_state('number') != null ? bitAnd(int(get_from_state('number')) + 1, 0xFF) : 0"
+            state_number: "get_from_state('number') == null ? 0 : bitAnd(int(get_from_state('number')) + 1, 0xFF)"
 
     - id: "make_fan_packet"
       name: "Fan Packet Make"
@@ -34,7 +34,7 @@ entities:
           data: >-
             [0x61,
             int(args.command_type),
-            int(get_from_states('sequence_number', 'number') != null ? get_from_states('sequence_number', 'number') : 0),
+            int(get_from_states('sequence_number', 'number')),
             0x00,
             args.command_type == 0x03 ? 0x00 : int(args.value),
             args.command_type == 0x03 ? int(args.value) : (args.command_type == 0x01 ? 0x01 : 0x00),

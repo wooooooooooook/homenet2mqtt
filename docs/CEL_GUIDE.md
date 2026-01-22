@@ -28,7 +28,7 @@ YAML 파일에서 `state_value`, `command_temperature` 등의 속성에 CEL 표�
 
 *   `data`: 수신된 패킷 데이터의 바이트 배열 (List of int). 예: `data[4]`
 *   `state`: 해당 장치의 현재 상태 맵 (Map). 키 이름은 `state_` 접두사를 제거한 값입니다. 예: `state_value` → `state['value']`, `state_temperature_target` → `state['temperature_target']`. `state['value']`는 이전 값이 없으면 `null`입니다.
-*   `states`: 전체 엔티티의 상태 맵 (Map). 예: `get_from_states('entity_id', 'value')`
+*   `states`: 전체 엔티티의 상태 맵 (Map). 예: `states['entity_id']['value']` (안전하게 사용하려면 `get_from_states('entity_id', 'value')` 권장)
 
 ### 2. 명령 생성 (`command_*`)
 
@@ -43,7 +43,7 @@ YAML 파일에서 `state_value`, `command_temperature` 등의 속성에 CEL 표�
 
 자동화 실행 여부를 결정하는 조건식에서 사용합니다.
 
-*   `states`: 전체 엔티티의 상태 맵 (Map). `get_from_states('entity_id', 'property')` 형태로 접근 가능합니다.
+*   `states`: 전체 엔티티의 상태 맵 (Map). `states['entity_id']['property']` 형태로 접근 가능합니다. (안전하게 사용하려면 `get_from_states('entity_id', 'property')` 권장)
 *   `trigger`: 자동화를 유발한 트리거 정보 (Map).
     *   `trigger.type`: 트리거 유형 (`state`, `packet`, `schedule`, `startup` 등)
     *   `trigger.state`: (state 트리거인 경우) 변경된 상태 맵
