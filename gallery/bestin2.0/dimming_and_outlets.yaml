@@ -8,6 +8,7 @@ meta:
     Bestin2.0 dimming light and outlet configuration. Add more rooms or lights as needed.
     If it's not a dimming light, remove dimming-related options (brightness, color_temp) from the light entity.
   version: "1.1.0"
+  min_version: "1.16.0"
   author: "wooooooooooook"
   tags: ["light", "outlet", "bestin2.0"]
 

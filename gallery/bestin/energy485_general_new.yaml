@@ -6,6 +6,7 @@ meta:
   description_en: >- 
     Bestin general gateway light and outlet. You can specify lights/outlets per room.
   version: "2.1.0"
+  min_version: "1.16.0"
   author: "wooooooooooook"
   tags: ["light", "outlet", "bestin"]
 
