@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-01-21T11:53:00.657Z",
+  "generated_at": "2026-01-22T00:32:32.885Z",
   "vendors": [
     {
       "id": "bestin",
@@ -1392,6 +1392,289 @@
               "light": 8
             },
             "automations": 0,
+            "scripts": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "kocom_theart",
+      "name": "코콤 Theart",
+      "requirements": {
+        "serial": {
+          "baud_rate": 9600,
+          "data_bits": 8,
+          "parity": "none",
+          "stop_bits": 1
+        },
+        "packet_defaults": {
+          "rx_checksum": "add_no_header",
+          "tx_checksum": "add_no_header",
+          "rx_header": [
+            170,
+            85
+          ],
+          "tx_header": [
+            170,
+            85
+          ],
+          "rx_footer": [
+            13,
+            13
+          ],
+          "tx_footer": [
+            13,
+            13
+          ]
+        }
+      },
+      "items": [
+        {
+          "file": "kocom_theart/elevator.yaml",
+          "name": "엘리베이터 호출 설정",
+          "name_en": "Elevator Call",
+          "description": "코콤 Theart 엘리베이터 호출 스위치 설정입니다.",
+          "description_en": "Kocom Theart elevator call switch.",
+          "version": "2.0.0",
+          "author": "wooooooooooook",
+          "tags": [
+            "elevator",
+            "button",
+            "sensor",
+            "kocom",
+            "theart"
+          ],
+          "parameters": [],
+          "content_summary": {
+            "entities": {
+              "text_sensor": 1,
+              "switch": 1
+            },
+            "automations": 0,
+            "scripts": 0
+          }
+        },
+        {
+          "file": "kocom_theart/gas_burner_lock.yaml",
+          "name": "가스버너 잠금 설정",
+          "name_en": "Gas Burner Lock",
+          "description": "코콤 Theart 가스버너 잠금 설정입니다.",
+          "description_en": "Kocom Theart gas burner lock configuration.",
+          "version": "2.0.0",
+          "author": "wooooooooooook",
+          "tags": [
+            "lock",
+            "gas",
+            "kocom",
+            "theart"
+          ],
+          "parameters": [],
+          "content_summary": {
+            "entities": {
+              "lock": 1
+            },
+            "automations": 1,
+            "scripts": 0
+          }
+        },
+        {
+          "file": "kocom_theart/heaters.yaml",
+          "name": "난방 설정 (5개)",
+          "name_en": "Heaters (5 Thermostats)",
+          "description": "코콤 Theart 난방 온도조절기 5개 설정입니다. (거실, 침실, Room 1-2, 거실2)",
+          "description_en": "Kocom Theart 5 heating thermostats with away preset mode.",
+          "version": "1.0.1",
+          "author": "wooooooooooook",
+          "tags": [
+            "climate",
+            "heater",
+            "thermostat",
+            "kocom",
+            "theart"
+          ],
+          "parameters": [],
+          "content_summary": {
+            "entities": {
+              "climate": 5
+            },
+            "automations": 1,
+            "scripts": 0
+          }
+        },
+        {
+          "file": "kocom_theart/lights_livingroom.yaml",
+          "name": "거실 조명 설정 (3개)",
+          "name_en": "Living Room Lights (3 Lights)",
+          "description": "코콤 Theart 거실 조명 3개 설정입니다.",
+          "description_en": "Kocom Theart living room with 3 lights.",
+          "version": "2.1.0",
+          "author": "wooooooooooook",
+          "tags": [
+            "light",
+            "kocom",
+            "theart",
+            "livingroom"
+          ],
+          "parameters": [],
+          "content_summary": {
+            "entities": {
+              "light": 3
+            },
+            "automations": 1,
+            "scripts": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "kocom_thinks",
+      "name": "코콤 Thinks",
+      "requirements": {
+        "serial": {
+          "baud_rate": 9600,
+          "data_bits": 8,
+          "parity": "none",
+          "stop_bits": 1
+        },
+        "packet_defaults": {
+          "rx_checksum": "add_no_header",
+          "tx_checksum": "add_no_header",
+          "rx_header": [
+            170,
+            85
+          ],
+          "tx_header": [
+            170,
+            85
+          ],
+          "rx_footer": [
+            13,
+            13
+          ],
+          "tx_footer": [
+            13,
+            13
+          ]
+        }
+      },
+      "items": [
+        {
+          "file": "kocom_thinks/elevator.yaml",
+          "name": "엘리베이터 호출 설정",
+          "name_en": "Elevator Call",
+          "description": "코콤 Thinks 엘리베이터 호출 설정입니다. 층수 및 방향 센서 포함.",
+          "description_en": "Kocom Thinks elevator with floor number and direction sensors.",
+          "version": "2.0.0",
+          "author": "wooooooooooook",
+          "tags": [
+            "elevator",
+            "button",
+            "sensor",
+            "kocom",
+            "thinks"
+          ],
+          "parameters": [],
+          "content_summary": {
+            "entities": {
+              "sensor": 1,
+              "text_sensor": 1,
+              "switch": 1
+            },
+            "automations": 0,
+            "scripts": 0
+          }
+        },
+        {
+          "file": "kocom_thinks/gas_valve.yaml",
+          "name": "가스밸브 설정",
+          "name_en": "Gas Valve",
+          "description": "코콤 Thinks 가스밸브 설정입니다.",
+          "description_en": "Kocom Thinks gas valve configuration.",
+          "version": "2.0.0",
+          "author": "wooooooooooook",
+          "tags": [
+            "valve",
+            "gas",
+            "kocom",
+            "thinks"
+          ],
+          "parameters": [],
+          "content_summary": {
+            "entities": {
+              "valve": 1
+            },
+            "automations": 1,
+            "scripts": 0
+          }
+        },
+        {
+          "file": "kocom_thinks/heaters.yaml",
+          "name": "난방 설정 (6개)",
+          "name_en": "Heaters (6 Thermostats)",
+          "description": "코콤 Thinks 난방 온도조절기 6개 설정입니다. (거실, Room 1-5)",
+          "description_en": "Kocom Thinks 6 heating thermostats with away preset mode.",
+          "version": "1.0.1",
+          "author": "wooooooooooook",
+          "tags": [
+            "climate",
+            "heater",
+            "thermostat",
+            "kocom",
+            "thinks"
+          ],
+          "parameters": [],
+          "content_summary": {
+            "entities": {
+              "climate": 6
+            },
+            "automations": 1,
+            "scripts": 0
+          }
+        },
+        {
+          "file": "kocom_thinks/lights_livingroom.yaml",
+          "name": "거실 조명 설정 (3개)",
+          "name_en": "Living Room Lights (3 Lights)",
+          "description": "코콤 Thinks 거실 조명 3개 설정입니다.",
+          "description_en": "Kocom Thinks living room with 3 lights.",
+          "version": "2.1.0",
+          "author": "wooooooooooook",
+          "tags": [
+            "light",
+            "kocom",
+            "thinks",
+            "livingroom"
+          ],
+          "parameters": [],
+          "content_summary": {
+            "entities": {
+              "light": 3
+            },
+            "automations": 1,
+            "scripts": 0
+          }
+        },
+        {
+          "file": "kocom_thinks/navien_ventilator.yaml",
+          "name": "나비엔 환기팬 설정",
+          "name_en": "Navien Ventilator",
+          "description": "코콤 Thinks 나비엔 환기팬 설정입니다. 3단 속도를 지원합니다.",
+          "description_en": "Kocom Thinks Navien ventilator with 3-speed control.",
+          "version": "2.0.0",
+          "author": "wooooooooooook",
+          "tags": [
+            "fan",
+            "ventilation",
+            "navien",
+            "kocom",
+            "thinks"
+          ],
+          "parameters": [],
+          "content_summary": {
+            "entities": {
+              "fan": 1
+            },
+            "automations": 1,
             "scripts": 0
           }
         }
