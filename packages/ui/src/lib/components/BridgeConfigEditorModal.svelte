@@ -1,6 +1,7 @@
 <script lang="ts">
   import { t } from 'svelte-i18n';
   import Button from './Button.svelte';
+  import MonacoYamlEditor from './MonacoYamlEditor.svelte';
   import Modal from './Modal.svelte';
 
   let {
@@ -124,18 +125,15 @@
         </div>
       {/if}
 
-      <textarea
+      <MonacoYamlEditor
         class="yaml-editor"
-        bind:value={content}
-        spellcheck="false"
-        disabled={isLoading}
-        aria-label={$t('settings.bridge_config.edit_title')}
-        aria-describedby={hintId}
-        aria-busy={isLoading || isSaving}
-        placeholder="homenet_bridge:
-  serial:
-    ..."
-      ></textarea>
+        value={content}
+        onChange={(nextValue) => (content = nextValue)}
+        readOnly={isLoading}
+        ariaLabel={$t('settings.bridge_config.edit_title')}
+        ariaDescribedBy={hintId}
+        placeholder="homenet_bridge:\n  serial:\n    ..."
+      />
 
       <div id={hintId} class="editor-hint">
         {$t('settings.bridge_config.edit_hint')}
@@ -264,7 +262,8 @@
     font-size: 0.9rem;
   }
 
-  .yaml-editor {
+  :global(.yaml-editor) {
+    position: relative;
     flex: 1;
     background: rgba(0, 0, 0, 0.3);
     border: 1px solid rgba(148, 163, 184, 0.2);
@@ -274,20 +273,15 @@
     font-size: 0.85rem;
     line-height: 1.6;
     padding: 1rem;
-    resize: none;
     tab-size: 2;
+    overflow: hidden;
   }
 
-  .yaml-editor:focus {
-    outline: none;
+  :global(.yaml-editor:focus-within) {
     border-color: rgba(59, 130, 246, 0.5);
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
   }
 
-  .yaml-editor:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
 
   .editor-hint {
     color: #64748b;
@@ -315,7 +309,7 @@
       font-size: 1.1rem;
     }
 
-    .yaml-editor {
+    :global(.yaml-editor) {
       font-size: 0.8rem;
     }
   }
