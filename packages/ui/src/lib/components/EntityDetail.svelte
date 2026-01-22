@@ -914,6 +914,7 @@
                     placeholderText="homenet_bridge:
   serial:
     ..."
+                    mode={isScript ? 'script' : isAutomation ? 'automation' : 'entity'}
                   />
                 </div>
                 <div class="config-actions">

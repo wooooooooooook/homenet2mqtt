@@ -92,6 +92,10 @@ export const entityKeys = [
   'checksum',
 ];
 
+export const scriptKeys = ['id', 'name', 'description', 'actions', 'args'];
+
+export const automationKeys = ['id', 'name', 'description', 'mode', 'trigger', 'then', 'else'];
+
 export const serialValueSuggestions = {
   parity: ['none', 'even', 'odd'],
   data_bits: ['7', '8'],
@@ -133,6 +137,63 @@ const automationSchema = {
     },
     additionalProperties: true,
   },
+};
+
+export const entityConfigSchema = {
+  type: 'object',
+  required: ['id'],
+  properties: {
+    id: { type: 'string' },
+    name: { type: 'string' },
+    device: { type: ['string', 'object'] },
+    device_class: { type: 'string' },
+    icon: { type: 'string' },
+    unit: { type: 'string' },
+    qos: { type: 'number' },
+    retain: { type: 'boolean' },
+    state: { type: ['string', 'number', 'boolean', 'object', 'array'] },
+    command_on: { type: ['string', 'object', 'array'] },
+    command_off: { type: ['string', 'object', 'array'] },
+    command_toggle: { type: ['string', 'object', 'array'] },
+    command_open: { type: ['string', 'object', 'array'] },
+    command_close: { type: ['string', 'object', 'array'] },
+    command_stop: { type: ['string', 'object', 'array'] },
+    command_speed: { type: ['string', 'object', 'array'] },
+    command_temperature: { type: ['string', 'object', 'array'] },
+    command_press: { type: ['string', 'object', 'array'] },
+    command_set: { type: ['string', 'object', 'array'] },
+    visual: { type: ['string', 'object', 'array'] },
+    schema: { type: ['string', 'object', 'array'] },
+  },
+  additionalProperties: true,
+};
+
+export const scriptConfigSchema = {
+  type: 'object',
+  required: ['id'],
+  properties: {
+    id: { type: 'string' },
+    name: { type: 'string' },
+    description: { type: 'string' },
+    actions: { type: 'array' },
+    args: { type: 'object' },
+  },
+  additionalProperties: true,
+};
+
+export const automationConfigSchema = {
+  type: 'object',
+  required: ['id'],
+  properties: {
+    id: { type: 'string' },
+    name: { type: 'string' },
+    description: { type: 'string' },
+    mode: { type: 'string' },
+    trigger: { type: 'array' },
+    then: { type: 'array' },
+    else: { type: 'array' },
+  },
+  additionalProperties: true,
 };
 
 export const yamlConfigSchema = {

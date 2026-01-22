@@ -11,15 +11,22 @@
   import { yaml } from '@codemirror/lang-yaml';
   import { isMap, isSeq, isScalar, parseDocument } from 'yaml';
   import {
+    automationKeys,
     bridgeKeys,
     checksumSuggestions,
     entityKeys,
     entityTypes,
     packetDefaultKeys,
+    scriptKeys,
     serialKeys,
     serialValueSuggestions,
   } from '../utils/yamlEditorConfig.js';
+  import validateAutomationConfig from '../utils/yamlAutomationValidator';
+  import validateEntityConfig from '../utils/yamlEntityValidator';
+  import validateScriptConfig from '../utils/yamlScriptValidator';
   import validateYamlConfig from '../utils/yamlConfigValidator';
+
+  type EditorMode = 'bridge' | 'entity' | 'script' | 'automation';
 
   let {
     value = $bindable(''),
@@ -28,6 +35,7 @@
     ariaDescribedBy,
     placeholderText,
     class: className = '',
+    mode = 'bridge',
   }: {
     value?: string;
     disabled?: boolean;
@@ -35,6 +43,7 @@
     ariaDescribedBy?: string;
     placeholderText?: string;
     class?: string;
+    mode?: EditorMode;
   } = $props();
 
   let editorHost: HTMLDivElement | null = $state(null);
@@ -49,8 +58,14 @@
     message?: string;
   };
 
-  const schemaValidator = validateYamlConfig as typeof validateYamlConfig & {
-    errors?: SchemaValidationError[];
+  const schemaValidators: Record<
+    EditorMode,
+    typeof validateYamlConfig & { errors?: SchemaValidationError[] }
+  > = {
+    bridge: validateYamlConfig,
+    entity: validateEntityConfig,
+    script: validateScriptConfig,
+    automation: validateAutomationConfig,
   };
 
   const buildDiagnostics = (text: string) => {
@@ -71,6 +86,7 @@
     }
 
     const data = doc.toJS({});
+    const schemaValidator = schemaValidators[mode];
     const valid = schemaValidator(data);
 
     if (!valid && schemaValidator.errors) {
@@ -133,6 +149,21 @@
     const data = doc.toJS({}) as Record<string, any> | null;
     const completions = new Set<string>();
 
+    if (mode === 'entity') {
+      entityKeys.forEach((key) => completions.add(key));
+      return Array.from(completions).map((label) => ({ label, type: 'property' as const }));
+    }
+
+    if (mode === 'script') {
+      scriptKeys.forEach((key) => completions.add(key));
+      return Array.from(completions).map((label) => ({ label, type: 'property' as const }));
+    }
+
+    if (mode === 'automation') {
+      automationKeys.forEach((key) => completions.add(key));
+      return Array.from(completions).map((label) => ({ label, type: 'property' as const }));
+    }
+
     if (path.length === 0) {
       completions.add('homenet_bridge');
     }
@@ -167,7 +198,7 @@
     const path = getPathAtPosition(doc, context.pos);
     const currentKey = getContextKey(doc, context.pos);
 
-    if (currentKey) {
+    if (currentKey && mode === 'bridge') {
       const valueSuggestions = buildValueCompletions(currentKey);
       if (valueSuggestions.length > 0) {
         return {
