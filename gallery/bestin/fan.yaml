@@ -34,7 +34,7 @@ entities:
           data: >-
             [0x61,
             int(args.command_type),
-            int(get_from_states('sequence_number', 'number')),
+            get_from_states('sequence_number', 'number') != null ? int(get_from_states('sequence_number', 'number')) : 0,
             0x00,
             args.command_type == 0x03 ? 0x00 : int(args.value),
             args.command_type == 0x03 ? int(args.value) : (args.command_type == 0x01 ? 0x01 : 0x00),

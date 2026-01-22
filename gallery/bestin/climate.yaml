@@ -29,7 +29,7 @@ entities:
         - action: send_packet
           data: >- 
             [0x28, 0x0E, 0x12, 
-            int(get_from_states('sequence_number', 'number')), 
+            get_from_states('sequence_number', 'number') != null ? int(get_from_states('sequence_number', 'number')) : 0, 
             bitAnd(args.room_id, 0x0F), 
             int(args.power), 
             has(args.temp)?(int(args.temp) + (int(args.temp * 10) % 10 >= 5 ? 0x40 : 0)):0,

@@ -36,7 +36,7 @@ entities:
           data: >- 
             [bitOr(0x30, args.room_number),
             0x0E, 0x21, 
-            int(get_from_states('sequence_number', 'number')), 
+            get_from_states('sequence_number', 'number') != null ? int(get_from_states('sequence_number', 'number')) : 0, 
             0x01, 0x00, 
             int(args.position), int(has(args.ONOFF)?args.ONOFF:1), 
             int(has(args.BRIGHTNESS)?args.BRIGHTNESS:0xFF), 
@@ -61,7 +61,7 @@ entities:
         - action: send_packet
           data: >- 
             [bitOr(0x30, args.room_number), 0x09, 0x22, 
-            int(get_from_states('sequence_number', 'number')), 
+            get_from_states('sequence_number', 'number') != null ? int(get_from_states('sequence_number', 'number')) : 0, 
             0x01, 
             int(args.position), 
             int(args.ONOFF)]

@@ -31,7 +31,7 @@ entities:
         - action: send_packet
           data: >-
             [0x41, 0x02,
-            int(get_from_states('sequence_number', 'number')),
+            get_from_states('sequence_number', 'number') != null ? int(get_from_states('sequence_number', 'number')) : 0,
             0x01, 0x00, 0x00, 0x00, 0x00]
           ack: >-
             [0x41, 0x82]
