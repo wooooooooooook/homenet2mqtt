@@ -18,7 +18,7 @@
     packetDefaultKeys,
     serialKeys,
     serialValueSuggestions,
-  } from '../utils/yamlEditorConfig';
+  } from '../utils/yamlEditorConfig.js';
   import validateYamlConfig from '../utils/yamlConfigValidator';
 
   let {
@@ -149,7 +149,7 @@
       packetDefaultKeys.forEach((key) => completions.add(key));
     }
 
-    if (path.some((segment) => entityTypes.includes(segment as (typeof entityTypes)[number]))) {
+    if (path.some((segment) => entityTypes.includes(segment))) {
       entityKeys.forEach((key) => completions.add(key));
     }
 

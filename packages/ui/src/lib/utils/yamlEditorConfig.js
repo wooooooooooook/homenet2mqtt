@@ -12,7 +12,7 @@ export const entityTypes = [
   'text',
   'text_sensor',
   'valve',
-] as const;
+];
 
 export const bridgeKeys = [
   'serial',

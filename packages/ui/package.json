@@ -9,7 +9,7 @@
     "lint": "svelte-check --tsconfig ./tsconfig.json",
     "format": "prettier --config ../../prettier.config.cjs --ignore-path ../../.prettierignore --write .",
     "i18n:check": "i18n-unused display-unused",
-    "generate:yaml-schema": "ts-node --esm ./scripts/generateYamlSchemaValidator.ts",
+    "generate:yaml-schema": "node ./scripts/generateYamlSchemaValidator.js",
     "test": "echo \"No tests yet\""
   },
   "dependencies": {
