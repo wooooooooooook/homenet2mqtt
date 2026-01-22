@@ -361,9 +361,7 @@ function expandNode(node: unknown, context: Record<string, unknown>): unknown {
       }
 
       // Condition met, process remaining properties (excluding $if)
-      const filtered = Object.fromEntries(
-        Object.entries(record).filter(([key]) => key !== '$if'),
-      );
+      const filtered = Object.fromEntries(Object.entries(record).filter(([key]) => key !== '$if'));
       return expandNode(filtered, context);
     }
 

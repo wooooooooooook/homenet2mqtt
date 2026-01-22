@@ -222,4 +222,3 @@ describe('Parameter Defaults', () => {
     expect(lights[1].name).toBe('Count: 3');
   });
 });
-
