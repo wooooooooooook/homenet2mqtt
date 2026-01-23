@@ -26,6 +26,14 @@ export interface CompiledScript {
   executeRaw(contextData: Record<string, any>): any;
 
   /**
+   * Executes the script with a raw, pre-prepared context and returns result with error info.
+   * Skips safe context creation. The caller MUST ensure the context contains correct types.
+   *
+   * @param contextData - The raw context variables
+   */
+  executeRawWithDiagnostics(contextData: Record<string, any>): { result: any; error?: string };
+
+  /**
    * Executes the script and returns result with error info if any.
    *
    * @param contextData - The variables to pass to the script
@@ -279,6 +287,17 @@ export class CelExecutor {
         } catch (error) {
           this.handleError(error, script);
           return null;
+        }
+      },
+      executeRawWithDiagnostics: (contextData: Record<string, any>) => {
+        try {
+          return this.runWithContext(contextData, () => {
+            const res = entry.parsed(contextData);
+            return { result: this.convertResult(res) };
+          });
+        } catch (error) {
+          const errorMessage = this.handleError(error, script);
+          return { result: null, error: errorMessage };
         }
       },
       executeWithDiagnostics: (contextData: Record<string, any>) => {
