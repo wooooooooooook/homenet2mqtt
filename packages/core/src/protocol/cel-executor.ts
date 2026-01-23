@@ -220,8 +220,9 @@ export class CelExecutor {
         return value === undefined ? fallback : value;
       },
     );
-    this.env.registerFunction('get_from_state(string): dyn', (key: string) =>
-      this.getFromState(key) ?? null,
+    this.env.registerFunction(
+      'get_from_state(string): dyn',
+      (key: string) => this.getFromState(key) ?? null,
     );
     this.env.registerFunction('get_from_state(string, dyn): dyn', (key: string, fallback: any) => {
       const value = this.getFromState(key);
