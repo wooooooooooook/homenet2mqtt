@@ -472,7 +472,7 @@
       "title": "Recent Activity",
       "empty": "No recent activity."
     },
-    "no_devices_found": "No devices detected or commands configured for the selected port.",
+    "no_devices_found": "No items to display.",
     "hint_inactive_performance": "Deleting inactive entities can improve performance",
     "error_hint_restart": "A connection issue occurred. Please check your settings or refresh the page.",
     "entity_card": {

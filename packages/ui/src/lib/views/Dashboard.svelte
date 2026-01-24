@@ -330,13 +330,18 @@
       <!-- Toggle for Inactive Entities -->
       <div class="toggle-container" aria-label={$t('dashboard.filter_section_aria')}>
         <div class="toggle-header">
-          <span class="toggle-title">{$t('dashboard.filter_title')}</span>
+          <span class="toggle-title" aria-hidden="true">
+            <svg class="filter-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path
+                d="M3 5h18l-7 8v5l-4 2v-7L3 5z"
+                stroke-width="2"
+                stroke-linejoin="round"
+                stroke-linecap="round"
+              />
+            </svg>
+          </span>
+          <span class="sr-only">{$t('dashboard.filter_title')}</span>
         </div>
-        {#if hasInactiveEntities && !hintDismissed}
-          <HintBubble onDismiss={() => (hintDismissed = true)} autoCloseMs={10000}>
-            {$t('dashboard.hint_inactive_performance')}
-          </HintBubble>
-        {/if}
         <div class="toggle-group">
           <div
             class="filter-chip search-chip"
@@ -388,15 +393,22 @@
           >
             {$t('dashboard.show_scripts')}
           </button>
-          <button
-            type="button"
-            class:active={showInactive}
-            class="filter-chip"
-            aria-pressed={showInactive}
-            onclick={() => onToggleInactive?.()}
-          >
-            {$t('dashboard.show_inactive_entities')}
-          </button>
+          <div class="inactive-chip-wrapper">
+            {#if hasInactiveEntities && !hintDismissed}
+              <HintBubble onDismiss={() => (hintDismissed = true)} autoCloseMs={10000}>
+                {$t('dashboard.hint_inactive_performance')}
+              </HintBubble>
+            {/if}
+            <button
+              type="button"
+              class:active={showInactive}
+              class="filter-chip"
+              aria-pressed={showInactive}
+              onclick={() => onToggleInactive?.()}
+            >
+              {$t('dashboard.show_inactive_entities')}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -443,9 +455,29 @@
   }
 
   .toggle-title {
-    font-size: 0.85rem;
-    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.4rem;
+    height: 1.4rem;
     color: #e2e8f0;
+  }
+
+  .filter-icon {
+    width: 1.1rem;
+    height: 1.1rem;
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
   }
 
   .toggle-group {
@@ -514,6 +546,12 @@
     background: rgba(59, 130, 246, 0.2);
     color: #eff6ff;
     box-shadow: 0 0 12px rgba(59, 130, 246, 0.2);
+  }
+
+  .inactive-chip-wrapper {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
   }
 
   .error {
