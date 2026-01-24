@@ -2,7 +2,7 @@ import { Device } from '../device.js';
 import { DeviceConfig, ProtocolConfig } from '../types.js';
 import { StateSchema, StateNumSchema } from '../types.js';
 import { matchesPacket } from '../../utils/packet-matching.js';
-import { CelExecutor, CompiledScript } from '../cel-executor.js';
+import { CelExecutor, CompiledScript, ReusableBufferView } from '../cel-executor.js';
 import {
   calculateChecksum,
   calculateChecksum2,
@@ -36,10 +36,24 @@ export class GenericDevice extends Device {
   // Optimization: Cache prepared scripts to avoid parsing/lookups on every packet
   private stateScripts: StateScript[] = [];
   private commandScripts: Map<string, CompiledScript> = new Map();
+  private reusableBufferView: ReusableBufferView | null = null;
+  private static readonly EMPTY_STATES = {};
+  private reusableContext: Record<string, any> = {
+    x: 0n,
+    xstr: '',
+    data: null as any,
+    len: 0n,
+    state: {},
+    states: GenericDevice.EMPTY_STATES,
+    trigger: {},
+    args: {},
+  };
 
   constructor(config: DeviceConfig, protocolConfig: ProtocolConfig) {
     super(config, protocolConfig);
     this.prepareScripts();
+    this.reusableBufferView = this.getExecutor().createReusableBufferView();
+    this.reusableContext.data = this.reusableBufferView.proxy;
   }
 
   private getExecutor(): CelExecutor {
@@ -115,15 +129,39 @@ export class GenericDevice extends Device {
     // Optimization: Iterating pre-filtered array avoids checking all config keys
     // and using prepared scripts avoids Map lookups and parsing overhead.
     const entityState = this.getState() || {};
-    const statesObj = states ? Object.fromEntries(states) : {};
+    const statesObj = states ? Object.fromEntries(states) : GenericDevice.EMPTY_STATES;
+
+    // Optimization: Reuse context object and avoid repeated allocations
+    let useOptimization = false;
+    if (this.reusableBufferView) {
+      this.reusableBufferView.update(packet, 0, packet.length);
+      this.reusableContext.len = BigInt(packet.length);
+      this.reusableContext.state = entityState;
+      this.reusableContext.states = statesObj;
+      useOptimization = true;
+    }
 
     for (const { key, script } of this.stateScripts) {
-      const { result, error } = script.executeWithDiagnostics({
-        data: packet,
-        x: null, // No previous value for state extraction usually
-        state: entityState,
-        states: statesObj, // Pass global states if available
-      });
+      let result: any;
+      let error: string | undefined;
+
+      if (useOptimization) {
+        // Use executeRawWithDiagnostics to bypass safe context creation (since we manage it manually)
+        // This saves significant object allocation overhead in hot loops.
+        const res = script.executeRawWithDiagnostics(this.reusableContext);
+        result = res.result;
+        error = res.error;
+      } else {
+        // Fallback to slower safe path if optimization is unavailable
+        const res = script.executeWithDiagnostics({
+          data: packet,
+          x: null,
+          state: entityState,
+          states: statesObj,
+        });
+        result = res.result;
+        error = res.error;
+      }
 
       if (error) {
         this.reportError({

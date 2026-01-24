@@ -9,3 +9,7 @@
 ## 2026-01-18 - Set.has vs Uint8Array Lookup for Bytes
 **Learning:** In hot loops processing raw binary streams (like packet headers), `Set.has(byte)` adds significant overhead due to hashing and function calls compared to direct array access. Using a `Uint8Array` as a boolean lookup table (1 or 0) for checking valid byte values provided a ~4x speedup in scanning throughput.
 **Action:** For byte-level validation sets (0-255), always prefer `Uint8Array` or `Boolean[]` lookup tables over `Set<number>`.
+
+## 2026-01-23 - Reusable Context for CEL Execution
+**Learning:** In high-frequency CEL execution (e.g., per-packet parsing), creating safe context objects (allocating new Objects and Proxies) dominates CPU time. Manually managing a reusable context object with pre-validated types (BigInts) and bypassing safety checks via `executeRaw` reduced parsing overhead by ~17% in hot paths.
+**Action:** For frequent script execution, use `executeRaw` with a persistent context object and handle type conversion (number -> BigInt) manually or once, rather than relying on auto-boxing.
