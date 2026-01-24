@@ -11,6 +11,7 @@ entities:
   switch:
     # Room 1
     - name: 'Room 1 Plug 1'
+      id: 'room_1_plug_1'
       icon: 'mdi:power-socket-eu'
       state:
         data: [0x00, 0x01, 0x1f, 0x04, 0x40, 0x11]
@@ -29,6 +30,7 @@ entities:
         ack: [0x0b, 0x01, 0x1f, 0x04, 0x40, 0x11, 0x02, 0x02]
 
     - name: 'Room 1 Plug 2'
+      id: 'room_1_plug_2'
       icon: 'mdi:power-socket-eu'
       state:
         data: [0x00, 0x01, 0x1f, 0x04, 0x40, 0x12]
@@ -48,6 +50,7 @@ entities:
 
     # Room 2
     - name: 'Room 2 Plug 1'
+      id: 'room_2_plug_1'
       icon: 'mdi:power-socket-eu'
       state:
         data: [0x00, 0x01, 0x1F, 0x04, 0x40, 0x21]
@@ -66,6 +69,7 @@ entities:
         ack: [0x0b, 0x01, 0x1f, 0x04, 0x40, 0x21, 0x02, 0x02]
 
     - name: 'Room 2 Plug 2'
+      id: 'room_2_plug_2'
       icon: 'mdi:power-socket-eu'
       state:
         data: [0x00, 0x01, 0x1F, 0x04, 0x40, 0x22]
@@ -85,6 +89,7 @@ entities:
 
   sensor:
     - name: 'Room 1 Plug 1 Power'
+      id: 'room_1_plug_1_power'
       unit_of_measurement: 'W'
       state:
         data: [0x12, 0x01, 0x1f, 0x04, 0x40, 0x11]
@@ -94,6 +99,7 @@ entities:
         precision: 0
 
     - name: 'Room 1 Plug 2 Power'
+      id: 'room_1_plug_2_power'
       unit_of_measurement: 'W'
       state:
         data: [0x12, 0x01, 0x1f, 0x04, 0x40, 0x12]
@@ -103,6 +109,7 @@ entities:
         precision: 0
 
     - name: 'Room 2 Plug 1 Power'
+      id: 'room_2_plug_1_power'
       unit_of_measurement: 'W'
       state:
         data: [0x12, 0x01, 0x1f, 0x04, 0x40, 0x21]
@@ -112,6 +119,7 @@ entities:
         precision: 0
 
     - name: 'Room 2 Plug 2 Power'
+      id: 'room_2_plug_2_power'
       unit_of_measurement: 'W'
       state:
         data: [0x12, 0x01, 0x1f, 0x04, 0x40, 0x22]
