@@ -73,6 +73,7 @@ entities:
           count: '{{room.outlet_count}}'
           as: outlet_num
           start: 1
+        id: 'room_{{room.room_id}}_plug_{{outlet_num}}_power'
         name: 'Room {{room.room_id}} Plug {{outlet_num}} Power'
         unit_of_measurement: 'W'
         state:
