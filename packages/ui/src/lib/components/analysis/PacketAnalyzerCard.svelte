@@ -1,6 +1,6 @@
 <script lang="ts">
   import { t } from 'svelte-i18n';
-  import type { PacketAnalysisResult, PacketAnalysisPacket } from '../../types';
+  import type { PacketAnalysisResult } from '../../types';
 
   let { portIds, activePortId } = $props<{
     portIds: string[];
@@ -19,8 +19,6 @@
       return String(state);
     }
   };
-
-  const formatBytes = (packet: PacketAnalysisPacket) => packet.bytes.join(', ');
 
   const handleAnalyze = async () => {
     error = null;
@@ -115,11 +113,6 @@
                     })}</span
                   >
                   <code>{packet.hex}</code>
-                </div>
-                <div class="packet-meta">
-                  <span class="badge"
-                    >{$t('analysis.packet_analyzer.bytes_label')}: {formatBytes(packet)}</span
-                  >
                 </div>
                 <div class="packet-section">
                   <div class="section-title">
@@ -378,10 +371,6 @@
     max-width: 100%;
     overflow-wrap: anywhere;
     word-break: break-all;
-  }
-
-  .packet-meta {
-    margin-top: 0.4rem;
   }
 
   .badge {

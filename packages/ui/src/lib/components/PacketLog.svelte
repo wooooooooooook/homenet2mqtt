@@ -262,7 +262,9 @@
   }
 
   .search-box {
-    flex: 1 1 200px;
+    flex: 0 1 240px;
+    min-width: 200px;
+    max-width: 280px;
   }
 
   .search-box input {
@@ -273,6 +275,13 @@
     color: #e2e8f0;
     font-size: 0.85rem;
     width: 100%;
+  }
+
+  @media (max-width: 640px) {
+    .search-box {
+      flex: 1 1 100%;
+      max-width: none;
+    }
   }
 
   .search-box input:focus {
