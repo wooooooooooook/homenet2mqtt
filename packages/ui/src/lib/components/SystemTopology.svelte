@@ -720,7 +720,7 @@
       flex: 1;
       padding-top: 0;
       gap: 0;
-      justify-content: space-between;
+      justify-content: flex-start;
     }
 
     .detail-spacer {
@@ -742,6 +742,7 @@
       flex-direction: row;
       flex-wrap: wrap;
       column-gap: 1rem;
+      min-height: 48px;
     }
 
     .details-column.left,
