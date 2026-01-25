@@ -9,11 +9,13 @@
 
 ## 옵션 필드 (상태)
 - 속도(백분율): `state_speed` 또는 `state_percentage` — [`StateNumSchema`](./schemas.md#statenumschema).
+  - 가능하면 `state_speed`를 사용하세요. HA 명령 입력이 내부에서 `speed`로 매핑되므로 상태/명령 키를 `speed`로 맞추면 혼동이 줄어듭니다.
 - 프리셋: `preset_modes`(문자열 배열), `state_preset_mode` — StateSchema 또는 CEL 표현식.
 - 회전: `state_oscillating`(좌우 회전 여부), `state_direction`(정/역회전).
 
 ## 옵션 필드 (명령)
-- 속도/백분율 설정: `command_speed`, `command_percentage` — 입력값을 오프셋에 삽입하거나 CEL 표현식으로 구성.
+- 속도/백분율 설정: `command_speed` — 입력값을 오프셋에 삽입하거나 CEL 표현식으로 구성.
+  - Home Assistant의 팬 퍼센트 제어는 내부에서 `speed` 명령으로 매핑됩니다. 따라서 `command_speed` 사용을 권장합니다.
 - 프리셋 설정: `command_preset_mode` — CommandSchema 또는 CEL 표현식 (문자열 인자 `xstr` 사용).
 - 회전 제어: `command_oscillating`, `command_direction`.
 
@@ -78,7 +80,7 @@ fan:
   - `direction_value_template`: `{{ value_json.direction }}`
 
 ## 예제: 속도 제어
-`cvnet.homenet_bridge.yaml`은 온/오프 패킷과 별도로 `command_speed`에서 목표 속도(`x`)를 삽입하고, `state_speed`로 현재 속도를 읽습니다.
+`cvnet.homenet_bridge.yaml`은 온/오프 패킷과 별도로 `command_speed`에서 목표 속도(`x`)를 삽입하고, `state_speed`로 현재 속도를 읽습니다. 가능하면 상태도 `state_speed`를 사용해 명령 키와 맞추는 것을 권장합니다.
 
 ```yaml
 fan:
