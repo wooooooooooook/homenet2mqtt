@@ -95,10 +95,10 @@ homenet_bridge:
       state:
         data: [0x20, 0x01, 0x71]
       state_on:
-        offset: 4
+        offset: 5
         data: [0x01]
       state_off:
-        offset: 4
+        offset: 5
         data: [0x00]
       command_on:
         data: [0x20, 0x71, 0x01, 0x11, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00]
@@ -109,7 +109,7 @@ homenet_bridge:
       command_speed: >-
         [[0x20, 0x71, 0x01, 0x02, x, 0x00, 0x00], [0x60, 0x71, 0x01, 0x02, x]]
       state_speed:
-        offset: 6
+        offset: 7
         signed: False
 
   valve:

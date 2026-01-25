@@ -22,11 +22,11 @@ describe('Fan Preset Mode (CEL)', () => {
           data: [0x30, 0x01, 0x71],
         },
         state_on: {
-          offset: 4,
+          offset: 5,
           data: [0x01],
         },
         state_off: {
-          offset: 4,
+          offset: 5,
           data: [0x00],
         },
         preset_modes: ['Auto', 'Sleep', 'Turbo'],
@@ -63,11 +63,11 @@ describe('Fan Preset Mode (CEL)', () => {
           data: [0x30, 0x01, 0x71],
         },
         state_on: {
-          offset: 4,
+          offset: 5,
           data: [0x01],
         },
         state_off: {
-          offset: 4,
+          offset: 5,
           data: [0x00],
         },
         preset_modes: ['Low', 'Medium', 'High'],
@@ -76,10 +76,9 @@ describe('Fan Preset Mode (CEL)', () => {
 
       const device = new FanDevice(config, protocolConfig);
 
-      // Packet with state ON (payload[4]=0x01) and preset Medium (data[6]=0x02)
+      // Packet with state ON (full packet index 5 = 0x01) and preset Medium (data[6]=0x02)
       // Full packet: [header=0xf7, 0x30, 0x01, 0x71, 0x00, 0x01, 0x02, 0x00, 0xee]
-      // payload = [0x30, 0x01, 0x71, 0x00, 0x01, 0x02, 0x00] (after header)
-      // payload[4] = 0x01 (ON)
+      // Index 5 = 0x01 (ON)
       const packet = Buffer.from([0xf7, 0x30, 0x01, 0x71, 0x00, 0x01, 0x02, 0x00, 0xee]);
       const result = device.parseData(packet);
 
@@ -156,11 +155,11 @@ describe('Fan Preset Mode (CEL)', () => {
           data: [0x30, 0x01, 0x71],
         },
         state_on: {
-          offset: 4,
+          offset: 5,
           data: [0x01],
         },
         state_off: {
-          offset: 4,
+          offset: 5,
           data: [0x00],
         },
         command_on: {
