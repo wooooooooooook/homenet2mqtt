@@ -14,7 +14,8 @@
 - 회전: `state_oscillating`(좌우 회전 여부), `state_direction`(정/역회전).
 
 ## 옵션 필드 (명령)
-- 속도/백분율 설정: `command_speed`, `command_percentage` — 입력값을 오프셋에 삽입하거나 CEL 표현식으로 구성.
+- 속도/백분율 설정: `command_speed` — 입력값을 오프셋에 삽입하거나 CEL 표현식으로 구성.
+  - Home Assistant의 팬 퍼센트 제어는 내부에서 `speed` 명령으로 매핑됩니다. 따라서 `command_speed` 사용을 권장합니다.
 - 프리셋 설정: `command_preset_mode` — CommandSchema 또는 CEL 표현식 (문자열 인자 `xstr` 사용).
 - 회전 제어: `command_oscillating`, `command_direction`.
 
