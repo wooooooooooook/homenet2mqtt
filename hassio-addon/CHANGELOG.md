@@ -1,3 +1,8 @@
+v1.17.0
+- feat: 분석 페이지에 패킷해석 테스트 추가. 패킷을 넣어 어떻게 해석되는지 테스트해 볼 수 있습니다. 
+- fix: get_from_* 헬퍼의 기본값을 undefined에서 null로 변경함
+- 기타 성능 향상 및 UI수정
+
 v1.16.0
 - feat: CEL에서 states, state에 안전하게 접근하기위한 헬퍼함수 추가 [CEL가이드](https://github.com/wooooooooooook/RS485-HomeNet-to-MQTT-bridge/blob/main/docs/CEL_GUIDE.md#%ED%97%AC%ED%8D%BC-%ED%95%A8%EC%88%98)
 - 헬퍼함수 적용하여 갤러리 파일들 업데이트
