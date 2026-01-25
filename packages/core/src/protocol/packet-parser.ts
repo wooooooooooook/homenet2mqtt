@@ -616,18 +616,14 @@ export class PacketParser {
                 // Dynamic length provided - verify only this length
                 if (this.verifyChecksum(this.buffer, this.readOffset, dynamicLen)) {
                   // Validate first byte against valid headers if configured
-                  if (
-                    !this.validHeadersTable ||
-                    this.validHeadersTable[this.buffer[this.readOffset]] === 1
-                  ) {
-                    const packet = Buffer.from(
-                      this.buffer.subarray(this.readOffset, this.readOffset + dynamicLen),
-                    );
-                    packets.push(packet);
-                    this.consumeBytes(dynamicLen);
-                    this.lastScannedLength = 0;
-                    matchFound = true;
-                  }
+                  // Redundant check: covered by pre-check at start of block
+                  const packet = Buffer.from(
+                    this.buffer.subarray(this.readOffset, this.readOffset + dynamicLen),
+                  );
+                  packets.push(packet);
+                  this.consumeBytes(dynamicLen);
+                  this.lastScannedLength = 0;
+                  matchFound = true;
                 }
                 // If checksum failed or header invalid, treat as no match (will shift 1 byte later)
                 if (matchFound) continue;
@@ -716,12 +712,7 @@ export class PacketParser {
               const expected = this.buffer[baseOffset + len - 1];
               if ((finalChecksum & 0xff) === expected) {
                 // Validate first byte against valid headers if configured
-                if (
-                  this.validHeadersTable &&
-                  this.validHeadersTable[this.buffer[this.readOffset]] === 0
-                ) {
-                  continue;
-                }
+                // Redundant check: covered by pre-check at start of block
                 const packet = Buffer.from(
                   this.buffer.subarray(this.readOffset, this.readOffset + len),
                 );
@@ -777,12 +768,7 @@ export class PacketParser {
 
               if (finalTemp === expectedHigh && finalCrc === expectedLow) {
                 // Validate first byte against valid headers if configured
-                if (
-                  this.validHeadersTable &&
-                  this.validHeadersTable[this.buffer[this.readOffset]] === 0
-                ) {
-                  continue;
-                }
+                // Redundant check: covered by pre-check at start of block
                 const packet = Buffer.from(
                   this.buffer.subarray(this.readOffset, this.readOffset + len),
                 );
@@ -798,12 +784,7 @@ export class PacketParser {
             for (let len = startLen; len <= bufferLength; len++) {
               if (this.verifyChecksum(this.buffer, this.readOffset, len)) {
                 // Validate first byte against valid headers if configured
-                if (
-                  this.validHeadersTable &&
-                  this.validHeadersTable[this.buffer[this.readOffset]] === 0
-                ) {
-                  continue;
-                }
+                // Redundant check: covered by pre-check at start of block
                 const packet = Buffer.from(
                   this.buffer.subarray(this.readOffset, this.readOffset + len),
                 );
