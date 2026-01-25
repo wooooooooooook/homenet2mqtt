@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-01-25T00:13:58.701Z",
+  "generated_at": "2026-01-25T02:47:04.764Z",
   "vendors": [
     {
       "id": "bestin",
@@ -2982,7 +2982,7 @@
           "name_en": "Fan",
           "description": "코콤 환풍기 설정입니다. (속도 조절 지원, 기본값: 거실)",
           "description_en": "Kocom Fan configuration. Supports speed control. Default: Livingroom.",
-          "version": "1.0.1",
+          "version": "1.0.3",
           "author": "wooooooooooook",
           "tags": [
             "fan",
