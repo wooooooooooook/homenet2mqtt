@@ -190,12 +190,7 @@
       </Button>
 
       {#if sendError}
-        <span
-          id={errorMsgId}
-          class="error-msg"
-          transition:fade
-          role="alert"
-        >{sendError}</span>
+        <span id={errorMsgId} class="error-msg" transition:fade role="alert">{sendError}</span>
       {/if}
       {#if sendSuccessMsg}
         <span class="success-msg" transition:fade role="status">{sendSuccessMsg}</span>

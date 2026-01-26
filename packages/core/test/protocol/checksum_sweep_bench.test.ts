@@ -42,10 +42,10 @@ describe('PacketParser Checksum Sweep Optimization Performance', () => {
     let totalPackets = 0;
     const iterations = 100;
     for (let i = 0; i < iterations; i++) {
-        // Reset parser state
-        // @ts-ignore
-        parser.resetBuffer();
-        totalPackets += parser.parseChunk(buf).length;
+      // Reset parser state
+      // @ts-ignore
+      parser.resetBuffer();
+      totalPackets += parser.parseChunk(buf).length;
     }
     const end = process.hrtime.bigint();
 
