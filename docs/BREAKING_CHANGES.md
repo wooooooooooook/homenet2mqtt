@@ -6,6 +6,8 @@
 
 ## **영향 범위**
  `rx_header`길이가 0이 아니고(commax, samsumg_sds외 모든 제조사), state_* 속성에 (`StateNumSchema` 기반) 포함된 `offset`
+ 
+ (CEL로 작성된 경우(data[9]와 같은 형식) 원래 헤더를 포함하여 계산되고있었습니다. schema기반으로 작성된 경우만 수정이 필요합니다.)
 
 ## 영향 받는 설정 필드
 
