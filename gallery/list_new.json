@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-01-25T02:47:04.764Z",
+  "generated_at": "2026-01-26T01:45:29.610Z",
   "vendors": [
     {
       "id": "bestin",
@@ -26,36 +26,12 @@
       },
       "items": [
         {
-          "file": "bestin/climate.yaml",
-          "name": "Bestin 난방",
-          "name_en": "Bestin Climate",
-          "description": "Bestin 난방 설정입니다. bestin1.0 bestin2.0 공통입니다.",
-          "description_en": "Bestin climate. bestin1.0 bestin2.0 common.",
-          "version": "1.1.0",
-          "author": "wooooooooooook",
-          "tags": [
-            "climate",
-            "bestin"
-          ],
-          "parameters": [],
-          "content_summary": {
-            "entities": {
-              "scripts": 2,
-              "number": 1,
-              "climate": 4
-            },
-            "automations": 0,
-            "scripts": 0
-          },
-          "discovery": null
-        },
-        {
           "file": "bestin/climate_new.yaml",
           "name": "Bestin 난방",
           "name_en": "Bestin Climate",
           "description": "Bestin 난방 설정입니다. 방 개수를 지정할 수 있습니다. bestin1.0 bestin2.0 공통입니다.",
           "description_en": "Bestin climate with configurable room count. bestin1.0 bestin2.0 common.",
-          "version": "2.1.0",
+          "version": "2.1.1",
           "author": "wooooooooooook",
           "tags": [
             "climate",
@@ -97,7 +73,7 @@
             "dimensions": [
               {
                 "parameter": "room_count",
-                "offset": 4
+                "offset": 5
               }
             ],
             "inference": {
@@ -140,34 +116,6 @@
               ]
             }
           }
-        },
-        {
-          "file": "bestin/energy485_AIO.yaml",
-          "name": "Bestin aio 조명 및 아웃렛 (energy485)",
-          "name_en": "Bestin aio Light and Outlet (energy485)",
-          "description": "Bestin aio gateway용 조명 및 아웃렛 설정입니다. 방1은 조명4개+콘센트3개, 방2는 조명2개+콘센트2개입니다.",
-          "description_en": "Bestin aio gateway light and outlet. Room 1 has 4 lights + 3 outlets, Room 2 has 2 lights + 2 outlets.",
-          "version": "2.1.0",
-          "author": "wooooooooooook",
-          "tags": [
-            "light",
-            "outlet",
-            "bestin"
-          ],
-          "parameters": [],
-          "content_summary": {
-            "entities": {
-              "scripts": 3,
-              "number": 1,
-              "light": 6,
-              "switch": 4,
-              "binary_sensor": 4,
-              "sensor": 4
-            },
-            "automations": 0,
-            "scripts": 0
-          },
-          "discovery": null
         },
         {
           "file": "bestin/energy485_AIO_new.yaml",
@@ -272,39 +220,12 @@
           }
         },
         {
-          "file": "bestin/energy485_general.yaml",
-          "name": "Bestin general 조명 및 아웃렛 (energy485)",
-          "name_en": "Bestin general Light and Outlet (energy485)",
-          "description": "Bestin general gateway용 조명 및 아웃렛 설정입니다. 방1은 조명4개+콘센트3개, 방2는 조명2개+콘센트2개입니다.",
-          "description_en": "Bestin general gateway light and outlet. Room 1 has 4 lights + 3 outlets, Room 2 has 2 lights + 2 outlets.",
-          "version": "2.1.0",
-          "author": "wooooooooooook",
-          "tags": [
-            "light",
-            "outlet",
-            "bestin"
-          ],
-          "parameters": [],
-          "content_summary": {
-            "entities": {
-              "scripts": 4,
-              "number": 1,
-              "light": 6,
-              "switch": 7,
-              "sensor": 12
-            },
-            "automations": 0,
-            "scripts": 0
-          },
-          "discovery": null
-        },
-        {
           "file": "bestin/energy485_general_new.yaml",
           "name": "Bestin general 조명 및 아웃렛 (energy485)",
           "name_en": "Bestin general Light and Outlet (energy485)",
           "description": "Bestin general gateway용 조명 및 아웃렛 설정입니다. 방별 조명/콘센트 개수를 지정할 수 있습니다.",
           "description_en": "Bestin general gateway light and outlet. You can specify lights/outlets per room.",
-          "version": "2.1.0",
+          "version": "2.1.1",
           "author": "wooooooooooook",
           "tags": [
             "light",
@@ -381,17 +302,17 @@
             "dimensions": [
               {
                 "parameter": "room_id",
-                "offset": 4,
+                "offset": 5,
                 "transform": "bitAnd(x, 0x0F)"
               },
               {
                 "parameter": "light_count",
-                "offset": 5,
+                "offset": 6,
                 "detect": "active_bits"
               },
               {
                 "parameter": "outlet_count",
-                "offset": 6,
+                "offset": 7,
                 "detect": "active_bits"
               }
             ],
@@ -571,39 +492,12 @@
       },
       "items": [
         {
-          "file": "bestin2.0/dimming_and_outlets.yaml",
-          "name": "Bestin2.0 디밍 조명 및 아웃렛 (방2개 조명2개씩, 아웃렛 2개씩)",
-          "name_en": "Bestin2.0 Dimming Light and Outlet (2 rooms, 2 lights and 2 outlets each)",
-          "description": "Bestin2.0 디밍 조명 및 아웃렛 설정입니다. 더 필요한 방, 조명 등은 추가하여 사용하세요. 디밍이 아닌경우 light엔티티에서 디밍관련 옵션들(brightness, color_temp)을 제거하고 사용하세요.",
-          "description_en": "Bestin2.0 dimming light and outlet configuration. Add more rooms or lights as needed. If it's not a dimming light, remove dimming-related options (brightness, color_temp) from the light entity.",
-          "version": "1.1.0",
-          "author": "wooooooooooook",
-          "tags": [
-            "light",
-            "outlet",
-            "bestin2.0"
-          ],
-          "parameters": [],
-          "content_summary": {
-            "entities": {
-              "scripts": 3,
-              "number": 1,
-              "light": 4,
-              "switch": 8,
-              "sensor": 8
-            },
-            "automations": 0,
-            "scripts": 0
-          },
-          "discovery": null
-        },
-        {
           "file": "bestin2.0/dimming_and_outlets_new.yaml",
           "name": "Bestin2.0 디밍 조명 및 아웃렛",
           "name_en": "Bestin2.0 Dimming Light and Outlet",
           "description": "Bestin2.0 디밍 조명 및 아웃렛 설정입니다. 방 개수와 방별 조명/콘센트 개수를 설정할 수 있습니다. 디밍이 아닌경우 light엔티티에서 디밍관련 옵션들(brightness, color_temp)을 제거하고 사용하세요.",
           "description_en": "Bestin2.0 dimming light and outlet configuration. You can configure room count and lights/outlets per room. If it's not a dimming light, remove dimming-related options (brightness, color_temp) from the light entity.",
-          "version": "2.1.0",
+          "version": "2.1.1",
           "author": "wooooooooooook",
           "tags": [
             "light",
@@ -680,7 +574,7 @@
             "dimensions": [
               {
                 "parameter": "room_id",
-                "offset": 0,
+                "offset": 1,
                 "transform": "bitAnd(x, 0x0F)"
               },
               {
@@ -782,29 +676,6 @@
           }
         },
         {
-          "file": "commax/fan.yaml",
-          "name": "환기팬 설정",
-          "name_en": "Ventilation Fan",
-          "description": "코맥스 환기팬 설정입니다. 3단 속도와 Auto/Night 모드를 지원합니다.",
-          "description_en": "Commax ventilation fan with 3-speed control and Auto/Night preset modes.",
-          "version": "1.0.0",
-          "author": "wooooooooooook",
-          "tags": [
-            "fan",
-            "ventilation",
-            "commax"
-          ],
-          "parameters": [],
-          "content_summary": {
-            "entities": {
-              "fan": 1
-            },
-            "automations": 0,
-            "scripts": 0
-          },
-          "discovery": null
-        },
-        {
           "file": "commax/fan_new.yaml",
           "name": "환기팬 설정",
           "name_en": "Ventilation Fans",
@@ -884,30 +755,6 @@
             },
             "dimensions": []
           }
-        },
-        {
-          "file": "commax/heaters.yaml",
-          "name": "난방 설정 (4개)",
-          "name_en": "Heaters (4 Thermostats)",
-          "description": "코맥스 난방 온도조절기 4개 설정입니다.",
-          "description_en": "Commax 4 heating thermostats with temperature control.",
-          "version": "1.0.0",
-          "author": "wooooooooooook",
-          "tags": [
-            "climate",
-            "heater",
-            "thermostat",
-            "commax"
-          ],
-          "parameters": [],
-          "content_summary": {
-            "entities": {
-              "climate": 4
-            },
-            "automations": 0,
-            "scripts": 0
-          },
-          "discovery": null
         },
         {
           "file": "commax/heaters_new.yaml",
@@ -998,28 +845,6 @@
           }
         },
         {
-          "file": "commax/lights.yaml",
-          "name": "조명 설정 (4개)",
-          "name_en": "Lights (4 Lights)",
-          "description": "코맥스 조명 4개 설정입니다.",
-          "description_en": "Commax 4 lights.",
-          "version": "1.0.1",
-          "author": "wooooooooooook",
-          "tags": [
-            "light",
-            "commax"
-          ],
-          "parameters": [],
-          "content_summary": {
-            "entities": {
-              "light": 4
-            },
-            "automations": 0,
-            "scripts": 0
-          },
-          "discovery": null
-        },
-        {
           "file": "commax/lights_new.yaml",
           "name": "조명 설정",
           "name_en": "Lights",
@@ -1068,33 +893,6 @@
               "strategy": "max"
             }
           }
-        },
-        {
-          "file": "commax/smart_plugs.yaml",
-          "name": "스마트 콘센트 설정 (4개)",
-          "name_en": "Smart Plugs (4 Outlets)",
-          "description": "코맥스 스마트 콘센트 4개 설정입니다. 전력 사용량 센서도 포함되어 있습니다.",
-          "description_en": "Commax 4 smart plugs with power consumption sensors.",
-          "version": "1.0.1",
-          "author": "wooooooooooook",
-          "tags": [
-            "switch",
-            "plug",
-            "outlet",
-            "power",
-            "sensor",
-            "commax"
-          ],
-          "parameters": [],
-          "content_summary": {
-            "entities": {
-              "switch": 4,
-              "sensor": 4
-            },
-            "automations": 0,
-            "scripts": 0
-          },
-          "discovery": null
         },
         {
           "file": "commax/smart_plugs_new.yaml",
@@ -1187,7 +985,7 @@
           "name_en": "Elevator Call",
           "description": "CVNet 엘리베이터 호출 버튼과 층수 센서 설정입니다.",
           "description_en": "CVNet elevator call button and floor sensor.",
-          "version": "2.0.0",
+          "version": "2.0.1",
           "author": "wooooooooooook",
           "tags": [
             "elevator",
@@ -1251,7 +1049,7 @@
           "name_en": "Fan",
           "description": "CVNet 환기팬 설정입니다. 속도 조절을 지원합니다.",
           "description_en": "CVNet fan with speed control.",
-          "version": "2.0.0",
+          "version": "2.0.1",
           "author": "wooooooooooook",
           "tags": [
             "fan",
@@ -1286,7 +1084,7 @@
           "name_en": "Gas Valve",
           "description": "CVNet 가스밸브 설정입니다.",
           "description_en": "CVNet gas valve configuration.",
-          "version": "2.0.0",
+          "version": "2.0.1",
           "author": "wooooooooooook",
           "tags": [
             "valve",
@@ -1315,30 +1113,6 @@
               ]
             }
           }
-        },
-        {
-          "file": "cvnet/heaters.yaml",
-          "name": "난방 설정 (4개)",
-          "name_en": "Heaters (4 Thermostats)",
-          "description": "CVNet 난방 온도조절기 4개 설정입니다.",
-          "description_en": "CVNet 4 heating thermostats.",
-          "version": "1.1.0",
-          "author": "wooooooooooook",
-          "tags": [
-            "climate",
-            "heater",
-            "thermostat",
-            "cvnet"
-          ],
-          "parameters": [],
-          "content_summary": {
-            "entities": {
-              "climate": 4
-            },
-            "automations": 0,
-            "scripts": 0
-          },
-          "discovery": null
         },
         {
           "file": "cvnet/heaters_new.yaml",
@@ -1395,34 +1169,12 @@
           }
         },
         {
-          "file": "cvnet/lights.yaml",
-          "name": "조명 설정 (Room 0-1, 4개)",
-          "name_en": "Lights (Room 0-1, 4 Lights)",
-          "description": "CVNet 조명 4개 설정입니다. (Room 0: 3개, Room 1: 1개)",
-          "description_en": "CVNet 4 lights configuration (Room 0: 3, Room 1: 1).",
-          "version": "1.0.0",
-          "author": "wooooooooooook",
-          "tags": [
-            "light",
-            "cvnet"
-          ],
-          "parameters": [],
-          "content_summary": {
-            "entities": {
-              "light": 4
-            },
-            "automations": 0,
-            "scripts": 0
-          },
-          "discovery": null
-        },
-        {
           "file": "cvnet/lights_new.yaml",
           "name": "조명 설정",
           "name_en": "Lights",
           "description": "CVNet 조명 설정입니다. 방 개수와 방별 조명 개수를 설정할 수 있습니다.",
           "description_en": "CVNet lights configuration. You can configure room count and lights per room.",
-          "version": "2.0.0",
+          "version": "2.0.1",
           "author": "wooooooooooook",
           "tags": [
             "light",
@@ -1483,12 +1235,12 @@
             "dimensions": [
               {
                 "parameter": "room_id",
-                "offset": 2,
+                "offset": 3,
                 "transform": "bitAnd(x, 0x0F)"
               },
               {
                 "parameter": "light_count",
-                "offset": 3
+                "offset": 4
               }
             ],
             "inference": {
@@ -1529,7 +1281,7 @@
           "name_en": "Air Quality Sensors (CO2/PM)",
           "description": "Ezville 공기질 센서 설정입니다. 거실과 안방의 CO2 농도 및 미세먼지(PM) 측정값을 제공합니다.",
           "description_en": "Ezville air quality sensors for CO2 concentration and PM (particulate matter) readings in the living room and main bedroom.",
-          "version": "1.0.0",
+          "version": "1.0.1",
           "author": "햇님이다",
           "tags": [
             "sensor",
@@ -1563,7 +1315,7 @@
           "name_en": "door auto open",
           "description": "Ezville 현관문열림자동 설정입니다. 벨울림 -> 통화시작, 문열기, 통화종료를 순차전송 ",
           "description_en": "Ezville door auto open configuration. Bell ring -> call start, door open, call end in sequence.",
-          "version": "2.0.0",
+          "version": "2.0.1",
           "author": "gunfos",
           "tags": [
             "door auto open",
@@ -1588,7 +1340,8 @@
                 255,
                 255,
                 255
-              ]
+              ],
+              "offset": 0
             }
           }
         },
@@ -1634,7 +1387,7 @@
           "name_en": "Energy Sensors",
           "description": "Ezville 에너지 사용량 센서 (전력, 수도, 가스) 설정입니다.",
           "description_en": "Ezville energy consumption sensors for power, water, and gas.",
-          "version": "2.0.0",
+          "version": "2.0.1",
           "author": "wooooooooooook",
           "tags": [
             "sensor",
@@ -1669,7 +1422,7 @@
           "name_en": "heat exchanger fan",
           "description": "Ezville 전열교환기 설정입니다.",
           "description_en": "Ezville heat exchanger fan configuration.",
-          "version": "2.0.0",
+          "version": "2.0.1",
           "author": "gunfos",
           "tags": [
             "heat exchanger fan",
@@ -1704,7 +1457,7 @@
           "name_en": "Gas Valve",
           "description": "Ezville 가스밸브 설정입니다.",
           "description_en": "Ezville gas valve configuration.",
-          "version": "2.0.0",
+          "version": "2.0.1",
           "author": "wooooooooooook",
           "tags": [
             "valve",
@@ -1740,7 +1493,7 @@
           "name_en": "Heaters (5 Thermostats)",
           "description": "Ezville 난방 온도조절기 5개 설정입니다. 0.5°C 단위 조절, 외출 모드 지원.",
           "description_en": "Ezville 5 heating thermostats with 0.5°C step and away preset mode.",
-          "version": "1.0.1",
+          "version": "1.0.2",
           "author": "wooooooooooook",
           "tags": [
             "climate",
@@ -1764,7 +1517,7 @@
           "name_en": "Heaters",
           "description": "Ezville 난방 온도조절기 설정입니다. 개수를 지정할 수 있습니다. 0.5°C 단위 조절, 외출 모드 지원.",
           "description_en": "Ezville heating thermostats configuration with count parameter. 0.5°C step and away preset mode.",
-          "version": "2.0.1",
+          "version": "2.0.2",
           "author": "wooooooooooook",
           "tags": [
             "climate",
@@ -1817,7 +1570,7 @@
           "name_en": "Lights (Room 1-5, 12 Lights)",
           "description": "Ezville 조명 12개 설정입니다. 방별 일괄제어 및 개별조명 포함.",
           "description_en": "Ezville 12 lights configuration with master and individual light controls.",
-          "version": "1.0.1",
+          "version": "1.0.2",
           "author": "wooooooooooook",
           "tags": [
             "light",
@@ -1839,7 +1592,7 @@
           "name_en": "Lights",
           "description": "Ezville 조명 설정입니다. 방 개수와 방별 조명 개수를 설정할 수 있습니다.",
           "description_en": "Ezville lights configuration. You can configure room count and lights per room.",
-          "version": "2.0.0",
+          "version": "2.0.1",
           "author": "wooooooooooook",
           "tags": [
             "light",
@@ -1910,7 +1663,7 @@
             "dimensions": [
               {
                 "parameter": "room_id",
-                "offset": 1,
+                "offset": 2,
                 "transform": "bitAnd(x, 0x0F)"
               }
             ],
@@ -1926,7 +1679,7 @@
           "name_en": "Smart Outlets (10 Outlets)",
           "description": "Ezville 스마트 콘센트 10개 설정입니다. 전력 측정 센서 포함.",
           "description_en": "Ezville 10 smart outlets with power consumption sensors.",
-          "version": "1.0.0",
+          "version": "1.0.1",
           "author": "wooooooooooook",
           "tags": [
             "switch",
@@ -1951,7 +1704,7 @@
           "name_en": "Smart Outlets",
           "description": "Ezville 스마트 콘센트 설정입니다. 방 개수와 방별 콘센트 개수(전력 측정 포함)를 설정할 수 있습니다.",
           "description_en": "Ezville smart outlets configuration. You can configure room count and outlets per room (with power meter).",
-          "version": "2.0.0",
+          "version": "2.0.1",
           "author": "wooooooooooook",
           "tags": [
             "switch",
@@ -2013,7 +1766,7 @@
             "dimensions": [
               {
                 "parameter": "room_id",
-                "offset": 1,
+                "offset": 2,
                 "transform": "bitShiftRight(x, 4)"
               }
             ],
@@ -2055,7 +1808,7 @@
           "name_en": "Smart Outlets (F7 50)",
           "description": "Ezville 스마트 콘센트 (F7 50 타입) 설정입니다. 방 개수와 방별 콘센트 개수(전력 측정 포함)를 설정할 수 있습니다.",
           "description_en": "Ezville smart outlets (F7 50 type) configuration. Room count and outlets per room (with power meter).",
-          "version": "2.0.0",
+          "version": "2.0.1",
           "author": "wooooooooooook",
           "tags": [
             "switch",
@@ -2117,7 +1870,7 @@
             "dimensions": [
               {
                 "parameter": "room_id",
-                "offset": 1,
+                "offset": 2,
                 "transform": "bitAnd(x, 0x0F)"
               }
             ],
@@ -2272,7 +2025,7 @@
           "name_en": "Ventilation System",
           "description": "현대 이마주 환기시스템 설정입니다. 3단 속도를 지원합니다.",
           "description_en": "Hyundai Imazu ventilation system with 3-speed control.",
-          "version": "2.0.2",
+          "version": "2.0.3",
           "author": "wooooooooooook",
           "tags": [
             "fan",
@@ -2310,37 +2063,12 @@
           }
         },
         {
-          "file": "hyundai_imazu/heaters.yaml",
-          "name": "난방 설정 (5개)",
-          "name_en": "Heaters (5 Thermostats)",
-          "description": "현대 이마주 난방 온도조절기 5개 설정입니다. 외출 모드를 지원합니다.",
-          "description_en": "Hyundai Imazu 5 heating thermostats with away mode support.",
-          "version": "1.0.2",
-          "author": "wooooooooooook",
-          "tags": [
-            "climate",
-            "heater",
-            "thermostat",
-            "hyundai",
-            "imazu"
-          ],
-          "parameters": [],
-          "content_summary": {
-            "entities": {
-              "climate": 5
-            },
-            "automations": 0,
-            "scripts": 0
-          },
-          "discovery": null
-        },
-        {
           "file": "hyundai_imazu/heaters_new.yaml",
           "name": "난방 설정",
           "name_en": "Heaters",
           "description": "현대 이마주 난방 설정입니다. 난방 개수를 설정할 수 있습니다. 외출 모드를 지원합니다.",
           "description_en": "Hyundai Imazu heating configuration with count parameter. Supports away mode.",
-          "version": "2.0.0",
+          "version": "2.0.1",
           "author": "wooooooooooook",
           "tags": [
             "climate",
@@ -2387,29 +2115,6 @@
           }
         },
         {
-          "file": "hyundai_imazu/lights.yaml",
-          "name": "조명 설정 (1번방 4개 2번방 3개)",
-          "name_en": "Lights (Room 1: 4, Room 2: 3)",
-          "description": "현대 이마주 조명 7개 설정입니다. (Room 1: 4개, Room 2: 3개)",
-          "description_en": "Hyundai Imazu 7 lights configuration (Room 1: 4, Room 2: 3).",
-          "version": "1.0.0",
-          "author": "wooooooooooook",
-          "tags": [
-            "light",
-            "hyundai",
-            "imazu"
-          ],
-          "parameters": [],
-          "content_summary": {
-            "entities": {
-              "light": 7
-            },
-            "automations": 0,
-            "scripts": 0
-          },
-          "discovery": null
-        },
-        {
           "file": "hyundai_imazu/lights_all_off.yaml",
           "name": "일괄소등 스위치",
           "name_en": "All Lights Off Switch",
@@ -2451,29 +2156,6 @@
               ]
             }
           }
-        },
-        {
-          "file": "hyundai_imazu/lights_hallway.yaml",
-          "name": "Room 1, 5번등 (복도등)",
-          "name_en": "Room 1, 5 Light (Hallway Light)",
-          "description": "현대 이마주 Room1에 5번등(복도등)이 있는경우 추가하세요",
-          "description_en": "Hyundai Imazu Room1, 5 Light (Hallway Light)",
-          "version": "1.0.0",
-          "author": "wooooooooooook",
-          "tags": [
-            "light",
-            "hyundai",
-            "imazu"
-          ],
-          "parameters": [],
-          "content_summary": {
-            "entities": {
-              "light": 1
-            },
-            "automations": 0,
-            "scripts": 0
-          },
-          "discovery": null
         },
         {
           "file": "hyundai_imazu/lights_new.yaml",
@@ -2549,7 +2231,7 @@
             "dimensions": [
               {
                 "parameter": "room_id",
-                "offset": 5,
+                "offset": 6,
                 "transform": "bitShiftRight(x, 4)"
               }
             ],
@@ -2595,33 +2277,6 @@
           "content_summary": {
             "entities": {},
             "automations": 2,
-            "scripts": 0
-          },
-          "discovery": null
-        },
-        {
-          "file": "hyundai_imazu/plugs.yaml",
-          "name": "스마트 콘센트 설정 (4개)",
-          "name_en": "Smart Plugs (4 Plugs)",
-          "description": "현대 이마주 스마트 콘센트 4개 설정입니다. 전력 사용량 센서가 포함되어 있습니다. (Room 1: 2개, Room 2: 2개)",
-          "description_en": "Hyundai Imazu 4 smart plugs with power consumption sensors (Room 1: 2, Room 2: 2).",
-          "version": "1.0.0",
-          "author": "wooooooooooook",
-          "tags": [
-            "switch",
-            "plug",
-            "sensor",
-            "power",
-            "hyundai",
-            "imazu"
-          ],
-          "parameters": [],
-          "content_summary": {
-            "entities": {
-              "switch": 4,
-              "sensor": 4
-            },
-            "automations": 0,
             "scripts": 0
           },
           "discovery": null
@@ -2704,7 +2359,7 @@
             "dimensions": [
               {
                 "parameter": "room_id",
-                "offset": 5,
+                "offset": 6,
                 "transform": "bitShiftRight(x, 4)"
               }
             ],
@@ -2791,7 +2446,7 @@
             "dimensions": [
               {
                 "parameter": "room_id",
-                "offset": 5,
+                "offset": 6,
                 "transform": "bitShiftRight(x, 4)"
               }
             ],
@@ -2982,7 +2637,7 @@
           "name_en": "Fan",
           "description": "코콤 환풍기 설정입니다. (속도 조절 지원, 기본값: 거실)",
           "description_en": "Kocom Fan configuration. Supports speed control. Default: Livingroom.",
-          "version": "1.0.3",
+          "version": "1.0.4",
           "author": "wooooooooooook",
           "tags": [
             "fan",
@@ -3019,7 +2674,7 @@
           "name_en": "Gas Valve",
           "description": "코콤 가스밸브 설정입니다.",
           "description_en": "Kocom gas valve configuration.",
-          "version": "2.0.0",
+          "version": "2.0.1",
           "author": "wooooooooooook",
           "tags": [
             "valve",
@@ -3052,36 +2707,12 @@
           }
         },
         {
-          "file": "kocom/heaters.yaml",
-          "name": "난방 설정 (4개)",
-          "name_en": "Heaters (4 Thermostats)",
-          "description": "코콤 난방 온도조절기 4개 설정입니다. (Room 0-3)",
-          "description_en": "Kocom 4 heating thermostats (Room 0-3).",
-          "version": "1.0.0",
-          "author": "wooooooooooook",
-          "tags": [
-            "climate",
-            "heater",
-            "thermostat",
-            "kocom"
-          ],
-          "parameters": [],
-          "content_summary": {
-            "entities": {
-              "climate": 4
-            },
-            "automations": 0,
-            "scripts": 0
-          },
-          "discovery": null
-        },
-        {
           "file": "kocom/heaters_new.yaml",
           "name": "난방 설정",
           "name_en": "Heaters",
           "description": "코콤 난방 온도조절기 설정입니다. 난방 개수를 설정할 수 있습니다.",
           "description_en": "Kocom heating thermostats configuration. You can configure the number of thermostats.",
-          "version": "2.0.2",
+          "version": "2.0.3",
           "author": "wooooooooooook",
           "tags": [
             "climate",
@@ -3123,28 +2754,6 @@
               ]
             }
           }
-        },
-        {
-          "file": "kocom/lights.yaml",
-          "name": "조명 설정 (Room 0-3, 8개)",
-          "name_en": "Lights (Room 0-3, 8 Lights)",
-          "description": "코콤 조명 8개 설정입니다. (각 방 2개씩)",
-          "description_en": "Kocom 8 lights configuration (2 per room).",
-          "version": "1.1.0",
-          "author": "wooooooooooook",
-          "tags": [
-            "light",
-            "kocom"
-          ],
-          "parameters": [],
-          "content_summary": {
-            "entities": {
-              "light": 8
-            },
-            "automations": 0,
-            "scripts": 0
-          },
-          "discovery": null
         },
         {
           "file": "kocom/lights_new.yaml",
@@ -3224,7 +2833,7 @@
             "dimensions": [
               {
                 "parameter": "room_idx",
-                "offset": 6
+                "offset": 8
               }
             ],
             "inference": {
@@ -3314,7 +2923,7 @@
             "dimensions": [
               {
                 "parameter": "room_idx",
-                "offset": 6
+                "offset": 8
               }
             ],
             "inference": {
@@ -3408,7 +3017,7 @@
           "name_en": "Gas Burner Lock",
           "description": "코콤 Theart 가스버너 잠금 설정입니다.",
           "description_en": "Kocom Theart gas burner lock configuration.",
-          "version": "2.0.0",
+          "version": "2.0.1",
           "author": "wooooooooooook",
           "tags": [
             "lock",
@@ -3442,37 +3051,12 @@
           }
         },
         {
-          "file": "kocom_theart/heaters.yaml",
-          "name": "난방 설정 (5개)",
-          "name_en": "Heaters (5 Thermostats)",
-          "description": "코콤 Theart 난방 온도조절기 5개 설정입니다. (거실, 침실, Room 1-2, 거실2)",
-          "description_en": "Kocom Theart 5 heating thermostats with away preset mode.",
-          "version": "1.0.1",
-          "author": "wooooooooooook",
-          "tags": [
-            "climate",
-            "heater",
-            "thermostat",
-            "kocom",
-            "theart"
-          ],
-          "parameters": [],
-          "content_summary": {
-            "entities": {
-              "climate": 5
-            },
-            "automations": 1,
-            "scripts": 0
-          },
-          "discovery": null
-        },
-        {
           "file": "kocom_theart/heaters_new.yaml",
           "name": "난방 설정",
           "name_en": "Heaters",
           "description": "코콤 TheArt 난방 온도조절기 설정입니다. 난방 개수를 설정할 수 있습니다. 외출 모드를 지원합니다.",
           "description_en": "Kocom TheArt heating thermostats with away preset mode. Configurable count.",
-          "version": "2.0.0",
+          "version": "2.0.1",
           "author": "wooooooooooook",
           "tags": [
             "climate",
@@ -3522,7 +3106,7 @@
           "name_en": "Living Room Lights (3 Lights)",
           "description": "코콤 Theart 거실 조명 3개 설정입니다.",
           "description_en": "Kocom Theart living room with 3 lights.",
-          "version": "2.1.0",
+          "version": "2.1.1",
           "author": "wooooooooooook",
           "tags": [
             "light",
@@ -3595,7 +3179,7 @@
           "name_en": "Elevator Call",
           "description": "코콤 Thinks 엘리베이터 호출 설정입니다. 층수 및 방향 센서 포함.",
           "description_en": "Kocom Thinks elevator with floor number and direction sensors.",
-          "version": "2.0.0",
+          "version": "2.0.1",
           "author": "wooooooooooook",
           "tags": [
             "elevator",
@@ -3641,7 +3225,7 @@
           "name_en": "Gas Valve",
           "description": "코콤 Thinks 가스밸브 설정입니다.",
           "description_en": "Kocom Thinks gas valve configuration.",
-          "version": "2.0.0",
+          "version": "2.0.1",
           "author": "wooooooooooook",
           "tags": [
             "valve",
@@ -3675,37 +3259,12 @@
           }
         },
         {
-          "file": "kocom_thinks/heaters.yaml",
-          "name": "난방 설정 (6개)",
-          "name_en": "Heaters (6 Thermostats)",
-          "description": "코콤 Thinks 난방 온도조절기 6개 설정입니다. (거실, Room 1-5)",
-          "description_en": "Kocom Thinks 6 heating thermostats with away preset mode.",
-          "version": "1.0.1",
-          "author": "wooooooooooook",
-          "tags": [
-            "climate",
-            "heater",
-            "thermostat",
-            "kocom",
-            "thinks"
-          ],
-          "parameters": [],
-          "content_summary": {
-            "entities": {
-              "climate": 6
-            },
-            "automations": 1,
-            "scripts": 0
-          },
-          "discovery": null
-        },
-        {
           "file": "kocom_thinks/heaters_new.yaml",
           "name": "난방 설정",
           "name_en": "Heaters",
           "description": "코콤 Thinks 난방 온도조절기 설정입니다. 난방 개수를 설정할 수 있습니다. 외출 모드를 지원합니다.",
           "description_en": "Kocom Thinks heating thermostats with away preset mode. Configurable count.",
-          "version": "2.0.0",
+          "version": "2.0.1",
           "author": "wooooooooooook",
           "tags": [
             "climate",
@@ -3755,7 +3314,7 @@
           "name_en": "Living Room Lights (3 Lights)",
           "description": "코콤 Thinks 거실 조명 3개 설정입니다.",
           "description_en": "Kocom Thinks living room with 3 lights.",
-          "version": "2.1.0",
+          "version": "2.1.1",
           "author": "wooooooooooook",
           "tags": [
             "light",
@@ -3794,7 +3353,7 @@
           "name_en": "Navien Ventilator",
           "description": "코콤 Thinks 나비엔 환기팬 설정입니다. 3단 속도를 지원합니다.",
           "description_en": "Kocom Thinks Navien ventilator with 3-speed control.",
-          "version": "2.0.0",
+          "version": "2.0.1",
           "author": "wooooooooooook",
           "tags": [
             "fan",
@@ -4015,31 +3574,6 @@
           "discovery": null
         },
         {
-          "file": "samsung_sds/heaters.yaml",
-          "name": "난방 설정 (4개)",
-          "name_en": "Heaters (4 Thermostats)",
-          "description": "삼성 SDS 난방 온도조절기 4개 설정입니다. heating/idle 액션 상태 표시 지원.",
-          "description_en": "Samsung SDS 4 heating thermostats with heating/idle action status.",
-          "version": "1.1.0",
-          "author": "wooooooooooook",
-          "tags": [
-            "climate",
-            "heater",
-            "thermostat",
-            "samsung",
-            "sds"
-          ],
-          "parameters": [],
-          "content_summary": {
-            "entities": {
-              "climate": 4
-            },
-            "automations": 0,
-            "scripts": 0
-          },
-          "discovery": null
-        },
-        {
           "file": "samsung_sds/heaters_new.yaml",
           "name": "난방 설정",
           "name_en": "Heaters",
@@ -4111,34 +3645,6 @@
           "content_summary": {
             "entities": {
               "light": 4
-            },
-            "automations": 0,
-            "scripts": 0
-          },
-          "discovery": null
-        },
-        {
-          "file": "samsung_sds/outlet.yaml",
-          "name": "대기전력차단 콘센트 5개 설정",
-          "name_en": "Standby Power Cutoff Outlet (5 items)",
-          "description": "삼성 SDS 대기전력차단 콘센트 설정입니다. 전원 제어 및 전력량(W) 모니터링을 지원합니다. (5개 그룹)",
-          "description_en": "Samsung SDS Standby Power Cutoff Outlet configuration. Supports power control and power consumption (W) monitoring for 5 outlets.",
-          "version": "1.1.0",
-          "author": "wooooooooooook",
-          "tags": [
-            "outlet",
-            "plug",
-            "switch",
-            "sensor",
-            "power",
-            "samsung",
-            "sds"
-          ],
-          "parameters": [],
-          "content_summary": {
-            "entities": {
-              "switch": 10,
-              "sensor": 5
             },
             "automations": 0,
             "scripts": 0
