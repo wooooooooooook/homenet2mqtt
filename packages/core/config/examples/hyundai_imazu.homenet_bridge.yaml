@@ -295,8 +295,8 @@ homenet_bridge:
         data[8] == 0x01 ? 33 : (data[8] == 0x03 ? 66 : (data[8] == 0x07 ? 100 : 0))
 
   climate:
-    - name: 'Room 1 Heater 1'
-      id: 'room_1_heater_1'
+    - name: 'Heater 1'
+      id: 'heater_1'
       visual:
         min_temperature: 5 °C
         max_temperature: 40 °C
@@ -340,8 +340,8 @@ homenet_bridge:
       command_temperature: >-
         [[0x0B, 0x01, 0x18, 0x02, 0x45, 0x11, x, 0x00],[0x0D, 0x01, 0x18, 0x04, 0x45, 0x11, x, 0x01]]
 
-    - name: 'Room 1 Heater 2'
-      id: 'room_1_heater_2'
+    - name: 'Heater 2'
+      id: 'heater_2'
       visual:
         min_temperature: 5 °C
         max_temperature: 40 °C
@@ -385,8 +385,8 @@ homenet_bridge:
       command_temperature: >-
         [[0x0B, 0x01, 0x18, 0x02, 0x45, 0x12, x, 0x00],[0x0D, 0x01, 0x18, 0x04, 0x45, 0x12, x, 0x01]]
 
-    - name: 'Room 1 Heater 3'
-      id: 'room_1_heater_3'
+    - name: 'Heater 3'
+      id: 'heater_3'
       visual:
         min_temperature: 5 °C
         max_temperature: 40 °C
@@ -430,8 +430,8 @@ homenet_bridge:
       command_temperature: >-
         [[0x0B, 0x01, 0x18, 0x02, 0x45, 0x13, x, 0x00],[0x0D, 0x01, 0x18, 0x04, 0x45, 0x13, x, 0x01]]
 
-    - name: 'Room 1 Heater 4'
-      id: 'room_1_heater_4'
+    - name: 'Heater 4'
+      id: 'heater_4'
       visual:
         min_temperature: 5 °C
         max_temperature: 40 °C
@@ -475,8 +475,8 @@ homenet_bridge:
       command_temperature: >-
         [[0x0B, 0x01, 0x18, 0x02, 0x45, 0x14, x, 0x00],[0x0D, 0x01, 0x18, 0x04, 0x45, 0x14, x, 0x01]]
 
-    - name: 'Room 1 Heater 5'
-      id: 'room_1_heater_5'
+    - name: 'Heater 5'
+      id: 'heater_5'
       visual:
         min_temperature: 18 °C
         max_temperature: 30 °C
