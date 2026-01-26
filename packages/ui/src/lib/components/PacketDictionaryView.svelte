@@ -74,14 +74,50 @@
   function copyPacket(packet: string) {
     navigator.clipboard.writeText(packet.toLowerCase());
   }
+
+  let copySuccess = $state(false);
+
+  function copyAllPackets() {
+    if (!data) return;
+
+    const lines: string[] = [];
+
+    // 통계 정보
+    lines.push(
+      `[Packet Dictionary - ${viewMode === 'all' ? 'All' : viewMode === 'parsed' ? 'Matched' : 'Unmatched'}]`,
+    );
+    lines.push(`Matched: ${parsedPackets.length}, Unmatched: ${unmatchedPackets.length}`);
+    lines.push('');
+
+    // 패킷 목록
+    for (const packet of displayPackets) {
+      const entities = data.parsedPacketEntities[packet.toLowerCase()] || [];
+      const isParsed = parsedSet.has(packet);
+      const badge = isParsed ? '[Matched]' : '[Unmatched]';
+      const hexFormatted = toHexPairs(packet).join(' ');
+      const entityInfo = entities.length > 0 ? ` → ${entities.join(', ')}` : '';
+      lines.push(`${badge} ${hexFormatted}${entityInfo}`);
+    }
+
+    navigator.clipboard.writeText(lines.join('\n'));
+    copySuccess = true;
+    setTimeout(() => {
+      copySuccess = false;
+    }, 2000);
+  }
 </script>
 
 <div class="packet-dictionary-view">
   <div class="header">
     <h2>{$t('analysis.packet_dictionary.title')}</h2>
-    <Button variant="secondary" onclick={fetchData} disabled={loading}>
-      {loading ? $t('common.loading') : $t('common.refresh')}
-    </Button>
+    <div class="header-actions">
+      <Button variant="secondary" onclick={copyAllPackets} disabled={loading || !data}>
+        {copySuccess ? $t('common.copied') : $t('common.copy')}
+      </Button>
+      <Button variant="secondary" onclick={fetchData} disabled={loading}>
+        {loading ? $t('common.loading') : $t('common.refresh')}
+      </Button>
+    </div>
   </div>
 
   <p class="description">{$t('analysis.packet_dictionary.desc')}</p>
@@ -190,6 +226,11 @@
   .header h2 {
     margin: 0;
     font-size: 1.1rem;
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 0.5rem;
   }
 
   .description {
