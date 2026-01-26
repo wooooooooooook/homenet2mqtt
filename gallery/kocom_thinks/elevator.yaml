@@ -3,7 +3,7 @@ meta:
   name_en: "Elevator Call"
   description: "코콤 Thinks 엘리베이터 호출 설정입니다. 층수 및 방향 센서 포함."
   description_en: "Kocom Thinks elevator with floor number and direction sensors."
-  version: "2.0.0"
+  version: "2.0.1"
   author: "wooooooooooook"
   tags: ["elevator", "button", "sensor", "kocom", "thinks"]
 
@@ -22,7 +22,7 @@ entities:
         data: [0x30, 0xd0, 0x00, 0x01, 0x00, 0x44, 0x00]
         mask: [0xff, 0xf0, 0xff, 0xff, 0xff, 0xff, 0xff]
       state_number:
-        offset: 9
+        offset: 11
 
   text_sensor:
     - id: 'elevator_direction'

@@ -3,7 +3,7 @@ meta:
   name_en: "Gas Valve"
   description: "CVNet 가스밸브 설정입니다."
   description_en: "CVNet gas valve configuration."
-  version: "2.0.0"
+  version: "2.0.1"
   author: "wooooooooooook"
   tags: ["valve", "gas", "cvnet"]
 
@@ -20,10 +20,10 @@ entities:
       state:
         data: [0x20, 0x01, 0x11]
       state_closed:
-        offset: 4
+        offset: 5
         data: [0x00]
       state_open:
-        offset: 4
+        offset: 5
         data: [0x01]
       command_close:
         data: [0x20, 0x11, 0x01, 0x11, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]

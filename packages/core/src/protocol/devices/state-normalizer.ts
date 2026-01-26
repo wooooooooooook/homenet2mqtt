@@ -34,9 +34,13 @@ const matchesSchemaWithHeader = (
   });
 };
 
-const extractValue = (bytes: Uint8Array, schema: StateNumSchema): number | string | null => {
+const extractValue = (
+  bytes: Uint8Array,
+  schema: StateNumSchema,
+  headerLen: number = 0,
+): number | string | null => {
   const {
-    offset,
+    offset: rawOffset,
     length = 1,
     precision = 0,
     signed = false,
@@ -44,7 +48,11 @@ const extractValue = (bytes: Uint8Array, schema: StateNumSchema): number | strin
     decode = 'none',
   } = schema;
 
-  if (offset === undefined || offset + length > bytes.length) {
+  // offset이 명시되지 않은 경우 headerLen을 기본값으로 사용 (헤더 다음부터)
+  // offset이 명시된 경우 전체 패킷 기준으로 사용
+  const offset = rawOffset ?? headerLen;
+
+  if (offset + length > bytes.length) {
     return null;
   }
 
@@ -167,6 +175,7 @@ export const normalizeDeviceState = (
   const normalized = { ...updates };
   const cleanupKeys = new Set<string>();
   const entityType = entityConfig.type;
+  const headerLen = options.headerLen ?? 0;
 
   const applyOnOffState = () => {
     const on = resolveFlag(normalized, cleanupKeys, 'on', entityConfig.state_on, payload, options);
@@ -193,34 +202,34 @@ export const normalizeDeviceState = (
 
   if (entityType === 'light') {
     if (!normalized.brightness && entityConfig.state_brightness) {
-      const brightness = extractValue(payload, entityConfig.state_brightness);
+      const brightness = extractValue(payload, entityConfig.state_brightness, headerLen);
       if (brightness !== null) {
         normalized.brightness = brightness;
       }
     }
 
     if (!normalized.color_temp && entityConfig.state_color_temp) {
-      const colorTemp = extractValue(payload, entityConfig.state_color_temp);
+      const colorTemp = extractValue(payload, entityConfig.state_color_temp, headerLen);
       if (colorTemp !== null) {
         normalized.color_temp = colorTemp;
       }
     }
 
     if (!normalized.red && entityConfig.state_red) {
-      const red = extractValue(payload, entityConfig.state_red);
+      const red = extractValue(payload, entityConfig.state_red, headerLen);
       if (red !== null) normalized.red = red;
     }
     if (!normalized.green && entityConfig.state_green) {
-      const green = extractValue(payload, entityConfig.state_green);
+      const green = extractValue(payload, entityConfig.state_green, headerLen);
       if (green !== null) normalized.green = green;
     }
     if (!normalized.blue && entityConfig.state_blue) {
-      const blue = extractValue(payload, entityConfig.state_blue);
+      const blue = extractValue(payload, entityConfig.state_blue, headerLen);
       if (blue !== null) normalized.blue = blue;
     }
 
     if (!normalized.white && entityConfig.state_white) {
-      const white = extractValue(payload, entityConfig.state_white);
+      const white = extractValue(payload, entityConfig.state_white, headerLen);
       if (white !== null) {
         normalized.white = white;
       }
@@ -231,12 +240,12 @@ export const normalizeDeviceState = (
     applyOnOffState();
 
     if (!normalized.speed && entityConfig.state_speed) {
-      const val = extractValue(payload, entityConfig.state_speed);
+      const val = extractValue(payload, entityConfig.state_speed, headerLen);
       if (val !== null) normalized.speed = val;
     }
 
     if (!normalized.percentage && entityConfig.state_percentage) {
-      const val = extractValue(payload, entityConfig.state_percentage);
+      const val = extractValue(payload, entityConfig.state_percentage, headerLen);
       if (val !== null) normalized.percentage = val;
     }
 
@@ -274,12 +283,12 @@ export const normalizeDeviceState = (
 
   if (entityType === 'climate') {
     if (!normalized.current_temperature && entityConfig.state_temperature_current) {
-      const val = extractValue(payload, entityConfig.state_temperature_current);
+      const val = extractValue(payload, entityConfig.state_temperature_current, headerLen);
       if (val !== null) normalized.current_temperature = val;
     }
 
     if (!normalized.target_temperature && entityConfig.state_temperature_target) {
-      const val = extractValue(payload, entityConfig.state_temperature_target);
+      const val = extractValue(payload, entityConfig.state_temperature_target, headerLen);
       if (val !== null) normalized.target_temperature = val;
     }
 
@@ -437,7 +446,7 @@ export const normalizeDeviceState = (
     }
 
     if (!normalized.position && entityConfig.state_position) {
-      const position = extractValue(payload, entityConfig.state_position);
+      const position = extractValue(payload, entityConfig.state_position, headerLen);
       if (position !== null && typeof position === 'number') {
         normalized.position = Math.min(100, Math.max(0, position));
       }
@@ -451,7 +460,7 @@ export const normalizeDeviceState = (
     }
 
     if (!normalized.value && entityConfig.state_number) {
-      const val = extractValue(payload, entityConfig.state_number);
+      const val = extractValue(payload, entityConfig.state_number, headerLen);
       if (val !== null) {
         normalized.value = val;
       }

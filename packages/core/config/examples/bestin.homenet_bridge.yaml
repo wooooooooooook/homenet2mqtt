@@ -520,10 +520,10 @@ homenet_bridge:
       state_temperature_target: 'bitAnd(data[7], 0x3F) + (bitAnd(data[7], 0x40) > 0 ? 0.5 : 0)'
       state_heat:
         data: [0x11]
-        offset: 6
+        offset: 7
       state_off:
         data: [0x02]
-        offset: 6
+        offset: 7
       command_heat:
         script: 'make_heating_packet'
         args:
@@ -550,10 +550,10 @@ homenet_bridge:
       state_temperature_target: 'bitAnd(data[7], 0x3F) + (bitAnd(data[7], 0x40) > 0 ? 0.5 : 0)'
       state_heat:
         data: [0x11]
-        offset: 6
+        offset: 7
       state_off:
         data: [0x02]
-        offset: 6
+        offset: 7
       command_heat:
         script: 'make_heating_packet'
         args:
@@ -580,10 +580,10 @@ homenet_bridge:
       state_temperature_target: 'bitAnd(data[7], 0x3F) + (bitAnd(data[7], 0x40) > 0 ? 0.5 : 0)'
       state_heat:
         data: [0x11]
-        offset: 6
+        offset: 7
       state_off:
         data: [0x02]
-        offset: 6
+        offset: 7
       command_heat:
         script: 'make_heating_packet'
         args:
@@ -610,10 +610,10 @@ homenet_bridge:
       state_temperature_target: 'bitAnd(data[7], 0x3F) + (bitAnd(data[7], 0x40) > 0 ? 0.5 : 0)'
       state_heat:
         data: [0x11]
-        offset: 6
+        offset: 7
       state_off:
         data: [0x02]
-        offset: 6
+        offset: 7
       command_heat:
         script: 'make_heating_packet'
         args:

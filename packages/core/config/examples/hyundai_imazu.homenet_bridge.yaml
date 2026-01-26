@@ -9,9 +9,9 @@ homenet_bridge:
 
   packet_defaults: # New section for global packet defaults
     rx_timeout: 10ms
-    tx_delay: 50ms
-    tx_timeout: 500ms
-    tx_retry_cnt: 3
+    tx_delay: 10ms
+    tx_timeout: 200ms
+    tx_retry_cnt: 5
 
     rx_header: [0xf7]
     rx_footer: [0xee]
@@ -28,7 +28,7 @@ homenet_bridge:
       state:
         data: [0x12, 0x01, 0x1f, 0x04, 0x40, 0x11]
       state_number:
-        offset: 8
+        offset: 9
         length: 2
         precision: 0
 
@@ -38,7 +38,7 @@ homenet_bridge:
       state:
         data: [0x12, 0x01, 0x1f, 0x04, 0x40, 0x12]
       state_number:
-        offset: 8
+        offset: 9
         length: 2
         precision: 0
 
@@ -48,7 +48,7 @@ homenet_bridge:
       state:
         data: [0x12, 0x01, 0x1f, 0x04, 0x40, 0x21]
       state_number:
-        offset: 8
+        offset: 9
         length: 2
         precision: 0
 
@@ -58,7 +58,7 @@ homenet_bridge:
       state:
         data: [0x12, 0x01, 0x1f, 0x04, 0x40, 0x22]
       state_number:
-        offset: 8
+        offset: 9
         length: 2
         precision: 0
 
@@ -70,10 +70,10 @@ homenet_bridge:
         data: [0x00, 0x01, 0x1f, 0x04, 0x40, 0x11]
         mask: [0x00, 0xff, 0xff, 0xff, 0xff, 0xff]
       state_on:
-        offset: 7
+        offset: 8
         data: [0x01]
       state_off:
-        offset: 7
+        offset: 8
         data: [0x02]
       command_on:
         data: [0x0b, 0x01, 0x1f, 0x02, 0x40, 0x11, 0x01, 0x00]
@@ -89,10 +89,10 @@ homenet_bridge:
         data: [0x00, 0x01, 0x1f, 0x04, 0x40, 0x12]
         mask: [0x00, 0xff, 0xff, 0xff, 0xff, 0xff]
       state_on:
-        offset: 7
+        offset: 8
         data: [0x01]
       state_off:
-        offset: 7
+        offset: 8
         data: [0x02]
       command_on:
         data: [0x0b, 0x01, 0x1f, 0x02, 0x40, 0x12, 0x01, 0x00]
@@ -108,10 +108,10 @@ homenet_bridge:
         data: [0x00, 0x01, 0x1F, 0x04, 0x40, 0x21]
         mask: [0x00, 0xff, 0xff, 0xff, 0xff, 0xff]
       state_on:
-        offset: 7
+        offset: 8
         data: [0x01]
       state_off:
-        offset: 7
+        offset: 8
         data: [0x02]
       command_on:
         data: [0x0b, 0x01, 0x1f, 0x02, 0x40, 0x21, 0x01, 0x00]
@@ -127,10 +127,10 @@ homenet_bridge:
         data: [0x00, 0x01, 0x1F, 0x04, 0x40, 0x22]
         mask: [0x00, 0xff, 0xff, 0xff, 0xff, 0xff]
       state_on:
-        offset: 7
+        offset: 8
         data: [0x01]
       state_off:
-        offset: 7
+        offset: 8
         data: [0x02]
       command_on:
         data: [0x0b, 0x01, 0x1f, 0x02, 0x40, 0x22, 0x01, 0x00]
@@ -146,10 +146,10 @@ homenet_bridge:
         data: [0x00, 0x01, 0x19, 0x04, 0x40, 0x11]
         mask: [0x00, 0xff, 0xff, 0xff, 0xff, 0xff]
       state_on:
-        offset: 7
+        offset: 8
         data: [0x01]
       state_off:
-        offset: 7
+        offset: 8
         data: [0x02]
       command_on:
         data: [0x0b, 0x01, 0x19, 0x02, 0x40, 0x11, 0x01, 0x00]
@@ -164,10 +164,10 @@ homenet_bridge:
         data: [0x00, 0x01, 0x19, 0x04, 0x40, 0x12]
         mask: [0x00, 0xff, 0xff, 0xff, 0xff, 0xff]
       state_on:
-        offset: 7
+        offset: 8
         data: [0x01]
       state_off:
-        offset: 7
+        offset: 8
         data: [0x02]
       command_on:
         data: [0x0b, 0x01, 0x19, 0x02, 0x40, 0x12, 0x01, 0x00]
@@ -182,10 +182,10 @@ homenet_bridge:
         data: [0x00, 0x01, 0x19, 0x04, 0x40, 0x13]
         mask: [0x00, 0xff, 0xff, 0xff, 0xff, 0xff]
       state_on:
-        offset: 7
+        offset: 8
         data: [0x01]
       state_off:
-        offset: 7
+        offset: 8
         data: [0x02]
       command_on:
         data: [0x0b, 0x01, 0x19, 0x02, 0x40, 0x13, 0x01, 0x00]
@@ -200,10 +200,10 @@ homenet_bridge:
         data: [0x00, 0x01, 0x19, 0x04, 0x40, 0x14]
         mask: [0x00, 0xff, 0xff, 0xff, 0xff, 0xff]
       state_on:
-        offset: 7
+        offset: 8
         data: [0x01]
       state_off:
-        offset: 7
+        offset: 8
         data: [0x02]
       command_on:
         data: [0x0b, 0x01, 0x19, 0x02, 0x40, 0x14, 0x01, 0x00]
@@ -218,10 +218,10 @@ homenet_bridge:
         data: [0x00, 0x01, 0x19, 0x04, 0x40, 0x21]
         mask: [0x00, 0xff, 0xff, 0xff, 0xff, 0xff]
       state_on:
-        offset: 7
+        offset: 8
         data: [0x01]
       state_off:
-        offset: 7
+        offset: 8
         data: [0x02]
       command_on:
         data: [0x0b, 0x01, 0x19, 0x02, 0x40, 0x21, 0x01, 0x00]
@@ -236,10 +236,10 @@ homenet_bridge:
         data: [0x00, 0x01, 0x19, 0x04, 0x40, 0x22]
         mask: [0x00, 0xff, 0xff, 0xff, 0xff, 0xff]
       state_on:
-        offset: 7
+        offset: 8
         data: [0x01]
       state_off:
-        offset: 7
+        offset: 8
         data: [0x02]
       command_on:
         data: [0x0b, 0x01, 0x19, 0x02, 0x40, 0x22, 0x01, 0x00]
@@ -254,10 +254,10 @@ homenet_bridge:
         data: [0x00, 0x01, 0x19, 0x04, 0x40, 0x23]
         mask: [0x00, 0xff, 0xff, 0xff, 0xff, 0xff]
       state_on:
-        offset: 7
+        offset: 8
         data: [0x01]
       state_off:
-        offset: 7
+        offset: 8
         data: [0x02]
       command_on:
         data: [0x0b, 0x01, 0x19, 0x02, 0x40, 0x23, 0x01, 0x00]
@@ -273,10 +273,10 @@ homenet_bridge:
         data: [0x00, 0x01, 0x2b, 0x04, 0x40, 0x11]
         mask: [0x00, 0xff, 0xff, 0xff, 0xff, 0xff]
       state_on:
-        offset: 7
+        offset: 8
         data: [0x01]
       state_off:
-        offset: 7
+        offset: 8
         data: [0x02]
       command_on:
         data: [0x0b, 0x01, 0x2b, 0x02, 0x40, 0x11, 0x01, 0x00]
@@ -305,24 +305,24 @@ homenet_bridge:
         data: [0x00, 0x01, 0x18, 0x04, 0x45, 0x11]
         mask: [0x00, 0xff, 0xff, 0xff, 0xfc, 0xff]
       state_temperature_current:
-        offset: 8
-        length: 1
-        precision: 0
-      state_temperature_target:
         offset: 9
         length: 1
         precision: 0
+      state_temperature_target:
+        offset: 10
+        length: 1
+        precision: 0
       state_off:
-        offset: 7
+        offset: 8
         data: [0x04]
       state_heat:
-        offset: 7
+        offset: 8
         data: [0x01]
       state_preset_away:
-        offset: 7
+        offset: 8
         data: [0x07]
       state_preset_none:
-        offset: 7
+        offset: 8
         data: [0x07]
         inverted: True
       command_off:
@@ -350,24 +350,24 @@ homenet_bridge:
         data: [0x00, 0x01, 0x18, 0x04, 0x45, 0x12]
         mask: [0x00, 0xff, 0xff, 0xff, 0xfc, 0xff]
       state_temperature_current:
-        offset: 8
-        length: 1
-        precision: 0
-      state_temperature_target:
         offset: 9
         length: 1
         precision: 0
+      state_temperature_target:
+        offset: 10
+        length: 1
+        precision: 0
       state_off:
-        offset: 7
+        offset: 8
         data: [0x04]
       state_heat:
-        offset: 7
+        offset: 8
         data: [0x01]
       state_preset_away:
-        offset: 7
+        offset: 8
         data: [0x07]
       state_preset_none:
-        offset: 7
+        offset: 8
         data: [0x07]
         inverted: True
       command_off:
@@ -395,24 +395,24 @@ homenet_bridge:
         data: [0x00, 0x01, 0x18, 0x04, 0x45, 0x13]
         mask: [0x00, 0xff, 0xff, 0xff, 0xfc, 0xff]
       state_temperature_current:
-        offset: 8
-        length: 1
-        precision: 0
-      state_temperature_target:
         offset: 9
         length: 1
         precision: 0
+      state_temperature_target:
+        offset: 10
+        length: 1
+        precision: 0
       state_off:
-        offset: 7
+        offset: 8
         data: [0x04]
       state_heat:
-        offset: 7
+        offset: 8
         data: [0x01]
       state_preset_away:
-        offset: 7
+        offset: 8
         data: [0x07]
       state_preset_none:
-        offset: 7
+        offset: 8
         data: [0x07]
         inverted: True
       command_off:
@@ -440,24 +440,24 @@ homenet_bridge:
         data: [0x00, 0x01, 0x18, 0x04, 0x45, 0x14]
         mask: [0x00, 0xff, 0xff, 0xff, 0xfc, 0xff]
       state_temperature_current:
-        offset: 8
-        length: 1
-        precision: 0
-      state_temperature_target:
         offset: 9
         length: 1
         precision: 0
+      state_temperature_target:
+        offset: 10
+        length: 1
+        precision: 0
       state_off:
-        offset: 7
+        offset: 8
         data: [0x04]
       state_heat:
-        offset: 7
+        offset: 8
         data: [0x01]
       state_preset_away:
-        offset: 7
+        offset: 8
         data: [0x07]
       state_preset_none:
-        offset: 7
+        offset: 8
         data: [0x07]
         inverted: True
       command_off:
@@ -485,24 +485,24 @@ homenet_bridge:
         data: [0x00, 0x01, 0x18, 0x04, 0x45, 0x15]
         mask: [0x00, 0xff, 0xff, 0xff, 0xfc, 0xff]
       state_temperature_current:
-        offset: 8
-        length: 1
-        precision: 0
-      state_temperature_target:
         offset: 9
         length: 1
         precision: 0
+      state_temperature_target:
+        offset: 10
+        length: 1
+        precision: 0
       state_off:
-        offset: 7
+        offset: 8
         data: [0x04]
       state_heat:
-        offset: 7
+        offset: 8
         data: [0x01]
       state_preset_away:
-        offset: 7
+        offset: 8
         data: [0x07]
       state_preset_none:
-        offset: 7
+        offset: 8
         data: [0x07]
         inverted: True
       command_off:

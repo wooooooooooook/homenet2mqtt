@@ -38,26 +38,26 @@ automation:
         target_id: room_1_light_1
         state:
           state_on:
-            offset: 8
+            offset: 9
             data: [0x01]
           state_off:
-            offset: 8
+            offset: 9
             data: [0x02]
       - action: update_state
         target_id: room_1_light_2
         state:
           state_on:
-            offset: 9
+            offset: 10
             data: [0x01]
           state_off:
-            offset: 9
+            offset: 10
             data: [0x02]
       - action: update_state
         target_id: room_1_light_3
         state:
           state_on:
-            offset: 10
+            offset: 11
             data: [0x01]
           state_off:
-            offset: 10
+            offset: 11
             data: [0x02]

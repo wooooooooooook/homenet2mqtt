@@ -3,7 +3,7 @@ meta:
   name_en: "Energy Sensors"
   description: "Ezville 에너지 사용량 센서 (전력, 수도, 가스) 설정입니다."
   description_en: "Ezville energy consumption sensors for power, water, and gas."
-  version: "2.0.0"
+  version: "2.0.1"
   author: "wooooooooooook"
   tags: ["sensor", "energy", "power", "water", "gas", "ezville"]
 
@@ -22,7 +22,7 @@ entities:
       accuracy_decimals: 2
       unit_of_measurement: 'W'
       state_number:
-        offset: 6
+        offset: 7
         length: 3
         precision: 2
         signed: False
@@ -35,7 +35,7 @@ entities:
       accuracy_decimals: 1
       unit_of_measurement: 'kWh'
       state_number:
-        offset: 9
+        offset: 10
         length: 3
         precision: 1
         signed: False
@@ -50,7 +50,7 @@ entities:
       command_update:
         data: [0x30, 0x01, 0x01, 0x00]
       state_number:
-        offset: 9
+        offset: 10
         length: 3
         precision: 2
         signed: False
@@ -65,7 +65,7 @@ entities:
       command_update:
         data: [0x30, 0x02, 0x01, 0x00]
       state_number:
-        offset: 9
+        offset: 10
         length: 3
         precision: 2
         signed: False

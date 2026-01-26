@@ -1,3 +1,15 @@
+v2.0.0
+- ## **🚨Breaking change**
+  - offset의 해석의 일관성을 위해 수정사항이 있으며 이로인해 설정이 깨졌을수 있습니다!
+  - 모든 offset은 헤더를 포함한 수신패킷 전체의 0-based index로 해석됩니다.
+  - [Breaking change 안내](https://github.com/wooooooooooook/RS485-HomeNet-to-MQTT-bridge/blob/main/docs/BREAKING_CHANGES.md)
+    > **요약**
+    > 
+    > 업데이트 후 상태업데이트가 안되거나 이상한값을 가지는 엔티티는 갤러리에서 수정본을 적용해주세요.
+    >
+    > 수동으로 수정하려면 state_* 의 offset 속성에 header길이를 더해주세요. 
+    > (kocom은 +2, betin, cvnet, ezville, 현대통신은 +1, commax, samsung_sds는 해당없음)
+
 v1.17.0
 - feat: 분석 페이지에 패킷해석 테스트 추가. 패킷을 넣어 어떻게 해석되는지 테스트해 볼 수 있습니다. 
 - fix: get_from_* 헬퍼의 기본값을 undefined에서 null로 변경함

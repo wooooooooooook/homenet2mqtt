@@ -13,8 +13,7 @@ export class SwitchDevice extends GenericDevice {
     }
     const updates = super.parseData(packet) || {};
     const headerLength = this.protocolConfig.packet_defaults?.rx_header?.length || 0;
-    const payload = packet.slice(headerLength);
-    const normalized = normalizeDeviceState({ ...this.config, type: 'switch' }, payload, updates, {
+    const normalized = normalizeDeviceState({ ...this.config, type: 'switch' }, packet, updates, {
       headerLen: headerLength,
       state: this.getState(),
     });

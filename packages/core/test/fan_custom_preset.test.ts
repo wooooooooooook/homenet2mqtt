@@ -22,11 +22,11 @@ describe('Fan Preset Mode (CEL)', () => {
           data: [0x30, 0x01, 0x71],
         },
         state_on: {
-          offset: 4,
+          offset: 5, // 전체 패킷 기준: 헤더(1) + payload 인덱스 4
           data: [0x01],
         },
         state_off: {
-          offset: 4,
+          offset: 5,
           data: [0x00],
         },
         preset_modes: ['Auto', 'Sleep', 'Turbo'],
@@ -63,11 +63,11 @@ describe('Fan Preset Mode (CEL)', () => {
           data: [0x30, 0x01, 0x71],
         },
         state_on: {
-          offset: 4,
+          offset: 5, // 전체 패킷 기준: 헤더(1) + payload 인덱스 4
           data: [0x01],
         },
         state_off: {
-          offset: 4,
+          offset: 5,
           data: [0x00],
         },
         preset_modes: ['Low', 'Medium', 'High'],
@@ -156,11 +156,11 @@ describe('Fan Preset Mode (CEL)', () => {
           data: [0x30, 0x01, 0x71],
         },
         state_on: {
-          offset: 4,
+          offset: 5, // 전체 패킷 기준: 헤더(1) + payload 인덱스 4
           data: [0x01],
         },
         state_off: {
-          offset: 4,
+          offset: 5,
           data: [0x00],
         },
         command_on: {

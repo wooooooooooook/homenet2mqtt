@@ -15,10 +15,9 @@ export class BinarySensorDevice extends GenericDevice {
 
     const updates = super.parseData(packet) || {};
     const headerLength = this.protocolConfig.packet_defaults?.rx_header?.length || 0;
-    const payload = packet.slice(headerLength);
     const normalized = normalizeDeviceState(
       { ...this.config, type: 'binary_sensor' } as BinarySensorEntity,
-      payload,
+      packet,
       updates,
       {
         headerLen: headerLength,

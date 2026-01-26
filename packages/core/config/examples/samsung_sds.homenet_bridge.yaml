@@ -9,9 +9,9 @@ homenet_bridge:
 
   packet_defaults:
     rx_timeout: 10ms
-    tx_delay: 50ms
-    tx_timeout: 500ms
-    tx_retry_cnt: 3
+    tx_delay: 10ms
+    tx_timeout: 200ms
+    tx_retry_cnt: 5
     rx_checksum: samsung_xor
     tx_checksum: samsung_xor
     rx_valid_headers: [0xB0, 0xAB, 0xAD, 0xCC, 0xA4]

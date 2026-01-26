@@ -27,7 +27,7 @@ discovery:
     mask: [0x00, 0xff, 0xff, 0xff, 0xff]
   dimensions:
     - parameter: "room_id"
-      offset: 5
+      offset: 6
       transform: "bitShiftRight(x, 4)"
   inference:
     strategy: "unique_tuples"
@@ -52,10 +52,10 @@ entities:
           data: [0x0B, 0x01, 0x1F, 0x04, 0x57, '{{bitOr(bitShiftLeft(room.room_id, 4), outlet_num)}}']
           mask: [0x00, 0xff, 0xff, 0xff, 0xff, 0xff]
         state_on:
-          offset: 7
+          offset: 8
           data: [0x01]
         state_off:
-          offset: 7
+          offset: 8
           data: [0x02]
         command_on:
           data: [0x0B, 0x01, 0x1F, 0x02, 0x57, '{{bitOr(bitShiftLeft(room.room_id, 4), outlet_num)}}', 0x01, 0x00]

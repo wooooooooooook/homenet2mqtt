@@ -3,7 +3,7 @@ meta:
   name_en: "Gas Valve"
   description: "코콤 가스밸브 설정입니다."
   description_en: "Kocom gas valve configuration."
-  version: "2.0.0"
+  version: "2.0.1"
   author: "wooooooooooook"
   tags: ["valve", "gas", "kocom"]
 
@@ -20,10 +20,10 @@ entities:
         data: [0x30, 0xd0, 0x00, 0x2c, 0x00]
         mask: [0xff, 0xf0, 0xff, 0xff, 0xff]
       state_open:
-        offset: 7
+        offset: 9
         data: [0x01]
       state_closed:
-        offset: 7
+        offset: 9
         data: [0x02]
       command_close:
         data: [0x30, 0xbc, 0x00, 0x2c, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]

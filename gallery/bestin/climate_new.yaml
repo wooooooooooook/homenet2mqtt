@@ -3,7 +3,7 @@ meta:
   name_en: "Bestin Climate"
   description: "Bestin 난방 설정입니다. 방 개수를 지정할 수 있습니다. bestin1.0 bestin2.0 공통입니다."
   description_en: "Bestin climate with configurable room count. bestin1.0 bestin2.0 common."
-  version: "2.1.0"
+  version: "2.1.1"
   min_version: "1.16.0"
   author: "wooooooooooook"
   tags: ["climate", "bestin"]
@@ -23,7 +23,7 @@ discovery:
     mask: [0xFF, 0xFF, 0xFF]
   dimensions:
     - parameter: "room_count"
-      offset: 4
+      offset: 5
   inference:
     strategy: max
 

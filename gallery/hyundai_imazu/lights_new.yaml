@@ -27,7 +27,7 @@ discovery:
     mask: [0x00, 0xff, 0xff, 0xff, 0xff]
   dimensions:
     - parameter: "room_id"
-      offset: 5 # 0x00 0x01 0x19 0x04 0x40 [0x11]
+      offset: 6 # 0x00 0x01 0x19 0x04 0x40 [0x11]
       # 0x11 -> Room 1, Light 1. 0x21 -> Room 2, Light 1
       transform: "bitShiftRight(x, 4)"
   inference:
@@ -52,10 +52,10 @@ entities:
           data: [0x00, 0x01, 0x19, 0x04, 0x40, '{{bitOr(bitShiftLeft(room.room_id, 4), light_num)}}']
           mask: [0x00, 0xff, 0xff, 0xff, 0xff, 0xff]
         state_on:
-          offset: 7
+          offset: 8
           data: [0x01]
         state_off:
-          offset: 7
+          offset: 8
           data: [0x02]
         command_on:
           data: [0x0b, 0x01, 0x19, 0x02, 0x40, '{{bitOr(bitShiftLeft(room.room_id, 4), light_num)}}', 0x01, 0x00]

@@ -9,9 +9,9 @@ homenet_bridge:
 
   packet_defaults: # New section for global packet defaults
     rx_timeout: 10ms
-    tx_delay: 50ms
-    tx_timeout: 500ms
-    tx_retry_cnt: 3
+    tx_delay: 10ms
+    tx_timeout: 200ms
+    tx_retry_cnt: 5
 
     rx_header: [0x7f]
     rx_footer: [0xee]
@@ -68,12 +68,12 @@ entities:
       icon: 'mdi:bell-ring'
       state:
         data: [0xB4, 0x00, 0x00]
-        mask: [0xB4, 0xFF, 0xFF]
+        mask: [0xB0, 0xFF, 0xFF]
       state_on:
-        offset: 0
+        offset: 1
         data: [0xB5]
       state_off:
-        offset: 0
+        offset: 1
         data: [0xB6]
 
     # 벨 울림 감지 (공동현관)
@@ -82,12 +82,12 @@ entities:
       icon: 'mdi:bell-ring'
       state:
         data: [0x58, 0x00, 0x00]
-        mask: [0x58, 0xFF, 0xFF]
+        mask: [0x50, 0xFF, 0xFF]
       state_on:
-        offset: 0
+        offset: 1
         data: [0x5A]
       state_off:
-        offset: 0
+        offset: 1
         data: [0x5C]
 
   # 문열기 버튼
@@ -141,7 +141,8 @@ automation:
     trigger:
       - type: state
         entity: doorbell_common
-        to: 'on'
+        property: 'state'
+        match: {eq: 'on'}
     then:
       - action: if
         condition: "states['doorbell_auto_open_common']['state'] == 'on'"
@@ -165,7 +166,8 @@ automation:
     trigger:
       - type: state
         entity: doorbell_private
-        to: 'on'
+        property: 'state'
+        match: {eq: 'on'}
     then:
       - action: if
         condition: "states['doorbell_auto_open_private']['state'] == 'on'"

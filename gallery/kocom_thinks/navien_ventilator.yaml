@@ -3,11 +3,11 @@ meta:
   name_en: "Navien Ventilator"
   description: "코콤 Thinks 나비엔 환기팬 설정입니다. 3단 속도를 지원합니다."
   description_en: "Kocom Thinks Navien ventilator with 3-speed control."
-  version: "2.0.0"
+  version: "2.0.1"
   author: "wooooooooooook"
   tags: ["fan", "ventilation", "navien", "kocom", "thinks"]
 
-discovery:
+discovery:  
   match:
     data: [0x30, 0xd0, 0x00, 0x48]
     mask: [0xFF, 0xFF, 0xFF, 0xFF]
@@ -20,10 +20,10 @@ entities:
         data: [0x30, 0xd0, 0x00, 0x48, 0x00]
         mask: [0xff, 0xf0, 0xff, 0xff, 0xff]
       state_on:
-        offset: 8
+        offset: 10
         data: [0x11]
       state_off:
-        offset: 8
+        offset: 10
         data: [0x00]
       state_speed: >-
         if (data[10] === 0x40) 1

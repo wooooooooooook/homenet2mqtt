@@ -5,7 +5,7 @@ meta:
     Bestin general gateway용 조명 및 아웃렛 설정입니다. 방별 조명/콘센트 개수를 지정할 수 있습니다.
   description_en: >- 
     Bestin general gateway light and outlet. You can specify lights/outlets per room.
-  version: "2.1.0"
+  version: "2.1.1"
   min_version: "1.16.0"
   author: "wooooooooooook"
   tags: ["light", "outlet", "bestin"]
@@ -33,13 +33,13 @@ discovery:
     mask: [0xFF, 0xFF, 0xFF]
   dimensions:
     - parameter: "room_id"
-      offset: 4
+      offset: 5
       transform: "bitAnd(x, 0x0F)"
     - parameter: "light_count"
-      offset: 5
+      offset: 6
       detect: "active_bits"
     - parameter: "outlet_count"
-      offset: 6
+      offset: 7
       detect: "active_bits"
   inference:
     strategy: "unique_tuples"

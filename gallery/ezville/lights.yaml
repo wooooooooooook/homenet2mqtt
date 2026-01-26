@@ -3,7 +3,7 @@ meta:
   name_en: "Lights (Room 1-5, 12 Lights)"
   description: "Ezville 조명 12개 설정입니다. 방별 일괄제어 및 개별조명 포함."
   description_en: "Ezville 12 lights configuration with master and individual light controls."
-  version: "1.0.1"
+  version: "1.0.2"
   author: "wooooooooooook"
   tags: ["light", "ezville"]
 
@@ -15,10 +15,10 @@ entities:
       state:
         data: [0x0e, 0x11, 0x81]
       state_off:
-        offset: 5
+        offset: 6
         data: [0x00, 0x00, 0x00]
       state_on:
-        offset: 5
+        offset: 6
         data: [0x00, 0x00, 0x00]
         inverted: True
       command_on:
@@ -33,10 +33,10 @@ entities:
       state:
         data: [0x0e, 0x11, 0x81]
       state_on:
-        offset: 5
+        offset: 6
         data: [0x01]
       state_off:
-        offset: 5
+        offset: 6
         data: [0x00]
       command_on:
         data: [0x0e, 0x11, 0x41, 0x03, 0x01, 0x01, 0x00]
@@ -50,10 +50,10 @@ entities:
       state:
         data: [0x0e, 0x11, 0x81]
       state_on:
-        offset: 6
+        offset: 7
         data: [0x01]
       state_off:
-        offset: 6
+        offset: 7
         data: [0x00]
       command_on:
         data: [0x0e, 0x11, 0x41, 0x03, 0x02, 0x01, 0x00]
@@ -67,10 +67,10 @@ entities:
       state:
         data: [0x0e, 0x11, 0x81]
       state_on:
-        offset: 7
+        offset: 8
         data: [0x01]
       state_off:
-        offset: 7
+        offset: 8
         data: [0x00]
       command_on:
         data: [0x0e, 0x11, 0x41, 0x03, 0x03, 0x01, 0x00]
@@ -84,10 +84,10 @@ entities:
       state:
         data: [0x0E, 0x11, 0x81]
       state_on:
-        offset: 8
+        offset: 9
         data: [0x01]
       state_off:
-        offset: 8
+        offset: 9
         data: [0x00]
       command_on:
         data: [0x0E, 0x11, 0x41, 0x03, 0x04, 0x01, 0x00]
@@ -101,10 +101,10 @@ entities:
       state:
         data: [0x0E, 0x11, 0x81]
       state_on:
-        offset: 9
+        offset: 10
         data: [0x01]
       state_off:
-        offset: 9
+        offset: 10
         data: [0x00]
       command_on:
         data: [0x0E, 0x11, 0x41, 0x03, 0x05, 0x01, 0x00]
@@ -119,10 +119,10 @@ entities:
       state:
         data: [0x0e, 0x12, 0x81]
       state_off:
-        offset: 5
+        offset: 6
         data: [0x00, 0x00]
       state_on:
-        offset: 5
+        offset: 6
         data: [0x00, 0x00]
         inverted: True
       command_on:
@@ -137,10 +137,10 @@ entities:
       state:
         data: [0x0e, 0x12, 0x81]
       state_on:
-        offset: 5
+        offset: 6
         data: [0x01]
       state_off:
-        offset: 5
+        offset: 6
         data: [0x00]
       command_on:
         data: [0x0e, 0x12, 0x41, 0x03, 0x01, 0x01, 0x00]
@@ -154,10 +154,10 @@ entities:
       state:
         data: [0x0e, 0x12, 0x81]
       state_on:
-        offset: 6
+        offset: 7
         data: [0x01]
       state_off:
-        offset: 6
+        offset: 7
         data: [0x00]
       command_on:
         data: [0x0e, 0x12, 0x41, 0x03, 0x02, 0x01, 0x00]
@@ -172,10 +172,10 @@ entities:
       state:
         data: [0x0e, 0x13, 0x81]
       state_on:
-        offset: 5
+        offset: 6
         data: [0x01]
       state_off:
-        offset: 5
+        offset: 6
         data: [0x00]
       command_on:
         data: [0x0e, 0x13, 0x41, 0x03, 0x01, 0x01, 0x00]
@@ -189,10 +189,10 @@ entities:
       state:
         data: [0x0e, 0x14, 0x81]
       state_on:
-        offset: 5
+        offset: 6
         data: [0x01]
       state_off:
-        offset: 5
+        offset: 6
         data: [0x00]
       command_on:
         data: [0x0e, 0x14, 0x41, 0x03, 0x01, 0x01, 0x00]
@@ -206,10 +206,10 @@ entities:
       state:
         data: [0x0E, 0x15, 0x81]
       state_on:
-        offset: 5
+        offset: 6
         data: [0x01]
       state_off:
-        offset: 5
+        offset: 6
         data: [0x00]
       command_on:
         data: [0x0E, 0x15, 0x41, 0x03, 0x01, 0x01, 0x00]

@@ -42,7 +42,7 @@ discovery:
     mask: [0xFF, 0xFF, 0xFF, 0xFF]
   dimensions:
     - parameter: "room_idx"
-      offset: 6
+      offset: 8
   inference:
     strategy: "unique_tuples"
     output: "rooms"
@@ -79,10 +79,10 @@ entities:
             data: [0x30, 0xD0, 0x00, 0x3B, '{{room.room_idx}}']
             mask: [0xFF, 0xF0, 0xFF, 0xFF, 0xFF]
           state_on:
-            offset: 8
+            offset: 10
             data: [0xFF]
           state_off:
-            offset: 8
+            offset: 10
             data: [0x00]
           command_on: >-
             [[0x30, 0xBC, 0x00, 0x3B, {{room.room_idx}}, 0x01, 0x00, 0x00, 0xFF,
@@ -106,10 +106,10 @@ entities:
             data: [0x30, 0xD0, 0x00, 0x3B, '{{room.room_idx}}']
             mask: [0xFF, 0xF0, 0xFF, 0xFF, 0xFF]
           state_on:
-            offset: 9
+            offset: 11
             data: [0xFF]
           state_off:
-            offset: 9
+            offset: 11
             data: [0x00]
           command_on: >-
             [[0x30, 0xBC, 0x00, 0x3B, {{room.room_idx}}, 0x01, 0x00, 0x00,
@@ -135,10 +135,10 @@ entities:
             data: [0x30, 0xD0, 0x00, 0x3B, '{{room.room_idx}}']
             mask: [0xFF, 0xF0, 0xFF, 0xFF, 0xFF]
           state_on:
-            offset: 10
+            offset: 12
             data: [0xFF]
           state_off:
-            offset: 10
+            offset: 12
             data: [0x00]
           command_on: >-
             [[0x30, 0xBC, 0x00, 0x3B, {{room.room_idx}}, 0x01, 0x00, 0x00,
@@ -164,10 +164,10 @@ entities:
             data: [0x30, 0xD0, 0x00, 0x3B, '{{room.room_idx}}']
             mask: [0xFF, 0xF0, 0xFF, 0xFF, 0xFF]
           state_on:
-            offset: 11
+            offset: 13
             data: [0xFF]
           state_off:
-            offset: 11
+            offset: 13
             data: [0x00]
           command_on: >-
             [[0x30, 0xBC, 0x00, 0x3B, {{room.room_idx}}, 0x01, 0x00, 0x00,

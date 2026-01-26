@@ -11,12 +11,12 @@ describe('LightDevice Fix', () => {
         data: [0x79, 0x15],
       },
       state_on: {
-        offset: 2,
+        offset: 3, // 전체 패킷 기준 (헤더 1바이트 + payload 2바이트)
         data: [0x01],
         mask: [0x01],
       },
       state_off: {
-        offset: 2,
+        offset: 3, // 전체 패킷 기준 (헤더 1바이트 + payload 2바이트)
         data: [0x00],
         mask: [0x01],
       },
@@ -54,12 +54,12 @@ describe('LightDevice Fix', () => {
         data: [0x79, 0x15],
       },
       state_on: {
-        offset: 2,
+        offset: 3, // 전체 패킷 기준 (헤더 1바이트 + payload 2바이트)
         data: [0x01],
         mask: [0x01],
       },
       state_off: {
-        offset: 2,
+        offset: 3, // 전체 패킷 기준 (헤더 1바이트 + payload 2바이트)
         data: [0x00],
         mask: [0x01],
       },

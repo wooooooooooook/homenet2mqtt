@@ -55,7 +55,7 @@ entities:
     #     offset: 19 # Header 6 + Stride 6*2 + Byte 2 (index 1)
     #     data: [0x01]
     #   state_off:
-    #     offset: 19
+    #     offset: 20
     #     data: [0x00]
     #   command_on:
     #     data: [0x50, 0x11, 0x43, 0x02, 0x03, 0x01, 0x00, 0x00]
@@ -68,7 +68,7 @@ entities:
       state:
         data: [0x50, 0x12, 0x81]
       state_on:
-        offset: 7
+        offset: 8
         data: [0x01]
       state_off:
         offset: 7

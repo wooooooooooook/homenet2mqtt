@@ -3,7 +3,7 @@ meta:
   name_en: "Smart Outlets"
   description: "Ezville 스마트 콘센트 설정입니다. 방 개수와 방별 콘센트 개수(전력 측정 포함)를 설정할 수 있습니다."
   description_en: "Ezville smart outlets configuration. You can configure room count and outlets per room (with power meter)."
-  version: "2.0.0"
+  version: "2.0.1"
   author: "wooooooooooook"
   tags: ["switch", "outlet", "power", "ezville"]
 
@@ -27,7 +27,7 @@ discovery:
     mask: [0xFF]
   dimensions:
     - parameter: "room_id"
-      offset: 1
+      offset: 2
       # Room 1 -> 0x1F, Room 2 -> 0x2F ... (하위 4비트는 0xF ?)
       transform: "bitShiftRight(x, 4)"
   inference:

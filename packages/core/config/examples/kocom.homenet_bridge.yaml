@@ -9,9 +9,9 @@ homenet_bridge:
 
   packet_defaults: # New section for global packet defaults
     rx_timeout: 10ms
-    tx_delay: 50ms
-    tx_timeout: 500ms
-    tx_retry_cnt: 3
+    tx_delay: 10ms
+    tx_timeout: 200ms
+    tx_retry_cnt: 5
 
     rx_header: [0xAA, 0x55]
     rx_footer: [0x0D, 0x0D]
@@ -28,10 +28,10 @@ homenet_bridge:
         data: [0x30, 0xd0, 0x00, 0x0e, 0x00]
         mask: [0xff, 0xf0, 0xff, 0xff, 0xff]
       state_on:
-        offset: 8
+        offset: 10
         data: [0xff]
       state_off:
-        offset: 8
+        offset: 10
         data: [0x00]
       command_on: >-
         [[0x30, 0xbc, 0x00, 0x0e, 0x00, 0x01, 0x00, 0x00, 0xff, states['room_0_light_2']['state'] == 'ON' ? 0xff : 0x00, 0, 0, 0, 0, 0, 0], [0x30, 0xdc]]
@@ -44,10 +44,10 @@ homenet_bridge:
         data: [0x30, 0xd0, 0x00, 0x0e, 0x00]
         mask: [0xff, 0xf0, 0xff, 0xff, 0xff]
       state_on:
-        offset: 9
+        offset: 11
         data: [0xff]
       state_off:
-        offset: 9
+        offset: 11
         data: [0x00]
       command_on: >-
         [[0x30, 0xbc, 0x00, 0x0e, 0x00, 0x01, 0x00, 0x00, states['room_0_light_1']['state'] == 'ON' ? 0xff : 0x00, 0xff, 0, 0, 0, 0, 0, 0], [0x30, 0xdc]]
@@ -60,10 +60,10 @@ homenet_bridge:
         data: [0x30, 0xd0, 0x00, 0x0e, 0x01]
         mask: [0xff, 0xf0, 0xff, 0xff, 0xff]
       state_on:
-        offset: 8
+        offset: 10
         data: [0xff]
       state_off:
-        offset: 8
+        offset: 10
         data: [0x00]
       command_on: >-
         [[0x30, 0xbc, 0x00, 0x0e, 0x01, 0x01, 0x00, 0x00, 0xff, states['room_1_light_2']['state'] == 'ON' ? 0xff : 0x00, 0, 0, 0, 0, 0, 0], [0x30, 0xdc]]
@@ -76,10 +76,10 @@ homenet_bridge:
         data: [0x30, 0xd0, 0x00, 0x0e, 0x01]
         mask: [0xff, 0xf0, 0xff, 0xff, 0xff]
       state_on:
-        offset: 9
+        offset: 11
         data: [0xff]
       state_off:
-        offset: 9
+        offset: 11
         data: [0x00]
       command_on: >-
         [[0x30, 0xbc, 0x00, 0x0e, 0x01, 0x01, 0x00, 0x00, states['room_1_light_1']['state'] == 'ON' ? 0xff : 0x00, 0xff, 0, 0, 0, 0, 0, 0], [0x30, 0xdc]]
@@ -92,10 +92,10 @@ homenet_bridge:
         data: [0x30, 0xd0, 0x00, 0x0e, 0x02]
         mask: [0xff, 0xf0, 0xff, 0xff, 0xff]
       state_on:
-        offset: 8
+        offset: 10
         data: [0xff]
       state_off:
-        offset: 8
+        offset: 10
         data: [0x00]
       command_on: >-
         [[0x30, 0xbc, 0x00, 0x0e, 0x02, 0x01, 0x00, 0x00, 0xff, states['room_2_light_2']['state'] == 'ON' ? 0xff : 0x00, 0, 0, 0, 0, 0, 0], [0x30, 0xdc]]
@@ -108,10 +108,10 @@ homenet_bridge:
         data: [0x30, 0xd0, 0x00, 0x0e, 0x02]
         mask: [0xff, 0xf0, 0xff, 0xff, 0xff]
       state_on:
-        offset: 9
+        offset: 11
         data: [0xff]
       state_off:
-        offset: 9
+        offset: 11
         data: [0x00]
       command_on: >-
         [[0x30, 0xbc, 0x00, 0x0e, 0x02, 0x01, 0x00, 0x00, states['room_2_light_1']['state'] == 'ON' ? 0xff : 0x00, 0xff, 0, 0, 0, 0, 0, 0], [0x30, 0xdc]]
@@ -124,10 +124,10 @@ homenet_bridge:
         data: [0x30, 0xd0, 0x00, 0x0e, 0x03]
         mask: [0xff, 0xf0, 0xff, 0xff, 0xff]
       state_on:
-        offset: 8
+        offset: 10
         data: [0xff]
       state_off:
-        offset: 8
+        offset: 10
         data: [0x00]
       command_on: >-
         [[0x30, 0xbc, 0x00, 0x0e, 0x03, 0x01, 0x00, 0x00, 0xff, states['room_3_light_2']['state'] == 'ON' ? 0xff : 0x00, 0, 0, 0, 0, 0, 0], [0x30, 0xdc]]
@@ -140,10 +140,10 @@ homenet_bridge:
         data: [0x30, 0xd0, 0x00, 0x0e, 0x03]
         mask: [0xff, 0xf0, 0xff, 0xff, 0xff]
       state_on:
-        offset: 9
+        offset: 11
         data: [0xff]
       state_off:
-        offset: 9
+        offset: 11
         data: [0x00]
       command_on: >-
         [[0x30, 0xbc, 0x00, 0x0e, 0x03, 0x01, 0x00, 0x00, states['room_3_light_1']['state'] == 'ON' ? 0xff : 0x00, 0xff, 0, 0, 0, 0, 0, 0], [0x30, 0xdc]]
@@ -161,19 +161,19 @@ homenet_bridge:
         data: [0x30, 0xd0, 0x00, 0x36, 0x00]
         mask: [0xff, 0xf0, 0xff, 0xff, 0xff]
       state_temperature_current:
-        offset: 12
+        offset: 14
         length: 1
         precision: 0
       state_temperature_target:
-        offset: 10
+        offset: 12
         length: 1
         precision: 0
       state_off:
-        offset: 8
+        offset: 10
         data: [0x00]
         mask: [0xF0]
       state_heat:
-        offset: 8
+        offset: 10
         data: [0x10]
         mask: [0xF0]
       command_off: >-
@@ -196,19 +196,19 @@ homenet_bridge:
         data: [0x30, 0xd0, 0x00, 0x36, 0x01]
         mask: [0xff, 0xf0, 0xff, 0xff, 0xff]
       state_temperature_current:
-        offset: 12
+        offset: 14
         length: 1
         precision: 0
       state_temperature_target:
-        offset: 10
+        offset: 12
         length: 1
         precision: 0
       state_off:
-        offset: 8
+        offset: 10
         data: [0x00]
         mask: [0xF0]
       state_heat:
-        offset: 8
+        offset: 10
         data: [0x10]
         mask: [0xF0]
       command_off: >-
@@ -231,19 +231,19 @@ homenet_bridge:
         data: [0x30, 0xd0, 0x00, 0x36, 0x02]
         mask: [0xff, 0xf0, 0xff, 0xff, 0xff]
       state_temperature_current:
-        offset: 12
+        offset: 14
         length: 1
         precision: 0
       state_temperature_target:
-        offset: 10
+        offset: 12
         length: 1
         precision: 0
       state_off:
-        offset: 8
+        offset: 10
         data: [0x00]
         mask: [0xF0]
       state_heat:
-        offset: 8
+        offset: 10
         data: [0x10]
         mask: [0xF0]
       command_off: >-
@@ -266,19 +266,19 @@ homenet_bridge:
         data: [0x30, 0xd0, 0x00, 0x36, 0x03]
         mask: [0xff, 0xf0, 0xff, 0xff, 0xff]
       state_temperature_current:
-        offset: 12
+        offset: 14
         length: 1
         precision: 0
       state_temperature_target:
-        offset: 10
+        offset: 12
         length: 1
         precision: 0
       state_off:
-        offset: 8
+        offset: 10
         data: [0x00]
         mask: [0xF0]
       state_heat:
-        offset: 8
+        offset: 10
         data: [0x10]
         mask: [0xF0]
       command_off: >-
@@ -298,10 +298,10 @@ homenet_bridge:
         data: [0x30, 0xd0, 0x00, 0x2c, 0x00]
         mask: [0xff, 0xf0, 0xff, 0xff, 0xff]
       state_open:
-        offset: 7
+        offset: 9
         data: [0x01]
       state_closed:
-        offset: 7
+        offset: 9
         data: [0x02]
       command_close:
         data:
@@ -334,7 +334,7 @@ homenet_bridge:
         data: [0x30, 0xd0, 0x00, 0x01, 0x00, 0x44, 0x00]
         mask: [0xff, 0xf0, 0xff, 0xff, 0xff, 0xff, 0xff]
       state_number:
-        offset: 9
+        offset: 11
 
     - name: 'Elevator Direction'
       id: 'elevator_direction'
@@ -343,7 +343,7 @@ homenet_bridge:
         data: [0x30, 0xd0, 0x00, 0x01, 0x00, 0x44, 0x00]
         mask: [0xff, 0xf0, 0xff, 0xff, 0xff, 0xff, 0xff]
       state_number:
-        offset: 8
+        offset: 10
         mapping:
           0: '정지'
           1: '하강'
