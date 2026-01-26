@@ -5,14 +5,16 @@ v2.0.0
   - [Breaking change 안내](https://github.com/wooooooooooook/RS485-HomeNet-to-MQTT-bridge/blob/main/docs/BREAKING_CHANGES.md)
     > **요약**
     > 
-    > 업데이트 후 상태업데이트가 안되거나 이상한값을 가지는 엔티티는 갤러리에서 수정본을 적용해주세요.
+    > 대상: **kocom, betin, cvnet, ezville, 현대통신**
     >
-    > 수동으로 수정하려면 state_* 의 offset 속성에 header길이를 더해주세요. 
+    > 업데이트 후 상태업데이트가 안되거나 이상한값을 가지는 엔티티는 **갤러리**에서 수정본을 적용해주세요.
+    >
+    > 수동으로 수정하려면 **state_* 의 offset 속성에 header길이를 더해주세요.** 
     > (kocom은 +2, betin, cvnet, ezville, 현대통신은 +1, commax, samsung_sds는 해당없음)
 - 분석페이지 사용성 향상
   - 각 분석기로 바로가기 버튼 추가.
   - 패킷 딕셔너리에 정보 복사 버튼 추가.
-  - 패킷 해석 테스트에 
+  - 패킷 해석 테스트: 바이트 가독성 향상, 매칭된 엔티티 설정 미리보기 추가.
 
 
 v1.17.0
