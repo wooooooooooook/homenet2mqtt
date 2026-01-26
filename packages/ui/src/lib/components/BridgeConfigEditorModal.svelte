@@ -133,6 +133,7 @@
         ariaLabel={$t('settings.bridge_config.edit_title')}
         ariaDescribedBy={hintId}
         placeholder="homenet_bridge:\n  serial:\n    ..."
+        schemaUri="./api/schema/homenet-bridge"
       />
 
       <div id={hintId} class="editor-hint">

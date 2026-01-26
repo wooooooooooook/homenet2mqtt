@@ -77,6 +77,12 @@
     ariaDescribedBy?: string;
     placeholder?: string;
     class?: string;
+    /**
+     * Optional URI to fetch JSON Schema from.
+     * If provided, schema will be applied for autocomplete and validation.
+     * @example "./api/schema/homenet-bridge"
+     */
+    schemaUri?: string;
   }
 
   let props: Props = $props();
@@ -128,36 +134,39 @@
     const monacoModule = await getOrInitializeMonaco();
     monaco = monacoModule;
 
-    // Force update schema configuration with a test schema
-    // In a real app, you would pass the schema as a prop or fetch it
+    // Apply schema configuration
     if (globalYamlConfig && typeof globalYamlConfig.update === 'function') {
       try {
+        let schemaConfig: any[] = [];
+
+        // If schemaUri is provided, fetch the schema dynamically
+        if (props.schemaUri) {
+          try {
+            const response = await fetch(props.schemaUri);
+            if (response.ok) {
+              const schema = await response.json();
+              schemaConfig = [
+                {
+                  uri: props.schemaUri,
+                  fileMatch: ['config.yaml'],
+                  schema,
+                },
+              ];
+            } else {
+              console.warn(`[MonacoYamlEditor] Failed to fetch schema: ${response.status}`);
+            }
+          } catch (fetchErr) {
+            console.warn('[MonacoYamlEditor] Failed to fetch schema:', fetchErr);
+          }
+        }
+
         globalYamlConfig.update({
           enableSchemaRequest: true,
           completion: true,
           validate: true,
           hover: true,
           format: true,
-          schemas: [
-            {
-              uri: 'http://myschema/config.json',
-              fileMatch: ['config.yaml'], // Exact match
-              schema: {
-                type: 'object',
-                properties: {
-                  test_key: {
-                    type: 'string',
-                    description: 'It works! This is a description from the schema.',
-                  },
-                  homenet_bridge: {
-                    type: 'object',
-                    description: 'Main bridge configuration',
-                    additionalProperties: true,
-                  },
-                },
-              },
-            },
-          ],
+          schemas: schemaConfig,
         });
       } catch (e) {
         console.warn('Failed to update yaml config', e);
@@ -276,8 +285,6 @@
 <style>
   .monaco-yaml-editor {
     position: relative;
-    width: 100%;
-    height: 100%;
   }
 
   .monaco-host {
