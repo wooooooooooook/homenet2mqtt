@@ -42,7 +42,12 @@ export class FanDevice extends GenericDevice {
     }
 
     // Handle speed command
-    if (commandName === 'speed' && entityConfig.command_speed?.data && value !== undefined) {
+    if (
+      commandName === 'speed' &&
+      typeof entityConfig.command_speed !== 'string' &&
+      entityConfig.command_speed?.data &&
+      value !== undefined
+    ) {
       const command = [...entityConfig.command_speed.data];
       const valueOffset = (entityConfig.command_speed as any).value_offset;
       if (valueOffset !== undefined) {
@@ -54,6 +59,7 @@ export class FanDevice extends GenericDevice {
     // Handle percentage command
     if (
       commandName === 'percentage' &&
+      typeof entityConfig.command_percentage !== 'string' &&
       entityConfig.command_percentage?.data &&
       value !== undefined
     ) {
@@ -68,6 +74,7 @@ export class FanDevice extends GenericDevice {
     // Handle preset mode command
     if (
       commandName === 'preset_mode' &&
+      typeof entityConfig.command_preset_mode !== 'string' &&
       entityConfig.command_preset_mode?.data &&
       value !== undefined
     ) {
@@ -79,6 +86,7 @@ export class FanDevice extends GenericDevice {
     // Handle oscillation command
     if (
       commandName === 'oscillating' &&
+      typeof entityConfig.command_oscillating !== 'string' &&
       entityConfig.command_oscillating?.data &&
       value !== undefined
     ) {
@@ -93,6 +101,7 @@ export class FanDevice extends GenericDevice {
     // Handle direction command
     if (
       commandName === 'direction' &&
+      typeof entityConfig.command_direction !== 'string' &&
       entityConfig.command_direction?.data &&
       value !== undefined
     ) {

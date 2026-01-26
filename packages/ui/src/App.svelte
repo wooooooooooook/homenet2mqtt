@@ -1915,6 +1915,7 @@
           selectedEntity && renameEntityRequest(selectedEntity.id, newName, selectedEntity.portId)}
         onUpdate={(updates) =>
           selectedEntity && handleEntityUpdate(selectedEntity.id, selectedEntity.portId, updates)}
+        editorMode={frontendSettings?.editor?.default ?? 'monaco'}
       />
     {/if}
 

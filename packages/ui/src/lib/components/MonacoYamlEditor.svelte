@@ -83,11 +83,13 @@
     placeholder?: string;
     class?: string;
     /**
+    /**
      * Optional URI to fetch JSON Schema from.
      * If provided, schema will be applied for autocomplete and validation.
      * @example "./api/schema/homenet-bridge"
      */
     schemaUri?: string;
+    mode?: 'monaco' | 'textarea';
   }
 
   let props: Props = $props();
@@ -102,6 +104,8 @@
   let modelChangeDisposable: IDisposable | null = null;
   let monaco: MonacoInstance | null = null;
   let isApplyingExternalChange = false;
+  // Derived state to check if we should actually load Monaco
+  let shouldLoadMonaco = $derived((props.mode ?? 'monaco') === 'monaco');
 
   const layoutEditor = async () => {
     if (!editor || !editorHost) return;
@@ -133,6 +137,12 @@
 
   const initializeEditor = async () => {
     if (isLoading || isReady || !editorHost) return;
+    if (!shouldLoadMonaco) {
+      // In textarea mode, we are "ready" immediately
+      // But we might want to ensure fallbackValue is synced
+      fallbackValue = props.value;
+      return;
+    }
 
     isLoading = true;
 
@@ -386,6 +396,25 @@
     if (!editor) return;
     editor.updateOptions({ readOnly });
   });
+
+  $effect(() => {
+    // If mode switches to textarea, we should dispose Monaco if it exists
+    if (!shouldLoadMonaco && editor) {
+      modelChangeDisposable?.dispose();
+      const model = editor?.getModel();
+      if (model) model.dispose();
+      editor?.dispose();
+      editor = null;
+      isReady = false;
+    } else if (shouldLoadMonaco && !editor && !isLoading) {
+      // If mode switches to monaco and it's not loaded, load it
+      // initializeEditor check checks isLoading/isReady
+      initializeEditor().catch((err) => {
+        loadError = err instanceof Error ? err.message : 'Failed to load editor';
+        isLoading = false;
+      });
+    }
+  });
 </script>
 
 <div
@@ -394,20 +423,21 @@
   aria-describedby={props.ariaDescribedBy}
   aria-busy={isLoading}
 >
-  {#if !isReady}
+  {#if !isReady || !shouldLoadMonaco}
     <textarea
       class="fallback-textarea"
+      class:visible={!shouldLoadMonaco}
       bind:value={fallbackValue}
       spellcheck="false"
       placeholder={props.placeholder ?? ''}
       readonly={props.readOnly ?? false}
       oninput={handleFallbackInput}
     ></textarea>
-    {#if loadError}
+    {#if loadError && shouldLoadMonaco}
       <div class="load-error" role="alert">{loadError}</div>
     {/if}
   {/if}
-  <div class="monaco-host" class:ready={isReady} bind:this={editorHost}></div>
+  <div class="monaco-host" class:ready={isReady && shouldLoadMonaco} bind:this={editorHost}></div>
 
   <!-- Mobile floating toolbar -->
   {#if isTouchDevice && isReady && !props.readOnly}
@@ -603,6 +633,13 @@
     font: inherit;
     resize: none;
     outline: none;
+    opacity: 1; /* Ensure visible when fallback logic dictates */
+  }
+
+  .fallback-textarea.visible {
+    opacity: 1;
+    z-index: 10;
+    pointer-events: auto;
   }
 
   .load-error {

@@ -32,6 +32,7 @@
     onExecute,
     onRename,
     onUpdate,
+    editorMode = 'monaco',
   }: {
     entity: UnifiedEntity;
     parsedPackets?: ParsedPacket[];
@@ -45,6 +46,7 @@
     onExecute?: (cmd: CommandInfo, value?: any) => void;
     onRename?: (newName: string) => void;
     onUpdate?: (updates: Partial<UnifiedEntity>) => void;
+    editorMode?: 'monaco' | 'textarea';
   } = $props();
 
   let activeTab = $state<'status' | 'config' | 'packets' | 'manage' | 'execute' | 'logs'>('status');
@@ -911,8 +913,10 @@
                   class="config-editor"
                   value={editingConfig}
                   onChange={(nextValue) => (editingConfig = nextValue)}
-                  readOnly={configLoading || isSaving}
-                  ariaLabel={$t('entity_detail.tabs.config')}
+                  readOnly={false}
+                  placeholder="type: switch\nname: My Light\n..."
+                  schemaUri="./api/schema/entity-config"
+                  mode={editorMode}
                 />
                 <div class="config-actions">
                   <Button

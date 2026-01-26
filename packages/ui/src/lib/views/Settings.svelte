@@ -709,6 +709,19 @@
   let deletingConfig = $state<string | null>(null);
   let isLastBridge = $derived((bridgeInfo?.bridges?.length ?? 0) === 1);
 
+  const handleEditorChange = (event: Event) => {
+    const target = event.currentTarget as HTMLSelectElement;
+    const value = target.value as 'monaco' | 'textarea';
+    const currentSettings = frontendSettings ?? DEFAULT_FRONTEND_SETTINGS;
+    persistFrontendSettings({
+      ...currentSettings,
+      editor: {
+        ...currentSettings.editor,
+        default: value,
+      },
+    });
+  };
+
   const handleDeleteConfig = async (filename: string) => {
     // 마지막 브릿지 삭제 시 특별 경고 메시지 표시
     const message = isLastBridge
@@ -777,6 +790,7 @@
       onsave={() => {
         // Config saved, user should restart
       }}
+      mode={frontendSettings?.editor?.default ?? 'monaco'}
     />
   {/if}
 

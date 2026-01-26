@@ -9,11 +9,13 @@
     onclose,
     onsave,
     onrestart,
+    mode = 'monaco',
   }: {
     filename: string;
     onclose: () => void;
     onsave?: () => void;
     onrestart?: () => void;
+    mode?: 'monaco' | 'textarea';
   } = $props();
 
   let content = $state('');
@@ -134,6 +136,7 @@
         ariaDescribedBy={hintId}
         placeholder="homenet_bridge:\n  serial:\n    ..."
         schemaUri="./api/schema/homenet-bridge"
+        {mode}
       />
 
       <div id={hintId} class="editor-hint">

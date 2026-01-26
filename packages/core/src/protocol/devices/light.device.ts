@@ -45,6 +45,7 @@ export class LightDevice extends GenericDevice {
     // Handle brightness command
     if (
       commandName === 'brightness' &&
+      typeof entityConfig.command_brightness !== 'string' &&
       entityConfig.command_brightness?.data &&
       value !== undefined
     ) {
@@ -59,6 +60,7 @@ export class LightDevice extends GenericDevice {
     // Handle color temperature command
     if (
       commandName === 'color_temp' &&
+      typeof entityConfig.command_color_temp !== 'string' &&
       entityConfig.command_color_temp?.data &&
       value !== undefined
     ) {
@@ -78,7 +80,12 @@ export class LightDevice extends GenericDevice {
     }
 
     // Handle RGB commands
-    if (commandName === 'red' && entityConfig.command_red?.data && value !== undefined) {
+    if (
+      commandName === 'red' &&
+      typeof entityConfig.command_red !== 'string' &&
+      entityConfig.command_red?.data &&
+      value !== undefined
+    ) {
       const command = [...entityConfig.command_red.data];
       const valueOffset = (entityConfig.command_red as any).value_offset;
       if (valueOffset !== undefined) {
@@ -86,7 +93,12 @@ export class LightDevice extends GenericDevice {
       }
       return this.framePacket(command);
     }
-    if (commandName === 'green' && entityConfig.command_green?.data && value !== undefined) {
+    if (
+      commandName === 'green' &&
+      typeof entityConfig.command_green !== 'string' &&
+      entityConfig.command_green?.data &&
+      value !== undefined
+    ) {
       const command = [...entityConfig.command_green.data];
       const valueOffset = (entityConfig.command_green as any).value_offset;
       if (valueOffset !== undefined) {
@@ -94,7 +106,12 @@ export class LightDevice extends GenericDevice {
       }
       return this.framePacket(command);
     }
-    if (commandName === 'blue' && entityConfig.command_blue?.data && value !== undefined) {
+    if (
+      commandName === 'blue' &&
+      typeof entityConfig.command_blue !== 'string' &&
+      entityConfig.command_blue?.data &&
+      value !== undefined
+    ) {
       const command = [...entityConfig.command_blue.data];
       const valueOffset = (entityConfig.command_blue as any).value_offset;
       if (valueOffset !== undefined) {
@@ -104,7 +121,12 @@ export class LightDevice extends GenericDevice {
     }
 
     // Handle white value command
-    if (commandName === 'white' && entityConfig.command_white?.data && value !== undefined) {
+    if (
+      commandName === 'white' &&
+      typeof entityConfig.command_white !== 'string' &&
+      entityConfig.command_white?.data &&
+      value !== undefined
+    ) {
       const command = [...entityConfig.command_white.data];
       const valueOffset = (entityConfig.command_white as any).value_offset;
       if (valueOffset !== undefined) {
