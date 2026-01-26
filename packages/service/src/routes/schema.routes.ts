@@ -35,7 +35,7 @@ export function createSchemaRoutes(): Router {
       const schema = JSON.parse(content);
 
       res.setHeader('Content-Type', 'application/json; charset=utf-8');
-      res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
+      res.setHeader('Cache-Control', 'no-cache'); // Disable cache for development
       res.json(schema);
     } catch (err) {
       if ((err as NodeJS.ErrnoException).code === 'ENOENT') {

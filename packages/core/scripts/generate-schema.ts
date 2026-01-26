@@ -18,8 +18,8 @@ const settings: TJS.PartialArgs = {
   required: true,
   noExtraProps: false,
   ignoreErrors: true,
-  // 참조를 인라인하여 단일 파일로 만듦
-  ref: false,
+  // ref: true로 설정하여 재귀적 타입에 대한 definitions 생성
+  ref: true,
 };
 
 const compilerOptions: TJS.CompilerOptions = {
@@ -51,8 +51,13 @@ async function main() {
     process.exit(1);
   }
 
+  // definitions 분리
+  const definitions = schema.definitions;
+  delete schema.definitions;
+
   // 루트 스키마로 감싸기 (homenet_bridge 키 아래에 배치)
-  const rootSchema = {
+  // definitions는 재귀적 타입 참조를 위해 루트에 포함
+  const rootSchema: Record<string, unknown> = {
     $schema: 'http://json-schema.org/draft-07/schema#',
     title: 'HomeNet Bridge Configuration',
     description: 'RS485 HomeNet to MQTT Bridge 설정 파일 스키마',
@@ -63,6 +68,11 @@ async function main() {
     required: ['homenet_bridge'],
     additionalProperties: false,
   };
+
+  // 재귀적 타입(AutomationAction 등)의 $ref를 resolve하기 위해 definitions를 루트에 복사
+  if (definitions && Object.keys(definitions).length > 0) {
+    rootSchema.definitions = definitions;
+  }
 
   // 출력 디렉토리 생성
   if (!fs.existsSync(outputDir)) {

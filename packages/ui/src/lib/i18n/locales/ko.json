@@ -308,6 +308,16 @@
       "connected": "연결됨"
     }
   },
+  "editor": {
+    "mobile": {
+      "toolbar_label": "선택 도구",
+      "select_line": "현재 줄 선택",
+      "select_block": "블록 선택",
+      "expand_up": "위로 확장",
+      "expand_down": "아래로 확장",
+      "select_all": "전체 선택"
+    }
+  },
   "header": {
     "toggle_menu": "메뉴 열기",
     "beta_badge_label": "베타 버전입니다. 기능이 불안정할 수 있습니다.",

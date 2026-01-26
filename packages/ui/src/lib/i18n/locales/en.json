@@ -307,6 +307,16 @@
       "connected": "Connected"
     }
   },
+  "editor": {
+    "mobile": {
+      "toolbar_label": "Selection tools",
+      "select_line": "Select line",
+      "select_block": "Select block",
+      "expand_up": "Expand up",
+      "expand_down": "Expand down",
+      "select_all": "Select all"
+    }
+  },
   "header": {
     "toggle_menu": "Open navigation menu",
     "beta_badge_label": "This is a beta version. Features may be unstable.",
