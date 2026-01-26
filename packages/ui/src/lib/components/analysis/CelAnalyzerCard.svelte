@@ -1,5 +1,6 @@
 <script lang="ts">
   import { t } from 'svelte-i18n';
+  import Button from '../Button.svelte';
 
   type ModeValue = 'state' | 'command' | 'automation' | 'checksum';
   type AnalyzerStateOption = {
@@ -336,13 +337,9 @@
     </div>
 
     <div class="action-row">
-      <button type="button" class="primary" onclick={handleEvaluate} disabled={isLoading}>
-        {#if isLoading}
-          {$t('analysis.cel_analyzer.running')}
-        {:else}
-          {$t('analysis.cel_analyzer.run')}
-        {/if}
-      </button>
+      <Button variant="outline-primary" onclick={handleEvaluate} disabled={isLoading} {isLoading}>
+        {$t('analysis.cel_analyzer.run')}
+      </Button>
       <span class="help-text">{$t('analysis.cel_analyzer.json_help')}</span>
     </div>
 
@@ -476,21 +473,6 @@
 
   .ghost:disabled {
     opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .primary {
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
-    border: 1px solid rgba(59, 130, 246, 0.6);
-    background: rgba(59, 130, 246, 0.2);
-    color: #bfdbfe;
-    cursor: pointer;
-    font-weight: 600;
-  }
-
-  .primary:disabled {
-    opacity: 0.6;
     cursor: not-allowed;
   }
 

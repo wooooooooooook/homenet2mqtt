@@ -605,12 +605,50 @@
   {#if rawPackets.length !== 0}
     <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-bottom: 0.5rem;">
       <Button variant="secondary" onclick={togglePause}>
-        {isPaused ? `▶ ${$t('analysis.raw_log.resume')}` : `⏸ ${$t('analysis.raw_log.pause')}`}
+        {#if isPaused}
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            width="16"
+            height="16"
+            style="margin-right: 0.4rem;"><path d="M8 5v14l11-7z" /></svg
+          >
+          {$t('analysis.raw_log.resume')}
+        {:else}
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            width="16"
+            height="16"
+            style="margin-right: 0.4rem;"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" /></svg
+          >
+          {$t('analysis.raw_log.pause')}
+        {/if}
       </Button>
       <Button variant="secondary" class={isRecording ? 'recording' : ''} onclick={toggleRecording}>
-        {isRecording
-          ? `⏹ ${$t('analysis.raw_log.stop_rec')}`
-          : `⏺ ${$t('analysis.raw_log.start_rec')}`}
+        {#if isRecording}
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            width="16"
+            height="16"
+            style="margin-right: 0.4rem;"><rect x="6" y="6" width="12" height="12" /></svg
+          >
+          {$t('analysis.raw_log.stop_rec')}
+        {:else}
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            width="16"
+            height="16"
+            style="margin-right: 0.4rem;"><circle cx="12" cy="12" r="8" /></svg
+          >
+          {$t('analysis.raw_log.start_rec')}
+        {/if}
       </Button>
     </div>
   {/if}
@@ -875,6 +913,7 @@
     border-radius: 3px;
     background: rgba(16, 185, 129, 0.15);
     color: #10b981;
+    flex-shrink: 0;
   }
 
   .direction.tx {

@@ -160,12 +160,12 @@
         <span class="group-label">{$t('analysis.raw_log.sender.settings_label')}</span>
         <div class="setting-inputs">
           <label>
-            {$t('analysis.raw_log.sender.interval_label')}
-            <input type="number" bind:value={senderSettings.interval} min="10" step="10" />
-          </label>
-          <label>
             {$t('analysis.raw_log.sender.count_label')}
             <input type="number" bind:value={senderSettings.count} min="1" max="50" />
+          </label>
+          <label>
+            {$t('analysis.raw_log.sender.interval_label')}
+            <input type="number" bind:value={senderSettings.interval} min="10" step="10" />
           </label>
         </div>
       </div>
@@ -180,7 +180,7 @@
 
     <div class="action-row">
       <Button
-        variant="primary"
+        variant="outline-primary"
         onclick={sendPacket}
         disabled={!senderHex.trim()}
         title={!senderHex.trim() ? $t('analysis.packet_analyzer.input_required') : undefined}
@@ -190,12 +190,7 @@
       </Button>
 
       {#if sendError}
-        <span
-          id={errorMsgId}
-          class="error-msg"
-          transition:fade
-          role="alert"
-        >{sendError}</span>
+        <span id={errorMsgId} class="error-msg" transition:fade role="alert">{sendError}</span>
       {/if}
       {#if sendSuccessMsg}
         <span class="success-msg" transition:fade role="status">{sendSuccessMsg}</span>
@@ -273,7 +268,8 @@
   .opt-group,
   .settings-group {
     display: flex;
-    flex-direction: column;
+    flex-wrap: wrap;
+    align-items: center;
     gap: 0.5rem;
   }
 
@@ -281,6 +277,7 @@
     font-size: 0.85rem;
     color: #94a3b8;
     margin-bottom: 0.25rem;
+    white-space: nowrap;
   }
 
   .filter-chip {
@@ -294,6 +291,7 @@
     cursor: pointer;
     transition: all 0.2s ease;
     text-align: center;
+    white-space: nowrap;
   }
 
   .filter-chip:hover {

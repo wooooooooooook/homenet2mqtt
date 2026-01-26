@@ -13,7 +13,7 @@
     children,
     onclick,
   } = $props<{
-    variant?: 'primary' | 'secondary' | 'danger' | 'success';
+    variant?: 'primary' | 'secondary' | 'danger' | 'success' | 'outline-primary';
     disabled?: boolean;
     isLoading?: boolean;
     ariaLabel?: string;
@@ -118,6 +118,21 @@
   }
   .success:hover:not(:disabled):not([aria-disabled='true']) {
     background-color: #059669;
+  }
+
+  /* Outline Primary (Execution style) */
+  .outline-primary {
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    border: 1px solid rgba(59, 130, 246, 0.6);
+    background: rgba(59, 130, 246, 0.2);
+    color: #bfdbfe;
+    font-weight: 600;
+  }
+  .outline-primary:hover:not(:disabled):not([aria-disabled='true']) {
+    background: rgba(59, 130, 246, 0.3);
+    border-color: rgba(59, 130, 246, 0.8);
+    color: #eff6ff;
   }
 
   .btn:disabled,

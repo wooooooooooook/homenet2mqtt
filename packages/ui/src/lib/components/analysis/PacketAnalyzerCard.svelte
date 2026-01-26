@@ -1,6 +1,7 @@
 <script lang="ts">
   import { t } from 'svelte-i18n';
   import type { PacketAnalysisResult } from '../../types';
+  import Button from '../Button.svelte';
 
   let { portIds, activePortId } = $props<{
     portIds: string[];
@@ -79,13 +80,9 @@
     </div>
 
     <div class="action-row">
-      <button type="button" class="primary" onclick={handleAnalyze} disabled={isLoading}>
-        {#if isLoading}
-          {$t('analysis.packet_analyzer.running')}
-        {:else}
-          {$t('analysis.packet_analyzer.run')}
-        {/if}
-      </button>
+      <Button variant="outline-primary" onclick={handleAnalyze} disabled={isLoading} {isLoading}>
+        {$t('analysis.packet_analyzer.run')}
+      </Button>
       <span class="help-text">{$t('analysis.packet_analyzer.note')}</span>
     </div>
 
@@ -302,21 +299,6 @@
     flex-wrap: wrap;
     align-items: center;
     gap: 1rem;
-  }
-
-  .primary {
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
-    border: 1px solid rgba(59, 130, 246, 0.6);
-    background: rgba(59, 130, 246, 0.2);
-    color: #bfdbfe;
-    cursor: pointer;
-    font-weight: 600;
-  }
-
-  .primary:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
   }
 
   .message.error {

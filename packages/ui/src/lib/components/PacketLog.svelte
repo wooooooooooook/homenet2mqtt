@@ -262,7 +262,6 @@
   }
 
   .search-box {
-    flex: 0 1 240px;
     min-width: 200px;
     max-width: 280px;
   }
