@@ -255,50 +255,52 @@
       isRestarting = false;
     }
   }
+
+  // Auto-reload on error
+  let autoReloadCountdown = $state(10);
+
+  $effect(() => {
+    let timer: ReturnType<typeof setInterval>;
+    if (infoError) {
+      autoReloadCountdown = 10;
+      timer = setInterval(() => {
+        autoReloadCountdown--;
+        if (autoReloadCountdown <= 0) {
+          window.location.reload();
+        }
+      }, 1000);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  });
 </script>
 
 <div class="dashboard-view">
-  {#if infoLoading && !bridgeInfo && !infoError}
-    <div class="loading-state">
-      <p class="hint">{$t('dashboard.loading_bridge')}</p>
-    </div>
-  {:else if infoError}
-    <div class="error-state">
-      <p class="error">{$t(`errors.${infoError}`)}</p>
-      <div class="error-actions">
-        <Button variant="primary" onclick={() => window.location.reload()}>
-          {$t('common.retry')}
-        </Button>
-      </div>
-    </div>
-  {:else if !bridgeInfo}
-    <div class="empty-state">
-      <p class="empty">{$t('dashboard.no_bridge_info')}</p>
-    </div>
-  {:else if bridgeInfo.error === 'CONFIG_INITIALIZATION_REQUIRED' || bridgeInfo.restartRequired}
+  {#if bridgeInfo?.error === 'CONFIG_INITIALIZATION_REQUIRED' || bridgeInfo?.restartRequired}
     <SetupWizard oncomplete={() => window.location.reload()} />
   {:else}
-    {#if bridgeInfo.error}
-      <div class="bridge-error">
-        <p class="error subtle">
-          {$t('dashboard.bridge_error', { values: { error: getBridgeErrorMessage() } })}
-        </p>
-      </div>
-    {/if}
-
     <!-- System Topology Visualization -->
+    <!-- Always show topology unless we are in the setup wizard -->
     <SystemTopology
       {mqttUrl}
       mqttStatus={mqttConnectionStatus}
       portMetadata={activePortMetadata}
-      bridgeStatus={bridgeInfo.status}
-      globalError={bridgeInfo.errorInfo?.source === 'core' ||
-      bridgeInfo.errorInfo?.source === 'service'
-        ? bridgeInfo.errorInfo
-        : activePortMetadata?.errorInfo?.source === 'core'
-          ? activePortMetadata.errorInfo
-          : null}
-      mqttError={bridgeInfo.errorInfo?.source === 'mqtt'
+      bridgeStatus={bridgeInfo?.status || 'unknown'}
+      globalError={infoError
+        ? {
+            code: 'API_ERROR',
+            message: $t(`errors.${infoError}`),
+            source: 'core',
+            severity: 'error',
+            timestamp: new Date().toISOString(),
+          }
+        : bridgeInfo?.errorInfo?.source === 'core' || bridgeInfo?.errorInfo?.source === 'service'
+          ? bridgeInfo.errorInfo
+          : activePortMetadata?.errorInfo?.source === 'core'
+            ? activePortMetadata.errorInfo
+            : null}
+      mqttError={bridgeInfo?.errorInfo?.source === 'mqtt'
         ? bridgeInfo.errorInfo.message
         : mqttConnectionStatus === 'error'
           ? $t('dashboard.mqtt_error')
@@ -306,22 +308,55 @@
       serialError={activeSerialErrorMessage}
     />
 
-    {#if hasCriticalError}
-      <!-- Error State: Show refresh and restart buttons -->
+    {#if infoLoading && !bridgeInfo && !infoError}
+      <!-- Loading State: Show a subtle loading indicator below topology -->
+      <div class="loading-state">
+        <p class="hint">{$t('dashboard.loading_bridge')}</p>
+      </div>
+    {:else if infoError}
+      <!-- API Error State: Show retry button below topology -->
       <div class="error-action-container">
-        <p class="error-hint">{$t('dashboard.error_hint_restart')}</p>
         <div class="error-buttons">
-          <Button variant="secondary" onclick={() => window.location.reload()}>
-            {$t('common.refresh')}
-          </Button>
-          <Button variant="primary" onclick={handleRestart} isLoading={isRestarting}>
-            {isRestarting
-              ? $t('settings.app_control.restarting')
-              : $t('settings.app_control.restart')}
+          <Button variant="primary" onclick={() => window.location.reload()}>
+            {$t('common.retry')} ({autoReloadCountdown}s)
           </Button>
         </div>
       </div>
-    {:else}
+    {:else if !bridgeInfo}
+      <!-- Empty State: No info but no error? -->
+      <div class="empty-state">
+        <p class="empty">{$t('dashboard.no_bridge_info')}</p>
+      </div>
+    {:else if hasCriticalError || bridgeInfo?.error}
+      <!-- Critical Error or General Bridge Error -->
+      {#if bridgeInfo.error && !hasCriticalError}
+        <div class="bridge-error">
+          <p class="error subtle">
+            {$t('dashboard.bridge_error', { values: { error: getBridgeErrorMessage() } })}
+          </p>
+        </div>
+      {/if}
+
+      {#if hasCriticalError}
+        <div class="error-action-container">
+          <p class="error-hint">{$t('dashboard.error_hint_restart')}</p>
+          <div class="error-buttons">
+            <Button variant="secondary" onclick={() => window.location.reload()}>
+              {$t('common.refresh')}
+            </Button>
+            <Button variant="primary" onclick={handleRestart} isLoading={isRestarting}>
+              {isRestarting
+                ? $t('settings.app_control.restarting')
+                : $t('settings.app_control.restart')}
+            </Button>
+          </div>
+        </div>
+      {/if}
+    {/if}
+
+    <!-- Content Section (Activity & Entities) -->
+    <!-- Only show if we have bridgeInfo and no critical error preventing operation -->
+    {#if bridgeInfo && !hasCriticalError && !infoError}
       <!-- Recent Activity Section -->
       {#if activePortId}
         <RecentActivity activities={activityLogs} />
@@ -569,12 +604,6 @@
     padding: 1rem;
     border-radius: 8px;
     border: 1px solid rgba(239, 68, 68, 0.2);
-  }
-
-  .error-actions {
-    margin-top: 1rem;
-    display: flex;
-    justify-content: center;
   }
 
   .entity-grid {
