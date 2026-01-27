@@ -13,34 +13,35 @@ discovery:
     data: [0x31, 0x02]
     mask: [0xFF, 0xFF]
 
+
+scripts:
+  - id: "update_sequence_number"
+    name: "update sequence number"
+    actions:
+      - action: update_state
+        target_id: "sequence_number"
+        state:
+          state_number: "bitAnd(int(get_from_state('number', -1)) + 1, 0xFF)"
+
+  - id: "make_gas_packet"
+    name: "Gas Valve Packet Make"
+    description: >-
+      가스밸브 차단 패킷 생성 (닫기 전용)
+      명령패킷 구조: 02 31 02 XX 00 00 00 00 00 XX
+    actions:
+      - action: send_packet
+        data: >-
+          [0x31, 0x02,
+          int(get_from_states('sequence_number', 'number', 0)),
+          0x00, 0x00, 0x00, 0x00, 0x00]
+        ack: >-
+          [0x31, 0x82]
+        header: true
+        checksum: true
+      - action: script
+        script: update_sequence_number
+
 entities:
-  scripts:
-    - id: "update_sequence_number"
-      name: "update sequence number"
-      actions:
-        - action: update_state
-          target_id: "sequence_number"
-          state:
-            state_number: "bitAnd(int(get_from_state('number', -1)) + 1, 0xFF)"
-
-    - id: "make_gas_packet"
-      name: "Gas Valve Packet Make"
-      description: >-
-        가스밸브 차단 패킷 생성 (닫기 전용)
-        명령패킷 구조: 02 31 02 XX 00 00 00 00 00 XX
-      actions:
-        - action: send_packet
-          data: >-
-            [0x31, 0x02,
-            int(get_from_states('sequence_number', 'number', 0)),
-            0x00, 0x00, 0x00, 0x00, 0x00]
-          ack: >-
-            [0x31, 0x82]
-          header: true
-          checksum: true
-        - action: script
-          script: update_sequence_number
-
   number:
     - id: sequence_number
       name: "내부관리용시퀀스번호"

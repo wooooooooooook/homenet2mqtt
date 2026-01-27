@@ -27,40 +27,40 @@ discovery:
   inference:
     strategy: max
 
+scripts:
+  - id: "update_sequence_number"
+    name: "update sequence number"
+    actions:
+      - action: update_state
+        target_id: "sequence_number"
+        state:
+          state_number: "bitAnd(int(get_from_state('number', -1)) + 1, 0xFF)"
+
+  - id: "make_heating_packet"
+    name: "Heating Packet Make"
+    description: >- 
+      난방 공통 패킷 생성 
+        args: 
+          room_id: 방 ID (1-based)
+          power: 1(on), 2(off)
+          temp: 설정 온도
+    actions:
+      - action: send_packet
+        data: >- 
+          [0x28, 0x0E, 0x12, 
+          int(get_from_states('sequence_number', 'number', 0)), 
+          bitAnd(args.room_id, 0x0F), 
+          int(args.power), 
+          has(args.temp)?(int(args.temp) + (int(args.temp * 10) % 10 >= 5 ? 0x40 : 0)):0,
+          0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+        ack: >- 
+          [0x02, 0x28, 0x81]
+        header: true
+        checksum: true
+      - action: script
+        script: update_sequence_number
+
 entities:
-  scripts:
-    - id: "update_sequence_number"
-      name: "update sequence number"
-      actions:
-        - action: update_state
-          target_id: "sequence_number"
-          state:
-            state_number: "bitAnd(int(get_from_state('number', -1)) + 1, 0xFF)"
-
-    - id: "make_heating_packet"
-      name: "Heating Packet Make"
-      description: >- 
-        난방 공통 패킷 생성 
-          args: 
-            room_id: 방 ID (1-based)
-            power: 1(on), 2(off)
-            temp: 설정 온도
-      actions:
-        - action: send_packet
-          data: >- 
-            [0x28, 0x0E, 0x12, 
-            int(get_from_states('sequence_number', 'number', 0)), 
-            bitAnd(args.room_id, 0x0F), 
-            int(args.power), 
-            has(args.temp)?(int(args.temp) + (int(args.temp * 10) % 10 >= 5 ? 0x40 : 0)):0,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
-          ack: >- 
-            [0x02, 0x28, 0x81]
-          header: true
-          checksum: true
-        - action: script
-          script: update_sequence_number
-
   number:
     - id: sequence_number
       name: "내부관리용시퀀스번호"

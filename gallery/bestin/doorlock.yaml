@@ -13,7 +13,6 @@ discovery:
     data: [0x41, 0x02]
     mask: [0xFF, 0xFF]
 
-entities:
   scripts:
     - id: "update_sequence_number"
       name: "update sequence number"
@@ -41,6 +40,7 @@ entities:
         - action: script
           script: update_sequence_number
 
+entities:
   number:
     - id: sequence_number
       name: "내부관리용시퀀스번호"

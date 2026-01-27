@@ -45,88 +45,88 @@ discovery:
     strategy: "unique_tuples"
     output: "rooms"
 
+scripts:
+  - id: "update_sequence_number"
+    name: "update sequence number"
+    actions:
+      - action: update_state
+        target_id: "sequence_number"
+        state:
+          state_number: "bitAnd(int(get_from_state('number', -1)) + 1, 0xFF)"
+
+  - id: "make_light_packet"
+    name: "Light Packet Make"
+    description: >- 
+      조명 제어 패킷 생성 (Gen1/General, 13바이트)
+        args: 
+          room_number: (1-8)
+          position: 조명번호 0-based (pos_id)
+          ONOFF: true(on), false(off)
+    actions:
+      - action: send_packet
+        data: >- 
+          [0x31, 0x0D, 0x01, 
+          int(get_from_states('sequence_number', 'number', 0)), 
+          int(args.room_number),
+          int(bitOr(bitShiftLeft(0x01, args.position), args.ONOFF ? 0x80 : 0x00)),
+          0x00, 0x00, 0x00, 0x00,
+          int(args.ONOFF ? 0x04 : 0x00)]
+        ack: >- 
+          [0x02, 0x31, 0x81]
+        header: true
+        checksum: true
+      - action: script
+        script: update_sequence_number
+
+  - id: "make_outlet_packet"
+    name: "Outlet Packet Make"
+    description: >- 
+      콘센트 제어 패킷 생성 (Gen1/General, 13바이트)
+        args: 
+          room_number: (1-8)
+          position: 콘센트번호 0-based (pos_id)
+          ONOFF: true(on), false(off)
+    actions:
+      - action: send_packet
+        data: >- 
+          [0x31, 0x0D, 0x01, 
+          int(get_from_states('sequence_number', 'number', 0)), 
+          int(args.room_number),
+          0x00,
+          int(bitOr(bitShiftLeft(0x01, args.position), args.ONOFF ? 0x80 : 0x00)),
+          0x00, 0x00, 0x00,
+          int(args.ONOFF ? bitShiftLeft(0x09, args.position) : 0x00)]
+        ack: >- 
+          [0x02, 0x31, 0x81]
+        header: true
+        checksum: true
+      - action: script
+        script: update_sequence_number
+
+  - id: "make_standby_cutoff_packet"
+    name: "Standby Cutoff Packet Make"
+    description: >- 
+      대기전력 차단 제어 패킷 생성 (Gen1/General, 13바이트)
+        args: 
+          room_number: (1-8)
+          ONOFF: true(차단on), false(차단off)
+    actions:
+      - action: send_packet
+        data: >- 
+          [0x31, 0x0D, 0x01, 
+          int(get_from_states('sequence_number', 'number', 0)), 
+          int(args.room_number),
+          0x00, 0x00,
+          int(args.ONOFF ? 0x83 : 0x03),
+          0x00, 0x00, 0x00]
+        ack: >- 
+          [0x02, 0x31, 0x81]
+        header: true
+        checksum: true
+      - action: script
+        script: update_sequence_number
+
 entities:
-  scripts:
-    - id: "update_sequence_number"
-      name: "update sequence number"
-      actions:
-        - action: update_state
-          target_id: "sequence_number"
-          state:
-            state_number: "bitAnd(int(get_from_state('number', -1)) + 1, 0xFF)"
-
-    - id: "make_light_packet"
-      name: "Light Packet Make"
-      description: >- 
-        조명 제어 패킷 생성 (Gen1/General, 13바이트)
-          args: 
-            room_number: (1-8)
-            position: 조명번호 0-based (pos_id)
-            ONOFF: true(on), false(off)
-      actions:
-        - action: send_packet
-          data: >- 
-            [0x31, 0x0D, 0x01, 
-            int(get_from_states('sequence_number', 'number', 0)), 
-            int(args.room_number),
-            int(bitOr(bitShiftLeft(0x01, args.position), args.ONOFF ? 0x80 : 0x00)),
-            0x00, 0x00, 0x00, 0x00,
-            int(args.ONOFF ? 0x04 : 0x00)]
-          ack: >- 
-            [0x02, 0x31, 0x81]
-          header: true
-          checksum: true
-        - action: script
-          script: update_sequence_number
-
-    - id: "make_outlet_packet"
-      name: "Outlet Packet Make"
-      description: >- 
-        콘센트 제어 패킷 생성 (Gen1/General, 13바이트)
-          args: 
-            room_number: (1-8)
-            position: 콘센트번호 0-based (pos_id)
-            ONOFF: true(on), false(off)
-      actions:
-        - action: send_packet
-          data: >- 
-            [0x31, 0x0D, 0x01, 
-            int(get_from_states('sequence_number', 'number', 0)), 
-            int(args.room_number),
-            0x00,
-            int(bitOr(bitShiftLeft(0x01, args.position), args.ONOFF ? 0x80 : 0x00)),
-            0x00, 0x00, 0x00,
-            int(args.ONOFF ? bitShiftLeft(0x09, args.position) : 0x00)]
-          ack: >- 
-            [0x02, 0x31, 0x81]
-          header: true
-          checksum: true
-        - action: script
-          script: update_sequence_number
-
-    - id: "make_standby_cutoff_packet"
-      name: "Standby Cutoff Packet Make"
-      description: >- 
-        대기전력 차단 제어 패킷 생성 (Gen1/General, 13바이트)
-          args: 
-            room_number: (1-8)
-            ONOFF: true(차단on), false(차단off)
-      actions:
-        - action: send_packet
-          data: >- 
-            [0x31, 0x0D, 0x01, 
-            int(get_from_states('sequence_number', 'number', 0)), 
-            int(args.room_number),
-            0x00, 0x00,
-            int(args.ONOFF ? 0x83 : 0x03),
-            0x00, 0x00, 0x00]
-          ack: >- 
-            [0x02, 0x31, 0x81]
-          header: true
-          checksum: true
-        - action: script
-          script: update_sequence_number
-
   number:
     - id: sequence_number
       name: "내부관리용시퀀스번호"
