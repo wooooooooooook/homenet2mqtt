@@ -190,7 +190,7 @@
                 typeof window !== 'undefined' &&
                 (schemaUri.startsWith('./') || schemaUri.startsWith('/'))
               ) {
-                const base = window.location.origin;
+                const base = document.baseURI || window.location.href;
                 schemaUriAbsolute = new URL(schemaUri, base).href;
               }
               schemaConfig = [
