@@ -39,6 +39,13 @@ export const GALLERY_RAW_BASE_URL =
 export const GALLERY_LIST_URL = `${GALLERY_RAW_BASE_URL}/list_new.json`;
 export const GALLERY_STATS_URL = 'https://h2m-gallery-stats.nubiz.workers.dev/';
 
+// --- Local Development Development ---
+
+export const IS_DEV =
+  process.env.NODE_ENV === 'development' || process.env.npm_lifecycle_event === 'dev';
+
+export const LOCAL_GALLERY_DIR = path.resolve(__dirname, '../../../../gallery');
+
 // --- Entity Type Keys ---
 
 export const ENTITY_TYPE_KEYS: (keyof HomenetBridgeConfig)[] = [

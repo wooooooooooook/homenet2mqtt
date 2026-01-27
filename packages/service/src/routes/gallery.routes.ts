@@ -21,6 +21,8 @@ import {
   GALLERY_LIST_URL,
   GALLERY_STATS_URL,
   ENTITY_TYPE_KEYS,
+  IS_DEV,
+  LOCAL_GALLERY_DIR,
 } from '../utils/constants.js';
 import { saveBackup } from '../services/backup.service.js';
 import {
@@ -81,6 +83,17 @@ export function createGalleryRoutes(ctx: GalleryRoutesContext): Router {
 
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     try {
+      if (IS_DEV) {
+        const listPath = path.join(LOCAL_GALLERY_DIR, 'list_new.json');
+        try {
+          const listContent = await fs.readFile(listPath, 'utf8');
+          return res.type('application/json').send(listContent);
+        } catch (error) {
+          logger.warn({ err: error, path: listPath }, '[gallery] Failed to read local gallery list');
+          // Fallback to GitHub if local file fails
+        }
+      }
+
       const response = await fetch(GALLERY_LIST_URL);
       if (!response.ok) {
         logger.warn(
@@ -121,6 +134,20 @@ export function createGalleryRoutes(ctx: GalleryRoutesContext): Router {
       const isYaml = normalizedPath.endsWith('.yaml') || normalizedPath.endsWith('.yml');
       if (!isYaml) {
         return res.status(400).json({ error: 'Only YAML gallery files are supported' });
+      }
+
+      if (IS_DEV) {
+        const localFilePath = path.join(LOCAL_GALLERY_DIR, normalizedPath);
+        try {
+          const fileContent = await fs.readFile(localFilePath, 'utf8');
+          return res.type('text/yaml').send(fileContent);
+        } catch (error) {
+          logger.warn(
+            { err: error, path: localFilePath },
+            '[gallery] Failed to read local gallery file',
+          );
+          // Fallback to GitHub if local file fails
+        }
       }
 
       const fileUrl = `${GALLERY_RAW_BASE_URL}/${normalizedPath}`;
@@ -277,12 +304,7 @@ export function createGalleryRoutes(ctx: GalleryRoutesContext): Router {
       const unmatchedPackets = ctx.logRetentionService.getUnmatchedPackets(portId);
 
       // Fetch gallery list (list_new.json includes discovery info)
-      const listResponse = await fetch(GALLERY_LIST_URL);
-      if (!listResponse.ok) {
-        return res.status(listResponse.status).json({ error: 'Failed to fetch gallery list' });
-      }
-
-      const galleryList = (await listResponse.json()) as {
+      let galleryList: {
         vendors: Array<{
           id: string;
           requirements?: any;
@@ -292,6 +314,28 @@ export function createGalleryRoutes(ctx: GalleryRoutesContext): Router {
           }>;
         }>;
       };
+
+      if (IS_DEV) {
+        const listPath = path.join(LOCAL_GALLERY_DIR, 'list_new.json');
+        try {
+          const listContent = await fs.readFile(listPath, 'utf8');
+          galleryList = JSON.parse(listContent);
+        } catch (error) {
+          logger.warn({ err: error, path: listPath }, '[gallery] Failed to read local gallery list');
+          // Fallback to GitHub
+          const listResponse = await fetch(GALLERY_LIST_URL);
+          if (!listResponse.ok) {
+            return res.status(listResponse.status).json({ error: 'Failed to fetch gallery list' });
+          }
+          galleryList = await listResponse.json();
+        }
+      } else {
+        const listResponse = await fetch(GALLERY_LIST_URL);
+        if (!listResponse.ok) {
+          return res.status(listResponse.status).json({ error: 'Failed to fetch gallery list' });
+        }
+        galleryList = await listResponse.json();
+      }
 
       const results: Record<string, DiscoveryResult> = {};
 
