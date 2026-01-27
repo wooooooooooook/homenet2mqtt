@@ -30,7 +30,7 @@ COPY . .
 
 # Build packages using Turborepo with cache mount
 RUN --mount=type=cache,target=/app/.turbo \
-    pnpm turbo build --filter=!@rs485-homenet/simulator
+    pnpm turbo build --filter=@rs485-homenet/service...
 
 
 
