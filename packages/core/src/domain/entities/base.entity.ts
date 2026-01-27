@@ -24,6 +24,7 @@ export type CommandSchemaOrCEL = CommandSchema | string;
 export interface EntityConfig {
   id: string;
   name: string;
+  type?: string;
   unique_id?: string;
   device?: string;
   area?: string;
