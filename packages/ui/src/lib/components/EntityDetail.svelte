@@ -32,6 +32,7 @@
     onExecute,
     onRename,
     onUpdate,
+    editorMode = 'monaco',
   }: {
     entity: UnifiedEntity;
     parsedPackets?: ParsedPacket[];
@@ -45,6 +46,7 @@
     onExecute?: (cmd: CommandInfo, value?: any) => void;
     onRename?: (newName: string) => void;
     onUpdate?: (updates: Partial<UnifiedEntity>) => void;
+    editorMode?: 'monaco' | 'textarea';
   } = $props();
 
   let activeTab = $state<'status' | 'config' | 'packets' | 'manage' | 'execute' | 'logs'>('status');
@@ -911,8 +913,16 @@
                   class="config-editor"
                   value={editingConfig}
                   onChange={(nextValue) => (editingConfig = nextValue)}
-                  readOnly={configLoading || isSaving}
-                  ariaLabel={$t('entity_detail.tabs.config')}
+                  readOnly={false}
+                  placeholder="type: switch\nname: My Light\n..."
+                  schemaUri={activeTab === 'config'
+                    ? (() => {
+                        if (isAutomation) return './api/schema/entity/automation';
+                        if (isScript) return './api/schema/entity/script';
+                        return `./api/schema/entity/${entity.type ?? 'unknown'}`;
+                      })()
+                    : undefined}
+                  mode={editorMode}
                 />
                 <div class="config-actions">
                   <Button
@@ -1426,7 +1436,6 @@
     font-family: 'Fira Code', monospace;
     font-size: 0.9rem;
     line-height: 1.5;
-    overflow: hidden;
     min-height: 400px;
     outline: none;
   }
