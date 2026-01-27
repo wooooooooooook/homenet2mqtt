@@ -8,6 +8,7 @@
   import MonacoYamlEditor from './MonacoYamlEditor.svelte';
   import Modal from './Modal.svelte';
   import ActivityLogList from './ActivityLogList.svelte';
+  import { triggerSystemRestart as restartApp } from '../utils/appControl';
   import { formatTime } from '../utils/time';
   import type {
     UnifiedEntity,
@@ -159,10 +160,11 @@
         await action();
         // Reset onCancel so it's not called when closing on success
         dialog.onCancel = undefined;
-        closeDialog();
-        // Wait for close animation
+
         if (onSuccess) {
-          setTimeout(onSuccess, 300);
+          await onSuccess();
+        } else {
+          closeDialog();
         }
       } catch (err: any) {
         // Reset onCancel so it's not called when closing on error
@@ -176,7 +178,7 @@
           );
         }, 300);
       } finally {
-        dialog.loading = false;
+        if (!onSuccess) dialog.loading = false;
       }
     };
     dialog.open = true;
@@ -357,56 +359,25 @@
       if (!res.ok) throw new Error('Failed to load config');
       const data = await res.json();
       editingConfig = data.yaml;
+      configLoading = false;
     } catch (err) {
       configError = $t('entity_detail.config.load_error');
-    } finally {
       configLoading = false;
     }
   }
 
-  async function handleRestart() {
-    try {
-      // 1. Get restart token
-      const tokenRes = await fetch('./api/system/restart/token');
-      if (!tokenRes.ok) {
-        throw new Error('Failed to get restart token');
-      }
-      const { token } = await tokenRes.json();
-
-      // 2. Trigger restart
-      const restartRes = await fetch('./api/system/restart', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token }),
-      });
-
-      if (!restartRes.ok) {
-        const data = await restartRes.json();
-        throw new Error(data.error || 'Restart failed');
-      }
-
-      // 3. Show success and reload (although the server might have already killed the process)
-      showAlertDialog(
-        $t('common.success') || 'Success',
-        $t('entity_detail.config.restart_initiated') ||
-          'Restart initiated. The page will reload shortly.',
-        'success',
-      );
-
-      setTimeout(() => {
-        window.location.reload();
-      }, 3000);
-    } catch (err) {
-      console.error(err);
-      showAlertDialog(
-        $t('common.error') || 'Error',
-        err instanceof Error ? err.message : 'Failed to restart',
-        'danger',
-      );
-    }
+  async function triggerSystemRestart() {
+    dialog.title = $t('settings.app_control.restart');
+    dialog.message = $t('settings.app_control.restarting');
+    dialog.loadingText = $t('settings.app_control.restarting');
+    dialog.variant = 'primary';
+    dialog.showCancel = false;
+    dialog.loading = true;
+    dialog.open = true;
+    await restartApp();
   }
 
-  function promptForRestart(onCancel?: () => void) {
+  function handleRestart(onCancel?: () => void) {
     showConfirmDialog({
       title: $t('entity_detail.config.restart_title') || 'Restart Required',
       message:
@@ -414,12 +385,17 @@
         'Do you want to restart the bridge to apply changes?',
       confirmText: $t('entity_detail.config.restart_button') || 'Restart',
       variant: 'primary',
-      action: async () => {
-        await handleRestart();
+      loadingText: $t('settings.app_control.restarting'),
+      action: async () => triggerSystemRestart(),
+      onSuccess: () => {
+        // triggerSystemRestart handled the feedback
       },
       onCancel,
     });
   }
+
+  // Alias for backward compatibility or clarity if needed, or just replace usages.
+  const promptForRestart = handleRestart;
 
   async function saveConfig() {
     if (!editingConfig) return;
@@ -1695,7 +1671,7 @@
     .modal-content-wrapper {
       border-radius: 0;
       height: 100dvh;
-      min-height: 700px;
+      min-height: 710px;
     }
 
     .modal-header {

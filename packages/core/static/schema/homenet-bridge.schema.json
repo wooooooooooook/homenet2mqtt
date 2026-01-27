@@ -534,6 +534,9 @@
         "name": {
           "type": "string"
         },
+        "type": {
+          "type": "string"
+        },
         "unique_id": {
           "type": "string"
         },
@@ -1358,6 +1361,9 @@
         "name": {
           "type": "string"
         },
+        "type": {
+          "type": "string"
+        },
         "unique_id": {
           "type": "string"
         },
@@ -1496,6 +1502,9 @@
         "name": {
           "type": "string"
         },
+        "type": {
+          "type": "string"
+        },
         "unique_id": {
           "type": "string"
         },
@@ -1547,6 +1556,9 @@
           "type": "string"
         },
         "name": {
+          "type": "string"
+        },
+        "type": {
           "type": "string"
         },
         "unique_id": {
@@ -1622,6 +1634,9 @@
           "type": "string"
         },
         "name": {
+          "type": "string"
+        },
+        "type": {
           "type": "string"
         },
         "unique_id": {
@@ -1822,6 +1837,9 @@
         "name": {
           "type": "string"
         },
+        "type": {
+          "type": "string"
+        },
         "unique_id": {
           "type": "string"
         },
@@ -1890,6 +1908,9 @@
           "type": "string"
         },
         "name": {
+          "type": "string"
+        },
+        "type": {
           "type": "string"
         },
         "unique_id": {
@@ -1973,6 +1994,9 @@
           "type": "string"
         },
         "name": {
+          "type": "string"
+        },
+        "type": {
           "type": "string"
         },
         "unique_id": {
@@ -2086,6 +2110,9 @@
         "name": {
           "type": "string"
         },
+        "type": {
+          "type": "string"
+        },
         "unique_id": {
           "type": "string"
         },
@@ -2172,6 +2199,9 @@
           "type": "string"
         },
         "name": {
+          "type": "string"
+        },
+        "type": {
           "type": "string"
         },
         "unique_id": {
@@ -2407,6 +2437,9 @@
         "name": {
           "type": "string"
         },
+        "type": {
+          "type": "string"
+        },
         "unique_id": {
           "type": "string"
         },
@@ -2511,6 +2544,9 @@
         "name": {
           "type": "string"
         },
+        "type": {
+          "type": "string"
+        },
         "unique_id": {
           "type": "string"
         },
@@ -2569,6 +2605,9 @@
           "type": "string"
         },
         "name": {
+          "type": "string"
+        },
+        "type": {
           "type": "string"
         },
         "unique_id": {

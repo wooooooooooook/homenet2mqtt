@@ -3,6 +3,8 @@
   import { onMount } from 'svelte';
   import Button from './Button.svelte';
   import Modal from './Modal.svelte';
+  import Dialog from './Dialog.svelte';
+  import { triggerSystemRestart as restartApp } from '../utils/appControl';
   import type {
     GalleryDiscoveryResult,
     GalleryItemForPreview,
@@ -267,36 +269,90 @@
     return values;
   }
 
-  async function handleRestart() {
-    if (restarting) return;
+  // Dialog State
+  let dialog = $state({
+    open: false,
+    title: '',
+    message: '',
+    confirmText: undefined as string | undefined,
+    variant: 'primary' as 'primary' | 'danger' | 'success',
+    loading: false,
+    loadingText: undefined as string | undefined,
+    showCancel: true,
+    onConfirm: async () => {},
+  });
+
+  const closeDialog = () => {
+    dialog.open = false;
+  };
+
+  const showConfirmDialog = ({
+    title,
+    message,
+    confirmText,
+    variant = 'primary',
+    loadingText,
+    action,
+    onSuccess,
+  }: {
+    title: string;
+    message: string;
+    confirmText?: string;
+    variant?: 'primary' | 'danger' | 'success';
+    loadingText?: string;
+    action: () => Promise<void>;
+    onSuccess?: () => void;
+  }) => {
+    dialog.title = title;
+    dialog.message = message;
+    dialog.confirmText = confirmText;
+    dialog.variant = variant;
+    dialog.loadingText = loadingText;
+    dialog.showCancel = true;
+    dialog.loading = false;
+    dialog.onConfirm = async () => {
+      dialog.loading = true;
+      try {
+        await action();
+        if (onSuccess) {
+          await onSuccess();
+        } else {
+          closeDialog();
+        }
+      } catch (err: any) {
+        closeDialog();
+        console.error(err);
+      } finally {
+        if (!onSuccess) dialog.loading = false;
+      }
+    };
+    dialog.open = true;
+  };
+
+  async function triggerSystemRestart() {
     restarting = true;
+    dialog.title = $t('settings.app_control.restart');
+    dialog.message = $t('settings.app_control.restarting');
+    dialog.loadingText = $t('settings.app_control.restarting');
+    dialog.variant = 'primary';
+    dialog.showCancel = false;
+    dialog.loading = true;
+    dialog.open = true;
+    await restartApp();
+  }
 
-    try {
-      const tokenResponse = await fetch('./api/system/restart/token');
-      if (!tokenResponse.ok) {
-        throw new Error('Failed to get restart token');
-      }
-      const { token } = await tokenResponse.json();
-
-      const restartResponse = await fetch('./api/system/restart', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token }),
-      });
-
-      if (!restartResponse.ok) {
-        const data = await restartResponse.json();
-        throw new Error(data.error || 'Restart failed');
-      }
-
-      // Close modal and let the app handle reconnection
-      setTimeout(() => {
-        window.location.reload();
-      }, 5000);
-    } catch (e) {
-      console.error('Restart failed', e);
-      restarting = false;
-    }
+  async function handleRestart() {
+    showConfirmDialog({
+      title: $t('settings.app_control.restart'),
+      message: $t('settings.app_control.restart_confirm'),
+      confirmText: $t('settings.app_control.restart'),
+      variant: 'danger',
+      loadingText: $t('settings.app_control.restarting'),
+      action: async () => triggerSystemRestart(),
+      onSuccess: () => {
+        // triggerSystemRestart handled the feedback
+      },
+    });
   }
 
   async function confirmAndCheckConflicts() {
@@ -427,6 +483,18 @@
 
 <Modal open={true} width="800px" onclose={onClose} oncancel={onClose}>
   <div class="modal-content-wrapper">
+    <Dialog
+      open={dialog.open}
+      title={dialog.title}
+      message={dialog.message}
+      confirmText={dialog.confirmText}
+      variant={dialog.variant}
+      loading={dialog.loading}
+      loadingText={dialog.loadingText}
+      showCancel={dialog.showCancel}
+      onconfirm={dialog.onConfirm}
+      oncancel={closeDialog}
+    />
     <header class="modal-header">
       <div class="header-content">
         <h2>{displayName}</h2>

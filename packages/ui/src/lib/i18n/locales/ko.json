@@ -520,7 +520,10 @@
       "saving": "추가 중...",
       "save_success": "설정에 추가되었습니다. 재시작 후 적용됩니다.",
       "save_fail": "추가 실패: {error}",
-      "restart_hint": "설정 변경 후 적용을 위해 재시작이 필요합니다."
+      "restart_hint": "설정 변경 후 적용을 위해 재시작이 필요합니다.",
+      "confirm_title": "설정 추가 확인",
+      "confirm_desc": "이 설정을 추가하시겠습니까? 재시작 후 적용됩니다.",
+      "confirm_yes": "추가하고 재시작"
     },
     "entity_card": {
       "no_status": "상태 정보 없음",

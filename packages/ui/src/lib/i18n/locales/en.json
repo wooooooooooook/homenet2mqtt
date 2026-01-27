@@ -514,7 +514,10 @@
       "copy_success": "YAML copied to clipboard.",
       "copy_fail": "Failed to copy YAML. Please copy it manually.",
       "default_entity_name": "New {type}",
-      "default_script_description": "New script actions"
+      "default_script_description": "New script actions",
+      "confirm_title": "Confirm Add",
+      "confirm_desc": "Do you want to add this configuration? It will be applied after restart.",
+      "confirm_yes": "Add & Restart"
     },
     "entity_card": {
       "no_status": "No status info",

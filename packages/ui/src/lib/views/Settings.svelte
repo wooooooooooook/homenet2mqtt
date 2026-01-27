@@ -13,6 +13,7 @@
     BridgeInfo,
     BackupFile,
   } from '../types';
+  import { triggerSystemRestart as restartApp } from '../utils/appControl';
 
   type ToastSettingKey = 'stateChange' | 'command';
 
@@ -568,7 +569,7 @@
     variant?: 'primary' | 'danger' | 'success';
     loadingText?: string;
     action: () => Promise<void>;
-    onSuccess?: () => void;
+    onSuccess?: () => void | Promise<void>;
   }) => {
     dialog.title = title;
     dialog.message = message;
@@ -581,13 +582,8 @@
       dialog.loading = true;
       try {
         await action();
-        // If onSuccess handles closing or reloading, let it do so.
-        // Otherwise close.
         if (onSuccess) {
-          // If onSuccess is async (e.g. reload), keeps loading?
-          // Simple version:
-          closeDialog();
-          onSuccess();
+          await onSuccess();
         } else {
           closeDialog();
         }
@@ -662,29 +658,19 @@
 
   async function triggerSystemRestart() {
     isRestarting = true;
-    // 1. Get One-time Token
-    const tokenRes = await fetch('./api/system/restart/token');
-    if (!tokenRes.ok) throw new Error('Failed to get restart token');
-    const { token } = await tokenRes.json();
 
-    // 2. Send Restart Request with Token
-    const res = await fetch('./api/system/restart', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ token }),
-    });
+    // Ensure the dialog shows "Restarting..." feedback
+    // This handles calls from child components (BridgeConfigEditorModal)
+    // and updates the existing dialog if already open (handleRestart, handleDeleteConfig)
+    dialog.title = $t('settings.app_control.restart');
+    dialog.message = $t('settings.app_control.restarting');
+    dialog.loadingText = $t('settings.app_control.restarting');
+    dialog.variant = 'primary';
+    dialog.showCancel = false;
+    dialog.loading = true;
+    dialog.open = true;
 
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.error || 'Restart failed');
-    }
-
-    // Auto-reload after 5 seconds
-    setTimeout(() => {
-      window.location.reload();
-    }, 5000);
+    await restartApp();
   }
 
   function handleRestart() {
@@ -696,11 +682,6 @@
       loadingText: $t('settings.app_control.restarting'),
       action: triggerSystemRestart,
       onSuccess: () => {
-        // Keep things spinning or just reload?
-        // triggerSystemRestart sets isRestarting=true and does reload itself.
-        // But here we are inside dialog callback.
-        // We want the dialog to stay open with "Restarting..." until reload?
-        // Yes.
         isRestarting = true; // ensure state
         dialog.loading = true;
         dialog.open = true; // Keep it open
@@ -750,45 +731,45 @@
   };
 </script>
 
-<section class="settings-view">
-  {#if showConsentModal}
-    <LogConsentModal
-      onclose={() => {
-        showConsentModal = false;
-        fetchLogSharingStatus();
-      }}
-    />
-  {/if}
-
-  <Dialog
-    open={dialog.open}
-    title={dialog.title}
-    message={dialog.message}
-    confirmText={dialog.confirmText}
-    variant={dialog.variant}
-    loading={dialog.loading}
-    loadingText={dialog.loadingText}
-    showCancel={dialog.showCancel}
-    onconfirm={dialog.onConfirm}
-    oncancel={closeDialog}
+{#if showConsentModal}
+  <LogConsentModal
+    onclose={() => {
+      showConsentModal = false;
+      fetchLogSharingStatus();
+    }}
   />
+{/if}
 
-  {#if showAddBridgeModal}
-    <SetupWizard mode="add" onclose={() => (showAddBridgeModal = false)} />
-  {/if}
+<Dialog
+  open={dialog.open}
+  title={dialog.title}
+  message={dialog.message}
+  confirmText={dialog.confirmText}
+  variant={dialog.variant}
+  loading={dialog.loading}
+  loadingText={dialog.loadingText}
+  showCancel={dialog.showCancel}
+  onconfirm={dialog.onConfirm}
+  oncancel={closeDialog}
+/>
 
-  {#if editingConfigFile}
-    <BridgeConfigEditorModal
-      filename={editingConfigFile}
-      onclose={() => (editingConfigFile = null)}
-      onrestart={triggerSystemRestart}
-      onsave={() => {
-        // Config saved, user should restart
-      }}
-      mode={frontendSettings?.editor?.default ?? 'monaco'}
-    />
-  {/if}
+{#if showAddBridgeModal}
+  <SetupWizard mode="add" onclose={() => (showAddBridgeModal = false)} />
+{/if}
 
+{#if editingConfigFile}
+  <BridgeConfigEditorModal
+    filename={editingConfigFile}
+    onclose={() => (editingConfigFile = null)}
+    onrestart={triggerSystemRestart}
+    onsave={() => {
+      // Config saved, user should restart
+    }}
+    mode={frontendSettings?.editor?.default ?? 'monaco'}
+  />
+{/if}
+
+<section class="settings-view">
   <div class="view-header">
     <h1>{$t('settings.title')}</h1>
     <div class="lang-switcher">

@@ -3,6 +3,7 @@
   import Button from './Button.svelte';
   import Dialog from './Dialog.svelte';
   import Modal from './Modal.svelte';
+  import { triggerSystemRestart as restartApp } from '../utils/appControl';
 
   let {
     configRoot = '',
@@ -599,36 +600,10 @@
       loadingText: $t('settings.app_control.restarting'),
       action: async () => {
         isRestarting = true;
-        // 1. Get One-time Token
-        const tokenRes = await fetch('./api/system/restart/token');
-        if (!tokenRes.ok) throw new Error('Failed to get restart token');
-        const { token } = await tokenRes.json();
-
-        // 2. Send Restart Request with Token
-        const res = await fetch('./api/system/restart', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ token }),
-        });
-
-        if (!res.ok) {
-          const err = await res.json();
-          throw new Error(err.error || 'Restart failed');
-        }
+        await restartApp(5000);
       },
       onSuccess: () => {
-        // Keep dialog open with "Restarting..." spinner?
-        // My showConfirmDialog will keep loading true if onSuccess is provided?
-        // Wait, I said "if (!onSuccess) dialog.loading = false".
-        // So if onSuccess is present, loading stays true?
-        // Yes, which is what we want (button stays spinning).
-
-        // Reload after 5 sec
-        setTimeout(() => {
-          window.location.reload();
-        }, 5000);
+        // Keep dialog open while restarting
       },
     });
   }

@@ -16,7 +16,9 @@
 
   import HintBubble from '$lib/components/HintBubble.svelte';
   import Modal from '$lib/components/Modal.svelte';
+  import Dialog from '$lib/components/Dialog.svelte';
   import { t, locale } from 'svelte-i18n';
+  import { triggerSystemRestart as restartApp } from '../utils/appControl';
   import { formatTime } from '$lib/utils/time';
 
   import Button from '$lib/components/Button.svelte';
@@ -340,19 +342,55 @@
   let isAdding = $state(false);
   let addError = $state<string | null>(null);
 
-  async function handleSaveYaml() {
+  async function triggerSystemRestart() {
+    isRestarting = true;
+    dialog.title = $t('settings.app_control.restart');
+    dialog.message = $t('settings.app_control.restarting');
+    dialog.loadingText = $t('settings.app_control.restarting');
+    dialog.variant = 'primary';
+    dialog.showCancel = false;
+    dialog.loading = true;
+    dialog.open = true;
+    await restartApp();
+  }
+
+  async function goToConfirmation() {
     if (isAdding) return;
     addError = null;
-    yamlCopyMessage = null;
 
     if (!activePortId) {
       addError = $t('errors.BRIDGE_NOT_FOUND_FOR_PORT', { values: { portId: 'active' } });
       return;
     }
 
+    showConfirmDialog({
+      title: $t('dashboard.add_modal.confirm_title'),
+      message: $t('dashboard.add_modal.confirm_desc'),
+      confirmText: $t('dashboard.add_modal.confirm_yes'),
+      variant: 'primary',
+      loadingText: $t('dashboard.add_modal.saving'),
+      action: async () => {
+        await executeSaveAndRestart();
+      },
+      onSuccess: () => {
+        // After successful save, close add modal and show restart feedback
+        closeAddModal();
+        triggerSystemRestart();
+      },
+    });
+  }
+
+  async function executeSaveAndRestart() {
+    if (isAdding) return;
+    addError = null;
+    yamlCopyMessage = null;
+
+    if (!activePortId) {
+      throw new Error($t('errors.BRIDGE_NOT_FOUND_FOR_PORT', { values: { portId: 'active' } }));
+    }
+
     isAdding = true;
     try {
-      // Wrap the flat YAML into the expected structure based on category/type
       const rootKey =
         selectedCategory === 'automation'
           ? 'automation'
@@ -360,12 +398,6 @@
             ? 'scripts'
             : (selectedEntityType ?? 'light');
 
-      // Indent the draft by 4 spaces (2 for array item, 2 for property) or just 2 for array item?
-      // Standard YAML array item:
-      // key:
-      //   - id: ...
-      //     name: ...
-      // So we need to prepend "  - " to the first line and "    " to subsequent lines.
       const lines = yamlDraft.split('\n');
       const indentedYaml = lines
         .map((line, index) => (index === 0 ? `  - ${line}` : `    ${line}`))
@@ -391,17 +423,14 @@
 
       // Success
       yamlCopyMessage = $t('dashboard.add_modal.save_success');
-
-      // Request restart confirmation after a short delay
-      setTimeout(async () => {
-        closeAddModal();
-        await handleRestart();
-      }, 1000);
     } catch (err) {
       console.error('Failed to add item:', err);
+      const errorMsg = err instanceof Error ? err.message : String(err);
       addError = $t('dashboard.add_modal.save_fail', {
-        values: { error: err instanceof Error ? err.message : String(err) },
+        values: { error: errorMsg },
       });
+      // Re-throw so the dialog can handle it (it will close the dialog)
+      throw err;
     } finally {
       isAdding = false;
     }
@@ -426,37 +455,83 @@
     };
   });
 
-  async function handleRestart() {
-    if (isRestarting) return;
+  // Dialog State
+  let dialog = $state({
+    open: false,
+    title: '',
+    message: '',
+    confirmText: undefined as string | undefined,
+    variant: 'primary' as 'primary' | 'danger' | 'success',
+    loading: false,
+    loadingText: undefined as string | undefined,
+    showCancel: true,
+    onConfirm: async () => {},
+  });
 
-    if (!confirm($t('settings.app_control.restart_confirm'))) return;
+  const closeDialog = () => {
+    dialog.open = false;
+  };
 
-    isRestarting = true;
-    try {
-      // 1. Get One-time Token
-      const tokenRes = await fetch('./api/system/restart/token');
-      if (!tokenRes.ok) throw new Error('Failed to get restart token');
-      const { token } = await tokenRes.json();
-
-      // 2. Send Restart Request with Token
-      const res = await fetch('./api/system/restart', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token }),
-      });
-
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || 'Restart failed');
+  const showConfirmDialog = ({
+    title,
+    message,
+    confirmText,
+    variant = 'primary',
+    loadingText,
+    action,
+    onSuccess,
+  }: {
+    title: string;
+    message: string;
+    confirmText?: string;
+    variant?: 'primary' | 'danger' | 'success';
+    loadingText?: string;
+    action: () => Promise<void>;
+    onSuccess?: () => void | Promise<void>;
+  }) => {
+    dialog.title = title;
+    dialog.message = message;
+    dialog.confirmText = confirmText;
+    dialog.variant = variant;
+    dialog.loadingText = loadingText;
+    dialog.showCancel = true;
+    dialog.loading = false;
+    dialog.onConfirm = async () => {
+      dialog.loading = true;
+      try {
+        await action();
+        if (onSuccess) {
+          await onSuccess();
+        } else {
+          closeDialog();
+        }
+      } catch (err: any) {
+        closeDialog();
+        // Optional: show error dialog
+        console.error(err);
+      } finally {
+        if (!onSuccess) dialog.loading = false;
       }
+    };
+    dialog.open = true;
+  };
 
-      // Auto-reload after 5 seconds
-      setTimeout(() => window.location.reload(), 5000);
-    } catch (err) {
-      console.error('Restart failed:', err);
-      isRestarting = false;
-    }
+  function handleRestart() {
+    showConfirmDialog({
+      title: $t('settings.app_control.restart'),
+      message: $t('settings.app_control.restart_confirm'),
+      confirmText: $t('settings.app_control.restart'),
+      variant: 'danger',
+      loadingText: $t('settings.app_control.restarting'),
+      action: async () => triggerSystemRestart(),
+      onSuccess: () => {
+        // triggerSystemRestart handled the feedback
+      },
+    });
   }
+
+  // Deprecated usage of performRestart, keeping for reference or removing if unused.
+  // We remove performRestart since we using dialog now.
 
   // Auto-reload on error
   let autoReloadCountdown = $state(10);
@@ -477,6 +552,125 @@
     };
   });
 </script>
+
+<Dialog
+  open={dialog.open}
+  title={dialog.title}
+  message={dialog.message}
+  confirmText={dialog.confirmText}
+  variant={dialog.variant}
+  loading={dialog.loading}
+  loadingText={dialog.loadingText}
+  showCancel={dialog.showCancel}
+  onconfirm={dialog.onConfirm}
+  oncancel={closeDialog}
+/>
+
+{#if isAddModalOpen}
+  <Modal open={true} width="900px" onclose={closeAddModal} oncancel={closeAddModal}>
+    <div class="modal-content-wrapper">
+      <div class="modal-header">
+        <h2>{$t('dashboard.add_modal.title')}</h2>
+      </div>
+
+      <div class="modal-body">
+        {#if addStep === 'select-category'}
+          <section class="add-modal-section">
+            <h3>{$t('dashboard.add_modal.select_category')}</h3>
+            <div class="add-option-grid">
+              <button
+                type="button"
+                class="add-option-card"
+                onclick={() => handleCategorySelect('entity')}
+              >
+                <strong>{$t('dashboard.add_modal.category_entity')}</strong>
+                <span>{$t('dashboard.add_modal.category_entity_desc')}</span>
+              </button>
+              <button
+                type="button"
+                class="add-option-card"
+                onclick={() => handleCategorySelect('automation')}
+              >
+                <strong>{$t('dashboard.add_modal.category_automation')}</strong>
+                <span>{$t('dashboard.add_modal.category_automation_desc')}</span>
+              </button>
+              <button
+                type="button"
+                class="add-option-card"
+                onclick={() => handleCategorySelect('script')}
+              >
+                <strong>{$t('dashboard.add_modal.category_script')}</strong>
+                <span>{$t('dashboard.add_modal.category_script_desc')}</span>
+              </button>
+            </div>
+          </section>
+        {:else if addStep === 'select-entity-type'}
+          <section class="add-modal-section">
+            <h3>{$t('dashboard.add_modal.select_device_type')}</h3>
+            <div class="add-option-grid">
+              {#each entityTypeOptions as entityType}
+                <button
+                  type="button"
+                  class="add-option-card"
+                  onclick={() => handleEntityTypeSelect(entityType)}
+                >
+                  <strong>{$t(`entity_types.${entityType}`, { default: entityType })}</strong>
+                  <span>{$t('dashboard.add_modal.device_type_desc')}</span>
+                </button>
+              {/each}
+            </div>
+          </section>
+        {:else if addStep === 'edit-yaml'}
+          <section class="add-modal-section full-height">
+            <div class="yaml-header">
+              <div>
+                <h3>{$t('dashboard.add_modal.yaml_editor_title')}</h3>
+                <p class="yaml-hint">{$t('dashboard.add_modal.yaml_hint')}</p>
+              </div>
+            </div>
+            <!-- Replaced textarea with MonacoYamlEditor -->
+            <div class="yaml-editor-container">
+              <MonacoYamlEditor
+                bind:value={yamlDraft}
+                schemaUri={selectedCategory === 'automation'
+                  ? './api/schema/entity/automation'
+                  : selectedCategory === 'script'
+                    ? './api/schema/entity/script'
+                    : `./api/schema/entity/${selectedEntityType ?? 'light'}`}
+                class="yaml-editor-instance"
+              />
+            </div>
+
+            {#if addError}
+              <p class="error">{addError}</p>
+            {/if}
+            {#if yamlCopyMessage}
+              <p class="copy-message">{yamlCopyMessage}</p>
+            {/if}
+          </section>
+        {/if}
+      </div>
+
+      <div class="modal-footer">
+        <Button
+          variant="secondary"
+          onclick={handleAddStepBack}
+          disabled={addStep === 'select-category'}
+        >
+          {$t('dashboard.add_modal.back')}
+        </Button>
+        <Button variant="secondary" onclick={closeAddModal} disabled={isAdding}>
+          {$t('dashboard.add_modal.close')}
+        </Button>
+        {#if addStep === 'edit-yaml'}
+          <Button variant="primary" onclick={goToConfirmation} isLoading={isAdding}>
+            {$t('dashboard.add_modal.save')}
+          </Button>
+        {/if}
+      </div>
+    </div>
+  </Modal>
+{/if}
 
 <div class="dashboard-view">
   {#if bridgeInfo?.error === 'CONFIG_INITIALIZATION_REQUIRED' || bridgeInfo?.restartRequired}
@@ -671,118 +865,6 @@
     {/if}
   {/if}
 </div>
-
-{#if isAddModalOpen}
-  <Modal open={true} width="820px" onclose={closeAddModal} oncancel={closeAddModal}>
-    <div class="modal-content-wrapper">
-      <div class="modal-header">
-        <h2>{$t('dashboard.add_modal.title')}</h2>
-        <button
-          class="close-btn"
-          onclick={closeAddModal}
-          aria-label={$t('dashboard.add_modal.close')}>×</button
-        >
-      </div>
-
-      <div class="modal-body">
-        {#if addStep === 'select-category'}
-          <section class="add-modal-section">
-            <h3>{$t('dashboard.add_modal.select_category')}</h3>
-            <div class="add-option-grid">
-              <button
-                type="button"
-                class="add-option-card"
-                onclick={() => handleCategorySelect('entity')}
-              >
-                <strong>{$t('dashboard.add_modal.category_entity')}</strong>
-                <span>{$t('dashboard.add_modal.category_entity_desc')}</span>
-              </button>
-              <button
-                type="button"
-                class="add-option-card"
-                onclick={() => handleCategorySelect('automation')}
-              >
-                <strong>{$t('dashboard.add_modal.category_automation')}</strong>
-                <span>{$t('dashboard.add_modal.category_automation_desc')}</span>
-              </button>
-              <button
-                type="button"
-                class="add-option-card"
-                onclick={() => handleCategorySelect('script')}
-              >
-                <strong>{$t('dashboard.add_modal.category_script')}</strong>
-                <span>{$t('dashboard.add_modal.category_script_desc')}</span>
-              </button>
-            </div>
-          </section>
-        {:else if addStep === 'select-entity-type'}
-          <section class="add-modal-section">
-            <h3>{$t('dashboard.add_modal.select_device_type')}</h3>
-            <div class="add-option-grid">
-              {#each entityTypeOptions as entityType}
-                <button
-                  type="button"
-                  class="add-option-card"
-                  onclick={() => handleEntityTypeSelect(entityType)}
-                >
-                  <strong>{$t(`entity_types.${entityType}`, { default: entityType })}</strong>
-                  <span>{$t('dashboard.add_modal.device_type_desc')}</span>
-                </button>
-              {/each}
-            </div>
-            <div class="add-modal-actions">
-              <Button variant="secondary" onclick={handleAddStepBack}>
-                {$t('dashboard.add_modal.back')}
-              </Button>
-            </div>
-          </section>
-        {:else}
-          <section class="add-modal-section full-height">
-            <div class="yaml-header">
-              <div>
-                <h3>{$t('dashboard.add_modal.yaml_editor_title')}</h3>
-                <p class="yaml-hint">{$t('dashboard.add_modal.yaml_hint')}</p>
-              </div>
-              <Button variant="secondary" onclick={handleAddStepBack}>
-                {$t('dashboard.add_modal.back')}
-              </Button>
-            </div>
-            <!-- Replaced textarea with MonacoYamlEditor -->
-            <div class="yaml-editor-container">
-              <MonacoYamlEditor
-                bind:value={yamlDraft}
-                schemaUri={selectedCategory === 'automation'
-                  ? './api/schema/entity/automation'
-                  : selectedCategory === 'script'
-                    ? './api/schema/entity/script'
-                    : `./api/schema/entity/${selectedEntityType ?? 'light'}`}
-                class="yaml-editor-instance"
-              />
-            </div>
-
-            {#if addError}
-              <p class="error">{addError}</p>
-            {/if}
-            {#if yamlCopyMessage}
-              <p class="copy-message">{yamlCopyMessage}</p>
-            {/if}
-          </section>
-        {/if}
-      </div>
-
-      {#if addStep === 'edit-yaml'}
-        <div class="modal-footer">
-          <Button variant="secondary" onclick={closeAddModal} disabled={isAdding}>
-            {$t('dashboard.add_modal.close')}
-          </Button>
-          <Button variant="primary" onclick={handleSaveYaml} isLoading={isAdding}>
-            {$t('dashboard.add_modal.save')}
-          </Button>
-        </div>
-      {/if}
-    </div>
-  </Modal>
-{/if}
 
 <style>
   .dashboard-view {
@@ -1000,28 +1082,6 @@
     font-size: 1.25rem;
     font-weight: 600;
     color: #f1f5f9;
-  }
-
-  .close-btn {
-    margin-left: auto;
-    background: rgba(15, 23, 42, 0.8);
-    border: 1px solid #475569;
-    color: #e2e8f0;
-    font-size: 1.5rem;
-    cursor: pointer;
-    line-height: 1;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s;
-  }
-
-  .close-btn:hover {
-    background: rgba(30, 41, 59, 0.9);
-    border-color: #94a3b8;
   }
 
   .modal-body {
