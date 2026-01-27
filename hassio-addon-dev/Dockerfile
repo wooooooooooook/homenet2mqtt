@@ -21,8 +21,7 @@ COPY packages/ui/package.json packages/ui/
 
 
 # Install dependencies
-# We use network-concurrency 1 just in case, though slim is more stable than alpine
-RUN pnpm install --frozen-lockfile --network-concurrency 1
+RUN pnpm install --frozen-lockfile
 
 # Copy source code
 COPY . .
