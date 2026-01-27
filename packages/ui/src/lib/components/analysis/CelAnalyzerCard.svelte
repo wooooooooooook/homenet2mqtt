@@ -538,7 +538,8 @@
 
   @media (max-width: 480px) {
     .analysis-card {
-      padding: 1rem;
+      padding: 0.75rem;
+      border-radius: 8px;
     }
   }
 </style>

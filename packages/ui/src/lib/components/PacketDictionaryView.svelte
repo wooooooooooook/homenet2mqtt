@@ -215,6 +215,12 @@
     padding: 1.5rem;
     color: #e2e8f0;
   }
+  @media (max-width: 480px) {
+    .packet-dictionary-view {
+      padding: 0.75rem;
+      border-radius: 8px;
+    }
+  }
 
   .header {
     display: flex;

@@ -207,6 +207,13 @@
     padding: 1.5rem;
   }
 
+  @media (max-width: 480px) {
+    .sender-section {
+      padding: 0.75rem;
+      border-radius: 8px;
+    }
+  }
+
   .sender-header h3 {
     margin: 0 0 1rem 0;
     font-size: 1.1rem;

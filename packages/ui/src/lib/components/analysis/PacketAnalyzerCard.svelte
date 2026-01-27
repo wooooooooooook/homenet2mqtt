@@ -331,6 +331,12 @@
     border-radius: 12px;
     padding: 1.5rem;
   }
+  @media (max-width: 480px) {
+    .analysis-card {
+      padding: 0.75rem;
+      border-radius: 8px;
+    }
+  }
 
   .card-header {
     display: flex;
