@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-01-27T02:10:49.781Z",
+  "generated_at": "2026-01-27T04:46:23.573Z",
   "vendors": [
     {
       "id": "bestin",
@@ -1146,7 +1146,7 @@
           "name_en": "Heaters",
           "description": "CVNet 난방 온도조절기 설정입니다. 개수를 지정할 수 있습니다.",
           "description_en": "CVNet heating thermostats. You can specify the number of thermostats.",
-          "version": "2.1.0",
+          "version": "2.1.1",
           "author": "wooooooooooook",
           "tags": [
             "climate",
