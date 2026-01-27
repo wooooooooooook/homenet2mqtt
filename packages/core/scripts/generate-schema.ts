@@ -87,7 +87,7 @@ async function main() {
   // 통계 출력
   const stats = {
     properties: Object.keys(schema.properties || {}).length,
-    definitions: Object.keys(schema.definitions || {}).length,
+    definitions: Object.keys(definitions || {}).length,
   };
   console.log(`   속성: ${stats.properties}개, 정의: ${stats.definitions}개`);
 }

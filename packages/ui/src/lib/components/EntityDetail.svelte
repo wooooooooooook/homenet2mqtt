@@ -915,7 +915,13 @@
                   onChange={(nextValue) => (editingConfig = nextValue)}
                   readOnly={false}
                   placeholder="type: switch\nname: My Light\n..."
-                  schemaUri="./api/schema/entity-config"
+                  schemaUri={activeTab === 'config'
+                    ? (() => {
+                        if (isAutomation) return './api/schema/entity/automation';
+                        if (isScript) return './api/schema/entity/script';
+                        return `./api/schema/entity/${entity.type ?? 'unknown'}`;
+                      })()
+                    : undefined}
                   mode={editorMode}
                 />
                 <div class="config-actions">
@@ -1430,7 +1436,6 @@
     font-family: 'Fira Code', monospace;
     font-size: 0.9rem;
     line-height: 1.5;
-    overflow: hidden;
     min-height: 400px;
     outline: none;
   }

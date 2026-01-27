@@ -25,6 +25,7 @@
     onToastChange,
     onActivityLogChange,
     onLocaleChange,
+    onEditorChange,
   }: {
     frontendSettings?: FrontendSettings | null;
     bridgeInfo?: BridgeInfo | null;
@@ -34,6 +35,7 @@
     onToastChange?: (key: ToastSettingKey, value: boolean) => void;
     onActivityLogChange?: (value: boolean) => void;
     onLocaleChange?: (value: string) => void;
+    onEditorChange?: (value: 'monaco' | 'textarea') => void;
   } = $props();
 
   const getToastValue = (key: ToastSettingKey) => {
@@ -712,14 +714,7 @@
   const handleEditorChange = (event: Event) => {
     const target = event.currentTarget as HTMLSelectElement;
     const value = target.value as 'monaco' | 'textarea';
-    const currentSettings = frontendSettings ?? DEFAULT_FRONTEND_SETTINGS;
-    persistFrontendSettings({
-      ...currentSettings,
-      editor: {
-        ...currentSettings.editor,
-        default: value,
-      },
-    });
+    onEditorChange?.(value);
   };
 
   const handleDeleteConfig = async (filename: string) => {
@@ -1514,6 +1509,32 @@
 
     <div class="setting">
       <div>
+        <div class="setting-title">{$t('settings.app_control.editor_title')}</div>
+        <div class="setting-desc">{$t('settings.app_control.editor_desc')}</div>
+      </div>
+      <select
+        class="select"
+        value={frontendSettings?.editor?.default ?? 'monaco'}
+        onchange={handleEditorChange}
+        disabled={isSaving}
+      >
+        <option
+          value="monaco"
+          selected={(frontendSettings?.editor?.default ?? 'monaco') === 'monaco'}
+        >
+          {$t('settings.app_control.editor_monaco')}
+        </option>
+        <option
+          value="textarea"
+          selected={(frontendSettings?.editor?.default ?? 'monaco') === 'textarea'}
+        >
+          {$t('settings.app_control.editor_textarea')}
+        </option>
+      </select>
+    </div>
+
+    <div class="setting">
+      <div>
         <div class="setting-title">{$t('settings.app_control.restart')}</div>
         <div class="setting-desc">{$t('settings.app_control.restart_desc')}</div>
       </div>
@@ -1825,5 +1846,32 @@
     .setting-desc {
       font-size: 0.85rem;
     }
+  }
+
+  .select {
+    padding: 0.5rem 2rem 0.5rem 0.75rem;
+    border-radius: 6px;
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    color: #e2e8f0;
+    font-size: 0.9rem;
+    outline: none;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.5rem center;
+    background-repeat: no-repeat;
+    background-size: 1.5em 1.5em;
+    min-width: 200px;
+  }
+
+  .select:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+  }
+
+  .select option {
+    background: #1e293b;
+    color: #e2e8f0;
   }
 </style>
