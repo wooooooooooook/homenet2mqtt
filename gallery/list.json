@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-01-28T06:05:58.796Z",
+  "generated_at": "2026-01-28T08:49:28.890Z",
   "vendors": [
     {
       "id": "bestin",
@@ -958,6 +958,28 @@
           "tags": [
             "fan",
             "kocom"
+          ],
+          "parameters": [],
+          "content_summary": {
+            "entities": {
+              "fan": 1
+            },
+            "automations": 0,
+            "scripts": 0
+          }
+        },
+        {
+          "file": "kocom/fan_modes.yaml",
+          "name": "모드 설정 환풍기",
+          "name_en": "mode setting fan",
+          "description": "코콤 모드 설정 환풍기 설정입니다. 전열/자동/바이패스/취침 모드를 지원합니다.",
+          "description_en": "Kocom mode setting fan configuration. Supports ventilation, auto, bypass, and sleep modes.",
+          "version": "1.1.0",
+          "author": "wooooooooooook",
+          "tags": [
+            "fan",
+            "kocom",
+            "mode setting"
           ],
           "parameters": [],
           "content_summary": {
