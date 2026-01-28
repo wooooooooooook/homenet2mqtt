@@ -187,59 +187,238 @@
         background: #eee;
         margin-right: 0.5rem;
       }
+
+      /* Tabs */
+      .tabs {
+        display: flex;
+        gap: 4px;
+        padding: 0 1rem;
+        background: #f8f9fa;
+        border-bottom: 1px solid var(--border-color);
+      }
+      .tab {
+        padding: 0.75rem 1.5rem;
+        cursor: pointer;
+        border: 1px solid transparent;
+        border-bottom: none;
+        border-radius: 4px 4px 0 0;
+        color: #666;
+        margin-bottom: -1px;
+      }
+      .tab:hover {
+        background: #e9ecef;
+      }
+      .tab.active {
+        background: white;
+        border-color: var(--border-color);
+        color: var(--primary-color);
+        font-weight: bold;
+      }
+
+      /* Views */
+      .view-container {
+        display: none; /* Hidden by default */
+        flex: 1;
+        overflow: hidden;
+        flex-direction: column;
+        height: 100%;
+      }
+      .view-container.active {
+        display: flex;
+      }
+
+      /* Data Table */
+      .table-wrapper {
+        padding: 1rem;
+        overflow: auto;
+        height: 100%;
+      }
+      table.data-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.9rem;
+        background: white;
+      }
+      table.data-table th,
+      table.data-table td {
+        border: 1px solid #ddd;
+        padding: 8px 12px;
+        text-align: left;
+      }
+      table.data-table th {
+        background: #f4f4f9;
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        font-weight: 600;
+        color: #555;
+        cursor: pointer;
+        user-select: none;
+      }
+      table.data-table th:hover {
+        background: #e9ecef;
+      }
+      table.data-table tr:hover {
+        background: #f0f7ff;
+        cursor: pointer;
+      }
+
+      /* UID Grid */
+      .uid-grid {
+        padding: 1rem;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 1rem;
+        overflow-y: auto;
+        align-content: start;
+      }
+      .uid-card {
+        background: white;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 1rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+      .uid-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        border-color: var(--primary-color);
+      }
+      .uid-card h4 {
+        margin: 0;
+        color: var(--primary-color);
+        font-family: monospace;
+        font-size: 1.1rem;
+      }
+      .uid-stats {
+        font-size: 0.9rem;
+        color: #666;
+      }
+      .uid-ports {
+        font-size: 0.85rem;
+        color: #888;
+        background: #f8f9fa;
+        padding: 0.5rem;
+        border-radius: 4px;
+        margin-top: 0.5rem;
+      }
     </style>
   </head>
 
   <body>
     <header>
       <h3>Log Viewer</h3>
-      <input
-        type="text"
-        id="apiUrl"
-        placeholder="Worker URL (e.g. https://my-worker.workers.dev)"
-      />
-      <input type="password" id="apiKey" placeholder="Admin Key" />
-      <input
-        type="text"
-        id="searchQuery"
-        placeholder="Search (Port ID, UID)"
-        style="width: 200px"
-      />
-      <button id="btnLoad">Load Logs</button>
+      <div style="display:flex; gap:0.5rem; align-items:center;">
+        <input
+          type="text"
+          id="apiUrl"
+          placeholder="Worker URL (e.g. https://my-worker.workers.dev)"
+        />
+        <input type="password" id="apiKey" placeholder="Admin Key" />
+        <input
+          type="number"
+          id="fetchLimit"
+          placeholder="Limit"
+          value="20"
+          style="width: 70px"
+          min="1"
+          max="1000"
+        />
+        <input
+          type="text"
+          id="searchQuery"
+          placeholder="Search (Port ID, UID)"
+          style="width: 180px"
+        />
+        <button id="btnLoad">Load Logs</button>
+      </div>
     </header>
 
-    <div class="container">
-      <div class="sidebar" id="sidebar">
-        <div class="list-header">
-          <strong>Recent Logs</strong>
-          <button class="secondary" id="btnMore">More (+20)</button>
-        </div>
-        <div id="logList">
-          <!-- Log items will be injected here -->
-        </div>
-      </div>
+    <div class="tabs">
+      <div class="tab active" onclick="switchView('timeline')">Timeline</div>
+      <div class="tab" onclick="switchView('table')">Table View</div>
+      <div class="tab" onclick="switchView('uids')">UID Stats</div>
+    </div>
 
-      <div class="main-content" id="mainContent">
-        <div class="empty-state">Select a log from the sidebar to view details</div>
+    <!-- View: Timeline (Original) -->
+    <div id="view-timeline" class="view-container active">
+      <div class="container">
+        <div class="sidebar" id="sidebar">
+          <div class="list-header">
+            <strong>Recent Logs</strong>
+            <button class="secondary" id="btnMore">More (+20)</button>
+          </div>
+          <div id="logList">
+            <!-- Log items will be injected here -->
+          </div>
+        </div>
+
+        <div class="main-content" id="mainContent">
+          <div class="empty-state">Select a log from the sidebar to view details</div>
+        </div>
       </div>
+    </div>
+
+    <!-- View: Table -->
+    <div id="view-table" class="view-container">
+      <div class="table-wrapper">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th width="140" onclick="sortTable('server_timestamp')">Time</th>
+              <th width="80" onclick="sortTable('version')">Ver</th>
+              <th onclick="sortTable('uid')">UID</th>
+              <th width="100" onclick="sortTable('architecture')">Arch</th>
+              <th width="80" onclick="sortTable('is_supervisor')">Sup</th>
+              <th onclick="sortTable('port_ids')">Port IDs</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+        <div id="tableEmpty" class="empty-state" style="display:none">No logs loaded</div>
+      </div>
+    </div>
+
+    <!-- View: UIDs -->
+    <div id="view-uids" class="view-container">
+      <div class="uid-grid" id="uidGrid">
+        <!-- UID Cards -->
+      </div>
+      <div id="uidEmpty" class="empty-state" style="display:none">No logs loaded</div>
     </div>
 
     <script>
       const elApiUrl = document.getElementById('apiUrl');
       const elApiKey = document.getElementById('apiKey');
+      const elFetchLimit = document.getElementById('fetchLimit');
       const elSearchQuery = document.getElementById('searchQuery');
       const elBtnLoad = document.getElementById('btnLoad');
       const elBtnMore = document.getElementById('btnMore');
       const elLogList = document.getElementById('logList');
       const elMainContent = document.getElementById('mainContent');
 
+      // New Elements
+      const elTableBody = document.getElementById('tableBody');
+      const elUidGrid = document.getElementById('uidGrid');
+
+      // State
       let currentOffset = 0;
-      const LIMIT = 20;
+      let allLogs = []; // Store all fetched logs to share between views
+      let currentView = 'timeline';
+      
+      // Sorting State
+      let sortCol = 'server_timestamp';
+      let sortAsc = false;
 
       // Load settings from local storage
       elApiUrl.value = localStorage.getItem('homenet_log_api_url') || '';
       elApiKey.value = localStorage.getItem('homenet_log_api_key') || '';
       elSearchQuery.value = localStorage.getItem('homenet_log_search_query') || '';
+      elFetchLimit.value = localStorage.getItem('homenet_log_limit') || '20';
 
       // Save settings on input
       elApiUrl.addEventListener('change', () =>
@@ -251,6 +430,9 @@
       elSearchQuery.addEventListener('change', () =>
         localStorage.setItem('homenet_log_search_query', elSearchQuery.value),
       );
+      elFetchLimit.addEventListener('change', () =>
+        localStorage.setItem('homenet_log_limit', elFetchLimit.value),
+      );
 
       // Search on Enter
       elSearchQuery.addEventListener('keydown', (e) => {
@@ -261,16 +443,53 @@
         }
       });
 
+      // Switch View
+      function switchView(viewName) {
+        currentView = viewName;
+
+        // Reset search when entering UID view
+        if (viewName === 'uids') {
+             if (elSearchQuery.value.trim() !== '') {
+                 elSearchQuery.value = ''; // clear input
+                 // Optional: Trigger reload if needed. 
+                 // If we had filtered results, showing them in UID view might be confusing if the user expects "all".
+                 // But simply clearing the input signals "ready for all". 
+                 // For better UX, we could auto-reload if the current list is partial/filtered.
+                 // For now, just clearing as requested. 
+             }
+        }
+
+        // Update Tabs
+        document.querySelectorAll('.tab').forEach((t) => t.classList.remove('active'));
+        const activeTab = Array.from(document.querySelectorAll('.tab')).find((t) =>
+          t.textContent.toLowerCase().includes(viewName === 'uids' ? 'uid' : viewName),
+        );
+        if (activeTab) activeTab.classList.add('active');
+
+        // Update Containers
+        document.querySelectorAll('.view-container').forEach((c) => c.classList.remove('active'));
+        document.getElementById(`view-${viewName}`).classList.add('active');
+
+        // Refresh render if needed
+        if (viewName === 'table') {
+             // Re-sort to maintain order
+             sortTable(sortCol, true); // force re-render
+        }
+        if (viewName === 'uids') renderUidStats(allLogs);
+      }
+
       // Load Button
       elBtnLoad.addEventListener('click', () => {
         elLogList.innerHTML = ''; // clear list
+        allLogs = []; // clear cache
         currentOffset = 0;
         fetchLogs();
       });
 
       // More Button
       elBtnMore.addEventListener('click', () => {
-        currentOffset += LIMIT;
+        const limit = parseInt(elFetchLimit.value) || 20;
+        currentOffset += limit;
         fetchLogs();
       });
 
@@ -278,6 +497,7 @@
         const url = elApiUrl.value;
         const key = elApiKey.value;
         const search = elSearchQuery.value.trim();
+        const limit = parseInt(elFetchLimit.value) || 20;
 
         if (!url || !key) {
           alert('Please enter API URL and Admin Key');
@@ -286,9 +506,10 @@
 
         try {
           elBtnLoad.disabled = true;
+          elBtnLoad.textContent = 'Loading...';
           elBtnMore.textContent = 'Loading...';
 
-          let fetchUrl = `${url}?limit=${LIMIT}&offset=${currentOffset}`;
+          let fetchUrl = `${url}?limit=${limit}&offset=${currentOffset}`;
           if (search) {
             fetchUrl += `&search=${encodeURIComponent(search)}`;
           }
@@ -301,18 +522,36 @@
             throw new Error(await res.text());
           }
 
-          const data = await res.json();
-          renderList(data);
+          const newLogs = await res.json();
+          
+          if (currentOffset === 0) {
+              allLogs = newLogs;
+          } else {
+              // Deduplicate just in case
+              const existingIds = new Set(allLogs.map(l=>l.id));
+              const filtered = newLogs.filter(l => !existingIds.has(l.id));
+              allLogs = [...allLogs, ...filtered];
+          }
+
+          // Render all views based on current state
+          renderList(newLogs, currentOffset === 0); // Append to sidebar
+          if (currentView === 'table') renderTable(allLogs);
+          if (currentView === 'uids') renderUidStats(allLogs);
+
         } catch (err) {
           alert('Error fetching logs: ' + err.message);
         } finally {
           elBtnLoad.disabled = false;
-          elBtnMore.textContent = `More (+${LIMIT})`;
+          elBtnLoad.textContent = 'Load Logs';
+          elBtnMore.textContent = `More (+${limit})`;
+          elBtnMore.disabled = false;
         }
       }
 
-      function renderList(logs) {
-        if (logs.length === 0 && currentOffset === 0) {
+      function renderList(logs, isReset) {
+        if (isReset) elLogList.innerHTML = '';
+        
+        if (logs.length === 0 && allLogs.length === 0) {
           elLogList.innerHTML =
             '<div style="padding:1rem; text-align:center; color:#888;">No logs found</div>';
           return;
@@ -320,23 +559,7 @@
 
         logs.forEach((log) => {
           // Use port_ids directly
-          let portInfo = log.port_ids || '';
-
-          // Fallback for older logs if needed (optional)
-          if (!portInfo && log.configs) {
-            try {
-              let configs = log.configs;
-              if (typeof configs === 'string') configs = JSON.parse(configs);
-              if (Array.isArray(configs)) {
-                portInfo = configs
-                  .map((c) => c.portId)
-                  .filter(Boolean)
-                  .join(', ');
-              }
-            } catch (e) {
-              /* ignore */
-            }
-          }
+          let portInfo = getPortInfo(log);
 
           const date = new Date(log.server_timestamp).toLocaleString('ko-KR');
           const item = document.createElement('div');
@@ -439,6 +662,162 @@
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
       };
+
+      // --- New Render Functions ---
+
+      function sortTable(col, forceRender = false) {
+          if (sortCol === col && !forceRender) {
+              sortAsc = !sortAsc;
+          } else {
+              sortCol = col;
+              // default desc for time, asc for others? let's stick to toggle
+              if (!forceRender) sortAsc = true; 
+          }
+
+          // Sort
+          allLogs.sort((a, b) => {
+              let valA = a[col];
+              let valB = b[col];
+
+              if (col === 'port_ids') {
+                  valA = getPortInfo(a);
+                  valB = getPortInfo(b);
+              }
+              if (col === 'server_timestamp') {
+                  valA = new Date(valA).getTime();
+                  valB = new Date(valB).getTime();
+              }
+
+              if (valA < valB) return sortAsc ? -1 : 1;
+              if (valA > valB) return sortAsc ? 1 : -1;
+              return 0;
+          });
+
+          // Update header arrows
+          document.querySelectorAll('table.data-table th').forEach(th => {
+              let text = th.textContent.replace(/[▲▼]/g, ' ').trim();
+              if (th.getAttribute('onclick')?.includes(`'${sortCol}'`)) {
+                  th.textContent = `${text} ${sortAsc ? '▲' : '▼'}`;
+              } else {
+                  th.textContent = text;
+              }
+          });
+
+          renderTable(allLogs);
+      }
+      
+      function getPortInfo(log) {
+          if (log.port_ids) return log.port_ids;
+          if (log.configs) {
+            try {
+              let configs = log.configs;
+              if (typeof configs === 'string') configs = JSON.parse(configs);
+              if (Array.isArray(configs)) {
+                return configs.map((c) => c.portId).filter(Boolean).join(', ');
+              }
+            } catch (e) {}
+          }
+          return '';
+      }
+
+      function renderTable(logs) {
+         elTableBody.innerHTML = '';
+         if (logs.length === 0) {
+             document.getElementById('tableEmpty').style.display = 'flex';
+             return;
+         }
+         document.getElementById('tableEmpty').style.display = 'none';
+
+         logs.forEach(log => {
+             const tr = document.createElement('tr');
+             
+             const date = new Date(log.server_timestamp).toLocaleString('ko-KR');
+             const uid = log.uid || 'N/A';
+             const version = log.version || '-';
+             const arch = log.architecture || '-';
+             const isSup = log.is_supervisor ? 'Yes' : 'No';
+             const ports = getPortInfo(log);
+
+             tr.innerHTML = `
+                <td>${date}</td>
+                <td>${escapeHtml(version)}</td>
+                <td style="font-family:monospace">${escapeHtml(uid)}</td>
+                <td>${escapeHtml(arch)}</td>
+                <td>${isSup}</td>
+                <td style="font-family:monospace; font-size:0.8rem">${escapeHtml(ports)}</td>
+             `;
+             tr.onclick = () => {
+                 // Switch to timeline and load detail
+                 switchView('timeline');
+                 // Find if item is in list, if not we might need to fetch or just show detail
+                 // For now, since we share 'allLogs', it's likely in the list or we can just load detail directly.
+                 // We need to highlight it in the list if it exists.
+                 const listItem = Array.from(document.querySelectorAll('.log-item')).find(el => el.innerHTML.includes(log.id.substring(0,8))); // rough match
+                 loadDetail(log.id, listItem);
+             };
+             elTableBody.appendChild(tr);
+         });
+      }
+
+      function renderUidStats(logs) {
+          elUidGrid.innerHTML = '';
+           if (logs.length === 0) {
+             document.getElementById('uidEmpty').style.display = 'flex';
+             return;
+         }
+         document.getElementById('uidEmpty').style.display = 'none';
+
+         // Aggregate
+         const map = new Map(); // uid -> { count, portIds: Set, latestLog }
+         
+         logs.forEach(log => {
+             const uid = log.uid || 'Unknown';
+             if (!map.has(uid)) {
+                 map.set(uid, { count: 0, portIds: new Set(), latestLog: log });
+             }
+             const entry = map.get(uid);
+             entry.count++;
+             
+             const ports = getPortInfo(log);
+             if (ports) {
+                 ports.split(',').forEach(p => entry.portIds.add(p.trim()));
+             }
+             if (new Date(log.server_timestamp) > new Date(entry.latestLog.server_timestamp)) {
+                 entry.latestLog = log;
+             }
+         });
+
+         // Render
+         map.forEach((stats, uid) => {
+             const card = document.createElement('div');
+             card.className = 'uid-card';
+             
+             const portsArr = Array.from(stats.portIds).sort();
+             const portsStr = portsArr.length > 0 ? portsArr.join(', ') : 'No Ports';
+             
+             card.innerHTML = `
+                <h4>${escapeHtml(uid)}</h4>
+                <div class="uid-stats">
+                    Count: <strong>${stats.count}</strong><br>
+                    Latest: ${new Date(stats.latestLog.server_timestamp).toLocaleDateString()}
+                </div>
+                <div class="uid-ports">
+                    ${escapeHtml(portsStr)}
+                </div>
+             `;
+             
+             card.onclick = () => {
+                 // Filter by this UID
+                 elSearchQuery.value = uid;
+                 // Trigger load
+                 elBtnLoad.click();
+                 // Switch to timeline
+                 switchView('timeline');
+             };
+             
+             elUidGrid.appendChild(card);
+         });
+      }
     </script>
   </body>
 </html>
