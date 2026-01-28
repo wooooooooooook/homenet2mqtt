@@ -139,6 +139,15 @@ export function normalizeConfig(config: HomenetBridgeConfig) {
           (entity as any).unique_id = trimmedUniqueId;
         }
 
+        // State Proxy default: internal = true
+        if ((entity as any).state_proxy === true && (entity as any).internal === undefined) {
+          (entity as any).internal = true;
+          logger.trace(
+            { entity: idValue },
+            '[config] Set default "internal: true" for state_proxy entity',
+          );
+        }
+
         const candidateUniqueId = (entity as any).unique_id;
         if (typeof candidateUniqueId === 'string' && candidateUniqueId.trim().length > 0) {
           let uniqueCandidate = candidateUniqueId;
@@ -342,6 +351,35 @@ export function validateConfig(
 
       if (!('id' in entity) || typeof entity.id !== 'string' || !entity.id.trim()) {
         errors.push(`${String(type)}[${index}]에 유효한 id(문자열)가 필요합니다.`);
+      }
+
+      if ((entity as any).state_proxy === true) {
+        if (!(entity as any).target_id) {
+          errors.push(
+            `${String(type)}[${index}] (${
+              (entity as any).id
+            }): state_proxy: true 인 경우 target_id가 필수입니다.`,
+          );
+        } else {
+          const targetId = (entity as any).target_id;
+          const targetConfig = entities.find((e) => (e as any).id === targetId);
+          if (!targetConfig) {
+            errors.push(
+              `${String(type)}[${index}] (${
+                (entity as any).id
+              }): target_id "${targetId}"에 해당하는 ${String(type)} 엔티티를 찾을 수 없습니다.`,
+            );
+          }
+        }
+
+        const hasCommand = Object.keys(entity).some((key) => key.startsWith('command_'));
+        if (hasCommand) {
+          errors.push(
+            `${String(type)}[${index}] (${
+              (entity as any).id
+            }): state_proxy 엔티티는 command_* 속성을 가질 수 없습니다.`,
+          );
+        }
       }
     });
   });

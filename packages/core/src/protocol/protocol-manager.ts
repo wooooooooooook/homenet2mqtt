@@ -236,15 +236,26 @@ export class ProtocolManager extends EventEmitter {
       }
       if (stateUpdates) {
         matchedAny = true;
+        
+        let targetDeviceId = device.getId();
+        if (device.config.state_proxy && device.config.target_id) {
+            targetDeviceId = device.config.target_id;
+             if (isDebug) {
+                logger.debug(
+                  `[ProtocolManager] Proxying state from ${device.getId()} to ${targetDeviceId}`
+                );
+             }
+        }
+
         if (isDebug) {
           const stateStr = JSON.stringify(stateUpdates).replace(/["{}]/g, '').replace(/,/g, ', ');
           logger.debug(
-            `[ProtocolManager] ${device.getId()} (${device.getName()}): ${packetHex} → {${stateStr}}`,
+            `[ProtocolManager] ${targetDeviceId} (${device.getName()}): ${packetHex} → {${stateStr}}`,
           );
         }
-        this.emit('state', { deviceId: device.getId(), state: stateUpdates });
+        this.emit('state', { deviceId: targetDeviceId, state: stateUpdates });
         this.emit('parsed-packet', {
-          deviceId: device.getId(),
+          deviceId: targetDeviceId,
           packet,
           state: stateUpdates,
         });

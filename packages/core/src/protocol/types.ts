@@ -214,6 +214,8 @@ export interface DeviceConfig {
   // Add other common device properties here
   state?: StateSchema;
   optimistic?: boolean;
+  state_proxy?: boolean;
+  target_id?: string;
 }
 
 /**

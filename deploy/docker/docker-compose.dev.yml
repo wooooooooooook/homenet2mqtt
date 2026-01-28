@@ -43,9 +43,6 @@ services:
       - homeassistant_config:/config
     environment:
       - TZ=UTC
-    depends_on:
-      mq:
-        condition: service_started
     restart: unless-stopped
 
   simulator:
@@ -74,9 +71,6 @@ services:
         pnpm --filter @rs485-homenet/simulator build
         node scripts/run-simulator.mjs
       "
-    depends_on:
-      mq:
-        condition: service_started
     restart: unless-stopped
 
   app:
@@ -117,11 +111,6 @@ services:
         pnpm --filter @rs485-homenet/core dev | pnpm pino-pretty &
         pnpm --filter @rs485-homenet/service dev | pnpm pino-pretty
       "
-    depends_on:
-      simulator:
-        condition: service_started
-      mq:
-        condition: service_started
     restart: unless-stopped
 
   ui:

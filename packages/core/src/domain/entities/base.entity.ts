@@ -37,4 +37,15 @@ export interface EntityConfig {
   discovery_linked_id?: string;
   optimistic?: boolean;
   internal?: boolean;
+
+  /**
+   * If true, this entity only parses state and updates the 'target_id' entity.
+   * It will not be discovered or emit its own state updates.
+   * Default internal: true.
+   */
+  state_proxy?: boolean;
+  /**
+   * Required if state_proxy is true. The ID of the entity to receive state updates.
+   */
+  target_id?: string;
 }

@@ -1,3 +1,8 @@
+v2.2.0
+- [상태 프록시 (`state_proxy`) 도입](https://github.com/wooooooooooook/RS485-HomeNet-to-MQTT-bridge/blob/main/docs/config-schema/common-entity-options.md#)
+  - 서로 다른 종류의 패킷이나 여러 소스로부터 하나의 엔티티 상태를 업데이트해야 할 때 사용합니다. 이 옵션을 사용하면 해당 엔티티는 자신의 상태를 갖지 않고, 파싱된 결과를 지정된 `target_id` 엔티티로 전달합니다.
+
+
 v2.1.0
 - feat: 기본 yaml 편집기로 monaco(vs-code 경험) 도입
 - feat: 대시보드에 항목추가기능 - 대시보드에서 엔티티, 자동화, 스크립트를 추가할 수 있습니다. (yaml입력)

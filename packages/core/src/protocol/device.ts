@@ -11,7 +11,7 @@ import { extractFromSchema } from './schema-utils.js';
 import type { EntityErrorEvent, EntityErrorType } from '../service/event-bus.js';
 
 export abstract class Device {
-  protected config: DeviceConfig;
+  public config: DeviceConfig;
   protected protocolConfig: ProtocolConfig;
   protected state: Record<string, any> = {};
   private errorReporter?: (payload: EntityErrorEvent) => void;
