@@ -17,3 +17,7 @@
 ## 2025-05-23 - Use tsc to Find Unused Code
 **Observation:** Since `tsconfig.json` disables `noUnusedLocals`, many unused imports accumulate.
 **Action:** Run `pnpm exec tsc --noEmit --noUnusedLocals --noUnusedParameters` to uncover them. Note that `_decodeValue` in `command.generator.ts` is intentionally unused (deprecated but preserved).
+
+## 2025-05-23 - Global Linting Enabled
+**Observation:** The `lint` script in `package.json` was restricted to `service` and its dependencies, excluding `simulator` and `ui`.
+**Action:** Updated `package.json` to use `turbo lint` without filters, ensuring all packages are linted in the standard workflow. This resolves the previous observation "Simulator Excluded from Root Lint".
