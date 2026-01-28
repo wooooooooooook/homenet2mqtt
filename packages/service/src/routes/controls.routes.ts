@@ -146,8 +146,16 @@ export function createControlsRoutes(ctx: ControlsRoutesContext): Router {
 
           // Select entity
           if (entityType === 'select' && key === 'command_option') {
-            cmdInfo.inputType = 'text';
-            cmdInfo.options = (entity.options as string[]) ?? [];
+            const options = (entity.options as string[]) ?? [];
+            cmdInfo.options = options;
+            cmdInfo.inputType = options.length > 0 ? 'select' : 'text';
+          }
+
+          // Fan preset mode command supports xstr input, optionally with preset modes
+          if (key === 'command_preset_mode') {
+            const options = (entity.preset_modes as string[]) ?? [];
+            cmdInfo.options = options;
+            cmdInfo.inputType = options.length > 0 ? 'select' : 'text';
           }
 
           // Text entity
