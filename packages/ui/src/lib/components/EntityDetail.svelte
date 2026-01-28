@@ -345,6 +345,10 @@
       entity.commands.forEach((cmd: CommandInfo) => {
         if (cmd.inputType === 'number') {
           commandInputs[`${cmd.entityId}_${cmd.commandName}`] = cmd.min ?? 0;
+        } else if (cmd.inputType === 'select') {
+          commandInputs[`${cmd.entityId}_${cmd.commandName}`] = cmd.options?.[0] ?? '';
+        } else if (cmd.inputType === 'text') {
+          commandInputs[`${cmd.entityId}_${cmd.commandName}`] = '';
         }
       });
     }
@@ -817,6 +821,53 @@
                           min={cmd.min}
                           max={cmd.max}
                           step={cmd.step}
+                          bind:value={commandInputs[`${cmd.entityId}_${cmd.commandName}`]}
+                        />
+                        <Button
+                          variant="primary"
+                          onclick={() =>
+                            handleExecute(cmd, commandInputs[`${cmd.entityId}_${cmd.commandName}`])}
+                          isLoading={executingCommands.has(`${cmd.entityId}-${cmd.commandName}`)}
+                          ariaLabel={$t('entity_detail.status.send_aria', {
+                            values: { command: cmd.displayName },
+                          })}
+                        >
+                          {$t('entity_detail.status.send')}
+                        </Button>
+                      </div>
+                    {:else if cmd.inputType === 'select'}
+                      <div class="input-group">
+                        <label for={`cmd-${cmd.entityId}-${cmd.commandName}`}
+                          >{cmd.commandName.replace('command_', '')}</label
+                        >
+                        <select
+                          id={`cmd-${cmd.entityId}-${cmd.commandName}`}
+                          bind:value={commandInputs[`${cmd.entityId}_${cmd.commandName}`]}
+                        >
+                          {#each cmd.options ?? [] as option}
+                            <option value={option}>{option}</option>
+                          {/each}
+                        </select>
+                        <Button
+                          variant="primary"
+                          onclick={() =>
+                            handleExecute(cmd, commandInputs[`${cmd.entityId}_${cmd.commandName}`])}
+                          isLoading={executingCommands.has(`${cmd.entityId}-${cmd.commandName}`)}
+                          ariaLabel={$t('entity_detail.status.send_aria', {
+                            values: { command: cmd.displayName },
+                          })}
+                        >
+                          {$t('entity_detail.status.send')}
+                        </Button>
+                      </div>
+                    {:else if cmd.inputType === 'text'}
+                      <div class="input-group">
+                        <label for={`cmd-${cmd.entityId}-${cmd.commandName}`}
+                          >{cmd.commandName.replace('command_', '')}</label
+                        >
+                        <input
+                          id={`cmd-${cmd.entityId}-${cmd.commandName}`}
+                          type="text"
                           bind:value={commandInputs[`${cmd.entityId}_${cmd.commandName}`]}
                         />
                         <Button
@@ -1379,7 +1430,22 @@
     font-size: 0.9rem;
   }
 
+  .input-group select {
+    background: #1e293b;
+    border: 1px solid #475569;
+    color: #fff;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    min-width: 140px;
+    font-size: 0.9rem;
+  }
+
   .input-group input:focus {
+    outline: none;
+    border-color: #38bdf8;
+  }
+
+  .input-group select:focus {
     outline: none;
     border-color: #38bdf8;
   }
