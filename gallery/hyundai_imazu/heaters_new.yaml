@@ -3,9 +3,10 @@ meta:
   name_en: "Heaters"
   description: "현대 이마주 난방 설정입니다. 난방 개수를 설정할 수 있습니다. 외출 모드를 지원합니다."
   description_en: "Hyundai Imazu heating configuration with count parameter. Supports away mode."
-  version: "2.0.1"
+  version: "2.1.0"
   author: "wooooooooooook"
   tags: ["climate", "heater", "thermostat", "hyundai", "imazu"]
+  min_version: "2.2.0"
 
 parameters:
   - name: heater_count
@@ -29,11 +30,6 @@ entities:
         start: 1
       id: 'heater_{{i}}'
       name: 'Heater {{i}}'
-      # 다 0x1X라서 Room 1로 가정? 아니면 Room ID 개념이 없나?
-      # 원본 heaters.yaml: "Room 1 Heater 1" (0x10), "Room 1 Heater 2" (0x11)
-      # 0x1X가 방 번호라기 보단 그냥 난방기 Index인 듯. (0x10 ~ 0x14)
-      # 하지만 lights는 (Room<<4)|Index 였음. Heaters도 Room 개념이 있을수 있음.
-      # 여기서는 heater_count로 순차적 생성. (0x10 + i - 1)
       visual:
         min_temperature: 5 °C
         max_temperature: 40 °C
@@ -77,3 +73,51 @@ entities:
         ack: [0x0D, 0x01, 0x18, 0x04, 0x46, '{{0x10 + i - 1}}', 0x01, 0x01]
       command_temperature: >-
         [[0x0B, 0x01, 0x18, 0x02, 0x45, '{{0x10 + i - 1}}', x, 0x00],[0x0D, 0x01, 0x18, 0x04, 0x45, '{{0x10 + i - 1}}', x, 0x01]]
+
+    # State Proxies for Periodic Updates
+    - $repeat:
+        count: '{{heater_count}}'
+        as: i
+        start: 1
+      name: 'Heater {{i}} Proxy'
+      state_proxy: true
+      target_id: 'heater_{{i}}'
+      state:
+        # Full state response packet
+        # F7 22 01 18 04 46 10 00 [H1_Stat] [H1_Cur] [H1_Tar] ...
+        data: [0x00, 0x01, 0x18, 0x04, 0x46, 0x10, 0x00]
+        mask: [0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff]
+      
+      # Offsets calculation:
+      # H1: 9, 10, 11
+      # H2: 12, 13, 14
+      # Gap = 3. 
+      # Base = 9 + (i-1)*3
+      
+      state_heat:
+        offset: '{{9 + (i-1)*3}}'
+        data: [0x01]
+      state_off:
+        offset: '{{9 + (i-1)*3}}'
+        data: [0x04]
+      state_temperature_current:
+        offset: '{{10 + (i-1)*3}}'
+        length: 1
+        precision: 0
+      state_temperature_target:
+        offset: '{{11 + (i-1)*3}}'
+        length: 1
+        precision: 0
+
+automation:
+  - id: 'request_heaters_state'
+    trigger:
+      - type: schedule
+        every: 15m
+    then:
+      - action: send_packet
+        # Request all heaters state
+        data: [0x0B, 0x01, 0x18, 0x01, 0x46, 0x10, 0x00, 0x00]
+        header: true
+        footer: true
+        checksum: true

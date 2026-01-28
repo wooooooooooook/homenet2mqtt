@@ -3,9 +3,10 @@ meta:
   name_en: "Lights"
   description: "현대 이마주 조명 설정입니다. 방 개수와 방별 조명 개수를 설정할 수 있습니다."
   description_en: "Hyundai Imazu lights configuration. You can configure room count and lights per room."
-  version: "2.0.0"
+  version: "2.1.0"
   author: "wooooooooooook"
   tags: ["light", "hyundai", "imazu"]
+  min_version: "2.2.0"
 
 parameters:
   - name: rooms
@@ -63,3 +64,42 @@ entities:
         command_off:
           data: [0x0b, 0x01, 0x19, 0x02, 0x40, '{{bitOr(bitShiftLeft(room.room_id, 4), light_num)}}', 0x02, 0x00]
           ack: [0x0b, 0x01, 0x19, 0x04, 0x40, '{{bitOr(bitShiftLeft(room.room_id, 4), light_num)}}', 0x02, 0x02]
+
+    # State Proxies for Periodic Updates
+    - $repeat:
+        over: rooms
+        as: room
+      $nested:
+        $repeat:
+          count: '{{room.light_count}}'
+          as: light_num
+          start: 1
+        name: 'Room {{room.room_id}} Light {{light_num}} Proxy'
+        state_proxy: true
+        target_id: 'room_{{room.room_id}}_light_{{light_num}}'
+        state:
+          # Room state packet: [0x00, 0x01, 0x19, 0x04, 0x40, (room_id << 4)]
+          data: [0x00, 0x01, 0x19, 0x04, 0x40, '{{bitShiftLeft(room.room_id, 4)}}']
+          mask: [0x00, 0xff, 0xff, 0xff, 0xff, 0xf0] # Match room ID part (upper nibble)
+        state_on:
+          offset: '{{8 + light_num}}'
+          data: [0x01]
+        state_off:
+          offset: '{{8 + light_num}}'
+          data: [0x02]
+
+automation:
+  - $repeat:
+      over: rooms
+      as: room
+    id: 'request_room_{{room.room_id}}_state'
+    trigger:
+      - type: schedule
+        every: 1m
+    then:
+      - action: send_packet
+        # Request packet: [0x0B, 0x01, 0x19, 0x01, 0x40, (room_id << 4), 0x00, 0x00]
+        data: [0x0B, 0x01, 0x19, 0x01, 0x40, '{{bitShiftLeft(room.room_id, 4)}}', 0x00, 0x00]
+        header: true
+        footer: true
+        checksum: true
