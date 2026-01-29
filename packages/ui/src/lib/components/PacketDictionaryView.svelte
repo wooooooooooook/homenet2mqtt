@@ -74,19 +74,48 @@
   let copiedPacket = $state<string | null>(null);
   let copyTimeout: ReturnType<typeof setTimeout>;
 
-  function copyPacket(packet: string) {
-    navigator.clipboard.writeText(packet);
-    copiedPacket = packet;
+  async function copyToClipboard(text: string): Promise<boolean> {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+      throw new Error('Clipboard API unavailable');
+    } catch (err) {
+      try {
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.top = '0';
+        textArea.style.left = '0';
+        textArea.style.position = 'fixed';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        const successful = document.execCommand('copy');
+        document.body.removeChild(textArea);
+        return successful;
+      } catch (fallbackErr) {
+        console.error('Failed to copy', err, fallbackErr);
+        return false;
+      }
+    }
+  }
 
-    if (copyTimeout) clearTimeout(copyTimeout);
-    copyTimeout = setTimeout(() => {
-      copiedPacket = null;
-    }, 2000);
+  async function copyPacket(packet: string) {
+    const success = await copyToClipboard(packet);
+    if (success) {
+      copiedPacket = packet;
+
+      if (copyTimeout) clearTimeout(copyTimeout);
+      copyTimeout = setTimeout(() => {
+        copiedPacket = null;
+      }, 2000);
+    }
   }
 
   let copySuccess = $state(false);
 
-  function copyAllPackets() {
+  async function copyAllPackets() {
     if (!data) return;
 
     const lines: string[] = [];
@@ -108,11 +137,13 @@
       lines.push(`${badge} ${hexFormatted}${entityInfo}`);
     }
 
-    navigator.clipboard.writeText(lines.join('\n'));
-    copySuccess = true;
-    setTimeout(() => {
-      copySuccess = false;
-    }, 2000);
+    const success = await copyToClipboard(lines.join('\n'));
+    if (success) {
+      copySuccess = true;
+      setTimeout(() => {
+        copySuccess = false;
+      }, 2000);
+    }
   }
 </script>
 
