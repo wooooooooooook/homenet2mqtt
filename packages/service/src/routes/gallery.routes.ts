@@ -9,6 +9,7 @@ import yaml from 'js-yaml';
 import { HomenetBridgeConfig, logger, normalizeConfig, normalizePortId } from '@rs485-homenet/core';
 import { dumpConfigToYaml } from '../utils/yaml-dumper.js';
 import { expandGalleryTemplate, type GallerySnippet } from '../utils/gallery-template.js';
+import { buildEntitySignature } from '../utils/gallery-matching.js';
 import {
   validateGalleryAutomationIds,
   validateGalleryEntityIds,
@@ -471,6 +472,14 @@ export function createGalleryRoutes(ctx: GalleryRoutesContext): Router {
         existingYaml: string;
         newYaml: string;
       }> = [];
+      const matches: Array<{
+        type: 'entity';
+        entityType?: string;
+        id: string;
+        matchedId: string;
+        existingYaml: string;
+        newYaml: string;
+      }> = [];
       const newItems: Array<{
         type: 'entity' | 'automation' | 'script';
         entityType?: string;
@@ -486,6 +495,21 @@ export function createGalleryRoutes(ctx: GalleryRoutesContext): Router {
           if (!ENTITY_TYPE_KEYS.includes(typeKey)) continue;
 
           const existingList = (currentConfig[typeKey] as unknown[]) || [];
+          const existingSignatureMap = new Map<
+            string,
+            { id: string; entity: Record<string, unknown> }
+          >();
+
+          for (const existing of existingList) {
+            if (!existing || typeof existing !== 'object') continue;
+            const existingObj = existing as Record<string, unknown>;
+            const existingId = existingObj.id;
+            if (typeof existingId !== 'string' || existingId.trim().length === 0) continue;
+            const signature = buildEntitySignature(entityType, existingObj);
+            if (signature && !existingSignatureMap.has(signature)) {
+              existingSignatureMap.set(signature, { id: existingId, entity: existingObj });
+            }
+          }
 
           for (const entity of entities) {
             if (!entity || typeof entity !== 'object') continue;
@@ -506,11 +530,25 @@ export function createGalleryRoutes(ctx: GalleryRoutesContext): Router {
                 newYaml: dumpConfigToYaml(entityObj),
               });
             } else {
-              newItems.push({
-                type: 'entity',
-                entityType,
-                id: entityId,
-              });
+              const signature = buildEntitySignature(entityType, entityObj);
+              const matched = signature ? existingSignatureMap.get(signature) : undefined;
+
+              if (matched && matched.id !== entityId) {
+                matches.push({
+                  type: 'entity',
+                  entityType,
+                  id: entityId,
+                  matchedId: matched.id,
+                  existingYaml: dumpConfigToYaml(matched.entity),
+                  newYaml: dumpConfigToYaml(entityObj),
+                });
+              } else {
+                newItems.push({
+                  type: 'entity',
+                  entityType,
+                  id: entityId,
+                });
+              }
             }
           }
         }
@@ -671,7 +709,7 @@ export function createGalleryRoutes(ctx: GalleryRoutesContext): Router {
         }
       }
 
-      res.json({ conflicts, newItems, compatibility });
+      res.json({ conflicts, matches, newItems, compatibility });
     } catch (error) {
       logger.error({ err: error }, '[gallery] Failed to check conflicts');
       res.status(500).json({ error: error instanceof Error ? error.message : 'Check failed' });
@@ -806,18 +844,32 @@ export function createGalleryRoutes(ctx: GalleryRoutesContext): Router {
 
             if (!entityId) continue;
 
+            const resolution = resolutions?.[entityId] || 'overwrite';
+            const renameTarget = renames?.[entityId];
+
+            if (resolution === 'skip') {
+              skippedEntities++;
+              logger.info(`[gallery] Skipped entity: ${entityId}`);
+              continue;
+            }
+
             // Check for existing entity with same ID
-            const existingIndex = targetList.findIndex((e: any) => e.id === entityId);
+            let existingIndex = targetList.findIndex((e: any) => e.id === entityId);
+
+            if (existingIndex === -1 && resolution === 'overwrite' && renameTarget) {
+              existingIndex = targetList.findIndex((e: any) => e.id === renameTarget);
+              if (existingIndex !== -1) {
+                entityObj.id = renameTarget;
+              } else {
+                logger.warn(
+                  `[gallery] Requested overwrite target ${renameTarget} not found for ${entityId}`,
+                );
+              }
+            }
 
             if (existingIndex !== -1) {
               // Conflict exists - check resolution
-              const resolution = resolutions?.[entityId] || 'overwrite';
-
-              if (resolution === 'skip') {
-                skippedEntities++;
-                logger.info(`[gallery] Skipped entity: ${entityId}`);
-                continue;
-              } else if (resolution === 'rename') {
+              if (resolution === 'rename') {
                 const newId = renames?.[entityId];
                 if (!newId) {
                   logger.warn(`[gallery] Rename requested but no new ID provided for ${entityId}`);
@@ -838,7 +890,9 @@ export function createGalleryRoutes(ctx: GalleryRoutesContext): Router {
                 // overwrite
                 targetList[existingIndex] = entityObj;
                 updatedEntities++;
-                logger.info(`[gallery] Updated existing entity: ${entityId}`);
+                logger.info(
+                  `[gallery] Updated existing entity: ${(entityObj.id as string | undefined) ?? entityId}`,
+                );
               }
             } else {
               targetList.push(entityObj);

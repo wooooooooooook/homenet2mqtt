@@ -8,6 +8,7 @@
   import type {
     GalleryDiscoveryResult,
     GalleryItemForPreview,
+    GalleryMatch,
     GalleryParameterDefinition,
     GallerySchemaField,
     GalleryVendorRequirements,
@@ -31,6 +32,8 @@
     entityType?: string;
     id: string;
   }
+
+  type MatchAction = 'overwrite' | 'add' | 'skip';
 
   const GALLERY_FILE_API = './api/gallery/file';
 
@@ -64,10 +67,12 @@
   // Conflict detection states
   let checkingConflicts = $state(false);
   let conflicts = $state<Conflict[]>([]);
+  let matches = $state<GalleryMatch[]>([]);
   let newItems = $state<NewItem[]>([]);
   let showConflictModal = $state(false);
   let resolutions = $state<Record<string, 'overwrite' | 'skip' | 'rename'>>({});
   let renames = $state<Record<string, string>>({});
+  let matchActions = $state<Record<string, MatchAction>>({});
   let expandedDiffs = $state<Set<string>>(new Set());
 
   // Compatibility check states
@@ -383,8 +388,12 @@
 
       const data = await response.json();
       conflicts = data.conflicts || [];
+      matches = data.matches || [];
       newItems = data.newItems || [];
       compatibility = data.compatibility || null;
+      resolutions = {};
+      renames = {};
+      matchActions = {};
 
       // If incompatible and force not checked, show warning and don't proceed
       if (compatibility && !compatibility.compatible && !forceApply) {
@@ -397,6 +406,13 @@
           resolutions = defaultResolutions;
           renames = {};
         }
+        if (matches.length > 0) {
+          const defaultMatchActions: Record<string, MatchAction> = {};
+          for (const match of matches) {
+            defaultMatchActions[match.id] = 'overwrite';
+          }
+          matchActions = defaultMatchActions;
+        }
         showConflictModal = true;
       } else if (conflicts.length > 0) {
         // Initialize resolutions to overwrite by default
@@ -406,6 +422,22 @@
         }
         resolutions = defaultResolutions;
         renames = {};
+        if (matches.length > 0) {
+          const defaultMatchActions: Record<string, MatchAction> = {};
+          for (const match of matches) {
+            defaultMatchActions[match.id] = 'overwrite';
+          }
+          matchActions = defaultMatchActions;
+        }
+        showConflictModal = true;
+      } else if (matches.length > 0 || (compatibility && !compatibility.compatible)) {
+        if (matches.length > 0) {
+          const defaultMatchActions: Record<string, MatchAction> = {};
+          for (const match of matches) {
+            defaultMatchActions[match.id] = 'overwrite';
+          }
+          matchActions = defaultMatchActions;
+        }
         showConflictModal = true;
       } else {
         // No conflicts and compatible, apply directly
@@ -424,12 +456,12 @@
     showConflictModal = false;
   }
 
-  function toggleDiff(id: string) {
+  function toggleDiff(key: string) {
     const newSet = new Set(expandedDiffs);
-    if (newSet.has(id)) {
-      newSet.delete(id);
+    if (newSet.has(key)) {
+      newSet.delete(key);
     } else {
-      newSet.add(id);
+      newSet.add(key);
     }
     expandedDiffs = newSet;
   }
@@ -449,6 +481,7 @@
 
     try {
       const parameterValues = buildParameterValues();
+      const { payloadResolutions, payloadRenames } = buildResolutionPayload();
       const response = await fetch('./api/gallery/apply', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -456,8 +489,8 @@
           portId,
           yamlContent,
           fileName: item.file,
-          resolutions: Object.keys(resolutions).length > 0 ? resolutions : undefined,
-          renames: Object.keys(renames).length > 0 ? renames : undefined,
+          resolutions: Object.keys(payloadResolutions).length > 0 ? payloadResolutions : undefined,
+          renames: Object.keys(payloadRenames).length > 0 ? payloadRenames : undefined,
           parameterValues,
         }),
       });
@@ -478,6 +511,30 @@
     } finally {
       applying = false;
     }
+  }
+
+  function buildResolutionPayload() {
+    const payloadResolutions: Record<string, 'overwrite' | 'skip' | 'rename'> = {
+      ...resolutions,
+    };
+    const payloadRenames: Record<string, string> = { ...renames };
+
+    for (const match of matches) {
+      const action = matchActions[match.id] || 'overwrite';
+
+      if (action === 'overwrite') {
+        payloadResolutions[match.id] = 'overwrite';
+        payloadRenames[match.id] = match.matchedId;
+      } else if (action === 'skip') {
+        payloadResolutions[match.id] = 'skip';
+        delete payloadRenames[match.id];
+      } else {
+        delete payloadResolutions[match.id];
+        delete payloadRenames[match.id];
+      }
+    }
+
+    return { payloadResolutions, payloadRenames };
   }
 </script>
 
@@ -757,6 +814,78 @@
       </div>
     {/if}
 
+    {#if matches.length > 0}
+      <h3>{$t('gallery.preview.match_detected')}</h3>
+      <p class="conflict-desc">
+        {$t('gallery.preview.matches_found', { values: { count: matches.length } })}
+      </p>
+
+      <div class="conflict-list">
+        {#each matches as match, index (`${match.id}-${index}`)}
+          <div class="conflict-item">
+            <div class="conflict-header">
+              <span class="conflict-id">
+                ID: <strong>{match.id}</strong>
+              </span>
+              <span class="match-id">
+                {$t('gallery.preview.match_target', { values: { id: match.matchedId } })}
+              </span>
+              <button class="toggle-diff-btn" onclick={() => toggleDiff(`match-${match.id}`)}>
+                {expandedDiffs.has(`match-${match.id}`) ? '▲' : '▼'}
+                {$t('gallery.preview.diff_title')}
+              </button>
+            </div>
+
+            {#if expandedDiffs.has(`match-${match.id}`)}
+              <div class="diff-container">
+                <div class="diff-pane">
+                  <div class="diff-label">{$t('gallery.preview.existing')}</div>
+                  <pre class="diff-content">{match.existingYaml}</pre>
+                </div>
+                <div class="diff-pane">
+                  <div class="diff-label">{$t('gallery.preview.new')}</div>
+                  <pre class="diff-content">{match.newYaml}</pre>
+                </div>
+              </div>
+            {/if}
+
+            <div class="resolution-options">
+              <label class="resolution-option">
+                <input
+                  type="radio"
+                  name="match-resolution-{match.id}"
+                  value="overwrite"
+                  checked={matchActions[match.id] === 'overwrite'}
+                  onchange={() => (matchActions[match.id] = 'overwrite')}
+                />
+                {$t('gallery.preview.option_match_overwrite')}
+              </label>
+              <label class="resolution-option">
+                <input
+                  type="radio"
+                  name="match-resolution-{match.id}"
+                  value="add"
+                  checked={matchActions[match.id] === 'add'}
+                  onchange={() => (matchActions[match.id] = 'add')}
+                />
+                {$t('gallery.preview.option_match_add')}
+              </label>
+              <label class="resolution-option">
+                <input
+                  type="radio"
+                  name="match-resolution-{match.id}"
+                  value="skip"
+                  checked={matchActions[match.id] === 'skip'}
+                  onchange={() => (matchActions[match.id] = 'skip')}
+                />
+                {$t('gallery.preview.option_match_skip')}
+              </label>
+            </div>
+          </div>
+        {/each}
+      </div>
+    {/if}
+
     {#if conflicts.length > 0}
       <h3>{$t('gallery.preview.conflict_detected')}</h3>
       <p class="conflict-desc">
@@ -770,13 +899,16 @@
               <span class="conflict-id">
                 ID: <strong>{conflict.id}</strong>
               </span>
-              <button class="toggle-diff-btn" onclick={() => toggleDiff(conflict.id)}>
-                {expandedDiffs.has(conflict.id) ? '▲' : '▼'}
+              <button
+                class="toggle-diff-btn"
+                onclick={() => toggleDiff(`conflict-${conflict.id}`)}
+              >
+                {expandedDiffs.has(`conflict-${conflict.id}`) ? '▲' : '▼'}
                 {$t('gallery.preview.diff_title')}
               </button>
             </div>
 
-            {#if expandedDiffs.has(conflict.id)}
+            {#if expandedDiffs.has(`conflict-${conflict.id}`)}
               <div class="diff-container">
                 <div class="diff-pane">
                   <div class="diff-label">{$t('gallery.preview.existing')}</div>
@@ -1208,6 +1340,8 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
     margin-bottom: 0.75rem;
   }
 
@@ -1215,6 +1349,11 @@
     font-family: 'Fira Code', 'Consolas', monospace;
     font-size: 0.85rem;
     color: #f1f5f9;
+  }
+
+  .match-id {
+    font-size: 0.75rem;
+    color: #94a3b8;
   }
 
   .toggle-diff-btn {

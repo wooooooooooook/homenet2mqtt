@@ -374,6 +374,15 @@ export interface GalleryDiscoveryResult {
   };
 }
 
+export interface GalleryMatch {
+  type: 'entity';
+  entityType?: string;
+  id: string;
+  matchedId: string;
+  existingYaml: string;
+  newYaml: string;
+}
+
 export interface GalleryVendorRequirements {
   serial?: Record<string, unknown>;
   packet_defaults?: Record<string, unknown>;
