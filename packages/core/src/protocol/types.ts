@@ -5,8 +5,8 @@
  * - `add_no_header`: Sum of data bytes (excluding header) & 0xFF.
  * - `xor`: XOR of all bytes (header + data).
  * - `xor_no_header`: XOR of data bytes (excluding header).
- * - `samsung_rx`: Specialized Samsung Wallpad RX checksum (0xB0 ^ XOR).
- * - `samsung_tx`: Specialized Samsung Wallpad TX checksum.
+ * - `samsung_rx`: (@deprecated) Specialized Samsung Wallpad RX checksum (0xB0 ^ XOR). If data[0] < 0x7C, result ^= 0x80.
+ * - `samsung_tx`: (@deprecated) Specialized Samsung Wallpad TX checksum.
  * - `samsung_xor`: XOR of all bytes & 0x7F (Msb 0).
  * - `bestin_sum`: Cumulative XOR-based sum algorithm.
  * - `none`: No checksum calculation.
@@ -18,6 +18,8 @@ export type ChecksumType =
   | 'xor_no_header'
   | 'samsung_rx'
   | 'samsung_tx'
+  | 'samsung_xor'
+  | 'bestin_sum'
   | 'none';
 
 /**
