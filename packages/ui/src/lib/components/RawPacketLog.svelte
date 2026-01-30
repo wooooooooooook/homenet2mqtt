@@ -19,6 +19,8 @@
     recordingStartTime = $bindable(null),
     recordedFile = $bindable(null),
     portId = null,
+    showSender = true,
+    showLog = true,
   }: {
     rawPackets?: RawPacketWithInterval[];
     packetDictionary?: Record<string, string>;
@@ -31,6 +33,8 @@
     recordingStartTime: number | null;
     recordedFile: { filename: string; path: string } | null;
     portId: string | null;
+    showSender?: boolean;
+    showLog?: boolean;
   } = $props();
 
   let showSaveDialog = $state(false);
@@ -516,189 +520,195 @@
 {/snippet}
 
 <!-- Packet Sender Section -->
-{#if portId}
+{#if portId && showSender}
   <div id="packet-sender">
     <PacketSender {portId} />
   </div>
 {/if}
 
-<div id="raw-packet-log" class="log-section">
-  <div class="log-header">
-    <div class="header-left">
-      <h2>{$t('analysis.raw_log.title')}</h2>
-      {#if isRecording}
-        <div class="recording-status" transition:fade>
-          <span class="dot"></span>
-          <span class="status-text">
-            {$t('analysis.raw_log.collected_packets', { values: { count: rawPackets.length } })} |
-            {$t('analysis.raw_log.recording_duration', {
-              values: { duration: formatDuration(recordingDuration) },
-            })}
-          </span>
-        </div>
-      {/if}
-    </div>
-  </div>
-  <p class="description">
-    {$t('analysis.raw_log.desc')}
-  </p>
-  <div class="filter-row">
-    <label class="filter-label">
-      <span>{$t('analysis.raw_log.filter_label')}</span>
-      <input
-        type="text"
-        placeholder={$t('analysis.raw_log.filter_placeholder')}
-        bind:value={filterText}
-      />
-    </label>
-    <button
-      type="button"
-      class="filter-chip"
-      class:active={validOnly}
-      aria-pressed={validOnly}
-      onclick={() => (validOnly = !validOnly)}
-    >
-      {$t('analysis.raw_log.valid_only_label')}
-    </button>
-    {#if isFiltering}
-      <Button variant="secondary" onclick={() => (filterText = '')}>
-        {$t('analysis.raw_log.clear_filter')}
-      </Button>
-    {/if}
-  </div>
-  {#if isFiltering}
-    <p class="filter-hint">{$t('analysis.raw_log.filter_hint')}</p>
-  {/if}
-  {#if validOnly}
-    <p class="filter-hint">{$t('analysis.raw_log.valid_only_hint')}</p>
-  {/if}
-
-  {#if showSaveDialog && recordedFile}
-    <div class="save-dialog" transition:fade>
-      <div class="save-content">
-        <h3>{$t('analysis.raw_log.saved_title')}</h3>
-        <p class="filename">{recordedFile.filename}</p>
-        <p class="path-hint">
-          {$t('analysis.raw_log.saved_path')}: <br />
-          <code>{recordedFile.path}</code>
-        </p>
-        {#if downloadError}
-          <div class="alert-warning">
-            {downloadError}
+{#if showLog}
+  <div id="raw-packet-log" class="log-section">
+    <div class="log-header">
+      <div class="header-left">
+        <h2>{$t('analysis.raw_log.title')}</h2>
+        {#if isRecording}
+          <div class="recording-status" transition:fade>
+            <span class="dot"></span>
+            <span class="status-text">
+              {$t('analysis.raw_log.collected_packets', { values: { count: rawPackets.length } })} |
+              {$t('analysis.raw_log.recording_duration', {
+                values: { duration: formatDuration(recordingDuration) },
+              })}
+            </span>
           </div>
         {/if}
-        <div class="actions">
-          <Button variant="primary" onclick={downloadLog}>
-            {$t('analysis.raw_log.download')}
-          </Button>
-          <Button variant="secondary" onclick={copyLogContent}>
-            {$t('analysis.raw_log.copy_log')}
-          </Button>
-          <Button variant="danger" onclick={deleteLog}>
-            {$t('analysis.raw_log.delete')}
-          </Button>
-          <Button variant="secondary" onclick={closeDialog}>
-            {$t('common.close')}
-          </Button>
-        </div>
       </div>
     </div>
-  {/if}
-  {#if rawPackets.length !== 0}
-    <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-bottom: 0.5rem;">
-      <Button variant="secondary" onclick={togglePause}>
-        {#if isPaused}
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="currentColor"
-            width="16"
-            height="16"
-            style="margin-right: 0.4rem;"><path d="M8 5v14l11-7z" /></svg
-          >
-          {$t('analysis.raw_log.resume')}
-        {:else}
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="currentColor"
-            width="16"
-            height="16"
-            style="margin-right: 0.4rem;"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" /></svg
-          >
-          {$t('analysis.raw_log.pause')}
-        {/if}
-      </Button>
-      <Button variant="secondary" class={isRecording ? 'recording' : ''} onclick={toggleRecording}>
-        {#if isRecording}
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="currentColor"
-            width="16"
-            height="16"
-            style="margin-right: 0.4rem;"><rect x="6" y="6" width="12" height="12" /></svg
-          >
-          {$t('analysis.raw_log.stop_rec')}
-        {:else}
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="currentColor"
-            width="16"
-            height="16"
-            style="margin-right: 0.4rem;"><circle cx="12" cy="12" r="8" /></svg
-          >
-          {$t('analysis.raw_log.start_rec')}
-        {/if}
-      </Button>
+    <p class="description">
+      {$t('analysis.raw_log.desc')}
+    </p>
+    <div class="filter-row">
+      <label class="filter-label">
+        <span>{$t('analysis.raw_log.filter_label')}</span>
+        <input
+          type="text"
+          placeholder={$t('analysis.raw_log.filter_placeholder')}
+          bind:value={filterText}
+        />
+      </label>
+      <button
+        type="button"
+        class="filter-chip"
+        class:active={validOnly}
+        aria-pressed={validOnly}
+        onclick={() => (validOnly = !validOnly)}
+      >
+        {$t('analysis.raw_log.valid_only_label')}
+      </button>
+      {#if isFiltering}
+        <Button variant="secondary" onclick={() => (filterText = '')}>
+          {$t('analysis.raw_log.clear_filter')}
+        </Button>
+      {/if}
     </div>
-  {/if}
-  <div class="log-list raw-list">
-    {#if rawPackets.length === 0}
-      <p class="empty">{$t('analysis.raw_log.empty')}</p>
-    {:else}
-      <VirtualList
-        items={filteredPackets}
-        renderItem={renderPacketItem}
-        defaultEstimatedItemHeight={32}
-      />
+    {#if isFiltering}
+      <p class="filter-hint">{$t('analysis.raw_log.filter_hint')}</p>
+    {/if}
+    {#if validOnly}
+      <p class="filter-hint">{$t('analysis.raw_log.valid_only_hint')}</p>
+    {/if}
+
+    {#if showSaveDialog && recordedFile}
+      <div class="save-dialog" transition:fade>
+        <div class="save-content">
+          <h3>{$t('analysis.raw_log.saved_title')}</h3>
+          <p class="filename">{recordedFile.filename}</p>
+          <p class="path-hint">
+            {$t('analysis.raw_log.saved_path')}: <br />
+            <code>{recordedFile.path}</code>
+          </p>
+          {#if downloadError}
+            <div class="alert-warning">
+              {downloadError}
+            </div>
+          {/if}
+          <div class="actions">
+            <Button variant="primary" onclick={downloadLog}>
+              {$t('analysis.raw_log.download')}
+            </Button>
+            <Button variant="secondary" onclick={copyLogContent}>
+              {$t('analysis.raw_log.copy_log')}
+            </Button>
+            <Button variant="danger" onclick={deleteLog}>
+              {$t('analysis.raw_log.delete')}
+            </Button>
+            <Button variant="secondary" onclick={closeDialog}>
+              {$t('common.close')}
+            </Button>
+          </div>
+        </div>
+      </div>
+    {/if}
+    {#if rawPackets.length !== 0}
+      <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-bottom: 0.5rem;">
+        <Button variant="secondary" onclick={togglePause}>
+          {#if isPaused}
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              width="16"
+              height="16"
+              style="margin-right: 0.4rem;"><path d="M8 5v14l11-7z" /></svg
+            >
+            {$t('analysis.raw_log.resume')}
+          {:else}
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              width="16"
+              height="16"
+              style="margin-right: 0.4rem;"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" /></svg
+            >
+            {$t('analysis.raw_log.pause')}
+          {/if}
+        </Button>
+        <Button
+          variant="secondary"
+          class={isRecording ? 'recording' : ''}
+          onclick={toggleRecording}
+        >
+          {#if isRecording}
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              width="16"
+              height="16"
+              style="margin-right: 0.4rem;"><rect x="6" y="6" width="12" height="12" /></svg
+            >
+            {$t('analysis.raw_log.stop_rec')}
+          {:else}
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              width="16"
+              height="16"
+              style="margin-right: 0.4rem;"><circle cx="12" cy="12" r="8" /></svg
+            >
+            {$t('analysis.raw_log.start_rec')}
+          {/if}
+        </Button>
+      </div>
+    {/if}
+    <div class="log-list raw-list">
+      {#if rawPackets.length === 0}
+        <p class="empty">{$t('analysis.raw_log.empty')}</p>
+      {:else}
+        <VirtualList
+          items={filteredPackets}
+          renderItem={renderPacketItem}
+          defaultEstimatedItemHeight={32}
+        />
+      {/if}
+    </div>
+
+    <!-- Inline Packet Interval Analysis -->
+    {#if stats}
+      <div class="stats-inline" transition:fade>
+        <div class="stats-header">
+          <span class="stats-title">{$t('analysis.stats.title')}</span>
+        </div>
+        <div class="stats-row">
+          <div class="stat-item">
+            <span class="stat-label">{$t('analysis.stats.packet_interval')}</span>
+            <span class="stat-value">{stats.packetAvg} ± {stats.packetStdDev} ms</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">{$t('analysis.stats.idle_interval')}</span>
+            <span class="stat-value"
+              >{stats.idleAvg > 0 ? `${stats.idleAvg} ± ${stats.idleStdDev} ms` : 'N/A'}</span
+            >
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">{$t('analysis.stats.idle_occurrence')}</span>
+            <span class="stat-value"
+              >{stats.idleOccurrenceAvg > 0
+                ? `${stats.idleOccurrenceAvg} ± ${stats.idleOccurrenceStdDev} ms`
+                : 'N/A'}</span
+            >
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">{$t('analysis.stats.sample_size')}</span>
+            <span class="stat-value">{stats.sampleSize}</span>
+          </div>
+        </div>
+      </div>
     {/if}
   </div>
-
-  <!-- Inline Packet Interval Analysis -->
-  {#if stats}
-    <div class="stats-inline" transition:fade>
-      <div class="stats-header">
-        <span class="stats-title">{$t('analysis.stats.title')}</span>
-      </div>
-      <div class="stats-row">
-        <div class="stat-item">
-          <span class="stat-label">{$t('analysis.stats.packet_interval')}</span>
-          <span class="stat-value">{stats.packetAvg} ± {stats.packetStdDev} ms</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-label">{$t('analysis.stats.idle_interval')}</span>
-          <span class="stat-value"
-            >{stats.idleAvg > 0 ? `${stats.idleAvg} ± ${stats.idleStdDev} ms` : 'N/A'}</span
-          >
-        </div>
-        <div class="stat-item">
-          <span class="stat-label">{$t('analysis.stats.idle_occurrence')}</span>
-          <span class="stat-value"
-            >{stats.idleOccurrenceAvg > 0
-              ? `${stats.idleOccurrenceAvg} ± ${stats.idleOccurrenceStdDev} ms`
-              : 'N/A'}</span
-          >
-        </div>
-        <div class="stat-item">
-          <span class="stat-label">{$t('analysis.stats.sample_size')}</span>
-          <span class="stat-value">{stats.sampleSize}</span>
-        </div>
-      </div>
-    </div>
-  {/if}
-</div>
+{/if}
 
 <Dialog
   open={dialog.open}

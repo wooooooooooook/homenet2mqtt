@@ -3,15 +3,15 @@ meta:
   name_en: "Bestin Ventilation Fan"
   description: "Bestin 환기팬 설정입니다. 3단 속도(약/중/강)와 자연환기 모드를 지원합니다. bestin1.0 bestin2.0 공통입니다."
   description_en: "Bestin ventilation fan with 3-speed control and natural ventilation mode. bestin1.0 bestin2.0 common."
-  version: "2.1.0"
+  version: "2.2.0"
   min_version: "1.16.0"
   author: "wooooooooooook"
   tags: ["fan", "ventilation", "bestin"]
 
 discovery:
   match:
-    data: [0x61, 0x00]
-    mask: [0xFF, 0x00]
+    data: [0x61, 0x80]
+    mask: [0xFF, 0xF0]
 
 scripts:
   - id: "update_sequence_number"
@@ -40,7 +40,30 @@ scripts:
           args.command_type == 0x03 ? int(args.value) : (args.command_type == 0x01 ? 0x01 : 0x00),
           0x00, 0x00]
         ack: >-
-          [0x02, 0x61, 0x81]
+          [[0x02, 0x61, 0x80],[0xFF, 0xFF, 0xF0]]
+        header: true
+        checksum: true
+      - action: script
+        script: update_sequence_number
+
+  - id: "make_fan_timer_packet"
+    name: "Fan Timer Packet Make"
+    description: >-
+      환기팬 타이머 패킷 생성
+        args:
+          value: 타이머(분)(int)
+    actions:
+      - action: send_packet
+        data: >-
+          [0x61,
+          0x04,
+          int(get_from_states('sequence_number', 'number', 0)),
+          0x00,
+          int(args.value),
+          0x00,
+          0x00, 0x00]
+        ack: >-
+          [0x02, 0x61, 0x84]
         header: true
         checksum: true
       - action: script
@@ -58,15 +81,32 @@ entities:
         # 언제나 매칭
         data: [0x00]
         mask: [0x00]
-      state_number: 'data[2]==10?data[3]:data[4]'
+      state_number: 'len(data) == 10? data[3] : data[4]'
+
+    - id: 'ventilation_fan_timer'
+      name: 'Ventilation Fan 타이머(분)'
+      min_value: 0
+      max_value: 256
+      step: 1
+      state:
+        # 상태패킷: [0x02, 0x61, packet_length, timestamp, timestamp, 상태비트, 풍속, 0x00, 0x00, checksum]
+        data: [0x61, 0x80]
+        mask: [0xFF, 0xFF]
+      state_number:
+        offset: 7
+        length: 1
+      command_number:
+        script: "make_fan_timer_packet"
+        args:
+          value: "x"
 
   fan:
     - id: 'ventilation_fan'
       name: 'Ventilation Fan'
       state:
         # 상태패킷: [0x02, 0x61, packet_length, timestamp, timestamp, 상태비트, 풍속, 0x00, 0x00, checksum]
-        data: [0x61, 0x00]
-        mask: [0xFF, 0x00]
+        data: [0x61, 0x80]
+        mask: [0xFF, 0xF0]
       # 전원 상태: 바이트5의 비트0 (bitAnd(data[5], 0x01) == 1이면 ON)
       state_on: "bitAnd(data[5], 0x01) == 1"
       state_off: "bitAnd(data[5], 0x01) == 0"
@@ -98,4 +138,5 @@ entities:
         script: "make_fan_packet"
         args:
           command_type: 0x07
-          value: 'xstr == "Natural" ? 0x10 : 0x00'
+          value: 'xstr == "Natural" ? 0x10 : 0x00'          
+

@@ -1,7 +1,15 @@
 <script lang="ts">
   import { t } from 'svelte-i18n';
 
-  let { logRetentionEnabled }: { logRetentionEnabled: boolean } = $props();
+  let {
+    logRetentionEnabled,
+    visibility,
+    onToggle,
+  }: {
+    logRetentionEnabled: boolean;
+    visibility: Record<string, boolean>;
+    onToggle: (id: string) => void;
+  } = $props();
 
   const chips = $derived([
     { id: 'packet-log', label: $t('analysis.packet_log.title') },
@@ -13,25 +21,6 @@
     { id: 'packet-analyzer', label: $t('analysis.packet_analyzer.title') },
     { id: 'cel-analyzer', label: $t('analysis.cel_analyzer.title') },
   ]);
-
-  function scrollToSection(id: string) {
-    const element = document.getElementById(id);
-    const container = document.querySelector('.main-content');
-    if (!element || !container) return;
-
-    const CHIP_BAR_HEIGHT = 56; // height of the chip bar
-    const containerRect = container.getBoundingClientRect();
-    const elementRect = element.getBoundingClientRect();
-
-    // Calculate position relative to container
-    const relativeTop = elementRect.top - containerRect.top + container.scrollTop;
-    const offsetPosition = relativeTop - CHIP_BAR_HEIGHT;
-
-    container.scrollTo({
-      top: offsetPosition,
-      behavior: 'smooth',
-    });
-  }
 
   function handleWheel(e: WheelEvent) {
     // If the scroll is already predominantly horizontal, let the browser handle it (e.g. trackpads)
@@ -46,7 +35,7 @@
 <div class="chip-bar-container">
   <div class="chip-bar" onwheel={handleWheel}>
     {#each chips as chip}
-      <button class="chip" onclick={() => scrollToSection(chip.id)}>
+      <button class="chip" class:active={visibility[chip.id]} onclick={() => onToggle(chip.id)}>
         {chip.label}
       </button>
     {/each}
@@ -98,10 +87,22 @@
     white-space: nowrap;
   }
 
+  .chip.active {
+    background: rgba(59, 130, 246, 0.2);
+    border-color: rgba(59, 130, 246, 0.4);
+    color: #60a5fa;
+  }
+
   .chip:hover {
     background: rgba(51, 65, 85, 0.8);
     border-color: rgba(148, 163, 184, 0.4);
     color: #f1f5f9;
+  }
+
+  .chip.active:hover {
+    background: rgba(59, 130, 246, 0.3);
+    border-color: rgba(59, 130, 246, 0.5);
+    color: #93c5fd;
   }
 
   .chip:active {

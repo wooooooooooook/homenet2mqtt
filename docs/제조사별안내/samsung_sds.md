@@ -1,3 +1,9 @@
+## 래미안, ezon
+## references
+[저장장치님 애드온 deepwiki](https://deepwiki.com/n-andflash/ha_addons)
+[저장장치님 정리자료](https://github.com/n-andflash/ha_addons/blob/master/sds_wallpad/DOCS_PACKETS.md)
+
+
 # 삼성 SDS 홈넷 설정 안내
 
 삼성 SDS 홈넷 시스템의 RS485 브릿지 연결 및 설정 가이드입니다.

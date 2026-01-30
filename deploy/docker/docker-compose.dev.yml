@@ -91,6 +91,7 @@ services:
       - pnpm-store:/root/.local/share/pnpm
       - app_node_modules:/workspace/node_modules
       - /dev/pts:/dev/pts
+      - ../../gallery:/gallery
     ports:
       - '3000:3000'
     command: >
