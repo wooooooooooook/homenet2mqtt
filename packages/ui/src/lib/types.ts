@@ -378,6 +378,7 @@ export interface GalleryMatchCandidate {
   matchId: string;
   similarity: number;
   existingYaml?: string;
+  name?: string;
 }
 
 export interface GalleryMatch {

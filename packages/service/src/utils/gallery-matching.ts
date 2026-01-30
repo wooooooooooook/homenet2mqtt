@@ -282,6 +282,7 @@ export const findBestSignatureMatch = (
 export interface SignatureMatchCandidate {
   matchId: string;
   similarity: number;
+  name?: string;
 }
 
 /**
@@ -315,7 +316,8 @@ export const findAllSignatureMatches = (
     const similarity = calculateSignatureSimilarity(entitySignature, existingSignature);
 
     if (similarity >= threshold) {
-      matches.push({ matchId: existingId, similarity });
+      const name = (existing as any).name || (existing as any).displayName;
+      matches.push({ matchId: existingId, similarity, name: typeof name === 'string' ? name : undefined });
     }
   }
 

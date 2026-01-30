@@ -76,6 +76,26 @@
   let matchActions = $state<Record<string, MatchAction>>({});
   let matchTargets = $state<Record<string, string>>({}); // galleryId -> selected matchedId
   let expandedDiffs = $state<Set<string>>(new Set());
+  let openDropdownMatchId = $state<string | null>(null);
+
+  function toggleDropdown(matchId: string, event: MouseEvent) {
+    event.stopPropagation();
+    if (openDropdownMatchId === matchId) {
+      openDropdownMatchId = null;
+    } else {
+      openDropdownMatchId = matchId;
+    }
+  }
+
+  function handleWindowClick() {
+    openDropdownMatchId = null;
+  }
+
+  function selectOption(matchId: string, candidateMatchId: string) {
+    matchTargets[matchId] = candidateMatchId;
+    matchActions[matchId] = 'overwrite';
+    openDropdownMatchId = null;
+  }
 
   // Detect duplicate match target selections
   const duplicateTargets = $derived.by(() => {
@@ -901,6 +921,8 @@
   </div>
 </Modal>
 
+<svelte:window onclick={handleWindowClick} />
+
 <Modal
   open={showConflictModal}
   width="700px"
@@ -947,11 +969,10 @@
       {/if}
 
       <div class="conflict-list">
-        {#each matches as match, index (`${match.id}-${index}`)}
+        {#each matches as match (match.id)}
           {@const selectedTarget = matchTargets[match.id] || match.matchedId}
           {@const selectedCandidate = match.candidates?.find((c) => c.matchId === selectedTarget)}
           {@const selectedExistingYaml = selectedCandidate?.existingYaml || match.existingYaml}
-          {@const selectedSimilarity = selectedCandidate?.similarity ?? match.similarity}
           {@const isDuplicate =
             duplicateTargets.has(selectedTarget) && matchActions[match.id] === 'overwrite'}
           <div
@@ -965,20 +986,73 @@
               </span>
               {#if match.candidates && match.candidates.length > 0}
                 {#if matchActions[match.id] === 'overwrite'}
-                  <select
-                    class="match-target-select"
-                    value={selectedTarget}
-                    onchange={(e) => {
-                      matchTargets[match.id] = (e.target as HTMLSelectElement).value;
-                      matchActions[match.id] = 'overwrite';
-                    }}
-                  >
-                    {#each match.candidates as candidate}
-                      <option value={candidate.matchId}>
-                        {candidate.matchId} ({Math.round(candidate.similarity * 100)}%)
-                      </option>
-                    {/each}
-                  </select>
+                  <div class="target-wrapper">
+                    <span class="target-label">{$t('gallery.preview.target_label')}</span>
+                    <!-- Custom Dropdown -->
+                    <div class="custom-select-container">
+                      <button
+                        class="select-trigger"
+                        onclick={(e) => toggleDropdown(match.id, e)}
+                        class:active={openDropdownMatchId === match.id}
+                      >
+                        <span class="trigger-text">
+                          {#if selectedCandidate}
+                            {selectedCandidate.matchId} ({Math.round(
+                              selectedCandidate.similarity * 100,
+                            )}%)
+                            {#if selectedCandidate.name}
+                              - {selectedCandidate.name}
+                            {/if}
+                          {:else}
+                            Select Target
+                          {/if}
+                        </span>
+                        <span class="trigger-arrow">▼</span>
+                      </button>
+
+                      {#if openDropdownMatchId === match.id}
+                        <div
+                          class="select-options"
+                          role="listbox"
+                          tabindex="-1"
+                          onclick={(e) => e.stopPropagation()}
+                          onkeydown={(e) => e.stopPropagation()}
+                        >
+                          {#each match.candidates as candidate}
+                            <div
+                              class="select-option"
+                              role="option"
+                              aria-selected={selectedTarget === candidate.matchId}
+                              tabindex="0"
+                              class:selected={selectedTarget === candidate.matchId}
+                              class:high-match={candidate.similarity >= 0.8}
+                              onclick={() => selectOption(match.id, candidate.matchId)}
+                              onkeydown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault();
+                                  selectOption(match.id, candidate.matchId);
+                                }
+                              }}
+                            >
+                              <div class="option-row-1">
+                                <span class="option-id">{candidate.matchId}</span>
+                                <span class="option-percent">
+                                  ({$t('gallery.preview.match_rate', {
+                                    values: { n: Math.round(candidate.similarity * 100) },
+                                  })})
+                                </span>
+                              </div>
+                              {#if candidate.name}
+                                <div class="option-row-2">
+                                  {candidate.name}
+                                </div>
+                              {/if}
+                            </div>
+                          {/each}
+                        </div>
+                      {/if}
+                    </div>
+                  </div>
                 {/if}
               {:else}
                 <span class="match-id">
@@ -995,22 +1069,6 @@
                 </button>
               {/if}
             </div>
-
-            {#if expandedDiffs.has(`match-${match.id}`) && matchActions[match.id] !== 'skip'}
-              <div class="diff-container monaco-view">
-                {#key `${matchActions[match.id]}-${selectedTarget}`}
-                  <MonacoDiffEditor
-                    original={getOriginalDiffContent(matchActions[match.id], selectedExistingYaml)}
-                    modified={getModifiedDiffContent(
-                      matchActions[match.id],
-                      match.newYaml,
-                      selectedExistingYaml,
-                      match.id,
-                    )}
-                  />
-                {/key}
-              </div>
-            {/if}
 
             <div class="resolution-options">
               <label class="resolution-option">
@@ -1073,6 +1131,22 @@
                 </div>
               {/if}
             </div>
+
+            {#if expandedDiffs.has(`match-${match.id}`) && matchActions[match.id] !== 'skip'}
+              <div class="diff-container monaco-view">
+                {#key `${matchActions[match.id]}-${selectedTarget}`}
+                  <MonacoDiffEditor
+                    original={getOriginalDiffContent(matchActions[match.id], selectedExistingYaml)}
+                    modified={getModifiedDiffContent(
+                      matchActions[match.id],
+                      match.newYaml,
+                      selectedExistingYaml,
+                      match.id,
+                    )}
+                  />
+                {/key}
+              </div>
+            {/if}
           </div>
         {/each}
       </div>
@@ -1098,7 +1172,7 @@
     background: #1e293b;
     width: 100%;
     /* Fit inside Modal 90dvh */
-    height: 85dvh;
+    max-height: 85dvh;
     display: flex;
     flex-direction: column;
   }
@@ -1439,15 +1513,15 @@
   /* Conflict Modal Styles */
   .conflict-modal-wrapper {
     background: #1e293b;
-    padding: 1.5rem 0.5rem;
+    padding: 1.5rem;
     max-height: 90dvh;
     overflow-y: auto;
   }
 
   .conflict-modal-wrapper h3 {
-    font-size: 1.1rem;
+    font-size: 1.25rem;
     font-weight: 600;
-    margin: 0 0 0.5rem 0;
+    margin: 0 0 0.5rem 0.5rem;
   }
 
   .conflict-list {
@@ -1488,26 +1562,140 @@
     color: #f1f5f9;
   }
 
+  .target-label {
+    margin-right: 0.5rem;
+    font-size: 0.9em;
+    color: #94a3b8;
+  }
+
   .match-id {
     font-size: 0.75rem;
     color: #94a3b8;
   }
 
-  .match-target-select {
+  .custom-select-container {
+    position: relative;
     flex: 1;
-    min-width: 150px;
-    max-width: 250px;
-    padding: 0.25rem 0.5rem;
+    min-width: 200px;
+    max-width: 500px;
+  }
+
+  .select-trigger {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
     background: rgba(15, 23, 42, 0.8);
     border: 1px solid rgba(148, 163, 184, 0.3);
     border-radius: 4px;
     color: #f1f5f9;
-    font-size: 0.8rem;
+    font-size: 0.85rem;
+    cursor: pointer;
+    text-align: left;
   }
 
-  .match-target-select:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+  .select-trigger:hover {
+    border-color: rgba(148, 163, 184, 0.5);
+  }
+
+  .select-trigger.active {
+    border-color: #3b82f6;
+  }
+
+  .trigger-text {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-right: 0.5rem;
+  }
+
+  .trigger-arrow {
+    font-size: 0.7rem;
+    color: #94a3b8;
+  }
+
+  .select-options {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    margin-top: 4px;
+    background: #1e293b;
+    border: 1px solid rgba(148, 163, 184, 0.3);
+    border-radius: 6px;
+    max-height: 250px;
+    overflow-y: auto;
+    z-index: 50;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  }
+
+  .select-option {
+    padding: 0.5rem 0.75rem;
+    cursor: pointer;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+    transition: background 0.15s ease;
+  }
+
+  .select-option:last-child {
+    border-bottom: none;
+  }
+
+  .select-option:hover {
+    background: rgba(148, 163, 184, 0.1);
+  }
+
+  .select-option.selected {
+    background: rgba(59, 130, 246, 0.15);
+    border-left: 2px solid #3b82f6;
+  }
+
+  .select-option.high-match {
+    background: rgba(16, 185, 129, 0.15); /* Green tint */
+    border-left: 2px solid #10b981;
+  }
+
+  .select-option.high-match:hover {
+    background: rgba(16, 185, 129, 0.25);
+  }
+
+  /* Selected overrides high-match if active */
+  .select-option.selected.high-match {
+    background: rgba(16, 185, 129, 0.3);
+    border-left-color: #10b981;
+  }
+
+  .option-row-1 {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.1rem;
+  }
+
+  .option-id {
+    font-family: 'Fira Code', monospace;
+    font-weight: 600;
+    color: #f1f5f9;
+    font-size: 0.85rem;
+  }
+
+  .option-percent {
+    font-size: 0.75rem;
+    color: #94a3b8;
+  }
+
+  .select-option.high-match .option-percent {
+    color: #34d399; /* Green text */
+    font-weight: 600;
+  }
+
+  .option-row-2 {
+    font-size: 0.8rem;
+    color: #cbd5e1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .duplicate-warning {
@@ -1565,17 +1753,32 @@
   .resolution-option {
     display: flex;
     align-items: center;
-    gap: 0.25rem;
-    font-size: 0.8rem;
+    gap: 0.5rem;
+    font-size: 0.85rem;
     color: #94a3b8;
     cursor: pointer;
+    padding: 0.4rem 0.8rem;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 6px;
+    background: rgba(30, 41, 59, 0.5);
+    transition: all 0.2s ease;
   }
 
+  .resolution-option:hover {
+    background: rgba(148, 163, 184, 0.1);
+    border-color: rgba(148, 163, 184, 0.4);
+  }
+
+  /* 라디오 버튼 숨기기 (선택적) 또는 기본 스타일 유지 */
   .resolution-option input[type='radio'] {
     accent-color: #3b82f6;
+    margin: 0;
   }
 
   @media (max-width: 640px) {
+    .conflict-modal-wrapper {
+      padding: 1.5rem 0.5rem;
+    }
     .diff-container {
       grid-template-columns: 1fr;
     }
@@ -1666,15 +1869,13 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 3rem 1.5rem;
     text-align: center;
     flex: 1;
   }
 
   .success-icon {
-    font-size: 4rem;
+    font-size: 2rem;
     color: #4ade80;
-    margin-bottom: 1.5rem;
     line-height: 1;
   }
 
