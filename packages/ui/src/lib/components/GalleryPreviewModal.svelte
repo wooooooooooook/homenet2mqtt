@@ -2,6 +2,7 @@
   import { t, locale } from 'svelte-i18n';
   import { onMount } from 'svelte';
   import Button from './Button.svelte';
+  import MonacoDiffEditor from './MonacoDiffEditor.svelte';
   import Modal from './Modal.svelte';
   import Dialog from './Dialog.svelte';
   import { triggerSystemRestart as restartApp } from '../utils/appControl';
@@ -9,7 +10,6 @@
     GalleryDiscoveryResult,
     GalleryItemForPreview,
     GalleryMatch,
-    GalleryMatchCandidate,
     GalleryParameterDefinition,
     GallerySchemaField,
     GalleryVendorRequirements,
@@ -137,6 +137,99 @@
       });
     }
     return message;
+  }
+
+  function processYamlForDiff(
+    content: string,
+    fieldsToRemove: string[],
+    overrides: Record<string, string> = {},
+  ) {
+    if (!content) return '';
+
+    // Use regex-based line processing to preserve comments, hex values, and array formats
+    const lines = content.split('\n');
+    const resultLines: string[] = [];
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      // Match top-level keys (start of line, allowing spaces, match key followed by colon)
+      // Note: We assume top-level keys have no indentation or consistent indentation.
+      // For simple single-level diffs, this regex handles keys at start of line.
+      const keyMatch = line.match(/^\s*([a-zA-Z0-9_]+):/);
+
+      if (keyMatch) {
+        const key = keyMatch[1];
+
+        if (fieldsToRemove.includes(key)) {
+          continue;
+        }
+
+        if (Object.prototype.hasOwnProperty.call(overrides, key)) {
+          const rawValue = overrides[key];
+          // Use raw value directly to preserve quoting style from existing content
+          resultLines.push(`${key}: ${rawValue}`);
+          continue;
+        }
+      }
+
+      resultLines.push(line);
+    }
+
+    return resultLines.join('\n');
+  }
+
+  function getOriginalDiffContent(action: string, content: string) {
+    if (action === 'add') return '';
+    if (action === 'overwrite') {
+      return processYamlForDiff(content, ['type', 'unique_id']);
+    }
+    return content;
+  }
+
+  function getRawValueFromContent(content: string, key: string): string | undefined {
+    // Regex to find "key: value" and capture the value part.
+    // Handles potential leading spaces.
+    const regex = new RegExp(`^\\s*${key}:\\s*(.*)$`, 'm');
+    const match = content.match(regex);
+    return match ? match[1] : undefined;
+  }
+
+  function getModifiedDiffContent(
+    action: string,
+    newContent: string,
+    existingContent: string,
+    matchId: string,
+  ) {
+    if (action === 'overwrite') {
+      const overrides: Record<string, string> = {};
+
+      const existingId = getRawValueFromContent(existingContent, 'id');
+      if (existingId !== undefined) {
+        overrides['id'] = existingId;
+      }
+
+      const existingName = getRawValueFromContent(existingContent, 'name');
+      if (existingName !== undefined) {
+        overrides['name'] = existingName;
+      }
+
+      // Also remove type/unique_id to match original side filtering
+      return processYamlForDiff(newContent, ['type', 'unique_id'], overrides);
+    } else if (action === 'add') {
+      // If adding with a new ID (rename), reflect it in the diff
+      const newId = renames[matchId];
+      if (newId && newId !== matchId) {
+        // Use raw string for ID, assuming simple string without quotes needed for display
+        return processYamlForDiff(newContent, [], { id: newId });
+      }
+    }
+    return newContent;
+  }
+
+  function checkDuplicateId(match: GalleryMatch, id: string): boolean {
+    if (!id || !match.candidates) return false;
+    // Check if the input ID exists in the candidate list (which contains all entities of the same type)
+    return match.candidates.some((c) => c.matchId === id);
   }
 
   async function loadYamlContent() {
@@ -425,32 +518,29 @@
         const targets: Record<string, string> = {};
 
         for (const match of matches) {
-          // Find first available target (not already used) with >= 80% similarity
-          let selectedTarget = '';
-          let bestSimilarity = 0;
+          let selectedTarget = match.matchedId;
 
-          if (match.candidates && match.candidates.length > 0) {
+          // If no matchedId (New Item), default to first candidate if available
+          if (!selectedTarget && match.candidates && match.candidates.length > 0) {
+            // Find first unused candidate if possible
             for (const candidate of match.candidates) {
-              if (!usedTargets.has(candidate.matchId) && candidate.similarity >= 0.8) {
+              if (!usedTargets.has(candidate.matchId)) {
                 selectedTarget = candidate.matchId;
-                bestSimilarity = candidate.similarity;
                 break;
               }
             }
-            // If no high-similarity candidate available, just pick the best one
+            // Fallback to first candidate if all used
             if (!selectedTarget) {
               selectedTarget = match.candidates[0].matchId;
-              bestSimilarity = match.candidates[0].similarity;
             }
-          } else {
-            selectedTarget = match.matchedId;
-            bestSimilarity = match.similarity || 0;
           }
 
-          // Default action: 'overwrite' if >= 80% similarity, otherwise 'add'
-          actions[match.id] = bestSimilarity >= 0.8 ? 'overwrite' : 'add';
+          // Default action: 'overwrite' if matchedId exists (Conflict/High Match), otherwise 'add'
+          actions[match.id] = match.matchedId ? 'overwrite' : 'add';
           targets[match.id] = selectedTarget;
-          if (actions[match.id] === 'overwrite') {
+
+          // Mark target as used if we are overwriting by default
+          if (actions[match.id] === 'overwrite' && selectedTarget) {
             usedTargets.add(selectedTarget);
           }
         }
@@ -459,34 +549,24 @@
       }
 
       const { actions: defaultActions, targets: defaultTargets } = initializeMatchTargets();
-      matchActions = defaultActions;
-      matchTargets = defaultTargets;
 
-      // If incompatible and force not checked, show warning and don't proceed
-      if (compatibility && !compatibility.compatible && !forceApply) {
-        // Show conflict modal even without conflicts, to display compatibility warning
-        if (conflicts.length > 0) {
-          const defaultResolutions: Record<string, 'overwrite' | 'skip' | 'rename'> = {};
-          for (const conflict of conflicts) {
-            defaultResolutions[conflict.id] = 'overwrite';
-          }
-          resolutions = defaultResolutions;
-          renames = {};
-        }
+      // Clear and update reactive objects to maintain proxy reactivity (Svelte 5)
+      // Reassigning with a plain object would lose deep reactivity for subsequent mutations.
+      for (const key in matchActions) delete matchActions[key];
+      for (const key in matchTargets) delete matchTargets[key];
+
+      Object.assign(matchActions, defaultActions);
+      Object.assign(matchTargets, defaultTargets);
+
+      // Force show conflict modal if there are any matches (integrated list)
+      if (matches.length > 0) {
         showConflictModal = true;
-      } else if (conflicts.length > 0) {
-        // Initialize resolutions to overwrite by default
-        const defaultResolutions: Record<string, 'overwrite' | 'skip' | 'rename'> = {};
-        for (const conflict of conflicts) {
-          defaultResolutions[conflict.id] = 'overwrite';
-        }
-        resolutions = defaultResolutions;
+        resolutions = {}; // Clear old resolutions
         renames = {};
-        showConflictModal = true;
-      } else if (matches.length > 0 || (compatibility && !compatibility.compatible)) {
+      } else if (compatibility && !compatibility.compatible && !forceApply) {
         showConflictModal = true;
       } else {
-        // No conflicts and compatible, apply directly
+        // No items to process and compatible, apply directly (rare case if matches handles everything)
         await applySnippet();
       }
     } catch (e: any) {
@@ -587,7 +667,7 @@
 
 <Modal
   open={true}
-  width="800px"
+  width="900px"
   onclose={onClose}
   oncancel={onClose}
   ariaLabelledBy="gallery-preview-title"
@@ -811,7 +891,7 @@
               {:else if checkingConflicts}
                 {$t('gallery.preview.checking')}
               {:else}
-                {$t('gallery.preview.apply')}
+                {$t('gallery.preview.preview_button')}
               {/if}
             </Button>
           </div>
@@ -855,17 +935,10 @@
         </label>
         <p class="force-warning">{$t('gallery.preview.compatibility.force_apply_warning')}</p>
       </div>
-    {:else if compatibility && compatibility.compatible}
-      <div class="compatibility-ok">
-        ✓ {$t('gallery.preview.compatibility.compatible')}
-      </div>
     {/if}
 
     {#if matches.length > 0}
       <h3>{$t('gallery.preview.match_detected')}</h3>
-      <p class="conflict-desc">
-        {$t('gallery.preview.matches_found', { values: { count: matches.length } })}
-      </p>
 
       {#if duplicateTargets.size > 0}
         <div class="duplicate-warning">
@@ -881,55 +954,61 @@
           {@const selectedSimilarity = selectedCandidate?.similarity ?? match.similarity}
           {@const isDuplicate =
             duplicateTargets.has(selectedTarget) && matchActions[match.id] === 'overwrite'}
-          <div class="conflict-item" class:duplicate={isDuplicate}>
+          <div
+            class="conflict-item"
+            class:duplicate={isDuplicate}
+            class:skipped={matchActions[match.id] === 'skip'}
+          >
             <div class="conflict-header">
               <span class="conflict-id">
                 ID: <strong>{match.id}</strong>
               </span>
-              {#if match.candidates && match.candidates.length > 1}
-                <select
-                  class="match-target-select"
-                  value={selectedTarget}
-                  onchange={(e) => {
-                    matchTargets[match.id] = (e.target as HTMLSelectElement).value;
-                  }}
-                  disabled={matchActions[match.id] !== 'overwrite'}
-                >
-                  {#each match.candidates as candidate}
-                    <option value={candidate.matchId}>
-                      {candidate.matchId} ({Math.round(candidate.similarity * 100)}%)
-                    </option>
-                  {/each}
-                </select>
+              {#if match.candidates && match.candidates.length > 0}
+                {#if matchActions[match.id] === 'overwrite'}
+                  <select
+                    class="match-target-select"
+                    value={selectedTarget}
+                    onchange={(e) => {
+                      matchTargets[match.id] = (e.target as HTMLSelectElement).value;
+                      matchActions[match.id] = 'overwrite';
+                    }}
+                  >
+                    {#each match.candidates as candidate}
+                      <option value={candidate.matchId}>
+                        {candidate.matchId} ({Math.round(candidate.similarity * 100)}%)
+                      </option>
+                    {/each}
+                  </select>
+                {/if}
               {:else}
                 <span class="match-id">
-                  {$t('gallery.preview.match_target', { values: { id: selectedTarget } })}
-                  {#if selectedSimilarity !== undefined}
-                    <span class="similarity-badge">
-                      {Math.round(selectedSimilarity * 100)}%
-                    </span>
-                  {/if}
+                  <!-- No candidates available -->
                 </span>
               {/if}
               {#if isDuplicate}
                 <span class="duplicate-badge">⚠️</span>
               {/if}
-              <button class="toggle-diff-btn" onclick={() => toggleDiff(`match-${match.id}`)}>
-                {expandedDiffs.has(`match-${match.id}`) ? '▲' : '▼'}
-                {$t('gallery.preview.diff_title')}
-              </button>
+              {#if matchActions[match.id] !== 'skip'}
+                <button class="toggle-diff-btn" onclick={() => toggleDiff(`match-${match.id}`)}>
+                  {expandedDiffs.has(`match-${match.id}`) ? '▲' : '▼'}
+                  {$t('gallery.preview.diff_title')}
+                </button>
+              {/if}
             </div>
 
-            {#if expandedDiffs.has(`match-${match.id}`)}
-              <div class="diff-container">
-                <div class="diff-pane">
-                  <div class="diff-label">{$t('gallery.preview.existing')} ({selectedTarget})</div>
-                  <pre class="diff-content">{selectedExistingYaml}</pre>
-                </div>
-                <div class="diff-pane">
-                  <div class="diff-label">{$t('gallery.preview.new')}</div>
-                  <pre class="diff-content">{match.newYaml}</pre>
-                </div>
+            {#if expandedDiffs.has(`match-${match.id}`) && matchActions[match.id] !== 'skip'}
+              <div class="diff-container monaco-view">
+                {#key `${matchActions[match.id]}-${selectedTarget}`}
+                  <MonacoDiffEditor
+                    original={getOriginalDiffContent(matchActions[match.id], selectedExistingYaml)}
+                    modified={getModifiedDiffContent(
+                      matchActions[match.id],
+                      match.newYaml,
+                      selectedExistingYaml,
+                      match.id,
+                    )}
+                  />
+                {/key}
               </div>
             {/if}
 
@@ -941,19 +1020,12 @@
                   value="overwrite"
                   checked={matchActions[match.id] === 'overwrite'}
                   onchange={() => (matchActions[match.id] = 'overwrite')}
+                  disabled={(!match.candidates || match.candidates.length === 0) &&
+                    (match.similarity ?? 0) < 0.8}
                 />
-                {$t('gallery.preview.option_match_overwrite')}
+                {$t('gallery.preview.resolution.overwrite')}
               </label>
-              <label class="resolution-option">
-                <input
-                  type="radio"
-                  name="match-resolution-{match.id}"
-                  value="add"
-                  checked={matchActions[match.id] === 'add'}
-                  onchange={() => (matchActions[match.id] = 'add')}
-                />
-                {$t('gallery.preview.option_match_add')}
-              </label>
+
               <label class="resolution-option">
                 <input
                   type="radio"
@@ -962,101 +1034,47 @@
                   checked={matchActions[match.id] === 'skip'}
                   onchange={() => (matchActions[match.id] = 'skip')}
                 />
-                {$t('gallery.preview.option_match_skip')}
+                {$t('gallery.preview.resolution.skip')}
               </label>
-            </div>
-          </div>
-        {/each}
-      </div>
-    {/if}
 
-    {#if conflicts.length > 0}
-      <h3>{$t('gallery.preview.conflict_detected')}</h3>
-      <p class="conflict-desc">
-        {$t('gallery.preview.conflicts_found', { values: { count: conflicts.length } })}
-      </p>
+              <label class="resolution-option">
+                <input
+                  type="radio"
+                  name="match-resolution-{match.id}"
+                  value="add"
+                  checked={matchActions[match.id] === 'add'}
+                  onchange={() => {
+                    matchActions[match.id] = 'add';
+                    // Initialize rename with original ID if not set
+                    if (!renames[match.id]) {
+                      renames[match.id] = match.id;
+                    }
+                  }}
+                />
+                {$t('gallery.preview.resolution.add_new')}
+              </label>
 
-      <div class="conflict-list">
-        {#each conflicts as conflict, index (`${conflict.id}-${index}`)}
-          <div class="conflict-item">
-            <div class="conflict-header">
-              <span class="conflict-id">
-                ID: <strong>{conflict.id}</strong>
-              </span>
-              <button class="toggle-diff-btn" onclick={() => toggleDiff(`conflict-${conflict.id}`)}>
-                {expandedDiffs.has(`conflict-${conflict.id}`) ? '▲' : '▼'}
-                {$t('gallery.preview.diff_title')}
-              </button>
-            </div>
-
-            {#if expandedDiffs.has(`conflict-${conflict.id}`)}
-              <div class="diff-container">
-                <div class="diff-pane">
-                  <div class="diff-label">{$t('gallery.preview.existing')}</div>
-                  <pre class="diff-content">{conflict.existingYaml}</pre>
+              {#if matchActions[match.id] === 'add'}
+                <div class="new-id-input-wrapper">
+                  <span class="new-id-label">New ID:</span>
+                  <input
+                    type="text"
+                    class="new-id-input"
+                    class:error={checkDuplicateId(match, renames[match.id] || match.id)}
+                    value={renames[match.id] || match.id}
+                    oninput={(e) => {
+                      const val = e.currentTarget.value;
+                      renames[match.id] = val;
+                    }}
+                  />
+                  {#if checkDuplicateId(match, renames[match.id] || match.id)}
+                    <span class="new-id-error">ID already exists</span>
+                  {/if}
                 </div>
-                <div class="diff-pane">
-                  <div class="diff-label">{$t('gallery.preview.new')}</div>
-                  <pre class="diff-content">{conflict.newYaml}</pre>
-                </div>
-              </div>
-            {/if}
-
-            <div class="resolution-options">
-              <label class="resolution-option">
-                <input
-                  type="radio"
-                  name="resolution-{conflict.id}"
-                  value="overwrite"
-                  checked={resolutions[conflict.id] === 'overwrite'}
-                  onchange={() => (resolutions[conflict.id] = 'overwrite')}
-                />
-                {$t('gallery.preview.option_overwrite')}
-              </label>
-              <label class="resolution-option">
-                <input
-                  type="radio"
-                  name="resolution-{conflict.id}"
-                  value="skip"
-                  checked={resolutions[conflict.id] === 'skip'}
-                  onchange={() => (resolutions[conflict.id] = 'skip')}
-                />
-                {$t('gallery.preview.option_skip')}
-              </label>
-              <label class="resolution-option">
-                <input
-                  type="radio"
-                  name="resolution-{conflict.id}"
-                  value="rename"
-                  checked={resolutions[conflict.id] === 'rename'}
-                  onchange={() => (resolutions[conflict.id] = 'rename')}
-                />
-                {$t('gallery.preview.option_rename')}
-              </label>
-              {#if resolutions[conflict.id] === 'rename'}
-                <input
-                  type="text"
-                  class="rename-input"
-                  placeholder={$t('gallery.preview.new_id_placeholder')}
-                  value={renames[conflict.id] || ''}
-                  oninput={(e) => (renames[conflict.id] = (e.target as HTMLInputElement).value)}
-                />
               {/if}
             </div>
           </div>
         {/each}
-      </div>
-    {/if}
-    {#if newItems.length > 0}
-      <div class="new-items-section">
-        <h4>{$t('gallery.preview.new_items', { values: { count: newItems.length } })}</h4>
-        <ul class="new-items-list">
-          {#each newItems as newItem, index (`${newItem.id}-${index}`)}
-            <li>
-              • {newItem.id} ({newItem.type})
-            </li>
-          {/each}
-        </ul>
       </div>
     {/if}
 
@@ -1350,6 +1368,43 @@
     text-align: center;
   }
 
+  .new-id-input-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    margin-left: 1.8rem; /* Align with radio text */
+  }
+
+  .new-id-label {
+    font-size: 0.85rem;
+    color: #94a3b8;
+  }
+
+  .new-id-input {
+    background: rgba(15, 23, 42, 0.5);
+    border: 1px solid #334155;
+    border-radius: 4px;
+    padding: 0.25rem 0.5rem;
+    color: #e2e8f0;
+    font-size: 0.85rem;
+    font-family: 'Fira Code', monospace;
+  }
+
+  .new-id-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+  }
+
+  .new-id-input.error {
+    border-color: #ef4444;
+  }
+
+  .new-id-error {
+    font-size: 0.75rem;
+    color: #ef4444;
+  }
+
   .footer-controls {
     display: flex;
     justify-content: flex-end;
@@ -1384,22 +1439,15 @@
   /* Conflict Modal Styles */
   .conflict-modal-wrapper {
     background: #1e293b;
-    padding: 1.5rem;
-    max-height: 80dvh;
+    padding: 1.5rem 0.5rem;
+    max-height: 90dvh;
     overflow-y: auto;
   }
 
   .conflict-modal-wrapper h3 {
     font-size: 1.1rem;
     font-weight: 600;
-    color: #f87171;
     margin: 0 0 0.5rem 0;
-  }
-
-  .conflict-desc {
-    font-size: 0.85rem;
-    color: #94a3b8;
-    margin: 0 0 1rem 0;
   }
 
   .conflict-list {
@@ -1414,6 +1462,15 @@
     border: 1px solid rgba(148, 163, 184, 0.15);
     border-radius: 8px;
     padding: 1rem;
+  }
+
+  .conflict-item.skipped .conflict-header {
+    opacity: 0.5;
+    text-decoration: line-through;
+  }
+
+  .conflict-item.skipped .conflict-id strong {
+    color: #94a3b8;
   }
 
   .conflict-header {
@@ -1434,18 +1491,6 @@
   .match-id {
     font-size: 0.75rem;
     color: #94a3b8;
-  }
-
-  .similarity-badge {
-    display: inline-block;
-    margin-left: 0.5rem;
-    padding: 0.125rem 0.375rem;
-    background: rgba(59, 130, 246, 0.2);
-    border: 1px solid rgba(59, 130, 246, 0.4);
-    border-radius: 4px;
-    font-size: 0.7rem;
-    font-weight: 600;
-    color: #60a5fa;
   }
 
   .match-target-select {
@@ -1501,36 +1546,13 @@
   }
 
   .diff-container {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.5rem;
-    margin-bottom: 0.75rem;
-  }
-
-  .diff-pane {
-    background: rgba(15, 23, 42, 0.8);
-    border: 1px solid rgba(148, 163, 184, 0.1);
+    margin-top: 0.5rem;
+    border: 1px solid rgba(148, 163, 184, 0.2);
     border-radius: 6px;
+    background: #1e1e1e;
+    height: 400px;
     overflow: hidden;
-  }
-
-  .diff-label {
-    font-size: 0.7rem;
-    color: #64748b;
-    text-transform: uppercase;
-    padding: 0.25rem 0.5rem;
-    background: rgba(148, 163, 184, 0.1);
-  }
-
-  .diff-content {
-    font-family: 'Fira Code', 'Consolas', monospace;
-    font-size: 0.7rem;
-    color: #e2e8f0;
-    padding: 0.5rem;
-    margin: 0;
-    overflow: auto;
-    max-height: 150px;
-    white-space: pre;
+    position: relative;
   }
 
   .resolution-options {
@@ -1553,46 +1575,7 @@
     accent-color: #3b82f6;
   }
 
-  .rename-input {
-    padding: 0.35rem 0.5rem;
-    background: rgba(15, 23, 42, 0.8);
-    border: 1px solid rgba(148, 163, 184, 0.2);
-    border-radius: 4px;
-    color: #f1f5f9;
-    font-size: 0.8rem;
-    min-width: 150px;
-  }
-
-  .new-items-section {
-    background: rgba(34, 197, 94, 0.1);
-    border: 1px solid rgba(34, 197, 94, 0.2);
-    border-radius: 8px;
-    padding: 0.75rem;
-    margin-bottom: 1rem;
-  }
-
-  .new-items-section h4 {
-    font-size: 0.85rem;
-    color: #4ade80;
-    margin: 0 0 0.5rem 0;
-  }
-
-  .new-items-list {
-    font-size: 0.8rem;
-    color: #94a3b8;
-    margin: 0;
-    padding-left: 1.25rem;
-  }
-
-  .new-items-list li {
-    margin-bottom: 0.25rem;
-  }
-
   @media (max-width: 640px) {
-    .conflict-modal-wrapper {
-      max-height: 95dvh;
-    }
-
     .diff-container {
       grid-template-columns: 1fr;
     }
@@ -1675,16 +1658,6 @@
     color: #f87171;
     opacity: 0.8;
     margin: 0;
-  }
-
-  .compatibility-ok {
-    background: rgba(34, 197, 94, 0.1);
-    border: 1px solid rgba(34, 197, 94, 0.3);
-    border-radius: 8px;
-    padding: 0.75rem 1rem;
-    margin-bottom: 1rem;
-    font-size: 0.9rem;
-    color: #4ade80;
   }
 
   /* Success View Styles */

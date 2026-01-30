@@ -509,68 +509,64 @@ export function createGalleryRoutes(ctx: GalleryRoutesContext): Router {
 
             if (!entityId) continue;
 
-            const existingEntity = existingList.find((e) => e.id === entityId);
+            // 통합 매칭 로직: 모든 엔티티를 matches 배열에 포함
+            // Find all same-type entities as candidates (threshold: 0 to include all)
+            const allCandidates = findAllSignatureMatches(entityType, entityObj, existingList, 0);
 
-            if (existingEntity) {
-              conflicts.push({
-                type: 'entity',
-                entityType,
-                id: entityId,
-                existingYaml: dumpConfigToYaml(existingEntity),
-                newYaml: dumpConfigToYaml(entityObj),
-              });
-            } else {
-              // Find all same-type entities as candidates (threshold: 0 to include all)
-              const allCandidates = findAllSignatureMatches(entityType, entityObj, existingList, 0);
+            // Add existingYaml to each candidate for diff display
+            const candidatesWithYaml = allCandidates.map((candidate) => {
+              const existingEntity = existingList.find((e) => e.id === candidate.matchId);
+              return {
+                ...candidate,
+                existingYaml: existingEntity ? dumpConfigToYaml(existingEntity) : '',
+              };
+            });
 
-              // Add existingYaml to each candidate for diff display
-              const candidatesWithYaml = allCandidates.map((candidate) => {
-                const existingEntity = existingList.find((e) => e.id === candidate.matchId);
-                return {
-                  ...candidate,
-                  existingYaml: existingEntity ? dumpConfigToYaml(existingEntity) : '',
-                };
-              });
+            // Determine matchedId priority:
+            // 1. Exact ID match (Conflict)
+            // 2. High similarity match (>= 80%)
+            // 3. New item (empty matchedId)
+            let matchedId = '';
+            let existingYaml = '';
+            let similarity: number | undefined;
 
-              // Filter candidates that meet 80% threshold for auto-matching
-              const highSimilarityCandidates = candidatesWithYaml.filter((c) => c.similarity >= 0.8);
+            const exactMatch = existingList.find((e) => e.id === entityId);
+            if (exactMatch) {
+              matchedId = entityId;
+              existingYaml = dumpConfigToYaml(exactMatch);
+              similarity = 1;
 
-              if (highSimilarityCandidates.length > 0) {
-                // Auto-match with best candidate above threshold
-                const bestCandidate = highSimilarityCandidates[0];
-
-                matches.push({
-                  type: 'entity',
-                  entityType,
-                  id: entityId,
-                  matchedId: bestCandidate.matchId,
-                  existingYaml: bestCandidate.existingYaml,
-                  newYaml: dumpConfigToYaml(entityObj),
-                  similarity: bestCandidate.similarity,
-                  candidates: candidatesWithYaml,
-                });
-              } else if (candidatesWithYaml.length > 0) {
-                // No auto-match, but same-type entities exist - show in matches for manual selection
-                const bestCandidate = candidatesWithYaml[0];
-
-                matches.push({
-                  type: 'entity',
-                  entityType,
-                  id: entityId,
-                  matchedId: bestCandidate.matchId,
-                  existingYaml: bestCandidate.existingYaml,
-                  newYaml: dumpConfigToYaml(entityObj),
-                  similarity: bestCandidate.similarity,
-                  candidates: candidatesWithYaml,
+              // Ensure exact match is in candidates with 100% similarity
+              const candidateIdx = candidatesWithYaml.findIndex((c) => c.matchId === entityId);
+              if (candidateIdx === -1) {
+                candidatesWithYaml.unshift({
+                  matchId: entityId,
+                  similarity: 1,
+                  existingYaml,
                 });
               } else {
-                newItems.push({
-                  type: 'entity',
-                  entityType,
-                  id: entityId,
-                });
+                // Update similarity to 1 for exact ID match
+                candidatesWithYaml[candidateIdx].similarity = 1;
+              }
+            } else {
+              const highSimCandidate = candidatesWithYaml.find((c) => c.similarity >= 0.8);
+              if (highSimCandidate) {
+                matchedId = highSimCandidate.matchId;
+                existingYaml = highSimCandidate.existingYaml || '';
+                similarity = highSimCandidate.similarity;
               }
             }
+
+            matches.push({
+              type: 'entity',
+              entityType,
+              id: entityId,
+              matchedId, // Empty if new item
+              existingYaml,
+              newYaml: dumpConfigToYaml(entityObj),
+              similarity: similarity ?? 0,
+              candidates: candidatesWithYaml,
+            });
           }
         }
       }
@@ -916,9 +912,24 @@ export function createGalleryRoutes(ctx: GalleryRoutesContext): Router {
                 );
               }
             } else {
-              targetList.push(entityObj);
-              addedEntities++;
-              logger.info(`[gallery] Added new entity: ${entityId}`);
+              // Add new
+              const newId = renames?.[entityId];
+              if (newId) {
+                const newIdExists = targetList.some((e: any) => e.id === newId);
+                if (newIdExists) {
+                  logger.warn(`[gallery] New ID ${newId} already exists, skipping add`);
+                  skippedEntities++;
+                  continue;
+                }
+                entityObj.id = newId;
+                targetList.push(entityObj);
+                addedEntities++;
+                logger.info(`[gallery] Added new entity with custom ID: ${newId} (was ${entityId})`);
+              } else {
+                targetList.push(entityObj);
+                addedEntities++;
+                logger.info(`[gallery] Added new entity: ${entityId}`);
+              }
             }
           }
         }
@@ -977,9 +988,24 @@ export function createGalleryRoutes(ctx: GalleryRoutesContext): Router {
                 logger.info(`[gallery] Updated existing automation: ${automationId}`);
               }
             } else {
-              automationList.push(automationObj);
-              addedAutomations++;
-              logger.info(`[gallery] Added new automation: ${automationId}`);
+              // Add new
+              const newId = renames?.[automationId];
+              if (newId) {
+                const newIdExists = automationList.some((a: any) => a.id === newId);
+                if (newIdExists) {
+                  logger.warn(`[gallery] New ID ${newId} already exists, skipping add`);
+                  skippedAutomations++;
+                  continue;
+                }
+                automationObj.id = newId;
+                automationList.push(automationObj);
+                addedAutomations++;
+                logger.info(`[gallery] Added new automation with custom ID: ${newId} (was ${automationId})`);
+              } else {
+                automationList.push(automationObj);
+                addedAutomations++;
+                logger.info(`[gallery] Added new automation: ${automationId}`);
+              }
             }
           } else {
             automationList.push(automationObj);
@@ -1035,9 +1061,25 @@ export function createGalleryRoutes(ctx: GalleryRoutesContext): Router {
                 logger.info(`[gallery] Updated existing script: ${scriptId}`);
               }
             } else {
-              scriptsList.push(scriptObj);
-              addedScripts++;
-              logger.info(`[gallery] Added new script: ${scriptId}`);
+              // Add new
+              const newId = renames?.[scriptId];
+              if (newId) {
+                // Check if new ID already exists
+                const newIdExists = scriptsList.some((s: any) => s.id === newId);
+                if (newIdExists) {
+                  logger.warn(`[gallery] New ID ${newId} already exists, skipping add`);
+                  skippedScripts++;
+                  continue;
+                }
+                scriptObj.id = newId;
+                scriptsList.push(scriptObj);
+                addedScripts++;
+                logger.info(`[gallery] Added new script with custom ID: ${newId} (was ${scriptId})`);
+              } else {
+                scriptsList.push(scriptObj);
+                addedScripts++;
+                logger.info(`[gallery] Added new script: ${scriptId}`);
+              }
             }
           } else {
             scriptsList.push(scriptObj);
