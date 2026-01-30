@@ -71,13 +71,51 @@
 
   const parsedSet = $derived.by(() => new Set(parsedPackets));
 
-  function copyPacket(packet: string) {
-    navigator.clipboard.writeText(packet.toLowerCase());
+  let copiedPacket = $state<string | null>(null);
+  let copyTimeout: ReturnType<typeof setTimeout>;
+
+  async function copyToClipboard(text: string): Promise<boolean> {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+      throw new Error('Clipboard API unavailable');
+    } catch (err) {
+      try {
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.top = '0';
+        textArea.style.left = '0';
+        textArea.style.position = 'fixed';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        const successful = document.execCommand('copy');
+        document.body.removeChild(textArea);
+        return successful;
+      } catch (fallbackErr) {
+        console.error('Failed to copy', err, fallbackErr);
+        return false;
+      }
+    }
+  }
+
+  async function copyPacket(packet: string) {
+    const success = await copyToClipboard(packet);
+    if (success) {
+      copiedPacket = packet;
+
+      if (copyTimeout) clearTimeout(copyTimeout);
+      copyTimeout = setTimeout(() => {
+        copiedPacket = null;
+      }, 2000);
+    }
   }
 
   let copySuccess = $state(false);
 
-  function copyAllPackets() {
+  async function copyAllPackets() {
     if (!data) return;
 
     const lines: string[] = [];
@@ -99,11 +137,13 @@
       lines.push(`${badge} ${hexFormatted}${entityInfo}`);
     }
 
-    navigator.clipboard.writeText(lines.join('\n'));
-    copySuccess = true;
-    setTimeout(() => {
-      copySuccess = false;
-    }, 2000);
+    const success = await copyToClipboard(lines.join('\n'));
+    if (success) {
+      copySuccess = true;
+      setTimeout(() => {
+        copySuccess = false;
+      }, 2000);
+    }
   }
 </script>
 
@@ -193,7 +233,49 @@
                 : $t('analysis.raw_log.set_badge_unparsed')}
             </span>
             <div class="packet-info">
-              <code class="payload">{toHexPairs(packet).join(' ')}</code>
+              <div class="code-wrapper">
+                <code class="payload">{toHexPairs(packet).join(' ')}</code>
+                <button
+                  class="copy-btn"
+                  onclick={() => copyPacket(packet)}
+                  aria-label={$t('common.copy')}
+                  title={$t('common.copy')}
+                >
+                  {#if copiedPacket === packet}
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      class="success-icon"
+                      aria-hidden="true"
+                    >
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                  {:else}
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                    </svg>
+                  {/if}
+                </button>
+              </div>
               {#if entities.length > 0}
                 <span class="parsed-entities">
                   → {entities.join(', ')}
@@ -320,12 +402,47 @@
     min-width: 0;
   }
 
+  .code-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
   .payload {
     font-family: var(--font-mono);
     font-size: 0.85rem;
     color: #f1f5f9;
     word-break: break-all;
     line-height: 1.4;
+  }
+
+  .copy-btn {
+    background: transparent;
+    border: none;
+    color: #64748b;
+    cursor: pointer;
+    padding: 0.3rem;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+
+  .copy-btn:hover {
+    color: #e2e8f0;
+    background: rgba(148, 163, 184, 0.1);
+  }
+
+  .copy-btn:focus-visible {
+    outline: 2px solid #3b82f6;
+    background: rgba(148, 163, 184, 0.1);
+    color: #e2e8f0;
+  }
+
+  .success-icon {
+    color: #34d399;
   }
 
   .parsed-entities {

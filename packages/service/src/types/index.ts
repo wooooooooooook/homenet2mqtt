@@ -121,7 +121,7 @@ export interface CommandInfo {
   entityType: string;
   commandName: string;
   displayName: string;
-  inputType?: 'number' | 'text';
+  inputType?: 'number' | 'text' | 'select';
   min?: number;
   max?: number;
   step?: number;
