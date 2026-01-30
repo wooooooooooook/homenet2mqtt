@@ -213,7 +213,9 @@
       group.latestTimestamp = Math.max(group.latestTimestamp, ts);
     }
 
-    return Array.from(groups.values()).sort((a, b) => b.latestTimestamp - a.latestTimestamp);
+    return Array.from(groups.entries())
+      .map(([key, value]) => ({ key, ...value }))
+      .sort((a, b) => b.latestTimestamp - a.latestTimestamp);
   });
   const logTitle = $derived.by(() => {
     if (isAutomation) return $t('entity_detail.automation.logs_title');
@@ -1040,7 +1042,7 @@
             <div class="section error-section">
               <h3>{$t('entity_detail.errors.title')}</h3>
               <div class="error-list" role="list">
-                {#each groupedErrors as group (group.latestTimestamp)}
+                {#each groupedErrors as group (group.key)}
                   <div class="error-entry" role="listitem">
                     <div class="error-meta">
                       <span class="error-time">{formatTime(group.latestTimestamp)}</span>

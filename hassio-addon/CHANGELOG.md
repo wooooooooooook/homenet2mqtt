@@ -1,6 +1,7 @@
 v2.3.0
 - feat: 갤러리 스니펫을 적용할 때 대상 엔티티를 추천하고 선택할 수 있도록 개선했습니다.
-- 엔티티카드에서 preset_mode같이 옵션입력이 필요한 명령 입력지원 (기존에는 ha통해서만 가능했음)
+- feat: 엔티티카드에서 preset_mode같이 옵션입력이 필요한 명령 입력지원 (기존에는 ha통해서만 가능했음)
+- fix: 오류가 발생한 엔티티의 활동로그를 보려할때 key 중복으로 열리지 않는현상 수정.
 
 v2.2.0
 - [상태 프록시 (`state_proxy`) 도입](https://github.com/wooooooooooook/RS485-HomeNet-to-MQTT-bridge/blob/main/docs/config-schema/common-entity-options.md#)

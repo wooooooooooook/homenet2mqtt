@@ -563,7 +563,8 @@
         "parse": "Parse",
         "cel": "CEL",
         "command": "Command"
-      }
+      },
+      "count": "{count} occurrences"
     },
     "execute": {
       "error": "Failed to execute."

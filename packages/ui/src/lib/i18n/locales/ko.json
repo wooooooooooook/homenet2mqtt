@@ -569,7 +569,8 @@
         "parse": "파싱",
         "cel": "CEL",
         "command": "명령 생성"
-      }
+      },
+      "count": "{count}회 발생"
     },
     "execute": {
       "error": "실행에 실패했습니다."

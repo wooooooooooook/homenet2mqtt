@@ -36,6 +36,12 @@ export default defineConfig({
   },
   server: {
     host: '0.0.0.0', // Allow external access for Docker
+    watch: {
+      usePolling: true,
+    },
+    hmr: {
+      clientPort: 5173,
+    },
     proxy: {
       '/api': {
         target: process.env.VITE_API_URL || 'http://app:3000', // Use Docker service name by default
