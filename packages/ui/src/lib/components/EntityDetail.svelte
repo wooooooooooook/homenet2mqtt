@@ -707,8 +707,51 @@
     }
 
     e.preventDefault();
+    e.preventDefault();
     tabs[nextIndex].focus();
     tabs[nextIndex].click();
+  }
+
+  let copiedPacket = $state<string | null>(null);
+  let copyTimeout: ReturnType<typeof setTimeout>;
+
+  async function copyToClipboard(text: string): Promise<boolean> {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+      throw new Error('Clipboard API unavailable');
+    } catch (err) {
+      try {
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.top = '0';
+        textArea.style.left = '0';
+        textArea.style.position = 'fixed';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        const successful = document.execCommand('copy');
+        document.body.removeChild(textArea);
+        return successful;
+      } catch (fallbackErr) {
+        console.error('Failed to copy', err, fallbackErr);
+        return false;
+      }
+    }
+  }
+
+  async function copyPacket(packet: string) {
+    const success = await copyToClipboard(packet);
+    if (success) {
+      copiedPacket = packet;
+
+      if (copyTimeout) clearTimeout(copyTimeout);
+      copyTimeout = setTimeout(() => {
+        copiedPacket = null;
+      }, 2000);
+    }
   }
 </script>
 
@@ -1073,27 +1116,76 @@
               {:else}
                 {#each mergedPackets as packet, index (`${packet.type}-${packet.timestamp}-${index}`)}
                   <div class="log-entry {packet.type}">
-                    <span class="time">
-                      {packet.timeLabel ?? formatTime(packet.timestamp)}
-                    </span>
-
-                    {#if packet.type === 'rx'}
-                      <span class="direction rx">RX</span>
-                      <span class="entity">{packet.entityId}</span>
-                      <span class="payload">{packet.packet.toUpperCase()}</span>
-                      {#if packet.state}
-                        <span class="state-preview">→ {JSON.stringify(packet.state)}</span>
-                      {/if}
-                    {:else}
-                      <span class="direction tx">TX</span>
-                      <span class="entity">{packet.entityId}</span>
-                      <span class="payload">{packet.packet.toUpperCase()}</span>
-                      <span class="command-info">
-                        {packet.command}
-                        {#if packet.value !== undefined}<span class="value">({packet.value})</span
-                          >{/if}
+                    <div class="log-meta">
+                      <span class="time">
+                        {packet.timeLabel ?? formatTime(packet.timestamp)}
                       </span>
-                    {/if}
+                      <span class="direction {packet.type}">{packet.type.toUpperCase()}</span>
+                    </div>
+
+                    <div class="log-content">
+                      <div class="log-row primary">
+                        <span class="entity">{packet.entityId}</span>
+                        <div class="code-wrapper">
+                          <span class="payload">{packet.packet.toUpperCase()}</span>
+                          <button
+                            class="copy-btn"
+                            onclick={() => copyPacket(packet.packet.toUpperCase())}
+                            aria-label={$t('common.copy')}
+                            title={$t('common.copy')}
+                          >
+                            {#if copiedPacket === packet.packet.toUpperCase()}
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="14"
+                                height="14"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                class="success-icon"
+                                aria-hidden="true"
+                              >
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                              </svg>
+                            {:else}
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="14"
+                                height="14"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                aria-hidden="true"
+                              >
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
+                                ></path>
+                              </svg>
+                            {/if}
+                          </button>
+                        </div>
+                      </div>
+                      <div class="log-row secondary">
+                        {#if packet.type === 'rx'}
+                          {#if packet.state}
+                            <span class="state-preview">→ {JSON.stringify(packet.state)}</span>
+                          {/if}
+                        {:else}
+                          <span class="command-info">
+                            {packet.command}
+                            {#if packet.value !== undefined}<span class="value"
+                                >({packet.value})</span
+                              >{/if}
+                          </span>
+                        {/if}
+                      </div>
+                    </div>
                   </div>
                 {/each}
               {/if}
@@ -1628,14 +1720,37 @@
   }
 
   .log-entry {
-    padding: 0.4rem 0.6rem;
+    padding: 0.25rem 0.6rem;
     border-bottom: 1px solid #1e293b;
     font-size: 0.85rem;
     font-family: monospace;
     display: flex;
     gap: 0.75rem;
-    align-items: center;
+    align-items: flex-start;
     color: #cbd5e1;
+    min-height: 52px;
+  }
+
+  .log-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-shrink: 0;
+    padding-top: 0.1rem;
+  }
+
+  .log-content {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .log-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-height: 24px;
   }
 
   .log-entry:last-child {
@@ -1673,6 +1788,35 @@
     font-family: monospace;
   }
 
+  .code-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .copy-btn {
+    background: transparent;
+    border: none;
+    color: #64748b;
+    cursor: pointer;
+    padding: 0.2rem;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+
+  .copy-btn:hover {
+    color: #e2e8f0;
+    background: rgba(148, 163, 184, 0.1);
+  }
+
+  .success-icon {
+    color: #34d399;
+  }
+
   .command-info {
     color: #a855f7;
     margin-left: 0.5rem;
@@ -1685,7 +1829,6 @@
   .state-preview {
     color: #38bdf8;
     font-size: 0.85em;
-    margin-left: 0.5rem;
     opacity: 0.9;
   }
 

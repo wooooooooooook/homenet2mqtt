@@ -150,52 +150,136 @@
   });
 
   const getPayloadText = (packetId: string) => (packetDictionary[packetId] || '').toUpperCase();
+
+  let copiedPacket = $state<string | null>(null);
+  let copyTimeout: ReturnType<typeof setTimeout>;
+
+  async function copyToClipboard(text: string): Promise<boolean> {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+      throw new Error('Clipboard API unavailable');
+    } catch (err) {
+      try {
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.top = '0';
+        textArea.style.left = '0';
+        textArea.style.position = 'fixed';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        const successful = document.execCommand('copy');
+        document.body.removeChild(textArea);
+        return successful;
+      } catch (fallbackErr) {
+        console.error('Failed to copy', err, fallbackErr);
+        return false;
+      }
+    }
+  }
+
+  async function copyPacket(packet: string) {
+    const success = await copyToClipboard(packet);
+    if (success) {
+      copiedPacket = packet;
+
+      if (copyTimeout) clearTimeout(copyTimeout);
+      copyTimeout = setTimeout(() => {
+        copiedPacket = null;
+      }, 2000);
+    }
+  }
 </script>
 
 {#snippet renderPacketItem(packet: MergedPacket, _index: number)}
   <div class="log-item {packet.type}">
-    <span class="time">[{packet.data.timeLabel ?? formatTime(packet.data.timestamp)}]</span>
+    <div class="log-meta">
+      <span class="time">[{packet.data.timeLabel ?? formatTime(packet.data.timestamp)}]</span>
+      <span class="direction {packet.type}">{packet.type.toUpperCase()}</span>
+    </div>
 
-    {#if packet.type === 'rx'}
-      <span class="direction rx">RX</span>
-      <span class="entity">
-        {#each getHighlightedParts(packet.data.entityId, normalizedFilter) as part, index (`ent-${index}`)}
-          {#if part.highlight}<mark>{part.text}</mark>{:else}{part.text}{/if}
-        {/each}
-      </span>
-      <code class="payload">
-        {#each getHighlightedParts(getPayloadText(packet.data.packetId), normalizedFilter) as part, index (`pay-${index}`)}
-          {#if part.highlight}<mark>{part.text}</mark>{:else}{part.text}{/if}
-        {/each}
-      </code>
-      {#if (packet.data as PacketLogEntry).state}
-        <span class="state-preview">→ {JSON.stringify((packet.data as PacketLogEntry).state)}</span>
-      {/if}
-    {:else}
-      <span class="direction tx">TX</span>
-      <span class="entity">
-        {#each getHighlightedParts(packet.data.entityId, normalizedFilter) as part, index (`ent-${index}`)}
-          {#if part.highlight}<mark>{part.text}</mark>{:else}{part.text}{/if}
-        {/each}
-      </span>
-      <code class="payload">
-        {#each getHighlightedParts(getPayloadText(packet.data.packetId), normalizedFilter) as part, index (`pay-${index}`)}
-          {#if part.highlight}<mark>{part.text}</mark>{:else}{part.text}{/if}
-        {/each}
-      </code>
-      <span class="command-info">
-        {#each getHighlightedParts((packet.data as CommandLogEntry).command, normalizedFilter) as part, index (`cmd-${index}`)}
-          {#if part.highlight}<mark>{part.text}</mark>{:else}{part.text}{/if}
-        {/each}
-        {#if (packet.data as CommandLogEntry).value !== undefined}
-          <span class="value">
-            ({#each getHighlightedParts(String((packet.data as CommandLogEntry).value), normalizedFilter) as part, index (`val-${index}`)}
+    <div class="log-content">
+      <div class="log-row primary">
+        <span class="entity">
+          {#each getHighlightedParts(packet.data.entityId, normalizedFilter) as part, index (`ent-${index}`)}
+            {#if part.highlight}<mark>{part.text}</mark>{:else}{part.text}{/if}
+          {/each}
+        </span>
+        <div class="code-wrapper">
+          <code class="payload">
+            {#each getHighlightedParts(getPayloadText(packet.data.packetId), normalizedFilter) as part, index (`pay-${index}`)}
               {#if part.highlight}<mark>{part.text}</mark>{:else}{part.text}{/if}
-            {/each})
+            {/each}
+          </code>
+          <button
+            class="copy-btn"
+            onclick={() => copyPacket(getPayloadText(packet.data.packetId))}
+            aria-label={$t('common.copy')}
+            title={$t('common.copy')}
+          >
+            {#if copiedPacket === getPayloadText(packet.data.packetId)}
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="success-icon"
+                aria-hidden="true"
+              >
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            {:else}
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+            {/if}
+          </button>
+        </div>
+      </div>
+
+      <div class="log-row secondary">
+        {#if packet.type === 'rx'}
+          {#if (packet.data as PacketLogEntry).state}
+            <span class="state-preview"
+              >→ {JSON.stringify((packet.data as PacketLogEntry).state)}</span
+            >
+          {/if}
+        {:else}
+          <span class="command-info">
+            {#each getHighlightedParts((packet.data as CommandLogEntry).command, normalizedFilter) as part, index (`cmd-${index}`)}
+              {#if part.highlight}<mark>{part.text}</mark>{:else}{part.text}{/if}
+            {/each}
+            {#if (packet.data as CommandLogEntry).value !== undefined}
+              <span class="value">
+                ({#each getHighlightedParts(String((packet.data as CommandLogEntry).value), normalizedFilter) as part, index (`val-${index}`)}
+                  {#if part.highlight}<mark>{part.text}</mark>{:else}{part.text}{/if}
+                {/each})
+              </span>
+            {/if}
           </span>
         {/if}
-      </span>
-    {/if}
+      </div>
+    </div>
   </div>
 {/snippet}
 
@@ -279,7 +363,7 @@
       <VirtualList
         items={viewPackets}
         renderItem={renderPacketItem}
-        defaultEstimatedItemHeight={32}
+        defaultEstimatedItemHeight={52}
         bufferSize={10}
       />
     {/if}
@@ -410,12 +494,34 @@
 
   .log-item {
     display: flex;
+    align-items: flex-start;
     gap: 0.75rem;
-    padding: 0.4rem 0.6rem;
+    padding: 0.25rem 0.6rem;
     border-bottom: 1px solid rgba(148, 163, 184, 0.05);
-    align-items: center;
     color: #cbd5e1;
-    min-height: 32px;
+    min-height: 52px;
+  }
+
+  .log-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-shrink: 0;
+    padding-top: 0.1rem;
+  }
+
+  .log-content {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .log-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-height: 24px;
   }
 
   .log-item:last-child {
@@ -460,6 +566,35 @@
     border-radius: 3px;
   }
 
+  .code-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .copy-btn {
+    background: transparent;
+    border: none;
+    color: #64748b;
+    cursor: pointer;
+    padding: 0.2rem;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+
+  .copy-btn:hover {
+    color: #e2e8f0;
+    background: rgba(148, 163, 184, 0.1);
+  }
+
+  .success-icon {
+    color: #34d399;
+  }
+
   .command-info {
     color: #a855f7;
     margin-left: 0.25rem;
@@ -472,7 +607,6 @@
   .state-preview {
     color: #38bdf8;
     font-size: 0.85em;
-    margin-left: 0.5rem;
     opacity: 0.9;
   }
 
