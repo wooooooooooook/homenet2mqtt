@@ -1,12 +1,12 @@
 // packages/core/src/domain/entities/fan.entity.ts
 
 import { EntityConfig, CommandSchemaOrCEL } from './base.entity.js';
-import { StateSchema, StateNumSchemaOrCEL } from '../../protocol/types.js';
+import { StateSchema, StateNumSchemaOrCEL, StateSchemaOrCEL } from '../../protocol/types.js';
 
 export interface FanEntity extends EntityConfig {
   state: StateSchema;
-  state_on?: StateSchema;
-  state_off?: StateSchema;
+  state_on?: StateSchemaOrCEL;
+  state_off?: StateSchemaOrCEL;
 
   // Speed support (percentage 0-100)
   state_speed?: StateNumSchemaOrCEL;

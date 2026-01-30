@@ -1,13 +1,13 @@
 // packages/core/src/domain/entities/climate.entity.ts
 
 import { EntityConfig, CommandSchemaOrCEL } from './base.entity.js';
-import { StateSchema, StateNumSchemaOrCEL } from '../../protocol/types.js';
+import { StateSchema, StateNumSchemaOrCEL, StateSchemaOrCEL } from '../../protocol/types.js';
 
 export interface ClimateEntity extends EntityConfig {
   state: StateSchema;
 
   // Temperature modes
-  state_off?: StateSchema;
+  state_off?: StateSchemaOrCEL;
   state_heat?: StateSchema;
   state_cool?: StateSchema;
   state_fan_only?: StateSchema;

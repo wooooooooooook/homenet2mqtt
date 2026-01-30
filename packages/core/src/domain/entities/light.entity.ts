@@ -1,12 +1,12 @@
 // packages/core/src/domain/entities/light.entity.ts
 
 import { EntityConfig, CommandSchemaOrCEL } from './base.entity.js';
-import { StateSchema, StateNumSchemaOrCEL } from '../../protocol/types.js';
+import { StateSchema, StateNumSchemaOrCEL, StateSchemaOrCEL } from '../../protocol/types.js';
 
 export interface LightEntity extends EntityConfig {
   state: StateSchema;
-  state_on?: StateSchema;
-  state_off?: StateSchema;
+  state_on?: StateSchemaOrCEL;
+  state_off?: StateSchemaOrCEL;
 
   // Brightness support
   state_brightness?: StateNumSchemaOrCEL;

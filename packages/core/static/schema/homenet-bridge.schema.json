@@ -227,6 +227,14 @@
         "rx_timeout": {
           "description": "Maximum time (in ms) to wait for a status update packet.",
           "type": "number"
+        },
+        "rx_min_length": {
+          "description": "Minimum length of the received packet.\nPackets shorter than this will be ignored.",
+          "type": "number"
+        },
+        "rx_max_length": {
+          "description": "Maximum length of the received packet.\nPackets longer than this will be ignored.",
+          "type": "number"
         }
       }
     },
@@ -322,12 +330,26 @@
           "$ref": "#/definitions/StateSchema"
         },
         "state_on": {
-          "description": "Schema for matching and extracting state from a packet.",
-          "$ref": "#/definitions/StateSchema"
+          "description": "State schema that can be either a structured schema object or a CEL expression string.\nCEL expressions are evaluated at runtime to extract values from packet data.",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/StateSchema"
+            },
+            {
+              "type": "string"
+            }
+          ]
         },
         "state_off": {
-          "description": "Schema for matching and extracting state from a packet.",
-          "$ref": "#/definitions/StateSchema"
+          "description": "State schema that can be either a structured schema object or a CEL expression string.\nCEL expressions are evaluated at runtime to extract values from packet data.",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/StateSchema"
+            },
+            {
+              "type": "string"
+            }
+          ]
         },
         "state_brightness": {
           "description": "Numeric state schema that can be either a structured schema object or a CEL expression string.\nCEL expressions are evaluated at runtime to extract numeric values from packet data.",
@@ -791,8 +813,15 @@
           "$ref": "#/definitions/StateSchema"
         },
         "state_off": {
-          "description": "Schema for matching and extracting state from a packet.",
-          "$ref": "#/definitions/StateSchema"
+          "description": "State schema that can be either a structured schema object or a CEL expression string.\nCEL expressions are evaluated at runtime to extract values from packet data.",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/StateSchema"
+            },
+            {
+              "type": "string"
+            }
+          ]
         },
         "state_heat": {
           "description": "Schema for matching and extracting state from a packet.",
@@ -1727,12 +1756,26 @@
           "$ref": "#/definitions/StateSchema"
         },
         "state_on": {
-          "description": "Schema for matching and extracting state from a packet.",
-          "$ref": "#/definitions/StateSchema"
+          "description": "State schema that can be either a structured schema object or a CEL expression string.\nCEL expressions are evaluated at runtime to extract values from packet data.",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/StateSchema"
+            },
+            {
+              "type": "string"
+            }
+          ]
         },
         "state_off": {
-          "description": "Schema for matching and extracting state from a packet.",
-          "$ref": "#/definitions/StateSchema"
+          "description": "State schema that can be either a structured schema object or a CEL expression string.\nCEL expressions are evaluated at runtime to extract values from packet data.",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/StateSchema"
+            },
+            {
+              "type": "string"
+            }
+          ]
         },
         "state_speed": {
           "description": "Numeric state schema that can be either a structured schema object or a CEL expression string.\nCEL expressions are evaluated at runtime to extract numeric values from packet data.",
@@ -1936,12 +1979,26 @@
           "$ref": "#/definitions/StateSchema"
         },
         "state_on": {
-          "description": "Schema for matching and extracting state from a packet.",
-          "$ref": "#/definitions/StateSchema"
+          "description": "State schema that can be either a structured schema object or a CEL expression string.\nCEL expressions are evaluated at runtime to extract values from packet data.",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/StateSchema"
+            },
+            {
+              "type": "string"
+            }
+          ]
         },
         "state_off": {
-          "description": "Schema for matching and extracting state from a packet.",
-          "$ref": "#/definitions/StateSchema"
+          "description": "State schema that can be either a structured schema object or a CEL expression string.\nCEL expressions are evaluated at runtime to extract values from packet data.",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/StateSchema"
+            },
+            {
+              "type": "string"
+            }
+          ]
         },
         "command_on": {
           "$ref": "#/definitions/CommandSchema"
@@ -2690,12 +2747,26 @@
           "$ref": "#/definitions/StateSchema"
         },
         "state_on": {
-          "description": "Schema for matching and extracting state from a packet.",
-          "$ref": "#/definitions/StateSchema"
+          "description": "State schema that can be either a structured schema object or a CEL expression string.\nCEL expressions are evaluated at runtime to extract values from packet data.",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/StateSchema"
+            },
+            {
+              "type": "string"
+            }
+          ]
         },
         "state_off": {
-          "description": "Schema for matching and extracting state from a packet.",
-          "$ref": "#/definitions/StateSchema"
+          "description": "State schema that can be either a structured schema object or a CEL expression string.\nCEL expressions are evaluated at runtime to extract values from packet data.",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/StateSchema"
+            },
+            {
+              "type": "string"
+            }
+          ]
         },
         "id": {
           "type": "string"
