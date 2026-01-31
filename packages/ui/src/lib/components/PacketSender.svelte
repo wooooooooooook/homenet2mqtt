@@ -19,6 +19,7 @@
   let isSending = $state(false);
   let sendError = $state<string | null>(null);
   let sendSuccessMsg = $state<string | null>(null);
+  let previewCopied = $state(false);
 
   const hexInputId = `hex-input-${Math.random().toString(36).slice(2, 9)}`;
   const errorMsgId = `error-msg-${Math.random().toString(36).slice(2, 9)}`;
@@ -60,6 +61,46 @@
     const timer = setTimeout(updatePreview, 300);
     return () => clearTimeout(timer);
   });
+
+  async function copyToClipboard(text: string): Promise<boolean> {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+      throw new Error('Clipboard API unavailable');
+    } catch (err) {
+      let textArea: HTMLTextAreaElement | null = null;
+      try {
+        textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.top = '0';
+        textArea.style.left = '0';
+        textArea.style.position = 'fixed';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        return document.execCommand('copy');
+      } catch (fallbackErr) {
+        console.error('Failed to copy', err, fallbackErr);
+        return false;
+      } finally {
+        if (textArea && textArea.parentNode) {
+          document.body.removeChild(textArea);
+        }
+      }
+    }
+  }
+
+  async function handleCopyPreview(text: string) {
+    const success = await copyToClipboard(text);
+    if (success) {
+      previewCopied = true;
+      setTimeout(() => {
+        previewCopied = false;
+      }, 2000);
+    }
+  }
 
   async function sendPacket() {
     if (!senderHex.trim() || !portId) return;
@@ -174,7 +215,49 @@
     {#if senderPreview}
       <div class="preview-row" transition:fade>
         <span class="label-text">{$t('analysis.raw_log.sender.preview_label')}:</span>
-        <code class="preview-code">{toHexPairs(senderPreview).join(' ')}</code>
+        <div class="code-wrapper">
+          <code class="preview-code">{toHexPairs(senderPreview).join(' ')}</code>
+          <button
+            class="copy-btn"
+            onclick={() => handleCopyPreview(toHexPairs(senderPreview!).join(' '))}
+            aria-label={$t('common.copy')}
+            title={$t('common.copy')}
+          >
+            {#if previewCopied}
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="success-icon"
+                aria-hidden="true"
+              >
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            {:else}
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+            {/if}
+          </button>
+        </div>
       </div>
     {/if}
 
@@ -360,6 +443,34 @@
     color: #34d399;
     font-weight: 600;
     word-break: break-all;
+  }
+
+  .code-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .copy-btn {
+    background: transparent;
+    border: none;
+    color: #64748b;
+    cursor: pointer;
+    padding: 0.2rem;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+
+  .copy-btn:hover {
+    color: #e2e8f0;
+    background: rgba(148, 163, 184, 0.1);
+  }
+
+  .success-icon {
+    color: #34d399;
   }
 
   .action-row {
