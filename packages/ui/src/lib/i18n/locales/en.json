@@ -329,6 +329,7 @@
     "copied": "Copied!",
     "loading": "Loading...",
     "refresh": "Refresh",
+    "copy": "Copy",
     "status": {
       "idle": "Idle",
       "starting": "Starting",
