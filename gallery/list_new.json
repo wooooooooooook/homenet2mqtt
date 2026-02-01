@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-01-30T12:00:06.251Z",
+  "generated_at": "2026-02-01T05:51:25.612Z",
   "vendors": [
     {
       "id": "bestin",
@@ -1305,7 +1305,7 @@
           "name_en": "Air Quality Sensors (CO2/PM)",
           "description": "Ezville 공기질 센서 설정입니다. 거실과 안방의 CO2 농도 및 미세먼지(PM) 측정값을 제공합니다.",
           "description_en": "Ezville air quality sensors for CO2 concentration and PM (particulate matter) readings in the living room and main bedroom.",
-          "version": "1.0.1",
+          "version": "1.0.2",
           "author": "햇님이다",
           "tags": [
             "sensor",
