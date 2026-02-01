@@ -3,7 +3,7 @@ meta:
   name_en: "Air Quality Sensors (CO2/PM)"
   description: "Ezville 공기질 센서 설정입니다. 거실과 안방의 CO2 농도 및 미세먼지(PM) 측정값을 제공합니다."
   description_en: "Ezville air quality sensors for CO2 concentration and PM (particulate matter) readings in the living room and main bedroom."
-  version: "1.0.1"
+  version: "1.0.2"
   author: "햇님이다"
   tags: ["sensor", "air_quality", "co2", "pm", "ezville"]
 
@@ -49,7 +49,6 @@ entities:
         offset: 11
         length: 1
         signed: false
-        decode: bcd
 
     - id: room2_pm
       name: 'PM(안방)'
@@ -61,4 +60,3 @@ entities:
         offset: 11
         length: 1
         signed: false
-        decode: bcd
