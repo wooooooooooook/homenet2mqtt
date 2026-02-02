@@ -545,12 +545,7 @@ export class DiscoveryManager {
 
       case 'climate':
         // Climate entities use separate command topics but single state topic with templates
-        payload.mode_command_topic = `${this.mqttTopicPrefix}/${id}/mode/set`;
         payload.temperature_command_topic = `${this.mqttTopicPrefix}/${id}/temperature/set`;
-
-        // Use single state_topic with templates to extract values from JSON
-        payload.mode_state_topic = `${this.mqttTopicPrefix}/${id}/state`;
-        payload.mode_state_template = '{{ value_json.mode }}';
 
         payload.temperature_state_topic = `${this.mqttTopicPrefix}/${id}/state`;
         payload.temperature_state_template = '{{ value_json.target_temperature }}';
@@ -585,7 +580,14 @@ export class DiscoveryManager {
           // Assuming 'state_auto' property for auto mode
           availableModes.push('auto');
         }
-        payload.modes = availableModes;
+
+        // Only set mode topics/templates when modes are available
+        if (availableModes.length > 0) {
+          payload.modes = availableModes;
+          payload.mode_command_topic = `${this.mqttTopicPrefix}/${id}/mode/set`;
+          payload.mode_state_topic = `${this.mqttTopicPrefix}/${id}/state`;
+          payload.mode_state_template = "{{ value_json.mode }}";
+        }
 
         const fanModes = new Set<string>();
         const fanModeMappings: Array<[string, string]> = [

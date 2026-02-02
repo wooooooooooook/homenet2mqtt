@@ -15,6 +15,7 @@
 - 팬 모드: `state_fan_on`, `state_fan_off`, `state_fan_auto`, `state_fan_low`, `state_fan_medium`, `state_fan_high`, `state_fan_middle`, `state_fan_focus`, `state_fan_diffuse`, `state_fan_quiet`.
 - 프리셋: `state_preset_none`, `state_preset_home`, `state_preset_away`, `state_preset_boost`, `state_preset_comfort`, `state_preset_eco`, `state_preset_sleep`, `state_preset_activity`.
 - 커스텀 모드(CEL): `state_custom_fan`, `state_custom_preset` — 문자열을 반환하는 CEL 표현식으로 표현.
+  - ⚠️ **프리셋 모드 주의**: `state_custom_preset`은 프리셋이 비활성화된 상태에서 빈 문자열(`""`)이 아닌 `"none"`을 반환해야 합니다.
 
 ## 옵션 필드 (명령)
 - 모드 전환: `command_off`, `command_heat`, `command_cool`, `command_fan_only`, `command_dry`, `command_auto`.
@@ -47,6 +48,7 @@
 - **표준 모드 (`modes`)**: `state_off`, `state_heat`, `state_cool` 등이 정의되어 있으면 자동으로 Home Assistant의 모드 선택기에 추가됩니다.
 - **팬 모드 (`fan_modes`)**: `state_fan_*`/`command_fan_*`가 정의된 표준 모드와 `custom_fan_mode` 목록이 함께 Home Assistant의 팬 모드 선택기에 추가됩니다.
 - **프리셋 모드 (`preset_modes`)**: `state_preset_*`/`command_preset_*`가 정의된 표준 모드와 `custom_preset` 목록이 함께 Home Assistant의 프리셋 선택기에 추가됩니다.
+  - ⚠️ **`none`은 `preset_modes`에 포함하지 마세요.** Home Assistant에서 `none`은 "프리셋이 적용되지 않은 상태"를 나타내는 예약어로 자동 처리됩니다. 프리셋이 비활성화된 상태에서는 `state_custom_preset`이 `"none"`을 반환해야 합니다.
 
 즉, 장치가 `off`/`heat` 모드와 함께 `Turbo`/`Nature`/`Sleep` 같은 팬 모드를 지원한다면, 두 가지를 모두 설정할 수 있습니다.
 

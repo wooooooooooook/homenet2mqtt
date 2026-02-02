@@ -1,3 +1,7 @@
+v2.4.1
+- fix: 일부 엔티티의 discovery에서 없는 속성을 발행하는 문제 수정
+
+
 v2.4.0
 - feat: packet_defaults에 rx_min_length, rx_max_length 옵션 도입
 - fix: script실행시 args 전달 안되는 문제 수정.
