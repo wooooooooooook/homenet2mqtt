@@ -144,10 +144,11 @@ export function createEntitiesRoutes(ctx: EntitiesRoutesContext): Router {
       return res.status(429).json({ error: 'Too many requests' });
     }
 
-    const { entityId, newName, portId } = req.body as {
+    const { entityId, newName, portId, updateObjectId = true } = req.body as {
       entityId?: string;
       newName?: string;
       portId?: string;
+      updateObjectId?: boolean;
     };
 
     if (!entityId || typeof entityId !== 'string') {
@@ -202,8 +203,8 @@ export function createEntitiesRoutes(ctx: EntitiesRoutesContext): Router {
       const backupPath = await saveBackup(configPath, loadedYamlFromFile, 'entity_rename');
 
       const trimmedName = newName.trim();
-      const portId = normalizedConfig.serial?.portId ?? 'default';
-      const uniqueId = targetEntity.unique_id || `homenet_${portId}_${entityId}`;
+      const configPortId = normalizedConfig.serial?.portId ?? 'default';
+      const uniqueId = targetEntity.unique_id || `homenet_${configPortId}_${entityId}`;
       targetEntity.name = trimmedName;
       if (!targetEntity.unique_id) {
         targetEntity.unique_id = uniqueId;
@@ -221,7 +222,7 @@ export function createEntitiesRoutes(ctx: EntitiesRoutesContext): Router {
 
       const bridges = ctx.getBridges();
       const targetBridge = bridges.find((instance) => instance.configFile === targetConfigFile);
-      targetBridge?.bridge.renameEntity(entityId, trimmedName, uniqueId);
+      targetBridge?.bridge.renameEntity(entityId, trimmedName, uniqueId, updateObjectId);
 
       logger.info(
         `[service] Entity ${entityId} renamed to '${trimmedName}'. Backup created at ${path.basename(backupPath)}`,

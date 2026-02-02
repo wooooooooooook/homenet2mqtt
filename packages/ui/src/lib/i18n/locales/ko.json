@@ -643,7 +643,8 @@
         "saving": "변경 중...",
         "save": "저장",
         "error_empty": "새 이름을 입력해주세요.",
-        "error_same": "변경된 내용이 없습니다."
+        "error_same": "변경된 내용이 없습니다.",
+        "update_id": "HA 엔티티 ID도 함께 변경"
       },
       "revoke": {
         "title": "디스커버리 회수",

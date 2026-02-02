@@ -306,6 +306,7 @@ export class HomeNetBridge extends EventEmitter {
     entityId: string,
     newName: string,
     uniqueId?: string,
+    updateObjectId = true,
   ): { success: boolean; error?: string } {
     if (!this.config) {
       return { success: false, error: 'Bridge not initialized' };
@@ -331,7 +332,12 @@ export class HomeNetBridge extends EventEmitter {
       entity.unique_id = ensuredUniqueId;
     }
 
-    eventBus.emit('entity:renamed', { entityId, newName: trimmedName, uniqueId: ensuredUniqueId });
+    eventBus.emit('entity:renamed', {
+      entityId,
+      newName: trimmedName,
+      uniqueId: ensuredUniqueId,
+      updateObjectId,
+    });
     return { success: true };
   }
 

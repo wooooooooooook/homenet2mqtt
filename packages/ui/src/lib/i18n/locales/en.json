@@ -638,7 +638,8 @@
         "saving": "Renaming...",
         "save": "Save",
         "error_empty": "Please enter a new name.",
-        "error_same": "No changes made."
+        "error_same": "No changes made.",
+        "update_id": "Also update HA entity ID"
       },
       "revoke": {
         "title": "Revoke Discovery",

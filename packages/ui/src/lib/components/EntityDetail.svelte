@@ -45,7 +45,7 @@
     renameError?: string | null;
     onClose?: () => void;
     onExecute?: (cmd: CommandInfo, value?: any) => void;
-    onRename?: (newName: string) => void;
+    onRename?: (newName: string, updateObjectId: boolean) => void;
     onUpdate?: (updates: Partial<UnifiedEntity>) => void;
     editorMode?: 'monaco' | 'textarea';
   } = $props();
@@ -60,6 +60,7 @@
   let renameInput = $state('');
   let renameLocalError = $state<string | null>(null);
   let renameEntityId = $state<string | null>(null);
+  let updateEntityId = $state(true);
   let effectiveRenameError = $state('');
   let idCopied = $state(false);
   let isExecutingAutomation = $state(false);
@@ -303,7 +304,7 @@
     }
 
     renameLocalError = null;
-    onRename?.(trimmed);
+    onRename?.(trimmed, updateEntityId);
   }
 
   function handleExecute(cmd: CommandInfo, value?: any) {
@@ -1259,6 +1260,10 @@
                   {$t('entity_detail.manage.rename.save')}
                 </Button>
               </div>
+              <label class="checkbox-label">
+                <input type="checkbox" bind:checked={updateEntityId} />
+                {$t('entity_detail.manage.rename.update_id')}
+              </label>
               {#if effectiveRenameError}
                 <div class="rename-error">{effectiveRenameError}</div>
               {/if}

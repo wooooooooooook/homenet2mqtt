@@ -2,6 +2,7 @@ import { DeviceConfig, HomenetBridgeConfig } from '../config/types.js';
 import { MqttPublisher } from '../transports/mqtt/publisher.js';
 import { MqttSubscriber } from '../transports/mqtt/subscriber.js';
 import { logger } from '../utils/logger.js';
+import { toEntityId } from '../utils/romanize.js';
 import { eventBus } from '../service/event-bus.js';
 import { EntityConfig } from '../domain/entities/base.entity.js';
 
@@ -100,8 +101,16 @@ export class DiscoveryManager {
 
     eventBus.on(
       'entity:renamed',
-      ({ entityId, newName }: { entityId: string; newName: string }) => {
-        this.handleEntityRenamed(entityId, newName);
+      ({
+        entityId,
+        newName,
+        updateObjectId = true,
+      }: {
+        entityId: string;
+        newName: string;
+        updateObjectId?: boolean;
+      }) => {
+        this.handleEntityRenamed(entityId, newName, updateObjectId);
       },
     );
 
@@ -189,7 +198,7 @@ export class DiscoveryManager {
     }
   }
 
-  private handleEntityRenamed(entityId: string, newName: string): void {
+  private handleEntityRenamed(entityId: string, newName: string, updateObjectId: boolean): void {
     const entity = this.entities.find((candidate) => candidate.id === entityId);
 
     if (!entity) {
@@ -200,6 +209,14 @@ export class DiscoveryManager {
     const uniqueId = this.ensureUniqueId(entity);
     const discoveryType = this.resolveDiscoveryType(entity.type);
     const topic = `${this.discoveryPrefix}/${discoveryType}/${uniqueId}/config`;
+
+    // Cache current object_id before rename if we don't want to update it
+    if (!updateObjectId && !(entity as any)._object_id) {
+      (entity as any)._object_id = this.buildObjectId(entity);
+    } else if (updateObjectId) {
+      // Clear cached object_id so it will be regenerated from new name
+      delete (entity as any)._object_id;
+    }
 
     this.publisher.publish(topic, '', { retain: true });
     logger.debug({ topic }, '[DiscoveryManager] Cleared retained discovery for renamed entity');
@@ -226,14 +243,12 @@ export class DiscoveryManager {
   }
 
   private buildObjectId(entity: EntityConfig): string {
+    // Use cached object_id if available (to preserve ID when only name is renamed)
+    if ((entity as any)._object_id) {
+      return (entity as any)._object_id;
+    }
     const source = entity.name || entity.id;
-    return source
-      .toString()
-      .trim()
-      .replace(/\s+/g, '_')
-      .replace(/[^a-zA-Z0-9_\-]/g, '_')
-      .replace(/_+/g, '_')
-      .toLowerCase();
+    return toEntityId(source.toString());
   }
 
   private publishDiscoveryIfEligible(entity: EntityConfig & { type: string }, force = false): void {

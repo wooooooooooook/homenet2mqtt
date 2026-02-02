@@ -1319,7 +1319,12 @@
     }
   }
 
-  async function renameEntityRequest(entityId: string, newName: string, portId?: string) {
+  async function renameEntityRequest(
+    entityId: string,
+    newName: string,
+    portId?: string,
+    updateObjectId = true,
+  ) {
     const trimmed = newName.trim();
     if (!trimmed) {
       renameError = get(t)('errors.RENAME_EMPTY_NAME');
@@ -1332,7 +1337,7 @@
     try {
       await apiRequest('./api/entities/rename', {
         method: 'POST',
-        body: JSON.stringify({ entityId, newName: trimmed, portId }),
+        body: JSON.stringify({ entityId, newName: trimmed, portId, updateObjectId }),
       });
 
       availableCommands = availableCommands.map((cmd) =>
@@ -1996,8 +2001,9 @@
         onExecute={(cmd, value) => executeCommand(cmd, value)}
         isRenaming={renamingEntityId === selectedEntity.id}
         {renameError}
-        onRename={(newName) =>
-          selectedEntity && renameEntityRequest(selectedEntity.id, newName, selectedEntity.portId)}
+        onRename={(newName, updateObjectId) =>
+          selectedEntity &&
+          renameEntityRequest(selectedEntity.id, newName, selectedEntity.portId, updateObjectId)}
         onUpdate={(updates) =>
           selectedEntity && handleEntityUpdate(selectedEntity.id, selectedEntity.portId, updates)}
         editorMode={frontendSettings?.editor?.default ?? 'monaco'}
