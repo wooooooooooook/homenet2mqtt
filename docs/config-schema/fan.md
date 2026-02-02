@@ -24,9 +24,7 @@
 Fan의 프리셋 모드는 여러 모드 값을 구분해야 하므로 **CEL 표현식**을 사용합니다.
 
 - `preset_modes`: UI에 표시할 프리셋 이름 배열
-  - ⚠️ **`none`은 `preset_modes`에 포함하지 마세요.** Home Assistant에서 `none`은 "프리셋이 적용되지 않은 상태"를 나타내는 예약어로 자동 처리됩니다.
 - `state_preset_mode`: 패킷에서 현재 프리셋을 파싱하는 CEL 표현식 (문자열 반환)
-  - 프리셋이 비활성화된 상태에서는 빈 문자열(`""`)이 아닌 `"none"`을 반환해야 합니다.
 - `command_preset_mode`: 선택된 프리셋에 따라 명령 패킷을 생성하는 CEL 표현식
 
 ```yaml
@@ -47,8 +45,7 @@ fan:
 ```
 
 **CEL 사용 시 주의사항:**
-- **상태(`state_preset_mode`)**: 패킷(`data`)을 분석하여 `preset_modes`에 정의한 문자열 중 하나 또는 `"none"`을 반환해야 합니다.
-  - ⚠️ 프리셋이 비활성화된 상태에서는 빈 문자열이 아닌 `"none"`을 반환해야 합니다.
+- **상태(`state_preset_mode`)**: 패킷(`data`)을 분석하여 `preset_modes`에 정의한 문자열 중 하나를 반환해야 합니다.
 - **명령(`command_preset_mode`)**: 사용자가 UI에서 선택한 문자열(`xstr`)을 인자로 받아 바이트 배열을 반환해야 합니다.
   - ⚠️ 문자열 비교 시 `x`가 아닌 **`xstr`** 변수를 사용합니다. (예: `xstr == "Turbo"`)
 
