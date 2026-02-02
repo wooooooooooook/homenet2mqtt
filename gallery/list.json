@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-02-02T05:51:42.417Z",
+  "generated_at": "2026-02-02T23:53:22.303Z",
   "vendors": [
     {
       "id": "bestin",
@@ -498,7 +498,7 @@
           "name_en": "heat exchanger fan",
           "description": "Ezville 전열교환기 설정입니다.",
           "description_en": "Ezville heat exchanger fan configuration.",
-          "version": "2.0.1",
+          "version": "2.0.2",
           "author": "gunfos",
           "tags": [
             "heat exchanger fan",
@@ -519,7 +519,7 @@
           "name_en": "heat exchanger fan (auto mode)",
           "description": "Ezville 전열교환기 설정입니다. 자동 모드를 포함합니다.",
           "description_en": "Ezville heat exchanger fan configuration with auto mode.",
-          "version": "1.0.0",
+          "version": "1.0.1",
           "author": "loveangelsa",
           "tags": [
             "heat exchanger fan",
