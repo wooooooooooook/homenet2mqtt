@@ -514,6 +514,28 @@
           }
         },
         {
+          "file": "ezville/fan1.yaml",
+          "name": "전열교환기 (자동 모드)",
+          "name_en": "heat exchanger fan (auto mode)",
+          "description": "Ezville 전열교환기 설정입니다. 자동 모드를 포함합니다.",
+          "description_en": "Ezville heat exchanger fan configuration with auto mode.",
+          "version": "1.0.0",
+          "author": "loveangelsa",
+          "tags": [
+            "heat exchanger fan",
+            "ezville",
+            "auto mode"
+          ],
+          "parameters": [],
+          "content_summary": {
+            "entities": {
+              "fan": 1
+            },
+            "automations": 1,
+            "scripts": 0
+          }
+        },
+        {
           "file": "ezville/gas_valve.yaml",
           "name": "가스밸브 설정",
           "name_en": "Gas Valve",
