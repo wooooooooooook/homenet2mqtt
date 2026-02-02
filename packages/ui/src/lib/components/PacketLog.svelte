@@ -5,6 +5,7 @@
   import { formatTime } from '../utils/time';
   import { fade } from 'svelte/transition';
   import Button from './Button.svelte';
+  import { copyToClipboard } from '../utils/clipboard';
 
   let {
     parsedLogs = [],
@@ -153,33 +154,6 @@
 
   let copiedPacket = $state<string | null>(null);
   let copyTimeout: ReturnType<typeof setTimeout>;
-
-  async function copyToClipboard(text: string): Promise<boolean> {
-    try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(text);
-        return true;
-      }
-      throw new Error('Clipboard API unavailable');
-    } catch (err) {
-      try {
-        const textArea = document.createElement('textarea');
-        textArea.value = text;
-        textArea.style.top = '0';
-        textArea.style.left = '0';
-        textArea.style.position = 'fixed';
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-        const successful = document.execCommand('copy');
-        document.body.removeChild(textArea);
-        return successful;
-      } catch (fallbackErr) {
-        console.error('Failed to copy', err, fallbackErr);
-        return false;
-      }
-    }
-  }
 
   async function copyPacket(packet: string) {
     const success = await copyToClipboard(packet);
