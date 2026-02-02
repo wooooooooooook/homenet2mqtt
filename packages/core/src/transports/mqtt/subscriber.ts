@@ -249,6 +249,7 @@ export class MqttSubscriber {
             type: 'command' as const,
             timestamp: Date.now(),
             state: entityState,
+            sourceEntityId: entityId,
           };
 
           for (const [key, value] of Object.entries(schemaArgs)) {
