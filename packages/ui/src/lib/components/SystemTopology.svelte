@@ -217,7 +217,7 @@
         </span>
       </div>
       {#if hasSerialError || !isGreen(portMetadata?.status)}
-        <div class="detail-item">
+        <div class="detail-item detail-item-error">
           <span
             class="value"
             class:error-text={hasSerialError}
@@ -250,7 +250,7 @@
         </span>
       </div>
       {#if hasCoreError || !isGreen(bridgeStatus)}
-        <div class="detail-item">
+        <div class="detail-item detail-item-error">
           <span
             class="value"
             class:error-text={hasCoreError}
@@ -283,7 +283,7 @@
         </span>
       </div>
       {#if hasMqttError || !isGreen(mqttStatus)}
-        <div class="detail-item">
+        <div class="detail-item detail-item-error">
           <span
             class="value"
             class:error-text={hasMqttError}
@@ -510,6 +510,10 @@
     max-width: 400%; /* Prevents extreme overflow */
   }
 
+  .detail-item-error {
+    width: 100%;
+  }
+
   /* Align inner items based on column class */
   .details-column.left .detail-item {
     align-items: flex-start;
@@ -697,7 +701,6 @@
       flex: 1;
       padding-top: 0;
       gap: 16px;
-      justify-content: flex-start;
     }
 
     .detail-spacer {
