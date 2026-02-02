@@ -235,8 +235,7 @@ export class LogRetentionService {
       if (log.value === undefined) {
         return `${base})`;
       }
-      const valueLabel =
-        typeof log.value === 'string' ? log.value : JSON.stringify(log.value);
+      const valueLabel = typeof log.value === 'string' ? log.value : JSON.stringify(log.value);
       return `${base}: ${valueLabel})`;
     };
 

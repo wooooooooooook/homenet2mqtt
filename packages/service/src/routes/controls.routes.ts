@@ -341,7 +341,7 @@ export function createControlsRoutes(ctx: ControlsRoutesContext): Router {
     }
 
     const automations = currentConfigs.flatMap((config, index) =>
-      (config.automation || []).map((auto) => ({
+      (config.automation || []).map((auto: AutomationConfig) => ({
         ...auto,
         configFile: currentConfigFiles[index],
       })),
@@ -369,7 +369,7 @@ export function createControlsRoutes(ctx: ControlsRoutesContext): Router {
     const currentConfigFiles = ctx.getCurrentConfigFiles();
 
     const automation: AutomationConfig | undefined = currentConfigs[configIndex]?.automation?.find(
-      (item) => item.id === automationId,
+      (item: AutomationConfig) => item.id === automationId,
     );
     if (!automation) {
       return res.status(404).json({ error: 'Automation not found in loaded configs' });
@@ -489,7 +489,7 @@ export function createControlsRoutes(ctx: ControlsRoutesContext): Router {
     }
 
     const scripts = currentConfigs.flatMap((config, index) =>
-      (config.scripts || []).map((script) => ({
+      (config.scripts || []).map((script: ScriptConfig) => ({
         ...script,
         configFile: currentConfigFiles[index],
       })),
@@ -517,7 +517,7 @@ export function createControlsRoutes(ctx: ControlsRoutesContext): Router {
     const currentConfigFiles = ctx.getCurrentConfigFiles();
 
     const script: ScriptConfig | undefined = currentConfigs[configIndex]?.scripts?.find(
-      (item) => item.id === scriptId,
+      (item: ScriptConfig) => item.id === scriptId,
     );
     if (!script) {
       return res.status(404).json({ error: 'Script not found in loaded configs' });

@@ -210,7 +210,7 @@ export function createPacketToolsRoutes(ctx: PacketToolsRoutesContext): Router {
     const result = instance.bridge.constructCustomPacket(hex, { header, footer, checksum });
     if (!result.success || !result.packet) return res.status(400).json({ error: result.error });
 
-    const packetBytes = result.packet.match(/.{1,2}/g)?.map((x) => parseInt(x, 16));
+    const packetBytes = result.packet.match(/.{1,2}/g)?.map((x: string) => parseInt(x, 16));
 
     if (!packetBytes) {
       return res.status(400).json({ error: 'Failed to generate packet bytes from hex' });

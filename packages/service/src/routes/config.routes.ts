@@ -379,7 +379,7 @@ export function createConfigRoutes(ctx: ConfigRoutesContext): Router {
 
       for (const key of Object.keys(newItems)) {
         // Check if this key is one of the allowed entity types or automation/script
-        const configKey = key as keyof HomenetBridgeConfig;
+        const configKey = key as keyof HomenetBridgeConfig & string;
         if (
           !ENTITY_TYPE_KEYS.includes(configKey) &&
           configKey !== 'automation' &&
@@ -427,7 +427,7 @@ export function createConfigRoutes(ctx: ConfigRoutesContext): Router {
                 if (Array.isArray(otherList) && otherList.some((e: any) => e.id === newItem.id)) {
                   return res
                     .status(409)
-                    .json({ error: `ID '${newItem.id}' already exists in ${otherKey}.` });
+                    .json({ error: `ID '${newItem.id}' already exists in ${String(otherKey)}.` });
                 }
               }
             }
