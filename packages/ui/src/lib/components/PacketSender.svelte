@@ -2,6 +2,7 @@
   import { t } from 'svelte-i18n';
   import { fade } from 'svelte/transition';
   import Button from './Button.svelte';
+  import { copyToClipboard } from '../utils/clipboard';
 
   let { portId }: { portId: string } = $props();
 
@@ -61,36 +62,6 @@
     const timer = setTimeout(updatePreview, 300);
     return () => clearTimeout(timer);
   });
-
-  async function copyToClipboard(text: string): Promise<boolean> {
-    try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(text);
-        return true;
-      }
-      throw new Error('Clipboard API unavailable');
-    } catch (err) {
-      let textArea: HTMLTextAreaElement | null = null;
-      try {
-        textArea = document.createElement('textarea');
-        textArea.value = text;
-        textArea.style.top = '0';
-        textArea.style.left = '0';
-        textArea.style.position = 'fixed';
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-        return document.execCommand('copy');
-      } catch (fallbackErr) {
-        console.error('Failed to copy', err, fallbackErr);
-        return false;
-      } finally {
-        if (textArea && textArea.parentNode) {
-          document.body.removeChild(textArea);
-        }
-      }
-    }
-  }
 
   async function handleCopyPreview(text: string) {
     const success = await copyToClipboard(text);
@@ -220,8 +191,8 @@
           <button
             class="copy-btn"
             onclick={() => handleCopyPreview(toHexPairs(senderPreview!).join(' '))}
-            aria-label={$t('common.copy')}
-            title={$t('common.copy')}
+            aria-label={previewCopied ? $t('common.copied') : $t('common.copy')}
+            title={previewCopied ? $t('common.copied') : $t('common.copy')}
           >
             {#if previewCopied}
               <svg

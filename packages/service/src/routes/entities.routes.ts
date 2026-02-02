@@ -55,7 +55,7 @@ export function createEntitiesRoutes(ctx: EntitiesRoutesContext): Router {
         const info: ConfigEntityInfo = {
           entityId,
           entityName,
-          entityType,
+          entityType: entityType as string,
           portId,
         };
 
@@ -144,7 +144,12 @@ export function createEntitiesRoutes(ctx: EntitiesRoutesContext): Router {
       return res.status(429).json({ error: 'Too many requests' });
     }
 
-    const { entityId, newName, portId, updateObjectId = true } = req.body as {
+    const {
+      entityId,
+      newName,
+      portId,
+      updateObjectId = true,
+    } = req.body as {
       entityId?: string;
       newName?: string;
       portId?: string;

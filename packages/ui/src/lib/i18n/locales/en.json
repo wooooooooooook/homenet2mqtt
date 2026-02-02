@@ -237,7 +237,7 @@
       "xstr_placeholder": "e.g. \"Turbo\"",
       "data_label": "data (byte array)",
       "data_placeholder": "e.g. [1, 2, 3, 4]",
-      "data_hint": "Hex values with 0x prefix are allowed. (e.g. [0x01, 0x02])",
+      "data_hint": "Hex string (e.g. f7 55) or Array (e.g. [0x01, 2]) supported.",
       "state_label": "state (current state object)",
       "state_placeholder": "e.g. {\"value\": 10}",
       "state_select_placeholder": "Select entity",
@@ -252,6 +252,7 @@
       "json_help": "Provide inputs in JSON format (single-quoted objects are accepted).",
       "result_label": "Result",
       "result_hint": "If the result is null, double-check the expression and inputs.",
+      "invalid_format": "Invalid input format.",
       "invalid_json": "is not valid JSON.",
       "must_be_object": "must be an object.",
       "must_be_array": "must be an array.",
@@ -300,7 +301,8 @@
       "tab_unmatched": "Unmatched",
       "empty": "No packets collected yet.",
       "sort_asc": "Sort A-Z",
-      "sort_desc": "Sort Z-A"
+      "sort_desc": "Sort Z-A",
+      "search_placeholder": "Search packet hex or entity name"
     },
     "stats": {
       "title": "Packet Interval Analysis",

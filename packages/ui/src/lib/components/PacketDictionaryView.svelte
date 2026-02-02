@@ -3,6 +3,7 @@
   import type { PacketDictionaryFullResponse } from '../types';
   import { fade } from 'svelte/transition';
   import Button from './Button.svelte';
+  import { copyToClipboard } from '../utils/clipboard';
 
   let { portId = null }: { portId?: string | null } = $props();
 
@@ -11,6 +12,7 @@
   let error = $state<string | null>(null);
   let viewMode = $state<'parsed' | 'unmatched' | 'all'>('all');
   let sortDesc = $state(false);
+  let searchTerm = $state('');
 
   async function fetchData() {
     loading = true;
@@ -61,6 +63,16 @@
       packets = Array.from(new Set([...parsedPackets, ...unmatchedPackets]));
     }
 
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      const hexTerm = term.replace(/\s+/g, '');
+      packets = packets.filter((packet) => {
+        if (packet.toLowerCase().replace(/\s+/g, '').includes(hexTerm)) return true;
+        const entities = data?.parsedPacketEntities[packet.toLowerCase()] || [];
+        return entities.some((e) => e.toLowerCase().includes(term));
+      });
+    }
+
     packets.sort((a, b) => {
       const res = a.localeCompare(b);
       return sortDesc ? -res : res;
@@ -73,33 +85,6 @@
 
   let copiedPacket = $state<string | null>(null);
   let copyTimeout: ReturnType<typeof setTimeout>;
-
-  async function copyToClipboard(text: string): Promise<boolean> {
-    try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(text);
-        return true;
-      }
-      throw new Error('Clipboard API unavailable');
-    } catch (err) {
-      try {
-        const textArea = document.createElement('textarea');
-        textArea.value = text;
-        textArea.style.top = '0';
-        textArea.style.left = '0';
-        textArea.style.position = 'fixed';
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-        const successful = document.execCommand('copy');
-        document.body.removeChild(textArea);
-        return successful;
-      } catch (fallbackErr) {
-        console.error('Failed to copy', err, fallbackErr);
-        return false;
-      }
-    }
-  }
 
   async function copyPacket(packet: string) {
     const success = await copyToClipboard(packet);
@@ -176,6 +161,12 @@
   {/if}
 
   <div class="controls">
+    <input
+      type="text"
+      class="search-input"
+      placeholder={$t('analysis.packet_dictionary.search_placeholder')}
+      bind:value={searchTerm}
+    />
     <div class="view-tabs">
       <Button
         variant={viewMode === 'all' ? 'primary' : 'secondary'}
@@ -238,8 +229,8 @@
                 <button
                   class="copy-btn"
                   onclick={() => copyPacket(packet)}
-                  aria-label={$t('common.copy')}
-                  title={$t('common.copy')}
+                  aria-label={copiedPacket === packet ? $t('common.copied') : $t('common.copy')}
+                  title={copiedPacket === packet ? $t('common.copied') : $t('common.copy')}
                 >
                   {#if copiedPacket === packet}
                     <svg
@@ -500,5 +491,22 @@
 
   .error {
     color: var(--danger-color);
+  }
+
+  .search-input {
+    background: rgba(15, 23, 42, 0.5);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    color: #e2e8f0;
+    padding: 0.6rem 0.75rem;
+    border-radius: 8px;
+    width: 100%;
+    font-size: 0.9rem;
+    box-sizing: border-box;
+  }
+
+  .search-input:focus {
+    outline: none;
+    border-color: rgba(59, 130, 246, 0.5);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
   }
 </style>

@@ -237,7 +237,7 @@
       "xstr_placeholder": "예: \"Turbo\"",
       "data_label": "data (바이트 배열)",
       "data_placeholder": "예: [1, 2, 3, 4]",
-      "data_hint": "0x 접두어를 포함한 16진수 입력도 가능합니다. (예: [0x01, 0x02])",
+      "data_hint": "Hex 문자열 (예: f7 55) 또는 배열 (예: [0x01, 2])을 지원합니다.",
       "state_label": "state (현재 상태 객체)",
       "state_placeholder": "예: {\"value\": 10}",
       "state_select_placeholder": "엔티티 선택",
@@ -252,6 +252,7 @@
       "json_help": "입력값은 JSON 형식으로 작성하세요. (작은따옴표 객체 표기도 허용)",
       "result_label": "결과",
       "result_hint": "결과가 null이면 표현식/입력값을 확인하세요.",
+      "invalid_format": "입력 형식이 올바르지 않습니다.",
       "invalid_json": "입력값이 JSON 형식이 아닙니다.",
       "must_be_object": "입력값은 객체여야 합니다.",
       "must_be_array": "입력값은 배열이어야 합니다.",
@@ -300,7 +301,8 @@
       "tab_unmatched": "미매칭",
       "empty": "아직 수집된 패킷이 없습니다.",
       "sort_asc": "오름차순 정렬",
-      "sort_desc": "내림차순 정렬"
+      "sort_desc": "내림차순 정렬",
+      "search_placeholder": "패킷 HEX 또는 엔티티 이름 검색"
     },
     "stats": {
       "title": "패킷 간격 분석",

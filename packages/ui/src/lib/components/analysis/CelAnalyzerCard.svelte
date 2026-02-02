@@ -1,6 +1,7 @@
 <script lang="ts">
   import { t } from 'svelte-i18n';
   import Button from '../Button.svelte';
+  import { parseCelDataInput } from '$lib/utils/cel-data-parser';
 
   type ModeValue = 'state' | 'command' | 'automation' | 'checksum';
   type AnalyzerStateOption = {
@@ -100,32 +101,17 @@
   const parseDataInput = (input: string) => {
     if (!input.trim()) return undefined;
     try {
-      const jsonValue = parseJsonValue(input);
-      if (!Array.isArray(jsonValue)) {
-        throw new Error($t('analysis.cel_analyzer.must_be_array'));
-      }
-      return jsonValue;
-    } catch {
-      const trimmed = input.trim();
-      if (!trimmed.startsWith('[') || !trimmed.endsWith(']')) {
-        throw new Error(
-          `${$t('analysis.cel_analyzer.data_label')} ${$t('analysis.cel_analyzer.invalid_json')}`,
-        );
-      }
-      const body = trimmed.slice(1, -1).trim();
-      if (!body) return [];
-      const tokens = body.split(',').map((token) => token.trim());
-      const values = tokens.map((token) => {
-        if (!token) return NaN;
-        if (/^0x[0-9a-fA-F]+$/.test(token)) {
-          return Number.parseInt(token, 16);
+      return parseCelDataInput(input);
+    } catch (e) {
+      if (e instanceof Error) {
+        if (e.message === 'INVALID_NUMBER_ARRAY') {
+          throw new Error($t('analysis.cel_analyzer.invalid_number_array'));
         }
-        return Number(token);
-      });
-      if (values.some((value) => Number.isNaN(value))) {
-        throw new Error($t('analysis.cel_analyzer.invalid_number_array'));
+        if (e.message === 'INVALID_FORMAT') {
+          throw new Error($t('analysis.cel_analyzer.invalid_format'));
+        }
       }
-      return values;
+      throw new Error($t('analysis.cel_analyzer.invalid_format'));
     }
   };
 

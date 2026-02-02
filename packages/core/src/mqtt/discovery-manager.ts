@@ -601,7 +601,7 @@ export class DiscoveryManager {
           payload.modes = availableModes;
           payload.mode_command_topic = `${this.mqttTopicPrefix}/${id}/mode/set`;
           payload.mode_state_topic = `${this.mqttTopicPrefix}/${id}/state`;
-          payload.mode_state_template = "{{ value_json.mode }}";
+          payload.mode_state_template = '{{ value_json.mode }}';
         }
 
         const fanModes = new Set<string>();
