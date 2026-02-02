@@ -10,6 +10,7 @@
   import ActivityLogList from './ActivityLogList.svelte';
   import { triggerSystemRestart as restartApp } from '../utils/appControl';
   import { formatTime } from '../utils/time';
+  import { copyToClipboard } from '../utils/clipboard';
   import type {
     UnifiedEntity,
     CommandInfo,
@@ -676,12 +677,12 @@
   }
 
   async function handleCopyId() {
-    try {
-      await navigator.clipboard.writeText(entity.id);
+    const success = await copyToClipboard(entity.id);
+    if (success) {
       idCopied = true;
       setTimeout(() => (idCopied = false), 2000);
-    } catch (err) {
-      console.error('Failed to copy ID', err);
+    } else {
+      console.error('Failed to copy ID');
     }
   }
 
@@ -715,33 +716,6 @@
 
   let copiedPacket = $state<string | null>(null);
   let copyTimeout: ReturnType<typeof setTimeout>;
-
-  async function copyToClipboard(text: string): Promise<boolean> {
-    try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(text);
-        return true;
-      }
-      throw new Error('Clipboard API unavailable');
-    } catch (err) {
-      try {
-        const textArea = document.createElement('textarea');
-        textArea.value = text;
-        textArea.style.top = '0';
-        textArea.style.left = '0';
-        textArea.style.position = 'fixed';
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-        const successful = document.execCommand('copy');
-        document.body.removeChild(textArea);
-        return successful;
-      } catch (fallbackErr) {
-        console.error('Failed to copy', err, fallbackErr);
-        return false;
-      }
-    }
-  }
 
   async function copyPacket(packet: string) {
     const success = await copyToClipboard(packet);
