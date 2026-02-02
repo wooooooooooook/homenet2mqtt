@@ -45,29 +45,6 @@
   const hasCoreWarning = $derived(!hasCoreError && isWarning(bridgeStatus));
   const hasMqttWarning = $derived(!hasMqttError && isWarning(mqttStatus));
 
-  // DEBUG: Log all error states for debugging
-  $effect(() => {
-    if (import.meta.env.DEV) {
-      console.log('[SystemTopology] Error States Debug:', {
-        bridgeStatus,
-        mqttStatus,
-        portMetadataStatus: portMetadata?.status,
-        globalError,
-        mqttError,
-        serialError,
-        portMetadataError: portMetadata?.error,
-        portMetadataErrorInfo: portMetadata?.errorInfo,
-        // Derived states
-        hasSerialError,
-        hasCoreError,
-        hasMqttError,
-        hasSerialWarning,
-        hasCoreWarning,
-        hasMqttWarning,
-      });
-    }
-  });
-
   function isGreen(status: string | undefined) {
     return status === 'connected' || status === 'started';
   }
