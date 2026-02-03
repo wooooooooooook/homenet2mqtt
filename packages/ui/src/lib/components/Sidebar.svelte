@@ -34,7 +34,7 @@
       aria-current={activeView === 'dashboard' ? 'page' : undefined}
       onclick={() => handleNavClick('dashboard')}
     >
-      <span class="icon">📊</span>
+      <span class="icon" aria-hidden="true">📊</span>
       <span class="label">{$t('sidebar.dashboard')}</span>
     </button>
     <button
@@ -43,7 +43,7 @@
       aria-current={activeView === 'analysis' ? 'page' : undefined}
       onclick={() => handleNavClick('analysis')}
     >
-      <span class="icon">📈</span>
+      <span class="icon" aria-hidden="true">📈</span>
       <span class="label">{$t('sidebar.analysis')}</span>
     </button>
     <button
@@ -52,7 +52,7 @@
       aria-current={activeView === 'gallery' ? 'page' : undefined}
       onclick={() => handleNavClick('gallery')}
     >
-      <span class="icon">📦</span>
+      <span class="icon" aria-hidden="true">📦</span>
       <span class="label">{$t('sidebar.gallery')}</span>
     </button>
     <button
@@ -61,7 +61,7 @@
       aria-current={activeView === 'settings' ? 'page' : undefined}
       onclick={() => handleNavClick('settings')}
     >
-      <span class="icon">⚙️</span>
+      <span class="icon" aria-hidden="true">⚙️</span>
       <span class="label">{$t('sidebar.settings')}</span>
     </button>
   </nav>

@@ -74,7 +74,11 @@
     <div class="header-title">
       <h3>{entity.displayName}</h3>
       {#if entity.errorCount && entity.errorCount > 0}
-        <span class="error-indicator" aria-label={$t('dashboard.entity_card.error_label')}>
+        <span
+          class="error-indicator"
+          role="img"
+          aria-label={$t('dashboard.entity_card.error_label')}
+        >
           ❗️
         </span>
       {/if}

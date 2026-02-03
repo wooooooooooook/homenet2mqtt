@@ -133,7 +133,7 @@ describe('Automation Field Aliases', () => {
 
     await vi.advanceTimersByTimeAsync(0);
     expect(mqttPublisher.publish).toHaveBeenCalledWith('start', '1', undefined);
-    
+
     await vi.advanceTimersByTimeAsync(100);
     expect(mqttPublisher.publish).not.toHaveBeenCalledWith('end', '2', undefined);
 

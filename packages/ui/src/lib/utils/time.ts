@@ -38,7 +38,7 @@ export const formatRelativeTime = (timestamp: number, locale: string = 'ko') => 
   if (absDiff < 604800000) {
     return rtf.format(-Math.floor(absDiff / 86400000), 'day');
   }
-  
+
   // Fallback to absolute time for very old logs
   return formatTime(timestamp, locale, {
     month: 'numeric',
