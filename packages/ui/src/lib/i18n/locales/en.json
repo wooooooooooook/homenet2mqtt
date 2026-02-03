@@ -544,6 +544,7 @@
       "error_label": "Entity error detected",
       "last_triggered": "Last triggered: {time}",
       "last_run": "Last run: {time}",
+      "within_1_minute": "within 1 minute",
       "never_executed": "Never executed"
     }
   },
@@ -554,6 +555,7 @@
     "tabs": {
       "status": "Status & Commands",
       "execute": "Run",
+      "status_run": "Status & Run",
       "config": "Config (YAML)",
       "packets": "Packet Log",
       "manage": "Manage",

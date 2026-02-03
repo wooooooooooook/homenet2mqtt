@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { fade, scale } from 'svelte/transition';
-  import { t } from 'svelte-i18n';
+  import { t, locale } from 'svelte-i18n';
   import Button from './Button.svelte';
   import Toggle from '$lib/components/Toggle.svelte';
   import Dialog from './Dialog.svelte';
@@ -9,7 +9,7 @@
   import Modal from './Modal.svelte';
   import ActivityLogList from './ActivityLogList.svelte';
   import { triggerSystemRestart as restartApp } from '../utils/appControl';
-  import { formatTime } from '../utils/time';
+  import { formatTime, formatRelativeTime } from '../utils/time';
   import { copyToClipboard } from '../utils/clipboard';
   import type {
     UnifiedEntity,
@@ -265,6 +265,51 @@
     const txPackets = showTx ? commandPackets : [];
 
     return mergePackets(rxPackets, txPackets);
+  });
+
+  const lastActivityTime = $derived.by(() => {
+    if (entity.category !== 'automation' && entity.category !== 'script') return null;
+
+    for (const log of activityLogs) {
+      if (
+        (log.code === 'log.automation_triggered' ||
+          log.code === 'log.automation_run_action_executed' ||
+          log.code === 'log.automation_run_guard_failed') &&
+        log.params?.automationId === entity.id
+      ) {
+        return log.timestamp;
+      } else if (log.code === 'log.script_action_executed' && log.params?.scriptId === entity.id) {
+        return log.timestamp;
+      }
+    }
+    return null;
+  });
+
+  const lastActivityText = $derived.by(() => {
+    if (!lastActivityTime) return null;
+    let relative = formatRelativeTime(lastActivityTime, $locale ?? 'ko');
+    if (relative === 'less_than_a_minute') {
+      relative = $t('dashboard.entity_card.within_1_minute');
+    }
+
+    const labelKey =
+      entity.category === 'automation'
+        ? 'dashboard.entity_card.last_triggered'
+        : 'dashboard.entity_card.last_run';
+
+    return $t(labelKey, { values: { time: relative } });
+  });
+
+  const lastActivityTooltip = $derived.by(() => {
+    if (!lastActivityTime) return null;
+    return formatTime(lastActivityTime, $locale ?? undefined, {
+      month: 'numeric',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    });
   });
 
   // Use a variable to track the entity ID for which config was last loaded into the editor
@@ -811,7 +856,12 @@
           aria-controls="panel-execute"
           tabindex={activeTab === 'execute' ? 0 : -1}
           class:active={activeTab === 'execute'}
-          onclick={() => (activeTab = 'execute')}>{$t('entity_detail.tabs.execute')}</button
+          onclick={() => (activeTab = 'execute')}
+          >{$t(
+            isAutomation || isScript
+              ? 'entity_detail.tabs.status_run'
+              : 'entity_detail.tabs.execute',
+          )}</button
         >
       {/if}
       <button
@@ -971,6 +1021,16 @@
       {:else if activeTab === 'execute'}
         <div role="tabpanel" id="panel-execute" aria-labelledby="tab-execute" tabindex="0">
           <div class="section status-section">
+            {#if entity.description}
+              <p class="description-text">{entity.description}</p>
+            {/if}
+            {#if lastActivityText}
+              <p class="activity-text" title={lastActivityTooltip ?? undefined}>
+                <span class="icon">🕒</span>
+                {lastActivityText}
+              </p>
+            {/if}
+
             {#if isAutomation}
               <h3>{$t('entity_detail.automation.execute_title')}</h3>
               <p class="subtle">{$t('entity_detail.automation.execute_desc')}</p>
@@ -1468,6 +1528,29 @@
     margin: 0.5rem 0;
     color: #94a3b8;
     font-size: 0.9rem;
+  }
+
+  .description-text {
+    margin: 0 0 1rem 0;
+    color: #cbd5e1;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    background: rgba(15, 23, 42, 0.3);
+    padding: 0.75rem 1rem;
+  }
+
+  .activity-text {
+    margin: 0 0 1.5rem 0;
+    color: #93c5fd;
+    font-size: 0.9rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .activity-text .icon {
+    font-size: 1rem;
   }
 
   .rename-form {

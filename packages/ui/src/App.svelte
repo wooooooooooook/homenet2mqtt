@@ -1847,15 +1847,9 @@
   );
 
   const filteredActivityLogs = $derived.by<ActivityLog[]>(() => {
-    const baseLogs = activePortId
+    return activePortId
       ? activityLogs.filter((log) => !log.portId || log.portId === activePortId)
       : activityLogs;
-    const shouldHideAutomationScripts =
-      (frontendSettings ?? DEFAULT_FRONTEND_SETTINGS).activityLog?.hideAutomationScripts ?? false;
-    if (!shouldHideAutomationScripts) return baseLogs;
-    return baseLogs.filter(
-      (log) => !log.code.startsWith('log.automation_') && !log.code.startsWith('log.script_'),
-    );
   });
 
   const portStatuses = $derived.by(() => {
@@ -1941,6 +1935,8 @@
             showScripts={showScriptCards}
             {hasInactiveEntities}
             activityLogs={filteredActivityLogs}
+            hideAutomationScripts={(frontendSettings ?? DEFAULT_FRONTEND_SETTINGS).activityLog
+              ?.hideAutomationScripts ?? false}
             {mqttConnectionStatus}
             {portStatuses}
             onSelect={(entityId, portId, category) =>

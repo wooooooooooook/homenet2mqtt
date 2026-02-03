@@ -2,6 +2,7 @@ v2.5.0
 - feat: UI에서 엔티티 이름 변경시 한글인 경우 entityId에 로마자변환 추가 및 entityId 유지 옵션 추가. 
 - fix: 일부 엔티티의 discovery에서 없는 속성을 발행하는 문제 수정
 - fix: command_*가 script를 실행할때 args를 전달하지 않는 문제 수정
+- fix: 설정에서 자동화/스크립트 로그 숨기기 상태일 때 대시보드-자동화 카드에서 무조건 '실행된적 없음'으로 표시되는 문제 수정
 - refactor: 자동화 실행 로그 간소화
 - refactor: serial 설정에서 portId대신 port_id 사용 가능
 - 기타 성능 최적화, UI 수정

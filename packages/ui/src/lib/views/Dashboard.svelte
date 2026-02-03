@@ -18,8 +18,9 @@
   import Modal from '$lib/components/Modal.svelte';
   import Dialog from '$lib/components/Dialog.svelte';
   import { t, locale } from 'svelte-i18n';
+  import { onMount, unmount } from 'svelte';
   import { triggerSystemRestart as restartApp } from '../utils/appControl';
-  import { formatTime } from '$lib/utils/time';
+  import { formatTime, formatRelativeTime } from '$lib/utils/time';
 
   import Button from '$lib/components/Button.svelte';
   import MonacoYamlEditor from '$lib/components/MonacoYamlEditor.svelte';
@@ -45,6 +46,7 @@
     onToggleEntities,
     onToggleAutomations,
     onToggleScripts,
+    hideAutomationScripts = false,
   }: {
     bridgeInfo: BridgeInfo | null;
     infoLoading: boolean;
@@ -78,6 +80,7 @@
     onToggleEntities?: () => void;
     onToggleAutomations?: () => void;
     onToggleScripts?: () => void;
+    hideAutomationScripts?: boolean;
   } = $props();
 
   const portIds = $derived.by<string[]>(() =>
@@ -106,6 +109,15 @@
   >(() => {
     if (!activePortId) return undefined;
     return portMetadata.find((p) => p.portId === activePortId);
+  });
+
+  let now = $state(Date.now());
+
+  onMount(() => {
+    const interval = setInterval(() => {
+      now = Date.now();
+    }, 30000); // 30 seconds
+    return () => clearInterval(interval);
   });
 
   // App.svelte에서 이미 dashboardEntities로 포트별 필터링을 완료하여 전달하므로,
@@ -209,7 +221,12 @@
   const lastActivityMap = $derived.by<Map<string, number>>(() => {
     const map = new Map<string, number>();
     for (const log of activityLogs) {
-      if (log.code === 'log.automation_triggered' && log.params?.automationId) {
+      if (
+        (log.code === 'log.automation_triggered' ||
+          log.code === 'log.automation_run_action_executed' ||
+          log.code === 'log.automation_run_guard_failed') &&
+        log.params?.automationId
+      ) {
         // Automation logs usually have portId
         const key = `${log.portId ?? 'unknown'}:${log.params.automationId}`;
         // Store latest timestamp
@@ -228,16 +245,29 @@
     return map;
   });
 
-  function getLastActivityText(entity: UnifiedEntity): string | null {
+  const displayActivityLogs = $derived.by<ActivityLog[]>(() => {
+    if (!hideAutomationScripts) return activityLogs;
+    return activityLogs.filter(
+      (log) => !log.code.startsWith('log.automation_') && !log.code.startsWith('log.script_'),
+    );
+  });
+
+  function getLastActivity(entity: UnifiedEntity): { text: string; tooltip: string } | null {
     if (entity.category !== 'automation' && entity.category !== 'script') return null;
 
     const key = `${entity.portId ?? 'unknown'}:${entity.id}`;
     const ts = lastActivityMap.get(key);
     if (!ts) return null;
 
-    // Format: "MM/DD HH:mm:ss" or similar depending on space
-    // Using short numerical format
-    const timeStr = formatTime(ts, $locale ?? undefined, {
+    // Use dummy read of 'now' to trigger reactivity
+    const _dummy = now;
+
+    let relative = formatRelativeTime(ts, $locale ?? 'ko');
+    if (relative === 'less_than_a_minute') {
+      relative = $t('dashboard.entity_card.within_1_minute');
+    }
+
+    const absolute = formatTime(ts, $locale ?? undefined, {
       month: 'numeric',
       day: 'numeric',
       hour: 'numeric',
@@ -246,10 +276,15 @@
       hour12: false,
     });
 
-    if (entity.category === 'automation') {
-      return $t('dashboard.entity_card.last_triggered', { values: { time: timeStr } });
-    }
-    return $t('dashboard.entity_card.last_run', { values: { time: timeStr } });
+    const labelKey =
+      entity.category === 'automation'
+        ? 'dashboard.entity_card.last_triggered'
+        : 'dashboard.entity_card.last_run';
+
+    return {
+      text: $t(labelKey, { values: { time: relative } }),
+      tooltip: absolute,
+    };
   }
 
   function handleSelect(entityId: string, portId: string | undefined, category: EntityCategory) {
@@ -755,7 +790,7 @@
     {#if bridgeInfo && !hasCriticalError && !infoError}
       <!-- Recent Activity Section -->
       {#if activePortId}
-        <RecentActivity activities={activityLogs} />
+        <RecentActivity activities={displayActivityLogs} />
       {/if}
 
       <!-- Toggle for Inactive Entities -->
@@ -851,10 +886,12 @@
           </div>
         {/if}
         {#each searchedEntities as entity (entity.id + '-' + (entity.portId || 'unknown') + '-' + (entity.category || 'entity'))}
+          {@const activity = getLastActivity(entity)}
           <EntityCard
             {entity}
             onSelect={() => handleSelect(entity.id, entity.portId, entity.category ?? 'entity')}
-            lastActivityText={getLastActivityText(entity)}
+            lastActivityText={activity?.text}
+            lastActivityTooltip={activity?.tooltip}
           />
         {/each}
         <button type="button" class="add-entity-card" onclick={openAddModal}>

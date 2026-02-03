@@ -340,12 +340,14 @@ export function createControlsRoutes(ctx: ControlsRoutesContext): Router {
       return res.status(400).json({ error: 'Config not loaded' });
     }
 
-    const automations = currentConfigs.flatMap((config, index) =>
-      (config.automation || []).map((auto: AutomationConfig) => ({
+    const automations = currentConfigs.flatMap((config, index) => {
+      const portId = config.serial ? normalizePortId(config.serial.portId, 0) : 'unknown';
+      return (config.automation || []).map((auto: AutomationConfig) => ({
         ...auto,
+        portId,
         configFile: currentConfigFiles[index],
-      })),
-    );
+      }));
+    });
     res.json({ automations });
   });
 
@@ -488,12 +490,14 @@ export function createControlsRoutes(ctx: ControlsRoutesContext): Router {
       return res.status(400).json({ error: 'Config not loaded' });
     }
 
-    const scripts = currentConfigs.flatMap((config, index) =>
-      (config.scripts || []).map((script: ScriptConfig) => ({
+    const scripts = currentConfigs.flatMap((config, index) => {
+      const portId = config.serial ? normalizePortId(config.serial.portId, 0) : 'unknown';
+      return (config.scripts || []).map((script: ScriptConfig) => ({
         ...script,
+        portId,
         configFile: currentConfigFiles[index],
-      })),
-    );
+      }));
+    });
     res.json({ scripts });
   });
 

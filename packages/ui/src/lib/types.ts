@@ -175,6 +175,7 @@ export type AutomationSummary = {
   description?: string;
   enabled: boolean;
   configFile?: string;
+  portId?: string;
 };
 
 export interface ScriptArg {
@@ -190,6 +191,7 @@ export type ScriptSummary = {
   id: string;
   description?: string;
   configFile?: string;
+  portId?: string;
   args?: Record<string, ScriptArg>;
 };
 

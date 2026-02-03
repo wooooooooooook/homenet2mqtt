@@ -163,7 +163,7 @@ export function createSystemRoutes(ctx: SystemRoutesContext): Router {
       }
 
       // Config loaded successfully (serial info available), may or may not have runtime error
-      const pId = normalizePortId(config.serial.portId, 0);
+      const pId = normalizePortId(config.serial.portId, configIndex);
       const serialInfo = {
         portId: pId,
         path: config.serial.path,

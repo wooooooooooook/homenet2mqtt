@@ -6,7 +6,13 @@
     entity,
     onSelect,
     lastActivityText,
-  }: { entity: UnifiedEntity; onSelect?: () => void; lastActivityText?: string | null } = $props();
+    lastActivityTooltip,
+  }: {
+    entity: UnifiedEntity;
+    onSelect?: () => void;
+    lastActivityText?: string | null;
+    lastActivityTooltip?: string | null;
+  } = $props();
 
   function parsePayload(payload: string): ParsedPayloadEntry[] | null {
     try {
@@ -91,7 +97,9 @@
           <p class="entity-description">{entity.description}</p>
         {/if}
         {#if lastActivityText}
-          <p class="entity-status-text">{lastActivityText}</p>
+          <p class="entity-status-text" title={lastActivityTooltip ?? undefined}>
+            {lastActivityText}
+          </p>
         {:else if entity.category === 'automation' || entity.category === 'script'}
           <span class="no-status">{$t('dashboard.entity_card.never_executed')}</span>
         {:else if !entity.description}

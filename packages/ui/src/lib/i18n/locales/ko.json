@@ -549,6 +549,7 @@
       "error_label": "엔티티 오류 발생",
       "last_triggered": "마지막 실행: {time}",
       "last_run": "마지막 실행: {time}",
+      "within_1_minute": "1분 이내",
       "never_executed": "실행된 적 없음"
     }
   },
@@ -559,6 +560,7 @@
     "tabs": {
       "status": "상태 & 명령",
       "execute": "실행",
+      "status_run": "상태 & 실행",
       "config": "설정 (YAML)",
       "packets": "패킷 로그",
       "manage": "관리",
