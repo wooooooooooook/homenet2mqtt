@@ -234,16 +234,34 @@ export function normalizeConfig(config: HomenetBridgeConfig) {
       }
 
       if (!auto.trigger) return;
+      auto.trigger.forEach((t) => {
+        if (t.type === 'state') {
+          if (t.debounce !== undefined && t.debounce_ms === undefined) {
+            t.debounce_ms = t.debounce;
+          }
+        }
+      });
+
+      const injectLowPriority = (actions: any[] | undefined) => {
+        if (!actions) return;
+        actions.forEach((action) => {
+          if (action.action === 'command' && action.low_priority === undefined) {
+            action.low_priority = true;
+          }
+          if (action.action === 'delay') {
+            if (action.duration !== undefined && action.milliseconds === undefined) {
+              action.milliseconds = action.duration;
+            } else if (action.delay !== undefined && action.milliseconds === undefined) {
+              action.milliseconds = action.delay;
+            }
+          }
+        });
+      };
+      injectLowPriority(auto.then);
+      injectLowPriority(auto.else);
+
       const hasSchedule = auto.trigger.some((t) => t.type === 'schedule');
       if (hasSchedule) {
-        const injectLowPriority = (actions: any[] | undefined) => {
-          if (!actions) return;
-          actions.forEach((action) => {
-            if (action.action === 'command' && action.low_priority === undefined) {
-              action.low_priority = true;
-            }
-          });
-        };
         injectLowPriority(auto.then);
         injectLowPriority(auto.else);
       }

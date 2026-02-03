@@ -31,7 +31,6 @@ import { Buffer } from 'buffer';
  */
 export class CommandGenerator {
   private config: HomenetBridgeConfig;
-  private stateProvider: EntityStateProvider;
   private celExecutor: CelExecutor;
 
   private readonly checksumTypes = new Set([
@@ -52,8 +51,7 @@ export class CommandGenerator {
    */
   constructor(config: HomenetBridgeConfig, stateProvider: EntityStateProvider) {
     this.config = config;
-    this.stateProvider = stateProvider;
-    this.celExecutor = new CelExecutor();
+    this.celExecutor = CelExecutor.shared();
   }
 
   // --- Value Encoding/Decoding Logic ---
@@ -306,10 +304,6 @@ export class CommandGenerator {
         const result = this.celExecutor.execute(checksumOrScript, {
           data: fullData,
           len: fullData.length,
-          states: this.stateProvider.getAllStates ? this.stateProvider.getAllStates() : {}, // Safety check
-          state: this.stateProvider.getEntityState
-            ? this.stateProvider.getEntityState(entity.id)
-            : {},
         });
 
         if (typeof result === 'number') {
@@ -340,10 +334,6 @@ export class CommandGenerator {
           const result = this.celExecutor.execute(checksumOrScript, {
             data: fullData,
             len: fullData.length,
-            states: this.stateProvider.getAllStates ? this.stateProvider.getAllStates() : {},
-            state: this.stateProvider.getEntityState
-              ? this.stateProvider.getEntityState(entity.id)
-              : {},
           });
 
           // Validate result is array of 2 bytes

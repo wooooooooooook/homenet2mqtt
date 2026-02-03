@@ -48,6 +48,8 @@ export interface AutomationTriggerState {
    * Debounce time in ms (or '1s'). Prevents rapid firing.
    */
   debounce_ms?: number | string;
+  /** Alias for debounce_ms. */
+  debounce?: number | string;
   /** Additional CEL condition. */
   guard?: AutomationGuard;
 }
@@ -140,7 +142,11 @@ export interface AutomationActionLog {
 export interface AutomationActionDelay {
   action: 'delay';
   /** Duration in ms or string (e.g. '1s'). */
-  milliseconds: number | string;
+  milliseconds?: number | string;
+  /** Alias for milliseconds. */
+  duration?: number | string;
+  /** Alias for milliseconds. */
+  delay?: number | string;
 }
 
 /**

@@ -50,8 +50,8 @@ trigger:
 - `property` (선택): 상태 객체의 특정 키만 비교합니다. 생략 시 상태 객체 전체를 비교합니다.
   - 예: `state`, `value`, `state_on`, `state_brightness` 등 엔티티 상태에 저장된 키.
 - `match` (선택): 비교할 값 또는 조건 객체. 생략하면 어떤 값이든 상태 변경 시 트리거됩니다.
-- `debounce_ms` (선택): 디바운스 시간. 숫자(ms) 또는 문자열(`ms`, `s`, `m`, `h` 지원).
-- `guard` (선택): CEL 표현식. 참이면 트리거 실행(자동화 공통 guard와 함께 평가).
+- `debounce_ms` (optional): 디바운스 시간 (숫자 ms 또는 '1s' 형식). 짧은 시간에 여러 번 상태가 변할 때 마지막 변화 후 설정 시간 동안 추가 변화가 없어야 트리거됩니다. (`debounce`로도 사용 가능)
+- `guard` (optional): 추가적인 CEL 조건문 표현식. 참이면 트리거 실행(자동화 공통 guard와 함께 평가).
 
 **match 스키마**
 `match`는 아래 형태 중 하나를 사용할 수 있습니다.
@@ -119,7 +119,7 @@ trigger:
 ```
 
 > [!NOTE]
-> 스케줄 트리거가 포함된 자동화의 모든 `command` 액션은 기본적으로 `low_priority: true`로 설정됩니다. 이는 주기적인 폴링이나 비동기 작업이 사용자의 실시간 명령(조명 제어 등)을 방해하지 않도록 하기 위함입니다. 이를 원치 않는 경우 `low_priority: false`를 명시적으로 설정하세요.
+> 스케줄 트리거가 포함된 자동화의 모든 `command` 액션은 기본적으로 `low_priority: true`로 설정됩니다. 이는 주기적인 폴링이나 비동기 작업이 사용자의 실시간 명령(조명 제어 등)을 방해하지 않도록 하기 위함입니다. 이를 원치 않는 경우 `low_priority: false`를 명시적으로 설정하세요。
 
 ### 시작 트리거 (Startup Trigger)
 
@@ -235,7 +235,7 @@ state:
 
 ```yaml
 action: delay
-milliseconds: 1000 # 또는 '1s'
+- milliseconds: 대기 시간 (숫자 ms 또는 '1s', '5m' 등의 기간 문자열). `duration` 또는 `delay` 키로도 사용 가능합니다.
 ```
 
 ### 로그 (Log)

@@ -125,7 +125,9 @@ export class AutomationManager {
       return `log:${(action as AutomationActionLog).message}`;
     }
     if (actionType === 'delay') {
-      return `delay:${(action as AutomationActionDelay).milliseconds}`;
+      const delayAction = action as AutomationActionDelay;
+      const ms = delayAction.milliseconds ?? delayAction.duration ?? delayAction.delay;
+      return `delay:${ms}`;
     }
     if (actionType === 'script') {
       const scriptId = (action as AutomationActionScript).script ?? 'unknown';
