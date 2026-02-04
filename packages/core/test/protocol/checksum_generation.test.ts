@@ -3,11 +3,6 @@ import { CommandGenerator } from '../../src/protocol/generators/command.generato
 import { HomenetBridgeConfig } from '../../src/config/types';
 
 describe('Command Generator - Checksum Logic', () => {
-  const mockStateProvider = {
-    getAllStates: () => ({}),
-    getEntityState: () => ({}),
-  } as any;
-
   const createConfig = (defaults: any): HomenetBridgeConfig =>
     ({
       homenet_bridge: {
@@ -37,7 +32,7 @@ describe('Command Generator - Checksum Logic', () => {
       tx_header: [0xf7],
       tx_checksum: 'add',
     });
-    const generator = new CommandGenerator(config, mockStateProvider);
+    const generator = new CommandGenerator(config);
     const packet = generator.constructCommandPacket(mockEntity, 'command_on');
 
     // F7 + 01 = F8
@@ -49,7 +44,7 @@ describe('Command Generator - Checksum Logic', () => {
       tx_header: [0xf7],
       tx_checksum: 'xor',
     });
-    const generator = new CommandGenerator(config, mockStateProvider);
+    const generator = new CommandGenerator(config);
     const packet = generator.constructCommandPacket(mockEntity, 'command_on');
 
     // F7 ^ 01 = F6
@@ -61,7 +56,7 @@ describe('Command Generator - Checksum Logic', () => {
       tx_header: [0xf7],
       tx_checksum: 'data[0] + 1', // F7 + 1 = F8
     });
-    const generator = new CommandGenerator(config, mockStateProvider);
+    const generator = new CommandGenerator(config);
     const packet = generator.constructCommandPacket(mockEntity, 'command_on');
 
     expect(packet).toEqual([0xf7, 0x01, 0xf8]);
@@ -72,7 +67,7 @@ describe('Command Generator - Checksum Logic', () => {
       tx_header: [0xf7],
       tx_checksum: '"string"', // Invalid return type
     });
-    const generator = new CommandGenerator(config, mockStateProvider);
+    const generator = new CommandGenerator(config);
     const packet = generator.constructCommandPacket(mockEntity, 'command_on');
 
     // Should log error and append 0
@@ -87,7 +82,7 @@ describe('Command Generator - Checksum Logic', () => {
       tx_checksum2: 'xor_add',
       // tx_checksum is undefined here
     });
-    const generator = new CommandGenerator(config, mockStateProvider);
+    const generator = new CommandGenerator(config);
     const packet = generator.constructCommandPacket(mockEntity, 'command_on');
 
     // XOR: F7 ^ 01 = F6
@@ -101,7 +96,7 @@ describe('Command Generator - Checksum Logic', () => {
       tx_header: [0xf7],
       tx_checksum2: '[0xAA, 0xBB]',
     });
-    const generator = new CommandGenerator(config, mockStateProvider);
+    const generator = new CommandGenerator(config);
     const packet = generator.constructCommandPacket(mockEntity, 'command_on');
 
     expect(packet).toEqual([0xf7, 0x01, 0xaa, 0xbb]);
@@ -112,7 +107,7 @@ describe('Command Generator - Checksum Logic', () => {
       tx_header: [0xf7],
       tx_checksum2: '[0xAA]', // Only 1 byte
     });
-    const generator = new CommandGenerator(config, mockStateProvider);
+    const generator = new CommandGenerator(config);
     const packet = generator.constructCommandPacket(mockEntity, 'command_on');
 
     expect(packet).toEqual([0xf7, 0x01, 0x00, 0x00]);
@@ -126,7 +121,7 @@ describe('Command Generator - Checksum Logic', () => {
       tx_checksum: 'none',
       tx_checksum2: 'xor_add',
     });
-    const generator = new CommandGenerator(config, mockStateProvider);
+    const generator = new CommandGenerator(config);
     const packet = generator.constructCommandPacket(mockEntity, 'command_on');
 
     expect(packet).toEqual([0xf7, 0x01, 0xf6, 0xee]);
@@ -139,7 +134,7 @@ describe('Command Generator - Checksum Logic', () => {
       tx_checksum: 'add',
       tx_checksum2: 'xor_add',
     });
-    const generator = new CommandGenerator(config, mockStateProvider);
+    const generator = new CommandGenerator(config);
     const packet = generator.constructCommandPacket(mockEntity, 'command_on');
 
     // Should use 'add' (1-byte)
@@ -154,7 +149,7 @@ describe('Command Generator - Checksum Logic', () => {
       tx_header: [0xf7],
       tx_checksum: 'unknown_algo',
     });
-    const generator = new CommandGenerator(config, mockStateProvider);
+    const generator = new CommandGenerator(config);
 
     const packet = generator.constructCommandPacket(mockEntity, 'command_on');
 

@@ -155,12 +155,7 @@ describe('2-Byte Checksum', () => {
         },
       };
 
-      const mockStateProvider = {
-        getLightState: () => undefined,
-        getClimateState: () => undefined,
-      } as any;
-
-      const generator = new CommandGenerator(mockConfig, mockStateProvider);
+      const generator = new CommandGenerator(mockConfig);
 
       const mockEntity = {
         id: 'test',
