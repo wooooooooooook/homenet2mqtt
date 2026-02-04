@@ -349,7 +349,9 @@ export class HomeNetBridge extends EventEmitter {
       return { success: false, error: 'Bridge not initialized' };
     }
 
-    await context.automationManager.runAutomationThen(automation);
+    context.automationManager.runAutomationThen(automation).catch((err: any) => {
+      logger.error({ err, automationId: automation.id }, '[core] Failed to execute automation in background');
+    });
     return { success: true };
   }
 
