@@ -59,4 +59,24 @@ export class ValveDevice extends GenericDevice {
     // Fallback to GenericDevice for any other command_* that has data defined
     return super.constructCommand(commandName, value, states);
   }
+
+  public getOptimisticState(commandName: string, value?: any): Record<string, any> | null {
+    if (commandName === 'open') {
+      return { state: 'OPEN' };
+    }
+    if (commandName === 'close') {
+      return { state: 'CLOSED' };
+    }
+    if (commandName === 'stop') {
+      // Stop doesn't necessarily imply a state without position, but usually it stops at current
+      // We might not want to update state optimistically for stop unless we know where it is
+      return null;
+    }
+    if (commandName === 'position' && typeof value === 'number') {
+      const position = Math.min(100, Math.max(0, Math.round(value)));
+      const state = position === 0 ? 'CLOSED' : 'OPEN';
+      return { position, state };
+    }
+    return null;
+  }
 }

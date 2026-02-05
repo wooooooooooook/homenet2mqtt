@@ -44,4 +44,14 @@ export class LockDevice extends GenericDevice {
 
     return null;
   }
+
+  public getOptimisticState(commandName: string, _value?: any): Record<string, any> | null {
+    if (commandName === 'lock') {
+      return { state: 'LOCKED' };
+    }
+    if (commandName === 'unlock') {
+      return { state: 'UNLOCKED' };
+    }
+    return null;
+  }
 }

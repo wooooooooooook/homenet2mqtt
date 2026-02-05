@@ -82,13 +82,13 @@ export class StateManager {
    */
   private initializeOptimisticEntities(config: HomenetBridgeConfig): void {
     const defaultStateByType: Record<string, Record<string, any>> = {
-      binary_sensor: { state: 'off' },
-      switch: { state: 'off' },
-      light: { state: 'off' },
-      valve: { state: 'closed' },
-      cover: { state: 'closed' },
-      fan: { state: 'off' },
-      lock: { state: 'locked' },
+      binary_sensor: { state: 'OFF' },
+      switch: { state: 'OFF' },
+      light: { state: 'OFF' },
+      valve: { state: 'CLOSED' },
+      cover: { state: 'CLOSED' },
+      fan: { state: 'OFF' },
+      lock: { state: 'LOCKED' },
       button: {}, // Buttons don't have persistent state
       sensor: {}, // Sensors need actual values, skip
       climate: {}, // Climate has complex state, skip
