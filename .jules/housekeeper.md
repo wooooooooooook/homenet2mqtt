@@ -21,3 +21,7 @@
 ## 2025-05-23 - Global Linting Enabled
 **Observation:** The `lint` script in `package.json` was restricted to `service` and its dependencies, excluding `simulator` and `ui`.
 **Action:** Updated `package.json` to use `turbo lint` without filters, ensuring all packages are linted in the standard workflow. This resolves the previous observation "Simulator Excluded from Root Lint".
+
+## 2026-02-04 - Unused CommandGenerator Class
+**Observation:** The `CommandGenerator` class in `packages/core` appears to be unused in production code, only referenced in tests and exported in `index.ts`. It contains logic superseded by `PacketProcessor` and `Device` classes.
+**Action:** Removed unused `stateProvider` parameter to reduce noise. Future cleanup should investigate if the entire class can be deprecated or removed.

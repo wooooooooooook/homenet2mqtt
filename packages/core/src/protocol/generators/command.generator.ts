@@ -11,7 +11,6 @@ import { FanEntity } from '../../domain/entities/fan.entity.js';
 import { SwitchEntity } from '../../domain/entities/switch.entity.js';
 import { ChecksumType, Checksum2Type, StateNumSchema } from '../types.js';
 import { logger } from '../../utils/logger.js';
-import { EntityStateProvider } from '../packet-processor.js';
 import { calculateChecksum, calculateChecksum2 } from '../utils/checksum.js';
 import { CelExecutor } from '../cel-executor.js';
 import { Buffer } from 'buffer';
@@ -47,9 +46,8 @@ export class CommandGenerator {
 
   /**
    * @param config - Global bridge configuration (contains default packet settings like retries, timeouts).
-   * @param stateProvider - Interface to access current entity states (needed for CEL checksum calculations).
    */
-  constructor(config: HomenetBridgeConfig, stateProvider: EntityStateProvider) {
+  constructor(config: HomenetBridgeConfig) {
     this.config = config;
     this.celExecutor = CelExecutor.shared();
   }
