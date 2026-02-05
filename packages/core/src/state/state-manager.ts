@@ -107,10 +107,9 @@ export class StateManager {
         if (entity.optimistic && entity.id) {
           // Only initialize if not already in deviceStates
           if (!this.deviceStates.has(entity.id)) {
-            this.deviceStates.set(entity.id, { ...defaultState });
-            if (this.sharedStates) {
-              this.sharedStates.set(entity.id, { ...defaultState });
-            }
+            // Use applyStateUpdate to ensure publishing and event emission
+            // This ensures state is retained in MQTT and visible to UI/HA immediately
+            this.applyStateUpdate(entity.id, { ...defaultState });
             logger.debug(
               `[StateManager] Initialized optimistic entity ${entity.id} with default state: ${JSON.stringify(defaultState)}`,
             );
