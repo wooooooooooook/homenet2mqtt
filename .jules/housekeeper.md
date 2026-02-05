@@ -25,3 +25,7 @@
 ## 2026-02-04 - Unused CommandGenerator Class
 **Observation:** The `CommandGenerator` class in `packages/core` appears to be unused in production code, only referenced in tests and exported in `index.ts`. It contains logic superseded by `PacketProcessor` and `Device` classes.
 **Action:** Removed unused `stateProvider` parameter to reduce noise. Future cleanup should investigate if the entire class can be deprecated or removed.
+
+## 2026-02-04 - Deprecated CommandGenerator
+**Observation:** `CommandGenerator` is verified to be unused in production code (replaced by `PacketProcessor` and `Device`).
+**Action:** Marked the class with `@deprecated` to warn developers and signal future removal.
