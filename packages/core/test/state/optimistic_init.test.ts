@@ -50,12 +50,12 @@ describe('StateManager Optimistic Initialization', () => {
 
     // Check if state is stored internally
     const state = stateManager.getEntityState('virtual_switch');
-    expect(state).toEqual({ state: 'off' });
+    expect(state).toEqual({ state: 'OFF' });
 
     // Check if state was published to MQTT
     // The topic should be prefix/entityId/state
     const expectedTopic = `${TOPIC_PREFIX}/virtual_switch/state`;
-    const expectedPayload = JSON.stringify({ state: 'off' });
+    const expectedPayload = JSON.stringify({ state: 'OFF' });
 
     expect(mockMqttPublisher.publish).toHaveBeenCalledWith(
       expectedTopic,

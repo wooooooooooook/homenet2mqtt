@@ -60,4 +60,49 @@ export class ClimateDevice extends GenericDevice {
     // 3. Fallback to GenericDevice for everything else (static data, simple scripts if any)
     return super.constructCommand(commandName, value, states);
   }
+
+  public getOptimisticState(commandName: string, value?: any): Record<string, any> | null {
+    // Mode commands
+    if (commandName === 'mode' && value) {
+      return { mode: value }; // climate modes are typically lowercase (off, heat, cool)
+    }
+    if (commandName === 'off') {
+      return { mode: 'off' };
+    }
+    if (commandName === 'heat') {
+      return { mode: 'heat' };
+    }
+    if (commandName === 'cool') {
+      return { mode: 'cool' };
+    }
+    if (commandName === 'auto') {
+      return { mode: 'auto' };
+    }
+    if (commandName === 'dry') {
+      return { mode: 'dry' };
+    }
+    if (commandName === 'fan_only') {
+      return { mode: 'fan_only' };
+    }
+
+    // Temperature/Humidity
+    if (commandName === 'temperature' && typeof value === 'number') {
+      return { target_temperature: value };
+    }
+    if (commandName === 'humidity' && typeof value === 'number') {
+      return { target_humidity: value };
+    }
+
+    // Fan Mode
+    if (commandName === 'fan_mode' && value) {
+      return { fan_mode: value };
+    }
+
+    // Preset Mode
+    if (commandName === 'preset_mode' && value) {
+      return { preset_mode: value };
+    }
+
+    return null;
+  }
 }
