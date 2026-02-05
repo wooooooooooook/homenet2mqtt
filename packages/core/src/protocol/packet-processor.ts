@@ -195,6 +195,21 @@ export class PacketProcessor extends EventEmitter {
       return null;
     }
 
+    // Handle Optimistic Updates
+    if (entity.optimistic) {
+      const optimisticState = device.getOptimisticState(commandName, value);
+      if (optimisticState) {
+        // Emit state update immediately
+        this.emit('state', { deviceId: entity.id, state: optimisticState });
+      }
+
+      // If no command packet was generated (virtual switch), return empty array
+      // so the caller treats it as "processed" instead of "failed"
+      if (!cmd) {
+        return [];
+      }
+    }
+
     if (!cmd) {
       const lastError = device.getLastError();
       const recentlyErrored =
@@ -210,21 +225,6 @@ export class PacketProcessor extends EventEmitter {
         });
       }
       return null;
-    }
-
-    // Handle Optimistic Updates
-    if (entity.optimistic) {
-      const optimisticState = device.getOptimisticState(commandName, value);
-      if (optimisticState) {
-        // Emit state update immediately
-        this.emit('state', { deviceId: entity.id, state: optimisticState });
-      }
-
-      // If no command packet was generated (virtual switch), return empty array
-      // so the caller treats it as "processed" instead of "failed"
-      if (!cmd) {
-        return [];
-      }
     }
 
     return cmd;
