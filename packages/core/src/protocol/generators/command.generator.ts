@@ -27,6 +27,9 @@ import { Buffer } from 'buffer';
  * - Encoding values (numbers/strings) into byte arrays (handling BCD, endianness, etc.).
  * - Assembling the full packet with Header, Data, and Footer.
  * - Calculating Checksums (1-byte, 2-byte, or CEL-based).
+ *
+ * @deprecated This class is superseded by `PacketProcessor` and `Device` logic.
+ *             It is maintained for legacy tests but should not be used in new code.
  */
 export class CommandGenerator {
   private config: HomenetBridgeConfig;
