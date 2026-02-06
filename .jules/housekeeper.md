@@ -32,4 +32,4 @@
 
 ## 2026-02-04 - Optimize CommandGenerator
 **Observation:** `CommandGenerator` created new `Set` instances for checksum types in every constructor call, and had an unused `_decodeValue` method flagged by strict linters.
-**Action:** Converted Sets to `static readonly` to reduce memory allocation. Silenced the unused method warning by referencing it in the constructor (`void this._decodeValue`) to preserve the code while passing lint checks.
+**Action:** Converted Sets to `static readonly` to reduce memory allocation. Removed the unused `_decodeValue` method entirely as requested in code review.

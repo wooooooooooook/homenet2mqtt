@@ -9,7 +9,7 @@ import { ButtonEntity } from '../../domain/entities/button.entity.js';
 import { SensorEntity } from '../../domain/entities/sensor.entity.js';
 import { FanEntity } from '../../domain/entities/fan.entity.js';
 import { SwitchEntity } from '../../domain/entities/switch.entity.js';
-import { ChecksumType, Checksum2Type, StateNumSchema } from '../types.js';
+import { ChecksumType, Checksum2Type } from '../types.js';
 import { logger } from '../../utils/logger.js';
 import { calculateChecksum, calculateChecksum2 } from '../utils/checksum.js';
 import { CelExecutor } from '../cel-executor.js';
@@ -53,77 +53,9 @@ export class CommandGenerator {
   constructor(config: HomenetBridgeConfig) {
     this.config = config;
     this.celExecutor = CelExecutor.shared();
-    // Silence unused warning for deprecated method
-    void this._decodeValue;
   }
 
   // --- Value Encoding/Decoding Logic ---
-
-  /**
-   * Decodes a byte sequence into a value based on a schema.
-   *
-   * @internal
-   * @deprecated This method is currently unused in the command generation flow
-   *             but is preserved for potential future symmetric use.
-   */
-  // Preserved for future symmetric use
-  private _decodeValue(bytes: number[], schema: StateNumSchema): number | string | null {
-    const {
-      offset,
-      length = 1,
-      precision = 0,
-      signed = false,
-      endian = 'big',
-      decode = 'none',
-    } = schema;
-
-    if (offset === undefined || offset + length > bytes.length) {
-      logger.warn('Attempted to decode value outside of packet bounds or offset is undefined.');
-      return null;
-    }
-
-    const valueBytes = bytes.slice(offset, offset + length);
-    if (endian === 'little') {
-      valueBytes.reverse();
-    }
-
-    let value: number;
-    switch (decode) {
-      case 'bcd':
-        value = 0;
-        for (let i = 0; i < valueBytes.length; i++) {
-          value = value * 100 + (valueBytes[i] >> 4) * 10 + (valueBytes[i] & 0x0f);
-        }
-        break;
-      case 'ascii':
-        return String.fromCharCode(...valueBytes);
-      case 'signed_byte_half_degree':
-        value = valueBytes[0] & 0x7f;
-        if ((valueBytes[0] & 0x80) !== 0) {
-          value += 0.5;
-        }
-        if (signed && (valueBytes[0] & 0x40) !== 0) {
-          value = -value;
-        }
-        break;
-      case 'none':
-      default:
-        value = 0;
-        for (let i = 0; i < valueBytes.length; i++) {
-          value = (value << 8) | valueBytes[i];
-        }
-        break;
-    }
-
-    if (signed && (valueBytes[0] & 0x80) !== 0 && decode === 'none') {
-      const signBit = 1 << (length * 8 - 1);
-      if ((value & signBit) !== 0) {
-        value = value - 2 * signBit;
-      }
-    }
-
-    return precision > 0 ? parseFloat(value.toFixed(precision)) : value;
-  }
 
   /**
    * Encodes a high-level value into a byte array according to the command schema.
