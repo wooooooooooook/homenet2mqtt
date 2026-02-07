@@ -1,3 +1,8 @@
+v2.5.4
+- github repository 이름을 homenet2mqtt로 변경(https://github.com/wooooooooooook/homenet2mqtt)
+- button엔티티는 상태패킷을 가지지 않으므로 discovery_linked_id를 설정하지 않는한 discovery_always가 true를 기본값으로 가지도록 수정함
+- button엔티티 카드에 상태없음이라는 문구가 보이지 않도록 수정
+
 v2.5.3
 - fix: optimistic 옵션이 true이고 on/off command가 정의되지 않은 스위치가 상태를 가지거나 on off동작이 되지 않는 문제 수정
 - fix: optimistic 옵션이 있는 엔티티의 초기 상태가 디스커버리와 일치하지 않는 문제 수정
