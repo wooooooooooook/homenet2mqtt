@@ -44,4 +44,39 @@ describe('ID Generation', () => {
     expect(devices.length).toBe(1);
     expect(devices[0].getId()).toBe('living_room_light');
   });
+
+  it('should romanize Korean name if ID is missing', () => {
+    const serial = {
+      portId: 'main',
+      baud_rate: 9600,
+      data_bits: 8,
+      parity: 'none',
+      stop_bits: 1,
+    } as any;
+    const config: HomenetBridgeConfig = {
+      serial,
+      packet_defaults: {},
+      light: [
+        {
+          name: '거실 조명',
+          state: { data: [0x01] },
+        } as any,
+      ],
+    };
+
+    const stateProvider = {
+      getLightState: () => undefined,
+      getClimateState: () => undefined,
+      getAllStates: () => ({}),
+      getEntityState: () => undefined,
+    };
+
+    const processor = new PacketProcessor(config, stateProvider);
+
+    const protocolManager = (processor as any).protocolManager as ProtocolManager;
+    const devices = (protocolManager as any).devices;
+
+    expect(devices.length).toBe(1);
+    expect(devices[0].getId()).toBe('geosil_jomyeong');
+  });
 });

@@ -18,7 +18,7 @@ import { TextSensorDevice } from './devices/text-sensor.device.js';
 import { TextDevice } from './devices/text.device.js';
 import { BinarySensorDevice } from './devices/binary-sensor.device.js';
 import { ProtocolConfig, CommandResult } from './types.js';
-import { slugify } from '../utils/common.js';
+import { toEntityId } from '../utils/romanize.js';
 import { logger } from '../utils/logger.js';
 import type { EntityErrorEvent } from '../service/event-bus.js';
 
@@ -98,7 +98,7 @@ export class PacketProcessor extends EventEmitter {
       if (entities) {
         for (const entity of entities) {
           if (!entity.id && entity.name) {
-            entity.id = slugify(entity.name);
+            entity.id = toEntityId(entity.name);
             logger.debug(
               `[PacketProcessor] Generated ID for ${type}: ${entity.name} -> ${entity.id}`,
             );
