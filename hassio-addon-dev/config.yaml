@@ -17,14 +17,16 @@ options:
   log_level: info
   mqtt_url: mqtt://core-mosquitto:1883
   mqtt_need_login: true
-  mqtt_user: "addons"
+  mqtt_user: ""
   mqtt_passwd: ""
   config_files:
     - default.homenet_bridge.yaml
   mqtt_topic_prefix: homenet2mqtt
   timezone: ""
 hassio_role: default
+init: false
 hassio_api: true
+auth_api: true
 uart: true
 services:
   - mqtt:need
