@@ -814,7 +814,7 @@
     "pdf_rx_length_expr_hint": "CEL expression for packet length. Return 0 to fallback to checksum sweep.",
     "step_entities": "Select Entities",
     "entities_title": "Include Entities",
-    "entities_desc": "Select devices and sensors to use. Unchecked items will be excluded from the configuration.",
+    "entities_desc": "Select devices and sensors to use. Basic entities are included, and additional entity settings can be configured in the gallery after setup.",
     "loading_entities": "Loading entity list...",
     "no_entities_found": "No selectable entities found in this example configuration."
   },

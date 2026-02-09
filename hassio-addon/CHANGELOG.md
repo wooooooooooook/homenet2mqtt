@@ -1,10 +1,10 @@
 v2.6.0
-- feat: bashio도입으로 HA 애드온 환경에서 mqtt 자동 로그인 지원 (mqtt_user, mqtt_password를 비워두면 자동로그인을 시도합니다.)
+- feat: bashio도입으로 HA 애드온 환경에서 mqtt 자동 로그인 지원 (mqtt애드온 사용중인경우 mqtt_user, mqtt_passwd를 비워두면 자동로그인됩니다.)
 - refactor: HA discovery를 옵션으로 변경 (ha 애드온 환경에서는 기본값 true입니다.)
   - 독립 도커환경에서 ha 의존성을 제거하기위함.
 - feat: 갤러리에서 포트 호환성 검사를 느슨하게할 수 있도록 개선
   - 현대통신 주방폰 등에서 baud_rate, parity 등을 미세조정하더라도 갤러리 기능 사용 가능하도록.
-
+- 초기 설정시 제공되는 기본 엔티티를 타입당 1-2개정도로 줄였습니다. 갤러리에서 갯수에 맞춰 업데이트하도록 유도하기 위함입니다.
 
 v2.5.4
 - github repository 이름을 homenet2mqtt로 변경(https://github.com/wooooooooooook/homenet2mqtt)

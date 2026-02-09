@@ -3,6 +3,7 @@ import fs from 'fs/promises';
 import { fileURLToPath } from 'url';
 import { randomUUID } from 'crypto';
 import { eventBus, logger, HomeNetBridge, logBuffer } from '@rs485-homenet/core';
+import { getAppVersion } from './utils/version-utils.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -274,7 +275,7 @@ export class LogCollectorService {
         // ignore
       }
     }
-    return process.env.npm_package_version || 'unknown';
+    return await getAppVersion();
   }
 }
 

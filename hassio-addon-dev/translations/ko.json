@@ -14,11 +14,11 @@
         },
         "mqtt_user": {
             "name": "MQTT 아이디",
-            "description": "MQTT 브로커 접속 아이디입니다. 비워두면 자동로그인을 시도합니다."
+            "description": "MQTT 브로커 접속 아이디입니다. mosquitto 애드온 사용시 비워두세요."
         },
         "mqtt_passwd": {
             "name": "MQTT 비밀번호",
-            "description": "MQTT 브로커 접속 비밀번호입니다. 비워두면 자동로그인을 시도합니다."
+            "description": "MQTT 브로커 접속 비밀번호입니다. mosquitto 애드온 사용시 비워두세요."
         },
         "mqtt_topic_prefix": {
             "name": "MQTT 토픽 접두사",

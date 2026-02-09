@@ -19,12 +19,12 @@
     - 월패드 설정 파일을 ChatGPT 등에 넣고 본인 집 월패드에 등록된 디바이스들 개수를 설명해주면 AI가 작성을 도와줍니다.
     - [Config 문서](https://github.com/wooooooooooook/homenet2mqtt/tree/main/docs/config-schema)를 참고하세요.
 
-5. 애드온의 **[구성(Configuration)]** 탭에서 MQTT 로그인 정보 및 필요한 경우 브릿지 관련 상세 설정을 변경해주세요.
-   - `mqtt_url`: MQTT 브로커 주소 (HA 내장 `Mosquitto broker` 애드온 사용 시 기본값 `mqtt://core-mosquitto:1883` 유지)
-   - `mqtt_need_login`: **필수** MQTT 인증 필요 여부 (`true`/`false`), 아이디 패스워드를 모른다면 `Mosquitto broker`애드온의 구성에서 아이디 비밀번호를 추가하고, 아래에 입력해주세요.
+5. 애드온의 **[구성(Configuration)]** 탭에서 필요한 설정을 입력해주세요. mosquitto broker 애드온 사용중이라면 딱히 설정할 항목은 없습니다.
+   - `mqtt_url`: **필수** MQTT 브로커 주소 (HA 내장 `Mosquitto broker` 애드온 사용 시 기본값 `mqtt://core-mosquitto:1883` 유지)
+   - `mqtt_need_login`: **필수** MQTT 인증 필요 여부 (`true`/`false`) 기본값은 true입니다.
    - `mqtt_user`: MQTT 사용자 아이디, mqtt도 애드온으로 사용중이면 비워두면 자동 로그인됩니다.
    - `mqtt_passwd`: MQTT 비밀번호, mqtt도 애드온으로 사용중이면 비워두면 자동 로그인됩니다.
-   - `mqtt_topic_prefix`: MQTT 토픽 접두사. 기본값은 `homenet2mqtt`이며 변경할 필요 없습니다. 최종 토픽은 `${mqtt_topic_prefix}/{portId}/{entityId}/...` 형태로 발행됩니다.
+   - `mqtt_topic_prefix`: **필수** MQTT 토픽 접두사. 기본값은 `homenet2mqtt`이며 변경할 필요 없습니다. 최종 토픽은 `${mqtt_topic_prefix}/{portId}/{entityId}/...` 형태로 발행됩니다.
    - `timezone`: 타임존(IANA). 비워두면 서버는 UTC, 프론트는 브라우저 설정을 따릅니다. 예: `Asia/Seoul`
    - `config_files`: **비워두면 애드온 시작시 초기설정 마법사를 통해 자동으로 설정파일을 구성하여 사용하게됩니다.** 또는 직접 사용할 설정 파일 목록을 나열할 수 있습니다. 여러 개의 포트를 사용할 경우 쉼표로 구분하여 나열합니다. (예: `livingroom.yaml, room1.yaml`) 기본값(`default.homenet_bridge.yaml,`)
 
