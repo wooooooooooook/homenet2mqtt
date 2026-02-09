@@ -124,15 +124,16 @@ WORKDIR /app
 RUN apk add --no-cache bash jq gcompat curl xz
 
 # Install s6-overlay and bashio
-ARG BUILD_ARCH=amd64
+ARG TARGETARCH
+ARG TARGETVARIANT
 ARG S6_OVERLAY_VERSION="3.2.2.0"
 ARG BASHIO_VERSION="v0.17.5"
 RUN set -o pipefail \
     # Determine s6 architecture
-    && S6_ARCH="${BUILD_ARCH}" \
-    && if [ "${BUILD_ARCH}" = "amd64" ]; then S6_ARCH="x86_64"; fi \
-    && if [ "${BUILD_ARCH}" = "aarch64" ]; then S6_ARCH="aarch64"; fi \
-    && if [ "${BUILD_ARCH}" = "armv7" ]; then S6_ARCH="arm"; fi \
+    && S6_ARCH="${TARGETARCH}" \
+    && if [ "${TARGETARCH}" = "amd64" ]; then S6_ARCH="x86_64"; fi \
+    && if [ "${TARGETARCH}" = "arm64" ]; then S6_ARCH="aarch64"; fi \
+    && if [ "${TARGETARCH}" = "arm" ]; then S6_ARCH="arm"; fi \
     # Download and install s6-overlay
     && curl -L -s -f "https://github.com/just-containers/s6-overlay/releases/download/v${S6_OVERLAY_VERSION}/s6-overlay-noarch.tar.xz" \
         | tar -C / -Jxpf - \
