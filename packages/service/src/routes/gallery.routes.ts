@@ -232,13 +232,55 @@ export function createGalleryRoutes(ctx: GalleryRoutesContext): Router {
   ): boolean {
     if (!config.serial) return false;
 
+    // Helper for flexible matching
+    const matchRequirement = (expected: unknown, actual: unknown): boolean => {
+      // 1. List matching (Array)
+      if (Array.isArray(expected)) {
+        // If actual value is in the expected array, it's a match
+        return expected.includes(actual);
+      }
+
+      // 2. Range matching (Object with min/max)
+      if (
+        typeof expected === 'object' &&
+        expected !== null &&
+        ('min' in expected || 'max' in expected)
+      ) {
+        const range = expected as { min?: number; max?: number };
+        if (typeof actual !== 'number') return false;
+
+        if (range.min !== undefined && actual < range.min) return false;
+        if (range.max !== undefined && actual > range.max) return false;
+        return true;
+      }
+
+      // 3. Exact matching (Primitive or simple object)
+      // Normalize values: treat empty arrays, null, and undefined as equivalent (empty/default)
+      const normalizeValue = (v: unknown): string | unknown => {
+        if (v === null || v === undefined) return '__EMPTY__';
+        if (Array.isArray(v) && v.length === 0) return '__EMPTY__';
+        if (Array.isArray(v)) return JSON.stringify(v);
+        return v;
+      };
+
+      return normalizeValue(expected) === normalizeValue(actual);
+    };
+
     // Check serial settings
     if (requirements.serial) {
       const serialFields = ['baud_rate', 'data_bits', 'parity', 'stop_bits'];
       for (const field of serialFields) {
         const expected = requirements.serial[field];
         const actual = config.serial[field as keyof typeof config.serial];
-        if (expected !== undefined && actual !== undefined && expected !== actual) {
+        
+        // Skip check if requirement is not defined
+        if (expected === undefined) continue;
+        
+        // actual can be undefined in config, need to handle it.
+        // If expected is defined but actual is undefined, it's a mismatch (unless expected allows undefined/null, but usually config MUST exist)
+        if (actual === undefined && expected !== undefined) return false;
+
+        if (!matchRequirement(expected, actual)) {
           return false;
         }
       }
@@ -262,15 +304,7 @@ export function createGalleryRoutes(ctx: GalleryRoutesContext): Router {
         const actual = packetDefaults[field as keyof typeof packetDefaults];
 
         if (expected !== undefined) {
-          // Normalize values: treat empty arrays, null, and undefined as equivalent (empty/default)
-          const normalizeValue = (v: unknown): string | unknown => {
-            if (v === null || v === undefined) return '__EMPTY__';
-            if (Array.isArray(v) && v.length === 0) return '__EMPTY__';
-            if (Array.isArray(v)) return JSON.stringify(v);
-            return v;
-          };
-
-          if (normalizeValue(expected) !== normalizeValue(actual)) {
+           if (!matchRequirement(expected, actual)) {
             return false;
           }
         }

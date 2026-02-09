@@ -1,8 +1,8 @@
 {
     "serial": {
-        "baud_rate": 3880,
+        "baud_rate": { "min": 3800, "max": 3899 },
         "data_bits": 8,
-        "parity": "none",
+        "parity": ["none", "even"],
         "stop_bits": 1
     },
     "packet_defaults": {
