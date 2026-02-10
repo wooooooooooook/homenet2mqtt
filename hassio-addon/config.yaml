@@ -1,5 +1,5 @@
 name: Homenet2MQTT
-version: 2.6.0
+version: 2.6.5
 breaking_versions: [2.0.0]
 slug: h2m
 description: Bridge between RS485 HomeNet devices and MQTT (supports multi-port/topic mapping).
@@ -27,7 +27,9 @@ options:
   discovery_enabled: true
   timezone: ""
 hassio_role: default
+init: false
 hassio_api: true
+auth_api: true
 uart: true
 services:
   - mqtt:need

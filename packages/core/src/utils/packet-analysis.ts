@@ -21,7 +21,7 @@ import { SelectDevice } from '../protocol/devices/select.device.js';
 import { TextSensorDevice } from '../protocol/devices/text-sensor.device.js';
 import { TextDevice } from '../protocol/devices/text.device.js';
 import { BinarySensorDevice } from '../protocol/devices/binary-sensor.device.js';
-import { slugify } from './common.js';
+import { toEntityId } from './romanize.js';
 import { matchesPacket } from './packet-matching.js';
 import { logger } from './logger.js';
 import type { Device } from '../protocol/device.js';
@@ -116,7 +116,7 @@ const buildDevices = (config: HomenetBridgeConfig) => {
     if (!entities) continue;
     for (const entity of entities) {
       if (!entity.id && entity.name) {
-        entity.id = slugify(entity.name);
+        entity.id = toEntityId(entity.name);
         logger.debug(`[PacketAnalyzer] Generated ID for ${type}: ${entity.name} -> ${entity.id}`);
       }
       const DeviceClass = deviceMap[type] ?? GenericDevice;

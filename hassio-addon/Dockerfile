@@ -124,25 +124,27 @@ WORKDIR /app
 RUN apk add --no-cache bash jq gcompat curl xz
 
 # Install s6-overlay and bashio
-ARG BUILD_ARCH=amd64
+ARG TARGETARCH
+ARG TARGETVARIANT
 ARG S6_OVERLAY_VERSION="3.2.2.0"
 ARG BASHIO_VERSION="v0.17.5"
 RUN set -o pipefail \
     # Determine s6 architecture
-    && S6_ARCH="${BUILD_ARCH}" \
-    && if [ "${BUILD_ARCH}" = "amd64" ]; then S6_ARCH="x86_64"; fi \
-    && if [ "${BUILD_ARCH}" = "aarch64" ]; then S6_ARCH="aarch64"; fi \
+    && S6_ARCH="${TARGETARCH}" \
+    && if [ "${TARGETARCH}" = "amd64" ]; then S6_ARCH="x86_64"; fi \
+    && if [ "${TARGETARCH}" = "arm64" ]; then S6_ARCH="aarch64"; fi \
+    && if [ "${TARGETARCH}" = "arm" ]; then S6_ARCH="arm"; fi \
     # Download and install s6-overlay
-    && curl -L -s "https://github.com/just-containers/s6-overlay/releases/download/v${S6_OVERLAY_VERSION}/s6-overlay-noarch.tar.xz" \
+    && curl -L -s -f "https://github.com/just-containers/s6-overlay/releases/download/v${S6_OVERLAY_VERSION}/s6-overlay-noarch.tar.xz" \
         | tar -C / -Jxpf - \
-    && curl -L -s "https://github.com/just-containers/s6-overlay/releases/download/v${S6_OVERLAY_VERSION}/s6-overlay-${S6_ARCH}.tar.xz" \
+    && curl -L -s -f "https://github.com/just-containers/s6-overlay/releases/download/v${S6_OVERLAY_VERSION}/s6-overlay-${S6_ARCH}.tar.xz" \
         | tar -C / -Jxpf - \
-    && curl -L -s "https://github.com/just-containers/s6-overlay/releases/download/v${S6_OVERLAY_VERSION}/s6-overlay-symlinks-noarch.tar.xz" \
+    && curl -L -s -f "https://github.com/just-containers/s6-overlay/releases/download/v${S6_OVERLAY_VERSION}/s6-overlay-symlinks-noarch.tar.xz" \
         | tar -C / -Jxpf - \
-    && curl -L -s "https://github.com/just-containers/s6-overlay/releases/download/v${S6_OVERLAY_VERSION}/s6-overlay-symlinks-arch.tar.xz" \
+    && curl -L -s -f "https://github.com/just-containers/s6-overlay/releases/download/v${S6_OVERLAY_VERSION}/s6-overlay-symlinks-arch.tar.xz" \
         | tar -C / -Jxpf - \
     # Download and install bashio
-    && curl -J -L -o /tmp/bashio.tar.gz \
+    && curl -J -L -f -o /tmp/bashio.tar.gz \
         "https://github.com/hassio-addons/bashio/archive/${BASHIO_VERSION}.tar.gz" \
     && mkdir -p /tmp/bashio \
     && tar zxvf /tmp/bashio.tar.gz --strip 1 -C /tmp/bashio \
