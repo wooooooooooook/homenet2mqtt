@@ -1,3 +1,7 @@
+v2.6.6
+- fix: 애드온 구성에 `홈어시스턴트 MQTT 통합 사용`(`use_supervisor_mqtt`) 옵션 도입 활성화시 supervisor를 통해 mqtt통합구성요소에 접속합니다(자동로그인).
+  - 이미 mqtt_url, mqtt_user, mqtt_passwd를 입력한 상태로 사용중이라면 이 옵션을 false로 설정해도됩니다.
+
 v2.6.5
 - fix: 잘못된 아키텍처의 s6 overlay가 빌드되어 애드온 시작이 안되는 문제 수정
 -- 아마도 이번엔 해결될것같습니다 ㅠㅠ 

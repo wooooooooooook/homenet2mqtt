@@ -4,6 +4,10 @@
             "name": "로그 레벨",
             "description": "로그 출력 레벨을 설정합니다. (기본값: INFO) DEBUG나 TRACE 레벨로 설정시 성능저하가 발생할 수 있습니다."
         },
+        "use_supervisor_mqtt": {
+            "name": "홈어시스턴트 MQTT 통합 사용",
+            "description": "홈어시스턴트의 MQTT 통합구성요소를 통해 MQTT 브로커에 접속합니다(자동로그인 활성화). 활성화시 아래의 mqtt 인증정보들은 입력하더라도 무시됩니다. 비활성화시 아래의 mqtt주소, 아이디, 비밀번호등을 입력해야합니다."
+        },
         "mqtt_url": {
             "name": "MQTT 주소",
             "description": "MQTT 브로커의 주소입니다. (mosquitto 애드온 사용시 주소: mqtt://core-mosquitto:1883)"
@@ -14,11 +18,11 @@
         },
         "mqtt_user": {
             "name": "MQTT 아이디",
-            "description": "MQTT 브로커 접속 아이디입니다. mosquitto 애드온 사용시 비워두세요."
+            "description": "MQTT 브로커 접속 아이디입니다."
         },
         "mqtt_passwd": {
             "name": "MQTT 비밀번호",
-            "description": "MQTT 브로커 접속 비밀번호입니다. mosquitto 애드온 사용시 비워두세요."
+            "description": "MQTT 브로커 접속 비밀번호입니다."
         },
         "mqtt_topic_prefix": {
             "name": "MQTT 토픽 접두사",

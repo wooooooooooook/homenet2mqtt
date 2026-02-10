@@ -8,35 +8,30 @@ if [ -f "$CONFIG_PATH" ]; then
   # Home Assistant 애드온 환경
   bashio::log.info "Running as Home Assistant addon"
   export LOG_LEVEL=$(jq --raw-output '.log_level // "info"' $CONFIG_PATH)
-  export MQTT_URL=$(jq --raw-output '.mqtt_url // ""' $CONFIG_PATH)
-  export MQTT_NEED_LOGIN=$(jq --raw-output '.mqtt_need_login // false' $CONFIG_PATH)
-  export MQTT_USER=$(jq --raw-output '.mqtt_user // ""' $CONFIG_PATH)
-  export MQTT_PASSWD=$(jq --raw-output '.mqtt_passwd // ""' $CONFIG_PATH)
-  
-  # MQTT 설정이 비어있거나 기본값이면 bashio를 통해 Supervisor의 MQTT 서비스 정보 사용
-  if [ -z "$MQTT_URL" ] || [ "$MQTT_URL" == "mqtt://core-mosquitto:1883" ]; then
-    if bashio::services.available "mqtt"; then
-      MQTT_HOST=$(bashio::services mqtt "host")
-      MQTT_PORT=$(bashio::services mqtt "port")
-      export MQTT_URL="mqtt://${MQTT_HOST}:${MQTT_PORT}"
-      bashio::log.info "Using Supervisor MQTT service: $MQTT_URL"
+  export USE_SUPERVISOR_MQTT=$(jq --raw-output '.use_supervisor_mqtt // true' $CONFIG_PATH)
+
+  if [ "$USE_SUPERVISOR_MQTT" == "true" ] && bashio::services.available "mqtt"; then
+    bashio::log.info "Using Supervisor MQTT service"
+    MQTT_HOST=$(bashio::services mqtt "host")
+    MQTT_PORT=$(bashio::services mqtt "port")
+    export MQTT_URL="mqtt://${MQTT_HOST}:${MQTT_PORT}"
+    export MQTT_USER=$(bashio::services mqtt "username")
+    export MQTT_PASSWD=$(bashio::services mqtt "password")
+
+    if [ -n "$MQTT_USER" ] && [ "$MQTT_USER" != "null" ]; then
+      export MQTT_NEED_LOGIN="true"
     else
-      bashio::log.warning "MQTT service not available from Supervisor, using default"
-      export MQTT_URL="mqtt://127.0.0.1:1883"
+      export MQTT_NEED_LOGIN="false"
     fi
-  fi
-  
-  # MQTT 인증 정보가 비어있으면 bashio를 통해 가져오기
-  if [ -z "$MQTT_USER" ] || [ -z "$MQTT_PASSWD" ]; then
-    if bashio::services.available "mqtt"; then
-      BASHIO_MQTT_USER=$(bashio::services mqtt "username")
-      BASHIO_MQTT_PASSWD=$(bashio::services mqtt "password")
-      if [ -n "$BASHIO_MQTT_USER" ] && [ -n "$BASHIO_MQTT_PASSWD" ]; then
-        export MQTT_USER="$BASHIO_MQTT_USER"
-        export MQTT_PASSWD="$BASHIO_MQTT_PASSWD"
-        export MQTT_NEED_LOGIN="true"
-        bashio::log.info "Using Supervisor MQTT credentials for user: $MQTT_USER"
-      fi
+  else
+    bashio::log.info "Using user-defined MQTT configuration"
+    export MQTT_URL=$(jq --raw-output '.mqtt_url // ""' $CONFIG_PATH)
+    export MQTT_NEED_LOGIN=$(jq --raw-output '.mqtt_need_login // false' $CONFIG_PATH)
+    export MQTT_USER=$(jq --raw-output '.mqtt_user // ""' $CONFIG_PATH)
+    export MQTT_PASSWD=$(jq --raw-output '.mqtt_passwd // ""' $CONFIG_PATH)
+
+    if [ -z "$MQTT_URL" ] || [ "$MQTT_URL" == "null" ]; then
+       export MQTT_URL="mqtt://core-mosquitto:1883"
     fi
   fi
   export MQTT_TOPIC_PREFIX=$(jq --raw-output '.mqtt_topic_prefix // "homenet2mqtt"' $CONFIG_PATH)
