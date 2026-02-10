@@ -158,8 +158,7 @@ ARG LOG_COLLECTOR_API_KEY
 ENV LOG_COLLECTOR_API_KEY=$LOG_COLLECTOR_API_KEY
 
 # Setup run script
-COPY hassio-addon-dev/run.sh /run.sh
-RUN chmod +x /run.sh
+COPY hassio-addon/run.sh /etc/services.d/homenet2mqtt/run
+RUN chmod +x /etc/services.d/homenet2mqtt/run
 
 ENTRYPOINT [ "/init" ]
-CMD [ "/run.sh" ]

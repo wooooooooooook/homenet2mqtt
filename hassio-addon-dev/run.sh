@@ -1,4 +1,5 @@
-#!/usr/bin/with-contenv bashio
+#!/usr/bin/env bash
+set -e
 
 # Home Assistant addon: options.json에서 설정을 읽어옴
 # Docker container: 환경변수에서 설정을 읽어옴
@@ -117,16 +118,4 @@ echo "  MQTT_TOPIC_PREFIX: $MQTT_TOPIC_PREFIX"
 echo "  TIMEZONE: $TIMEZONE"
 echo "  DISCOVERY_ENABLED: $DISCOVERY_ENABLED"
 
-# Run the service with restart flag support for initialization flow
-while true; do
-  node packages/service/dist/server.js
-  exit_code=$?
-
-  if [ $exit_code -eq 0 ] && [ -f "$RESTART_FLAG" ]; then
-    echo "[addon-dev] Restart flag detected. Re-launching service to apply selected default config..."
-    rm -f "$RESTART_FLAG"
-    continue
-  fi
-
-  exit $exit_code
-done
+exec node packages/service/dist/server.js
