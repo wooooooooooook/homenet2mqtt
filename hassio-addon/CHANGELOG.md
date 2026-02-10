@@ -1,5 +1,5 @@
 v2.6.6
-- fix: 애드온 구성에 `홈어시스턴트 MQTT 통합 사용`(`use_supervisor_mqtt`) 옵션 도입 활성화시 supervisor를 통해 mqtt통합구성요소에 접속합니다(자동로그인).
+- fix: 애드온 구성에 `홈어시스턴트 MQTT 통합 연동`(`use_supervisor_mqtt`) 옵션 도입. 활성화시 supervisor를 통해 mqtt통합구성요소에 접속합니다(자동로그인). 비활성화시 명시적으로 자동로그인을 비활성화할 수 있게함.
   - 이미 mqtt_url, mqtt_user, mqtt_passwd를 입력한 상태로 사용중이라면 이 옵션을 false로 설정해도됩니다.
 
 v2.6.5

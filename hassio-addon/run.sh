@@ -8,7 +8,7 @@ if [ -f "$CONFIG_PATH" ]; then
   # Home Assistant 애드온 환경
   bashio::log.info "Running as Home Assistant addon"
   export LOG_LEVEL=$(jq --raw-output '.log_level // "info"' $CONFIG_PATH)
-  export USE_SUPERVISOR_MQTT=$(jq --raw-output '.use_supervisor_mqtt // true' $CONFIG_PATH)
+  export USE_SUPERVISOR_MQTT=$(jq --raw-output '.use_supervisor_mqtt' $CONFIG_PATH)
 
   if [ "$USE_SUPERVISOR_MQTT" == "true" ] && bashio::services.available "mqtt"; then
     bashio::log.info "Using Supervisor MQTT service"
@@ -22,6 +22,8 @@ if [ -f "$CONFIG_PATH" ]; then
       export MQTT_NEED_LOGIN="true"
     else
       export MQTT_NEED_LOGIN="false"
+      export MQTT_USER=""
+      export MQTT_PASSWD=""
     fi
   else
     bashio::log.info "Using user-defined MQTT configuration"
@@ -29,6 +31,11 @@ if [ -f "$CONFIG_PATH" ]; then
     export MQTT_NEED_LOGIN=$(jq --raw-output '.mqtt_need_login // false' $CONFIG_PATH)
     export MQTT_USER=$(jq --raw-output '.mqtt_user // ""' $CONFIG_PATH)
     export MQTT_PASSWD=$(jq --raw-output '.mqtt_passwd // ""' $CONFIG_PATH)
+
+    if [ "$MQTT_NEED_LOGIN" != "true" ]; then
+      export MQTT_USER=""
+      export MQTT_PASSWD=""
+    fi
 
     if [ -z "$MQTT_URL" ] || [ "$MQTT_URL" == "null" ]; then
        export MQTT_URL="mqtt://core-mosquitto:1883"
