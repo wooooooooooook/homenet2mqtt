@@ -1,6 +1,6 @@
-import { Environment, ParseResult } from "@marcbachmann/cel-js";
-import { Buffer } from "buffer";
-import { logger } from "../utils/logger.js";
+import { Environment, ParseResult } from '@marcbachmann/cel-js';
+import { Buffer } from 'buffer';
+import { logger } from '../utils/logger.js';
 
 /**
  * Interface for a prepared script that can be executed directly without Map lookups.
@@ -76,12 +76,12 @@ export class ReusableBufferView {
     this.proxy = new Proxy([], {
       get: (target, prop, receiver) => {
         // Handle length/size properties
-        if (prop === "length") {
+        if (prop === 'length') {
           return this.length;
         }
 
         // Fast path for integer indexed access (e.g. data[0])
-        if (typeof prop === "string") {
+        if (typeof prop === 'string') {
           const idx = Number(prop);
           // Check against VIRTUAL length
           if (Number.isInteger(idx) && idx >= 0 && idx < this.length) {
@@ -175,9 +175,7 @@ export class CelExecutor {
   private currentStatesContext?: Record<string, any>;
 
   // Pre-allocate BigInts for bytes 0-255 to avoid constructor overhead in hot paths
-  private readonly BIGINT_CACHE: bigint[] = new Array(256)
-    .fill(0)
-    .map((_, i) => BigInt(i));
+  private readonly BIGINT_CACHE: bigint[] = new Array(256).fill(0).map((_, i) => BigInt(i));
 
   public static shared(): CelExecutor {
     if (!CelExecutor.sharedInstance) {
@@ -190,106 +188,80 @@ export class CelExecutor {
     this.env = new Environment();
 
     // Register Types
-    this.env.registerVariable("x", "int");
-    this.env.registerVariable("xstr", "string"); // String input for custom modes
-    this.env.registerVariable("data", "list"); // list(int)
-    this.env.registerVariable("state", "map");
-    this.env.registerVariable("states", "map");
-    this.env.registerVariable("trigger", "map");
-    this.env.registerVariable("args", "map");
-    this.env.registerVariable("len", "int");
+    this.env.registerVariable('x', 'int');
+    this.env.registerVariable('xstr', 'string'); // String input for custom modes
+    this.env.registerVariable('data', 'list'); // list(int)
+    this.env.registerVariable('state', 'map');
+    this.env.registerVariable('states', 'map');
+    this.env.registerVariable('trigger', 'map');
+    this.env.registerVariable('args', 'map');
+    this.env.registerVariable('len', 'int');
 
     // Helper: BCD to Int
-    this.env.registerFunction("bcd_to_int(int): int", (bcd: bigint) => {
+    this.env.registerFunction('bcd_to_int(int): int', (bcd: bigint) => {
       const val = Number(bcd);
       const res = (val >> 4) * 10 + (val & 0x0f);
       return BigInt(res);
     });
 
     // Helper: Int to BCD
-    this.env.registerFunction("int_to_bcd(int): int", (val: bigint) => {
+    this.env.registerFunction('int_to_bcd(int): int', (val: bigint) => {
       const v = Number(val);
-      const res = ((Math.floor(v / 10) % 10) << 4) | (v % 10);
+      const res = (Math.floor(v / 10) % 10 << 4) | v % 10;
       return BigInt(res);
     });
 
     // Helper: Bitwise Operations
-    this.env.registerFunction(
-      "bitAnd(int, int): int",
-      (a: bigint, b: bigint) => a & b,
-    );
-    this.env.registerFunction(
-      "bitOr(int, int): int",
-      (a: bigint, b: bigint) => a | b,
-    );
-    this.env.registerFunction(
-      "bitXor(int, int): int",
-      (a: bigint, b: bigint) => a ^ b,
-    );
+    this.env.registerFunction('bitAnd(int, int): int', (a: bigint, b: bigint) => a & b);
+    this.env.registerFunction('bitOr(int, int): int', (a: bigint, b: bigint) => a | b);
+    this.env.registerFunction('bitXor(int, int): int', (a: bigint, b: bigint) => a ^ b);
     // Double overloads for map values (args, states) which come as double in CEL
-    this.env.registerFunction(
-      "bitAnd(double, double): int",
-      (a: number, b: number) => BigInt(Math.floor(a) & Math.floor(b)),
+    this.env.registerFunction('bitAnd(double, double): int', (a: number, b: number) =>
+      BigInt(Math.floor(a) & Math.floor(b)),
     );
-    this.env.registerFunction(
-      "bitOr(double, double): int",
-      (a: number, b: number) => BigInt(Math.floor(a) | Math.floor(b)),
+    this.env.registerFunction('bitOr(double, double): int', (a: number, b: number) =>
+      BigInt(Math.floor(a) | Math.floor(b)),
     );
-    this.env.registerFunction(
-      "bitXor(double, double): int",
-      (a: number, b: number) => BigInt(Math.floor(a) ^ Math.floor(b)),
+    this.env.registerFunction('bitXor(double, double): int', (a: number, b: number) =>
+      BigInt(Math.floor(a) ^ Math.floor(b)),
     );
-    this.env.registerFunction(
-      "bitAnd(int, double): int",
-      (a: bigint, b: number) => BigInt(Number(a) & Math.floor(b)),
+    this.env.registerFunction('bitAnd(int, double): int', (a: bigint, b: number) =>
+      BigInt(Number(a) & Math.floor(b)),
     );
-    this.env.registerFunction(
-      "bitOr(int, double): int",
-      (a: bigint, b: number) => BigInt(Number(a) | Math.floor(b)),
+    this.env.registerFunction('bitOr(int, double): int', (a: bigint, b: number) =>
+      BigInt(Number(a) | Math.floor(b)),
     );
-    this.env.registerFunction(
-      "bitXor(int, double): int",
-      (a: bigint, b: number) => BigInt(Number(a) ^ Math.floor(b)),
+    this.env.registerFunction('bitXor(int, double): int', (a: bigint, b: number) =>
+      BigInt(Number(a) ^ Math.floor(b)),
     );
-    this.env.registerFunction("bitNot(int): int", (a: bigint) => ~a);
-    this.env.registerFunction(
-      "bitShiftLeft(int, int): int",
-      (a: bigint, b: bigint) => a << b,
+    this.env.registerFunction('bitNot(int): int', (a: bigint) => ~a);
+    this.env.registerFunction('bitShiftLeft(int, int): int', (a: bigint, b: bigint) => a << b);
+    this.env.registerFunction('bitShiftRight(int, int): int', (a: bigint, b: bigint) => a >> b);
+    this.env.registerFunction('len(list): int', (value: { length: number } | null) =>
+      BigInt(value?.length ?? 0),
     );
-    this.env.registerFunction(
-      "bitShiftRight(int, int): int",
-      (a: bigint, b: bigint) => a >> b,
-    );
-    this.env.registerFunction(
-      "len(list): int",
-      (value: { length: number } | null) => BigInt(value?.length ?? 0),
-    );
-    this.env.registerFunction("len(string): int", (value: string | null) =>
+    this.env.registerFunction('len(string): int', (value: string | null) =>
       BigInt(value?.length ?? 0),
     );
     this.env.registerFunction(
-      "get_from_states(string, string): dyn",
-      (entityId: string, key: string) =>
-        this.getFromStates(entityId, key) ?? null,
+      'get_from_states(string, string): dyn',
+      (entityId: string, key: string) => this.getFromStates(entityId, key) ?? null,
     );
     this.env.registerFunction(
-      "get_from_states(string, string, dyn): dyn",
+      'get_from_states(string, string, dyn): dyn',
       (entityId: string, key: string, fallback: any) => {
         const value = this.getFromStates(entityId, key);
         return value === undefined ? fallback : value;
       },
     );
     this.env.registerFunction(
-      "get_from_state(string): dyn",
+      'get_from_state(string): dyn',
       (key: string) => this.getFromState(key) ?? null,
     );
-    this.env.registerFunction(
-      "get_from_state(string, dyn): dyn",
-      (key: string, fallback: any) => {
-        const value = this.getFromState(key);
-        return value === undefined ? fallback : value;
-      },
-    );
+    this.env.registerFunction('get_from_state(string, dyn): dyn', (key: string, fallback: any) => {
+      const value = this.getFromState(key);
+      return value === undefined ? fallback : value;
+    });
   }
 
   /**
@@ -407,9 +379,7 @@ export class CelExecutor {
     onError: (error: string) => T,
   ): T {
     try {
-      const finalContext = safe
-        ? this.createSafeContext(contextData, entry)
-        : contextData;
+      const finalContext = safe ? this.createSafeContext(contextData, entry) : contextData;
       return this.runWithContext(finalContext, () => {
         const res = entry.parsed(finalContext);
         return onSuccess(this.convertResult(res));
@@ -429,14 +399,14 @@ export class CelExecutor {
       }
       const parsed = this.env.parse(script);
       // Static analysis of script to avoid populating unused context variables
-      const usesData = script.includes("data");
-      const usesState = script.includes("state"); // Covers 'state' and 'states'
-      const usesStates = script.includes("states");
-      const usesTrigger = script.includes("trigger");
-      const usesArgs = script.includes("args");
-      const usesLen = script.includes("len");
-      const usesGetFromState = script.includes("get_from_state");
-      const usesGetFromStates = script.includes("get_from_states");
+      const usesData = script.includes('data');
+      const usesState = script.includes('state'); // Covers 'state' and 'states'
+      const usesStates = script.includes('states');
+      const usesTrigger = script.includes('trigger');
+      const usesArgs = script.includes('args');
+      const usesLen = script.includes('len');
+      const usesGetFromState = script.includes('get_from_state');
+      const usesGetFromStates = script.includes('get_from_states');
 
       entry = {
         parsed,
@@ -464,27 +434,22 @@ export class CelExecutor {
     if (contextData.x !== undefined && contextData.x !== null) {
       // If x is a string (e.g., custom mode name), set both x=0 and xstr=value
       // If x is a number, convert to BigInt for CEL and set xstr=''
-      if (typeof contextData.x === "string") {
+      if (typeof contextData.x === 'string') {
         safeContext.x = 0n; // CEL needs x to be int
         safeContext.xstr = contextData.x; // String value accessible via xstr
       } else {
         const numValue = Number(contextData.x);
-        safeContext.x = Number.isNaN(numValue)
-          ? 0n
-          : BigInt(Math.floor(numValue));
-        safeContext.xstr = "";
+        safeContext.x = Number.isNaN(numValue) ? 0n : BigInt(Math.floor(numValue));
+        safeContext.xstr = '';
       }
     } else {
       safeContext.x = 0n; // Default for when x is not provided (e.g. state parsing)
-      safeContext.xstr = "";
+      safeContext.xstr = '';
     }
 
     if (Array.isArray(contextData.data)) {
       safeContext.data = contextData.data.map((d: any) => BigInt(d));
-    } else if (
-      Buffer.isBuffer(contextData.data) ||
-      contextData.data instanceof Uint8Array
-    ) {
+    } else if (Buffer.isBuffer(contextData.data) || contextData.data instanceof Uint8Array) {
       if (entry.usesData) {
         // Optimization: Use a Proxy to expose Buffer directly as a read-only List<BigInt>
         // This avoids O(N) allocation and copying of BigInt arrays, reducing memory pressure
@@ -518,17 +483,14 @@ export class CelExecutor {
       safeContext.args = contextData.args || {};
     }
 
-    if (entry.usesLen && typeof contextData.len === "number") {
+    if (entry.usesLen && typeof contextData.len === 'number') {
       safeContext.len = BigInt(contextData.len);
     }
 
     return safeContext;
   }
 
-  private runWithContext<T>(
-    contextData: Record<string, any>,
-    action: () => T,
-  ): T {
+  private runWithContext<T>(contextData: Record<string, any>, action: () => T): T {
     this.currentStateContext = this.normalizeMap(contextData.state);
     this.currentStatesContext = this.normalizeMap(contextData.states);
     try {
@@ -548,7 +510,7 @@ export class CelExecutor {
     if (value instanceof Map) {
       return Object.fromEntries(value);
     }
-    if (typeof value === "object") {
+    if (typeof value === 'object') {
       return value;
     }
     return undefined;
@@ -560,7 +522,7 @@ export class CelExecutor {
       return undefined;
     }
     const entity = states[entityId];
-    if (!entity || typeof entity !== "object") {
+    if (!entity || typeof entity !== 'object') {
       return undefined;
     }
     if (!Object.prototype.hasOwnProperty.call(entity, key)) {
@@ -571,7 +533,7 @@ export class CelExecutor {
 
   private getFromState(key: string): any {
     const state = this.currentStateContext;
-    if (!state || typeof state !== "object") {
+    if (!state || typeof state !== 'object') {
       return undefined;
     }
     if (!Object.prototype.hasOwnProperty.call(state, key)) {
@@ -589,7 +551,7 @@ export class CelExecutor {
     return new Proxy([], {
       get: (target, prop, receiver) => {
         // Fast path for integer indexed access (e.g. data[0])
-        if (typeof prop === "string") {
+        if (typeof prop === 'string') {
           const idx = Number(prop);
           // Check against BUFFER length, not target length
           if (Number.isInteger(idx) && idx >= 0 && idx < buffer.length) {
@@ -598,7 +560,7 @@ export class CelExecutor {
         }
 
         // Handle length/size properties
-        if (prop === "length") {
+        if (prop === 'length') {
           return buffer.length;
         }
 
@@ -621,15 +583,12 @@ export class CelExecutor {
   private handleError(error: unknown, script: string): string {
     const errorMessage = error instanceof Error ? error.message : String(error);
     const errorStack = error instanceof Error ? error.stack : undefined;
-    logger.error(
-      { error: errorMessage, stack: errorStack, script },
-      "[CEL] Execution failed",
-    );
+    logger.error({ error: errorMessage, stack: errorStack, script }, '[CEL] Execution failed');
     return errorMessage;
   }
 
   private convertResult(value: any): any {
-    if (typeof value === "bigint") {
+    if (typeof value === 'bigint') {
       return Number(value);
     }
     if (Array.isArray(value)) {

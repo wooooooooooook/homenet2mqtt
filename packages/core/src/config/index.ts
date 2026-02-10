@@ -251,10 +251,14 @@ export function normalizeConfig(config: HomenetBridgeConfig) {
         }
       });
 
-      const injectLowPriority = (actions: any[] | undefined) => {
+      const normalizeActions = (actions: any[] | undefined, lowPriority: boolean) => {
         if (!actions) return;
         actions.forEach((action) => {
-          if (action.action === 'command' && action.low_priority === undefined) {
+          if (
+            action.action === 'command' &&
+            action.low_priority === undefined &&
+            lowPriority === true
+          ) {
             action.low_priority = true;
           }
           if (action.action === 'delay') {
@@ -267,10 +271,24 @@ export function normalizeConfig(config: HomenetBridgeConfig) {
         });
       };
 
-      const hasSchedule = auto.trigger.some((t) => t.type === 'schedule');
-      if (hasSchedule) {
-        injectLowPriority(auto.then);
-        injectLowPriority(auto.else);
+      const isScheduled = auto.trigger.some((t) => t.type === 'schedule');
+      normalizeActions(auto.then, isScheduled);
+      normalizeActions(auto.else, isScheduled);
+    });
+  }
+
+  if (config.scripts && Array.isArray(config.scripts)) {
+    config.scripts.forEach((script) => {
+      if (script && Array.isArray(script.actions)) {
+        script.actions.forEach((action: any) => {
+          if (action.action === 'delay') {
+            if (action.duration !== undefined && action.milliseconds === undefined) {
+              action.milliseconds = action.duration;
+            } else if (action.delay !== undefined && action.milliseconds === undefined) {
+              action.milliseconds = action.delay;
+            }
+          }
+        });
       }
     });
   }

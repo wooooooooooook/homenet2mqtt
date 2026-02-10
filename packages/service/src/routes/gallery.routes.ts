@@ -614,7 +614,11 @@ export function createGalleryRoutes(ctx: GalleryRoutesContext): Router {
           for (const field of serialFields) {
             const expected = vendorRequirements.serial[field];
             const actual = serialConfig[field];
-            if (expected !== undefined && actual !== undefined && !matchRequirement(expected, actual)) {
+            if (
+              expected !== undefined &&
+              actual !== undefined &&
+              !matchRequirement(expected, actual)
+            ) {
               compatibility.compatible = false;
               compatibility.mismatches.push({
                 field: `serial.${field}`,

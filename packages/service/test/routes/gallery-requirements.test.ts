@@ -4,17 +4,17 @@ import { checkConfigRequirements } from '../../src/utils/gallery-requirements.js
 
 describe('checkConfigRequirements', () => {
   const baseConfig: HomenetBridgeConfig = {
-      serial: {
-        path: '/dev/ttyUSB0',
-        baud_rate: 9600,
-        data_bits: 8,
-        parity: 'none',
-        stop_bits: 1,
-        portId: 'default'
-      },
-      packet_defaults: {
-        rx_header: [0xaa],
-      },
+    serial: {
+      path: '/dev/ttyUSB0',
+      baud_rate: 9600,
+      data_bits: 8,
+      parity: 'none',
+      stop_bits: 1,
+      portId: 'default',
+    },
+    packet_defaults: {
+      rx_header: [0xaa],
+    },
   };
 
   it('should return true when requirements match config', () => {
@@ -50,7 +50,7 @@ describe('checkConfigRequirements', () => {
         data_bits: 8,
         parity: 'none',
         stop_bits: 1,
-        portId: 'default'
+        portId: 'default',
       },
       packet_defaults: {
         rx_header: [], // empty array
@@ -75,7 +75,7 @@ describe('checkConfigRequirements', () => {
         data_bits: 8,
         parity: 'none',
         stop_bits: 1,
-        portId: 'default'
+        portId: 'default',
       },
       packet_defaults: {
         // rx_header undefined

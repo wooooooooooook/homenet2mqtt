@@ -797,7 +797,7 @@ describe('AutomationManager', () => {
         {
           id: 'guard_test',
           trigger: [{ type: 'startup' }],
-          guard: 'return false', // 항상 거짓
+          guard: 'false', // 항상 거짓
           then: [{ action: 'publish', topic: 'guard', payload: 'then' }],
           else: [{ action: 'publish', topic: 'guard', payload: 'else' }],
         },
@@ -812,7 +812,7 @@ describe('AutomationManager', () => {
     );
     automationManager.start();
 
-    // The guard 'return false' should evaluate to false.
+    // The guard 'false' should evaluate to false.
     await vi.runAllTimersAsync();
     expect(mqttPublisher.publish).toHaveBeenCalledWith('guard', 'else', undefined);
   });

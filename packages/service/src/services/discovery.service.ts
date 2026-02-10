@@ -254,6 +254,15 @@ export function evaluateDiscovery(
   packets: DiscoveryPacket[],
   defaultOffset?: number,
 ): DiscoveryResult {
+  // Defensive check for packets
+  if (!packets || !Array.isArray(packets)) {
+    return {
+      matched: false,
+      matchedPacketCount: 0,
+      parameterValues: {},
+    };
+  }
+
   // Parse and filter matching packets
   const matchedPackets: DiscoveryPacket[] = [];
   for (const packet of packets) {

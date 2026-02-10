@@ -431,9 +431,11 @@ export type GalleryItemWithVendor = GalleryItem & {
   vendorId: string;
   vendorName: string;
   vendorRequirements?: GalleryVendorRequirements;
+  isCompatible?: boolean;
 };
 
 export type GalleryItemForPreview = GalleryItem & {
   vendorId: string;
   vendorRequirements?: GalleryVendorRequirements;
+  isCompatible?: boolean;
 };

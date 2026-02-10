@@ -17,9 +17,7 @@ describe('Entities Utilities', () => {
         { id: 'light_1', name: 'Light 1' },
         { id: 'light_2', name: 'Light 2' },
       ],
-      switch: [
-        { id: 'switch_1', name: 'Switch 1' },
-      ],
+      switch: [{ id: 'switch_1', name: 'Switch 1' }],
       sensor: [],
     } as unknown as HomenetBridgeConfig;
 

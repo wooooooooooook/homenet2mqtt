@@ -84,7 +84,7 @@ export function checkConfigRequirements(
       const actual = packetDefaults[field as keyof typeof packetDefaults];
 
       if (expected !== undefined) {
-         if (!matchRequirement(expected, actual)) {
+        if (!matchRequirement(expected, actual)) {
           return false;
         }
       }

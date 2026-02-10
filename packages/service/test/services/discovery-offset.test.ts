@@ -1,11 +1,18 @@
 import { describe, it, expect } from 'vitest';
-import { evaluateDiscovery, type DiscoverySchema } from '../../src/services/discovery.service.js';
+import {
+  evaluateDiscovery,
+  prepareDiscoveryPackets,
+  type DiscoverySchema,
+} from '../../src/services/discovery.service.js';
 
 describe('Discovery Service - Default Offset', () => {
   const packetDictionary: Record<string, string> = {
     '1': 'B0 01 02 03 04', // Header B0, 5 bytes
   };
   const unmatchedPackets: string[] = [];
+
+  // Prepare packets for discovery
+  const packets = prepareDiscoveryPackets(packetDictionary, unmatchedPackets);
 
   it('should use defaultOffset when match.offset is undefined', () => {
     const discovery: DiscoverySchema = {
@@ -17,12 +24,12 @@ describe('Discovery Service - Default Offset', () => {
     };
 
     // With defaultOffset = 1 (skipping B0)
-    const resultWithOffset = evaluateDiscovery(discovery, packetDictionary, unmatchedPackets, 1);
+    const resultWithOffset = evaluateDiscovery(discovery, packets, 1);
     expect(resultWithOffset.matched).toBe(true);
     expect(resultWithOffset.matchedPacketCount).toBe(1);
 
     // With defaultOffset = 0 (matching B0 against 01 -> fail)
-    const resultWithoutOffset = evaluateDiscovery(discovery, packetDictionary, unmatchedPackets, 0);
+    const resultWithoutOffset = evaluateDiscovery(discovery, packets, 0);
     expect(resultWithoutOffset.matched).toBe(false);
   });
 
@@ -39,8 +46,7 @@ describe('Discovery Service - Default Offset', () => {
     // Even if defaultOffset is 0 or 1, it should use offset 2
     const result = evaluateDiscovery(
       discovery,
-      packetDictionary,
-      unmatchedPackets,
+      packets,
       0, // defaultOffset ignored
     );
     expect(result.matched).toBe(true);
@@ -55,7 +61,7 @@ describe('Discovery Service - Default Offset', () => {
       dimensions: [],
     };
 
-    const result = evaluateDiscovery(discovery, packetDictionary, unmatchedPackets, undefined);
+    const result = evaluateDiscovery(discovery, packets, undefined);
     expect(result.matched).toBe(true);
   });
 
@@ -68,7 +74,7 @@ describe('Discovery Service - Default Offset', () => {
       dimensions: undefined as any,
     };
 
-    const result = evaluateDiscovery(discovery, packetDictionary, unmatchedPackets, 0);
+    const result = evaluateDiscovery(discovery, packets, 0);
     expect(result.matched).toBe(true);
     expect(result.parameterValues).toEqual({});
   });
