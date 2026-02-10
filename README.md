@@ -60,6 +60,8 @@ RS485 기반의 월패드(홈넷) 신호를 MQTT 메시지로 변환하여 Home 
          # HA discovery 사용 여부 (기본값: false)
          # Home Assistant와 연동하려면 'true'로 설정
          DISCOVERY_ENABLED: 'false'
+         # API 인증 토큰 (설정 시 API 접근 제한, 비워두면 인증 없음)
+         AUTH_TOKEN: ''
        volumes:
          # 설정 파일 볼륨
          - ./h2m-config:/config
