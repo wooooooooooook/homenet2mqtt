@@ -1,9 +1,15 @@
 ** ⚠️ 업데이트 전 백업 필수❗ **
+- 한달정도 특별한 오류가 없으면 beta 딱지를 떼고 stable로 승격시킬 예정입니다.
+- 오류가 있으면 homeasssutant 카페, 깃헙, 디스코드 등으로 알려주세요.
+
+v2.8.0
+- feat: entity에 discovery_skip옵션추가. true로 설정시 해당엔티티에대한 mqtt 디스커버리 메시지를 발행하지않습니다. 이 경우 ha에 등록하려면 수동으로 엔티티등록을 해야합니다.
+- feat: internal: true인 엔티티를 대시보드에 표시하는 옵션 추가. 대시보드에서 검색을 통해 접근하는경우 항상 internal entity도 표시되도록 개선함.
+- 실수로 텍스트값을 sensor로 정의하거나 숫자값을 text_sensor로 정의해도 허용하도록 변경함. (허용은 하지만 문서에 있는대로 구성하기를 권장합니다)
+
 v2.7.0
 - baseimage를 homeassistant base image로 변경하고 node20에서 node22로 migration
   - 향후 유지보수비용을 줄이기 위함.
-- 이 버전에서 한달정도 특별한 오류가 없으면 beta 딱지를 떼고 stable로 승격시킬 예정입니다.
-- 오류가 있으면 카페, 깃헙, 디스코드 등으로 알려주세요.
 
 v2.6.6
 - refactor: 애드온 구성에 `홈어시스턴트 MQTT 통합 연동`(`use_supervisor_mqtt`) 옵션으로 자동로그인을 제어할 수 있게함. 활성화시 supervisor를 통해 mqtt통합구성요소에 접속합니다(자동로그인). 비활성화하여 명시적으로 자동로그인을 비활성화할 수 있게함.
