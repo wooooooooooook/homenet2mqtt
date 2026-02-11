@@ -2,6 +2,9 @@
 - 한달정도 특별한 오류가 없으면 beta 딱지를 떼고 stable로 승격시킬 예정입니다.
 - 오류가 있으면 homeasssutant 카페, 깃헙, 디스코드 등으로 알려주세요.
 
+v2.8.1
+- arm64 빌드 실패 수정
+
 v2.8.0
 - feat: entity에 discovery_skip옵션추가. true로 설정시 해당엔티티에대한 mqtt 디스커버리 메시지를 발행하지않습니다. 이 경우 ha에 등록하려면 수동으로 엔티티등록을 해야합니다.
 - feat: internal: true인 엔티티를 대시보드에 표시하는 옵션 추가. 대시보드에서 검색을 통해 접근하는경우 항상 internal entity도 표시되도록 개선함.
