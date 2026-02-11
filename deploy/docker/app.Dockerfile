@@ -1,12 +1,13 @@
-ARG BUILD_FROM=ghcr.io/home-assistant/amd64-base:3.22
-
 # Stage 1: Builder
-FROM node:22-slim AS builder
+FROM node:22-alpine AS builder
 
 ENV PNPM_HOME="/root/.local/share/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 ENV CI=true
 RUN corepack enable
+
+# Install build tools for native modules (if any)
+RUN apk add --no-cache python3 make g++
 
 WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json turbo.json ./
@@ -28,17 +29,17 @@ RUN rm -rf packages/ui \
   packages/*/*.md \
   scripts
 
-# Stage 2: Runner (Home Assistant Base Image)
-ARG BUILD_FROM
-FROM ${BUILD_FROM} AS runner
+# Stage 2: Runner
+FROM node:22-alpine AS runner
 
 WORKDIR /app
 
 # Install runtime dependencies
-# nodejs: HA base image doesn't include Node.js
+# bash: for run.sh
 # tini: lightweight init for PID 1
 # socat: for serial port bridging in dev/test environments
-RUN apk add --no-cache nodejs tini gcompat socat
+# tzdata: for timezone support
+RUN apk add --no-cache bash tini socat tzdata
 
 # Copy application from builder
 COPY --from=builder /app /app
@@ -46,7 +47,7 @@ COPY --from=builder /app /app
 ENV NODE_ENV=production
 
 # Setup run script
-COPY hassio-addon-dev/run.sh /run.sh
+COPY deploy/docker/run.sh /run.sh
 RUN chmod +x /run.sh
 
 ENTRYPOINT [ "/sbin/tini", "--", "/run.sh" ]
