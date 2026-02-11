@@ -85,6 +85,28 @@ export function normalizeConfig(config: HomenetBridgeConfig) {
           (entity as any).packet_parameters = (entity as any).packet_defaults;
           delete (entity as any).packet_defaults;
         }
+
+        // Handle sensor state_text/state_value aliases for leniency
+        if (type === 'sensor') {
+          const sensor = entity as any;
+          if (!sensor.state_number) {
+            if (sensor.state_text) {
+              sensor.state_number = sensor.state_text;
+            } else if (sensor.state_value) {
+              sensor.state_number = sensor.state_value;
+            }
+          }
+        }
+
+        // Handle text_sensor state_value alias for leniency
+        if (type === 'text_sensor') {
+          const textSensor = entity as any;
+          if (!textSensor.state_text) {
+            if (textSensor.state_value) {
+              textSensor.state_text = textSensor.state_value;
+            }
+          }
+        }
       }
 
       if (
