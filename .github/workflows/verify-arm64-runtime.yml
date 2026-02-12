@@ -5,11 +5,15 @@ on:
   push:
     paths:
       - 'hassio-addon/**'
+      - 'hassio-addon-dev/**'
       - '.github/workflows/verify-arm64-runtime.yml'
 
 jobs:
   verify-arm64:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        addon: ['hassio-addon', 'hassio-addon-dev']
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -20,28 +24,28 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build for ARM64
+      - name: Build for ARM64 (${{ matrix.addon }})
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: hassio-addon/Dockerfile
+          file: ${{ matrix.addon }}/Dockerfile
           platforms: linux/arm64
           load: true
-          tags: verify-arm64:latest
+          tags: verify-arm64-${{ matrix.addon }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Verify Tini Architecture
+      - name: Verify Tini Architecture (${{ matrix.addon }})
         run: |
-          echo "Verifying tini architecture..."
-          docker run --rm --platform linux/arm64 verify-arm64:latest /sbin/tini --version
+          echo "Verifying tini architecture for ${{ matrix.addon }}..."
+          docker run --rm --platform linux/arm64 verify-arm64-${{ matrix.addon }}:latest /sbin/tini --version
 
-      - name: Verify Run Script Execution
+      - name: Verify Run Script Execution (${{ matrix.addon }})
         run: |
-          echo "Verifying run script execution..."
+          echo "Verifying run script execution for ${{ matrix.addon }}..."
           # Run for 10 seconds. If it's still running (timeout), it's a pass.
           # If it crashes immediately (exec format error), it's a fail.
-          timeout 10s docker run --rm --platform linux/arm64 verify-arm64:latest /run.sh; code=$?
+          timeout 10s docker run --rm --platform linux/arm64 verify-arm64-${{ matrix.addon }}:latest /run.sh; code=$?
 
           if [ "$code" = "124" ]; then
             echo "Success: Container ran and timed out as expected (it's a long running process)."
