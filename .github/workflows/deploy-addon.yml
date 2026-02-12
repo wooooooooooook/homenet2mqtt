@@ -132,6 +132,15 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Multi-arch smoke test
+        if: steps.check_image.outputs.exists != 'true'
+        run: |
+          for PLATFORM in linux/amd64 linux/arm64; do
+            echo "Testing $PLATFORM"
+            docker run --rm --entrypoint node --platform $PLATFORM nubiz/homenet2mqtt:${{ steps.get_version.outputs.VERSION }} \
+              -v || exit 1
+          done
+
       - name: Commit and Push Version
         if: ${{ github.event.inputs.increment != 'none' && steps.check_image.outputs.exists != 'true' }}
         run: |
