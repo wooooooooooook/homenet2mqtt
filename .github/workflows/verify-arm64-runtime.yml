@@ -46,12 +46,14 @@ jobs:
           echo "Verifying run script execution for ${{ matrix.addon }}..."
           # Run for 10 seconds. If it's still running (timeout), it's a pass.
           # If it crashes immediately (exec format error), it's a fail.
-          timeout 10s docker run --rm --platform linux/arm64 verify-arm64-${{ matrix.addon }}:latest /run.sh; code=$?
+          timeout 10s docker run --rm --platform linux/arm64 verify-arm64-${{ matrix.addon }}:latest /run.sh || code=$?
+
+          echo "Exit code: $code"
 
           if [ "$code" = "124" ]; then
             echo "Success: Container ran and timed out as expected (it's a long running process)."
             exit 0
-          elif [ "$code" = "0" ]; then
+          elif [ "$code" = "0" ] || [ -z "$code" ]; then
              echo "Success: Container ran and exited normally."
              exit 0
           else
