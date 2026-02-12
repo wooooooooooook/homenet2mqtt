@@ -38,7 +38,8 @@ jobs:
       - name: Verify Tini Architecture (${{ matrix.addon }})
         run: |
           echo "Verifying tini architecture for ${{ matrix.addon }}..."
-          docker run --rm --platform linux/arm64 verify-arm64-${{ matrix.addon }}:latest /sbin/tini --version
+          # Override ENTRYPOINT to prevent app startup and only check tini version
+          docker run --rm --platform linux/arm64 --entrypoint /sbin/tini verify-arm64-${{ matrix.addon }}:latest --version
 
       - name: Verify Run Script Execution (${{ matrix.addon }})
         run: |
