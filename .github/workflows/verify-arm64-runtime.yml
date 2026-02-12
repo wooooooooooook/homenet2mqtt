@@ -1,0 +1,62 @@
+name: Verify ARM64 Runtime
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'hassio-addon/**'
+      - 'hassio-addon-dev/**'
+      - '.github/workflows/verify-arm64-runtime.yml'
+
+jobs:
+  verify-arm64:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        addon: ['hassio-addon', 'hassio-addon-dev']
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build for ARM64 (${{ matrix.addon }})
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ${{ matrix.addon }}/Dockerfile
+          platforms: linux/arm64
+          load: true
+          tags: verify-arm64-${{ matrix.addon }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Verify Tini Architecture (${{ matrix.addon }})
+        run: |
+          echo "Verifying tini architecture for ${{ matrix.addon }}..."
+          # Override ENTRYPOINT to prevent app startup and only check tini version
+          docker run --rm --platform linux/arm64 --entrypoint /sbin/tini verify-arm64-${{ matrix.addon }}:latest --version
+
+      - name: Verify Run Script Execution (${{ matrix.addon }})
+        run: |
+          echo "Verifying run script execution for ${{ matrix.addon }}..."
+          # Run for 10 seconds. If it's still running (timeout), it's a pass.
+          # If it crashes immediately (exec format error), it's a fail.
+          timeout 10s docker run --rm --platform linux/arm64 verify-arm64-${{ matrix.addon }}:latest /run.sh || code=$?
+
+          echo "Exit code: $code"
+
+          if [ "$code" = "124" ]; then
+            echo "Success: Container ran and timed out as expected (it's a long running process)."
+            exit 0
+          elif [ "$code" = "0" ] || [ -z "$code" ]; then
+             echo "Success: Container ran and exited normally."
+             exit 0
+          else
+            echo "Failure: Container exited with code $code"
+            exit 1
+          fi
