@@ -2,6 +2,9 @@
 - 한달정도 특별한 오류가 없으면 beta 딱지를 떼고 stable로 승격시킬 예정입니다.
 - 오류가 있으면 homeasssutant 카페, 깃헙, 디스코드 등으로 알려주세요.
 
+v2.8.4
+- feat: 2-byte checksum crc_ccitt_xmodem 체크섬 유형을 추가 (코콤 도어벨)
+
 v2.8.3
 - fix: 개별 docker환경에서 CONFIG_FILES를 비워두면(권장) 앱이 시작되지 않는 현상 수정
 - fix: 특정상황에서 portId를 잘못 찾는 문제 수정

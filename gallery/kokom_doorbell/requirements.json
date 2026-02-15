@@ -7,7 +7,7 @@
     },
     "packet_defaults": {
         "rx_checksum": "none",
-        "tx_checksum": "none",
+        "tx_checksum2": "crc_ccitt_xmodem",
         "rx_header": [
             170,
             85

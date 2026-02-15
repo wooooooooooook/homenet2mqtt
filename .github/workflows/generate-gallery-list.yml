@@ -44,6 +44,7 @@ jobs:
           // Vendor display names
           const vendorNames = {
             kocom: '코콤',
+            kocom_doorbell: '코콤 도어벨',
             kocom_theart: '코콤 Theart',
             kocom_thinks: '코콤 Thinks',
             commax: '코맥스',
