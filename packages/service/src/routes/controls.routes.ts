@@ -22,6 +22,14 @@ import { formatBridgeErrorMessage } from '../utils/bridge-errors.js';
 import { saveBackup } from '../services/backup.service.js';
 import yaml from 'js-yaml';
 
+import {
+  findConfigIndexByPortId,
+  findConfigIndexForEntity,
+  findConfigIndexForAutomation,
+  findConfigIndexForScript,
+  findBridgeForEntity,
+} from '../utils/config-helpers.js';
+
 export interface ControlsRoutesContext {
   commandRateLimiter: RateLimiter;
   configRateLimiter: RateLimiter;
@@ -196,75 +204,6 @@ export function createControlsRoutes(ctx: ControlsRoutesContext): Router {
     return commands;
   }
 
-  const findConfigIndexByPortId = (portId: string): number => {
-    const currentConfigs = ctx.getCurrentConfigs();
-    for (let i = 0; i < currentConfigs.length; i += 1) {
-      const config = currentConfigs[i];
-      if (!config.serial) continue;
-
-      const configPortId = normalizePortId(config.serial.portId, i);
-      if (configPortId === portId) {
-        return i;
-      }
-    }
-    return -1;
-  };
-
-  const findConfigIndexForEntity = (entityId: string): number => {
-    const currentConfigs = ctx.getCurrentConfigs();
-    for (let i = 0; i < currentConfigs.length; i += 1) {
-      const config = currentConfigs[i];
-      for (const type of ENTITY_TYPE_KEYS) {
-        const entities = config[type] as Array<any> | undefined;
-        if (Array.isArray(entities) && entities.some((entity) => entity.id === entityId)) {
-          return i;
-        }
-      }
-    }
-    return -1;
-  };
-
-  const findConfigIndexForAutomation = (automationId: string): number => {
-    const currentConfigs = ctx.getCurrentConfigs();
-    for (let i = 0; i < currentConfigs.length; i += 1) {
-      const config = currentConfigs[i];
-      const automations = config.automation;
-      if (Array.isArray(automations) && automations.some((a) => a.id === automationId)) {
-        return i;
-      }
-    }
-    return -1;
-  };
-
-  const findConfigIndexForScript = (scriptId: string): number => {
-    const currentConfigs = ctx.getCurrentConfigs();
-    for (let i = 0; i < currentConfigs.length; i += 1) {
-      const config = currentConfigs[i];
-      const scripts = config.scripts;
-      if (Array.isArray(scripts) && scripts.some((s) => s.id === scriptId)) {
-        return i;
-      }
-    }
-    return -1;
-  };
-
-  const findBridgeForEntity = (entityId: string): BridgeInstance | undefined => {
-    const currentConfigs = ctx.getCurrentConfigs();
-    const currentConfigFiles = ctx.getCurrentConfigFiles();
-    const bridges = ctx.getBridges();
-
-    for (let i = 0; i < currentConfigs.length; i += 1) {
-      const config = currentConfigs[i];
-      for (const type of ENTITY_TYPE_KEYS) {
-        const entities = config[type] as Array<any> | undefined;
-        if (Array.isArray(entities) && entities.some((entity) => entity.id === entityId)) {
-          return bridges.find((instance) => instance.configFile === currentConfigFiles[i]);
-        }
-      }
-    }
-    return undefined;
-  };
-
   // --- API Routes ---
 
   router.get('/api/commands', (_req, res) => {
@@ -313,7 +252,7 @@ export function createControlsRoutes(ctx: ControlsRoutesContext): Router {
     let targetBridge: BridgeInstance | undefined;
 
     if (portId) {
-      const configIndex = findConfigIndexByPortId(portId);
+      const configIndex = findConfigIndexByPortId(ctx.getCurrentConfigs(), portId);
       if (configIndex !== -1) {
         targetBridge = bridges.find(
           (instance) => instance.configFile === currentConfigFiles[configIndex],
@@ -323,14 +262,19 @@ export function createControlsRoutes(ctx: ControlsRoutesContext): Router {
 
     // Fallback to entity-based lookup
     if (!targetBridge) {
-      targetBridge = findBridgeForEntity(entityId);
+      targetBridge = findBridgeForEntity(
+        ctx.getCurrentConfigs(),
+        ctx.getBridges(),
+        ctx.getCurrentConfigFiles(),
+        entityId,
+      );
     }
 
     if (!targetBridge) {
       // Check if the entity exists in config but bridge is not active
       const configIndex = portId
-        ? findConfigIndexByPortId(portId)
-        : findConfigIndexForEntity(entityId);
+        ? findConfigIndexByPortId(ctx.getCurrentConfigs(), portId)
+        : findConfigIndexForEntity(ctx.getCurrentConfigs(), entityId);
 
       const currentConfigStatuses = ctx.getCurrentConfigStatuses();
       const currentConfigErrors = ctx.getCurrentConfigErrors();
@@ -387,7 +331,7 @@ export function createControlsRoutes(ctx: ControlsRoutesContext): Router {
       return res.status(400).json({ error: 'automationId가 필요합니다.' });
     }
 
-    const configIndex = findConfigIndexForAutomation(automationId);
+    const configIndex = findConfigIndexForAutomation(ctx.getCurrentConfigs(), automationId);
     if (configIndex === -1) {
       return res.status(404).json({ error: 'Automation not found in loaded configs' });
     }
@@ -437,7 +381,7 @@ export function createControlsRoutes(ctx: ControlsRoutesContext): Router {
       return res.status(400).json({ error: 'enabled 값이 필요합니다.' });
     }
 
-    const configIndex = findConfigIndexForAutomation(automationId);
+    const configIndex = findConfigIndexForAutomation(ctx.getCurrentConfigs(), automationId);
     if (configIndex === -1) {
       return res.status(404).json({ error: 'Automation not found in loaded configs' });
     }
@@ -537,7 +481,7 @@ export function createControlsRoutes(ctx: ControlsRoutesContext): Router {
       return res.status(400).json({ error: 'scriptId가 필요합니다.' });
     }
 
-    const configIndex = findConfigIndexForScript(scriptId);
+    const configIndex = findConfigIndexForScript(ctx.getCurrentConfigs(), scriptId);
     if (configIndex === -1) {
       return res.status(404).json({ error: 'Script not found in loaded configs' });
     }
@@ -582,7 +526,7 @@ export function createControlsRoutes(ctx: ControlsRoutesContext): Router {
 
     const { automationId } = req.params;
 
-    const configIndex = findConfigIndexForAutomation(automationId);
+    const configIndex = findConfigIndexForAutomation(ctx.getCurrentConfigs(), automationId);
     if (configIndex === -1) {
       return res.status(404).json({ error: 'Automation not found in loaded configs' });
     }
@@ -651,7 +595,7 @@ export function createControlsRoutes(ctx: ControlsRoutesContext): Router {
 
     const { scriptId } = req.params;
 
-    const configIndex = findConfigIndexForScript(scriptId);
+    const configIndex = findConfigIndexForScript(ctx.getCurrentConfigs(), scriptId);
     if (configIndex === -1) {
       return res.status(404).json({ error: 'Script not found in loaded configs' });
     }

@@ -18,6 +18,12 @@ import type {
 } from '../types/index.js';
 import yaml from 'js-yaml';
 
+import {
+  findConfigIndexByPortId,
+  findConfigIndexForEntity,
+  findBridgeForEntity,
+} from '../utils/config-helpers.js';
+
 export interface EntitiesRoutesContext {
   configRateLimiter: RateLimiter;
   getBridges: () => BridgeInstance[];
@@ -73,50 +79,7 @@ export function createEntitiesRoutes(ctx: EntitiesRoutesContext): Router {
     return entities;
   }
 
-  const findConfigIndexByPortId = (portId: string): number => {
-    const currentConfigs = ctx.getCurrentConfigs();
-    for (let i = 0; i < currentConfigs.length; i += 1) {
-      const config = currentConfigs[i];
-      if (!config.serial) continue;
-
-      const configPortId = normalizePortId(config.serial.portId, i);
-      if (configPortId === portId) {
-        return i;
-      }
-    }
-    return -1;
-  };
-
-  const findConfigIndexForEntity = (entityId: string): number => {
-    const currentConfigs = ctx.getCurrentConfigs();
-    for (let i = 0; i < currentConfigs.length; i += 1) {
-      const config = currentConfigs[i];
-      for (const type of ENTITY_TYPE_KEYS) {
-        const entities = config[type] as Array<any> | undefined;
-        if (Array.isArray(entities) && entities.some((entity) => entity.id === entityId)) {
-          return i;
-        }
-      }
-    }
-    return -1;
-  };
-
-  const findBridgeForEntity = (entityId: string): BridgeInstance | undefined => {
-    const currentConfigs = ctx.getCurrentConfigs();
-    const currentConfigFiles = ctx.getCurrentConfigFiles();
-    const bridges = ctx.getBridges();
-    for (let i = 0; i < currentConfigs.length; i += 1) {
-      const config = currentConfigs[i];
-      for (const type of ENTITY_TYPE_KEYS) {
-        const entities = config[type] as Array<any> | undefined;
-        if (Array.isArray(entities) && entities.some((entity) => entity.id === entityId)) {
-          return bridges.find((instance) => instance.configFile === currentConfigFiles[i]);
-        }
-      }
-    }
-
-    return undefined;
-  };
+  // --- API Routes ---
 
   // --- API Routes ---
 
@@ -165,8 +128,8 @@ export function createEntitiesRoutes(ctx: EntitiesRoutesContext): Router {
 
     // Find config by portId if provided, otherwise fallback to finding by entityId
     const configIndex = portId
-      ? findConfigIndexByPortId(portId)
-      : findConfigIndexForEntity(entityId);
+      ? findConfigIndexByPortId(ctx.getCurrentConfigs(), portId)
+      : findConfigIndexForEntity(ctx.getCurrentConfigs(), entityId);
     if (configIndex === -1) {
       return res.status(404).json({ error: 'Entity not found in any loaded config' });
     }
@@ -260,8 +223,8 @@ export function createEntitiesRoutes(ctx: EntitiesRoutesContext): Router {
 
     // Find config by portId if provided, otherwise fallback to finding by entityId
     const configIndex = portId
-      ? findConfigIndexByPortId(portId)
-      : findConfigIndexForEntity(entityId);
+      ? findConfigIndexByPortId(ctx.getCurrentConfigs(), portId)
+      : findConfigIndexForEntity(ctx.getCurrentConfigs(), entityId);
     if (configIndex === -1) {
       return res.status(404).json({ error: 'Entity not found in any loaded config' });
     }
@@ -347,7 +310,12 @@ export function createEntitiesRoutes(ctx: EntitiesRoutesContext): Router {
     const { entityId } = req.params;
     if (!entityId) return res.status(400).json({ error: 'entityId required' });
 
-    const bridgeInstance = findBridgeForEntity(entityId);
+    const bridgeInstance = findBridgeForEntity(
+      ctx.getCurrentConfigs(),
+      ctx.getBridges(),
+      ctx.getCurrentConfigFiles(),
+      entityId,
+    );
     if (!bridgeInstance) {
       return res.status(404).json({ error: 'Entity not found or bridge not active' });
     }
@@ -371,8 +339,8 @@ export function createEntitiesRoutes(ctx: EntitiesRoutesContext): Router {
 
     // Find config by portId if provided, otherwise fallback to finding by entityId
     const configIndex = portId
-      ? findConfigIndexByPortId(portId)
-      : findConfigIndexForEntity(entityId);
+      ? findConfigIndexByPortId(ctx.getCurrentConfigs(), portId)
+      : findConfigIndexForEntity(ctx.getCurrentConfigs(), entityId);
     if (configIndex === -1) {
       return res.status(404).json({ error: 'Entity not found in any loaded config' });
     }

@@ -15,6 +15,13 @@ import type { RateLimiter } from '../utils/rate-limiter.js';
 import type { BridgeInstance, PersistableHomenetBridgeConfig } from '../types/index.js';
 import { saveBackup } from '../services/backup.service.js';
 
+import {
+  findConfigIndexByPortId,
+  findConfigIndexForEntity,
+  findConfigIndexForAutomation,
+  findConfigIndexForScript,
+} from '../utils/config-helpers.js';
+
 export interface ConfigRoutesContext {
   configRateLimiter: RateLimiter;
   getBridges: () => BridgeInstance[];
@@ -32,58 +39,7 @@ export function createConfigRoutes(ctx: ConfigRoutesContext): Router {
   const router = Router();
 
   // --- Helper Functions ---
-
-  const findConfigIndexByPortId = (portId: string): number => {
-    const currentConfigs = ctx.getCurrentConfigs();
-    for (let i = 0; i < currentConfigs.length; i += 1) {
-      const config = currentConfigs[i];
-      if (!config.serial) continue;
-
-      const configPortId = normalizePortId(config.serial.portId, 0);
-      if (configPortId === portId) {
-        return i;
-      }
-    }
-    return -1;
-  };
-
-  const findConfigIndexForEntity = (entityId: string): number => {
-    const currentConfigs = ctx.getCurrentConfigs();
-    for (let i = 0; i < currentConfigs.length; i += 1) {
-      const config = currentConfigs[i];
-      for (const type of ENTITY_TYPE_KEYS) {
-        const entities = config[type] as Array<any> | undefined;
-        if (Array.isArray(entities) && entities.some((entity) => entity.id === entityId)) {
-          return i;
-        }
-      }
-    }
-    return -1;
-  };
-
-  const findConfigIndexForAutomation = (automationId: string): number => {
-    const currentConfigs = ctx.getCurrentConfigs();
-    for (let i = 0; i < currentConfigs.length; i += 1) {
-      const config = currentConfigs[i];
-      const automations = config.automation;
-      if (Array.isArray(automations) && automations.some((a) => a.id === automationId)) {
-        return i;
-      }
-    }
-    return -1;
-  };
-
-  const findConfigIndexForScript = (scriptId: string): number => {
-    const currentConfigs = ctx.getCurrentConfigs();
-    for (let i = 0; i < currentConfigs.length; i += 1) {
-      const config = currentConfigs[i];
-      const scripts = config.scripts;
-      if (Array.isArray(scripts) && scripts.some((s) => s.id === scriptId)) {
-        return i;
-      }
-    }
-    return -1;
-  };
+  // Moved to utils/config-helpers.ts
 
   // --- API Routes ---
 
@@ -164,12 +120,16 @@ export function createConfigRoutes(ctx: ConfigRoutesContext): Router {
 
     // Find config by portId if provided, otherwise fallback to finding by entityId
     let configIndex = -1;
+    const currentConfigs = ctx.getCurrentConfigs();
+
     if (type === 'entity') {
-      configIndex = portId ? findConfigIndexByPortId(portId) : findConfigIndexForEntity(entityId);
+      configIndex = portId
+        ? findConfigIndexByPortId(currentConfigs, portId)
+        : findConfigIndexForEntity(currentConfigs, entityId);
     } else if (type === 'automation') {
-      configIndex = findConfigIndexForAutomation(entityId);
+      configIndex = findConfigIndexForAutomation(currentConfigs, entityId);
     } else if (type === 'script') {
-      configIndex = findConfigIndexForScript(entityId);
+      configIndex = findConfigIndexForScript(currentConfigs, entityId);
     } else {
       return res.status(400).json({ error: 'Unknown config type' });
     }
@@ -334,7 +294,7 @@ export function createConfigRoutes(ctx: ConfigRoutesContext): Router {
       return res.status(400).json({ error: 'yaml is required' });
     }
 
-    const configIndex = findConfigIndexByPortId(portId);
+    const configIndex = findConfigIndexByPortId(ctx.getCurrentConfigs(), portId);
     if (configIndex === -1) {
       return res.status(404).json({ error: 'Config not found for the given portId' });
     }
