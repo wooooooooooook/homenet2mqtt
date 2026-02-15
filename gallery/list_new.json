@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-02-10T04:05:47.268Z",
+  "generated_at": "2026-02-15T13:47:46.963Z",
   "vendors": [
     {
       "id": "bestin",
@@ -2651,7 +2651,7 @@
           "name_en": "Doorbell Set",
           "description": "코콤 현관문세트 설정입니다. 개인현관문과 공동현관문의 벨 감지, 통화, 문열기 기능을 지원합니다.",
           "description_en": "Kocom doorbell set configuration. Supports bell detection, calling, and door opening for private and common entrances.",
-          "version": "2.1.1",
+          "version": "2.1.2",
           "author": "wooooooooooook",
           "tags": [
             "doorbell",
@@ -2672,14 +2672,10 @@
           "discovery": {
             "match": {
               "data": [
-                170,
-                85,
                 112,
                 144
               ],
               "mask": [
-                255,
-                255,
                 240,
                 240
               ]
@@ -3605,6 +3601,77 @@
                 255,
                 255,
                 255
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "kokom_doorbell",
+      "name": "kokom_doorbell",
+      "requirements": {
+        "serial": {
+          "baud_rate": 9600,
+          "data_bits": 8,
+          "parity": "none",
+          "stop_bits": 1
+        },
+        "packet_defaults": {
+          "rx_checksum": "none",
+          "tx_checksum": "none",
+          "rx_header": [
+            170,
+            85
+          ],
+          "tx_header": [
+            170,
+            85
+          ],
+          "rx_footer": [
+            13,
+            13
+          ],
+          "tx_footer": [
+            13,
+            13
+          ]
+        }
+      },
+      "items": [
+        {
+          "file": "kokom_doorbell/doorbell.yaml",
+          "name": "현관문세트",
+          "name_en": "Doorbell Set",
+          "description": "코콤 현관문세트 설정입니다. 개인현관문과 공동현관문의 벨 감지, 통화, 문열기 기능을 지원합니다.",
+          "description_en": "Kocom doorbell set configuration. Supports bell detection, calling, and door opening for private and common entrances.",
+          "version": "2.1.2",
+          "author": "wooooooooooook",
+          "tags": [
+            "doorbell",
+            "kocom",
+            "switch",
+            "button"
+          ],
+          "parameters": [],
+          "content_summary": {
+            "entities": {
+              "binary_sensor": 2,
+              "button": 4,
+              "switch": 2
+            },
+            "automations": 2,
+            "scripts": 0
+          },
+          "discovery": {
+            "match": {
+              "data": [
+                112,
+                144
+              ],
+              "mask": [
+                240,
+                240
               ]
             }
           }
