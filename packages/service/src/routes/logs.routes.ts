@@ -20,7 +20,7 @@ export interface LogsRoutesContext {
   commandRateLimiter: RateLimiter;
   rawPacketLogger: {
     getStatus: () => any;
-    start: (meta: any, options: any) => void;
+    start: (meta: any, options: any) => Promise<void>;
     stop: () => any;
     getFilePath: (filename: string) => string | null;
     listSavedFiles: () => Promise<{ filename: string; size: number; createdAt: string }[]>;
@@ -81,7 +81,7 @@ export function createLogsRoutes(ctx: LogsRoutesContext): Router {
     res.json(ctx.rawPacketLogger.getStatus());
   });
 
-  router.post('/api/logs/packet/start', (req, res) => {
+  router.post('/api/logs/packet/start', async (req, res) => {
     if (!ctx.configRateLimiter.check(req.ip || 'unknown')) {
       logger.warn({ ip: req.ip }, '[service] Packet log start rate limit exceeded');
       return res.status(429).json({ error: 'Too many requests' });
