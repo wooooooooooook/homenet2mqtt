@@ -2,6 +2,10 @@
 - 한달정도 특별한 오류가 없으면 beta 딱지를 떼고 stable로 승격시킬 예정입니다.
 - 오류가 있으면 homeasssutant 카페, 깃헙, 디스코드 등으로 알려주세요.
 
+v2.8.5
+- fix: entity에 packet_parameters로 정의한 tx_checksum등의 override가 무시되던 문제 수정.
+- 기타 성능 최적화
+  
 v2.8.4
 - feat: 2-byte checksum crc_ccitt_xmodem 체크섬 유형을 추가 (코콤 도어벨)
 
