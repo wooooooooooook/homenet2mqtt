@@ -8,6 +8,12 @@ import { Worker } from 'node:worker_threads';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
+const HEX_STRINGS: string[] = [];
+for (let i = 0; i < 256; i++) {
+  const hex = i.toString(16).padStart(2, '0');
+  HEX_STRINGS[i] = `0x${hex}`;
+}
+
 export class ProtocolManager extends EventEmitter {
   private parser: PacketParser;
   private devices: Device[] = [];
@@ -221,7 +227,11 @@ export class ProtocolManager extends EventEmitter {
     const isDebug = logger.isLevelEnabled('debug');
     let packetHex = '';
     if (isDebug) {
-      packetHex = packet.toString('hex').replace(/../g, '0x$& ').trim();
+      const parts = new Array(packet.length);
+      for (let i = 0; i < packet.length; i++) {
+        parts[i] = HEX_STRINGS[packet[i]];
+      }
+      packetHex = parts.join(' ');
     }
 
     for (const device of this.devices) {
