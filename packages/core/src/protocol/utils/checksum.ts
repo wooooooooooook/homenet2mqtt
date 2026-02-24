@@ -452,7 +452,7 @@ function crcCcittXmodem(header: ByteArray, data: ByteArray): number[] {
   // For this specific checksum type (based on user request), we only calculate CRC on data
   // The user provided: data = packet[2:17] (bytes 3 to 17), ignoring header
   // So we ignore the header here.
-  
+
   for (const byte of data) {
     crc = updateCrcCcitt(crc, byte);
   }

@@ -25,12 +25,12 @@ describe('CRC-CCITT XModem Checksum', () => {
             0x29, 0xF6, // Checksum
             0x0D, 0x0D  // Footer
         ];
-        
+
         // Header length is 2.
         // Data ends at index 17 (exclusive) => length 15.
         // Start index for CRC calculation should be 2 (after header).
         // verifyChecksum2FromBuffer uses `headerStart` for `crc_ccitt_xmodem` which is `baseOffset + _headerLength`
-        
+
         const buffer = Buffer.from(packet);
         const headerLength = 2;
         const dataEnd = 17; // Index where data ends (exclusive)
@@ -41,7 +41,7 @@ describe('CRC-CCITT XModem Checksum', () => {
             headerLength,
             dataEnd,
             0,
-            0x29, 
+            0x29,
             0xF6
         );
 
@@ -73,7 +73,7 @@ describe('CRC-CCITT XModem Checksum', () => {
 
         expect(isValid).toBe(true);
     });
-    
+
      it('should fail on invalid checksum', () => {
         const packet = [
             0xAA, 0x55,

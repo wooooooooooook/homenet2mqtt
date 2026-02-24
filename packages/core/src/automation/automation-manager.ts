@@ -103,6 +103,7 @@ export class AutomationManager {
   private readonly scripts = new Map<string, ScriptConfig>();
   private readonly runningAutomations = new Map<string, AbortController>();
   private readonly automationQueues = new Map<string, Array<() => Promise<void>>>();
+  private readonly regexCache = new Map<string, RegExp>();
   private isStarted = false;
   private lastPacket: Buffer | undefined;
 
@@ -354,6 +355,7 @@ export class AutomationManager {
       emitter.removeListener(event, handler);
     }
     this.subscriptions.length = 0;
+    this.regexCache.clear();
     this.isStarted = false;
   }
 
@@ -505,8 +507,13 @@ export class AutomationManager {
     if (expected === undefined) return true;
     if (expected instanceof RegExp) return expected.test(String(value));
     if (typeof expected === 'string' && expected.startsWith('/') && expected.endsWith('/')) {
-      const body = expected.slice(1, -1);
-      return new RegExp(body).test(String(value));
+      let regex = this.regexCache.get(expected);
+      if (!regex) {
+        const body = expected.slice(1, -1);
+        regex = new RegExp(body);
+        this.regexCache.set(expected, regex);
+      }
+      return regex.test(String(value));
     }
     if (expected && typeof expected === 'object') {
       if ('eq' in expected) return value === expected.eq;
