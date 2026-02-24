@@ -102,7 +102,7 @@ export class CommandGenerator {
           const bcd: number[] = [];
           let temp = Math.abs(numValue);
           while (temp > 0) {
-            bcd.unshift((((temp % 100) / 10) << 4) | (temp % 10));
+            bcd.unshift((((temp % 100) / 10) << 4) | temp % 10);
             temp = Math.floor(temp / 100);
           }
           encodedBytes = bcd;
