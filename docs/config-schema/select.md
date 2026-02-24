@@ -28,7 +28,7 @@
   - 선택: `suggested_area`, `device_class`, `unit_of_measurement`, `state_class`, `icon`
 - 선택형 입력 전용
   - `command_topic`: `${MQTT_TOPIC_PREFIX}/${id}/set`
-  - `value_template`: `{{ value_json.option }}`
+  - `value_template`: `\{\{ value_json.option }}`
   - `options`: 설정의 `options` 배열 그대로
 
 ## 예제 1: 스키마 기반 (map 사용)

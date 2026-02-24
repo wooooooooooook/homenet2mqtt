@@ -35,27 +35,27 @@
   - 선택: `suggested_area`, `device_class`, `unit_of_measurement`, `state_class`, `icon`
 - 조명 기본 제어/상태
   - `command_topic`: `${MQTT_TOPIC_PREFIX}/${id}/set`
-  - `state_value_template`: `{{ value_json.state }}`
+  - `state_value_template`: `\{\{ value_json.state }}`
   - `payload_on`: `ON`, `payload_off`: `OFF`
 - 밝기 지원 시
   - `brightness_state_topic`: `${MQTT_TOPIC_PREFIX}/${id}/state`
   - `brightness_command_topic`: `${MQTT_TOPIC_PREFIX}/${id}/brightness/set`
   - `brightness_scale`: `255`
-  - `brightness_value_template`: `{{ value_json.brightness }}`
+  - `brightness_value_template`: `\{\{ value_json.brightness }}`
 - RGB 지원 시
   - `rgb_state_topic`: `${MQTT_TOPIC_PREFIX}/${id}/state`
   - `rgb_command_topic`: `${MQTT_TOPIC_PREFIX}/${id}/rgb/set`
-  - `rgb_value_template`: `{{ value_json.red }},{{ value_json.green }},{{ value_json.blue }}`
+  - `rgb_value_template`: `\{\{ value_json.red }},\{\{ value_json.green }},\{\{ value_json.blue }}`
 - 색온도 지원 시
   - `color_temp_state_topic`: `${MQTT_TOPIC_PREFIX}/${id}/state`
   - `color_temp_command_topic`: `${MQTT_TOPIC_PREFIX}/${id}/color_temp/set`
-  - `color_temp_value_template`: `{{ value_json.color_temp }}`
+  - `color_temp_value_template`: `\{\{ value_json.color_temp }}`
   - 선택: `min_mireds`, `max_mireds`
 - 효과 지원 시
   - `effect_list`
   - `effect_state_topic`: `${MQTT_TOPIC_PREFIX}/${id}/state`
   - `effect_command_topic`: `${MQTT_TOPIC_PREFIX}/${id}/effect/set`
-  - `effect_value_template`: `{{ value_json.effect }}`
+  - `effect_value_template`: `\{\{ value_json.effect }}`
 
 ## 예제: 두 채널 동시 제어
 `kocom.homenet_bridge.yaml`에서는 한 패킷으로 두 채널을 제어하기 위해 CEL 표현식에서 다른 조명 상태(`states`)를 함께 실어 보냅니다.

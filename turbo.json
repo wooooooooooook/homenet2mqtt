@@ -3,7 +3,7 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", "static/**", ".svelte-kit/**"]
+      "outputs": ["dist/**", ".vitepress/dist/**", "static/**", ".svelte-kit/**"]
     },
     "lint": {
       "dependsOn": ["^build"]

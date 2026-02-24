@@ -19,7 +19,7 @@
   - `device`: `devices` 설정 또는 브리지 기본 정보
   - 선택: `suggested_area`, `device_class`, `unit_of_measurement`, `state_class`, `icon`
 - 텍스트 센서 전용
-  - `value_template`: `{{ value_json.text }}`
+  - `value_template`: `\{\{ value_json.text }}`
   - 텍스트 센서는 읽기 전용이라 `command_topic`이 없습니다.
 
 ## 예제 1: 스키마 기반 (ASCII 추출)

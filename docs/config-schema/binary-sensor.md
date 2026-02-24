@@ -23,7 +23,7 @@
   - `device`: `devices` 설정 또는 브리지 기본 정보
   - 선택: `suggested_area`, `device_class`, `unit_of_measurement`, `state_class`, `icon`
 - 바이너리 센서 전용
-  - `value_template`: `{{ value_json.state }}`
+  - `value_template`: `\{\{ value_json.state }}`
   - 선택: `payload_on`, `payload_off` (설정 파일의 `payload_on/off` 값을 사용)
 
 ## 예제: 도어벨 패킷 매칭

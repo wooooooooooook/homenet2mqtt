@@ -26,7 +26,7 @@
   - 선택: `suggested_area`, `device_class`, `unit_of_measurement`, `state_class`, `icon`
 - 밸브 전용
   - `command_topic`: `${MQTT_TOPIC_PREFIX}/${id}/set`
-  - `value_template`: `{{ value_json.state }}`
+  - `value_template`: `\{\{ value_json.state }}`
   - `state_open`: `OPEN`, `state_opening`: `OPENING`
   - `state_closed`: `CLOSED`, `state_closing`: `CLOSING`
   - `payload_open`: `OPEN`, `payload_close`: `CLOSE`
@@ -34,7 +34,7 @@
 - 위치 지원 시
   - `position_topic`: `${MQTT_TOPIC_PREFIX}/${id}/state`
   - `set_position_topic`: `${MQTT_TOPIC_PREFIX}/${id}/position/set`
-  - `position_template`: `{{ value_json.position }}`
+  - `position_template`: `\{\{ value_json.position }}`
   - `position_open`: `100`, `position_closed`: `0`
   - 선택: `reports_position`
 

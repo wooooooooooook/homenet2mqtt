@@ -30,7 +30,7 @@
   - 선택: `suggested_area`, `device_class`, `unit_of_measurement`, `state_class`, `icon`
 - 숫자 입력 전용
   - `command_topic`: `${MQTT_TOPIC_PREFIX}/${id}/set`
-  - `value_template`: `{{ value_json.value }}`
+  - `value_template`: `\{\{ value_json.value }}`
   - 선택: `min`/`max`/`step` (각각 `min_value`/`max_value`/`step`에서 매핑)
   - `mode`: `slider`
 
