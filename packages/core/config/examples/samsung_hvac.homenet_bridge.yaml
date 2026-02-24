@@ -1,0 +1,70 @@
+homenet_bridge:
+  serial:
+    portId: samsung_hvac
+    path: /dev/ttyUSB0
+    baud_rate: 9600
+    data_bits: 8
+    parity: even
+    stop_bits: 1
+
+  packet_defaults:
+    rx_timeout: 50ms
+    tx_delay: 50ms
+    tx_timeout: 200ms
+    tx_retry_cnt: 3
+    rx_header: [0x32]
+    rx_footer: [0x34]
+    rx_checksum: none
+    rx_checksum2: crc_ccitt_xmodem
+    tx_checksum2: crc_ccitt_xmodem
+    # Packet Start 0x32, End 0x34. CRC16-CCITT (XModem).
+
+  climate:
+    - id: 'hvac_00'
+      name: 'Samsung HVAC'
+      # Example logic for Samsung NASA Protocol
+      # Note: Offsets are based on stripped header (0x32 removed).
+      # Index 12 = Message Number High (0x40/0x42)
+      # Index 13 = Message Number Low
+      # Index 14 = Payload
+
+      visual:
+        min_temperature: 16
+        max_temperature: 30
+        temperature_step: 1
+
+      # Power State (0x4000)
+      state:
+        offset: 12
+        data: [0x40, 0x00] # Msg 0x4000 (Power)
+      state_off:
+        offset: 14
+        data: [0x00]
+      state_heat:
+        # Matches if Power is ON. Mode is handled separately or via complex state logic.
+        # Here we just map 'on' to heat for simplicity in this example, or use state_action if supported.
+        offset: 14
+        data: [0x01]
+
+      # Mode State (0x4001) - 0:Auto, 1:Cool, 2:Dry, 3:Fan, 4:Heat
+      # We need a separate state matcher for Mode if it comes in a different packet/message.
+      # HomeNet supports multiple state matchers if we use 'states' list, or we assume it's in the same packet.
+      # For this example, we'll assume basic Power control.
+
+      # Temperature (0x4201 Set Temp / 0x4203 Current Temp)
+      # state_temperature_target:
+      #   offset: 12
+      #   data: [0x42, 0x01]
+      #   value: { offset: 14, type: 'number', multiply: 0.1 }
+
+      # Commands (Placeholder - specific packet construction required)
+      command_off:
+        # Construct packet: 32 [Size] [Src] [Dst] ... [0x4000] [0x00] ... CRC 34
+        # This is complex to write manually without a generator helper.
+        data: [0x00, 0x00, 0x00, 0x00] # TODO: Replace with valid packet
+      command_heat:
+        data: [0x00, 0x00, 0x00, 0x00] # TODO: Replace with valid packet
+
+      # Detailed State Logic for Gallery (using 'state_action' for derived state)
+      # state_action: >-
+      #   data[12]==0x40 && data[13]==0x00 && data[14]==0 ? 'off' : 'heat'

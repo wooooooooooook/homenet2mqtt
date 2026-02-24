@@ -1,0 +1,55 @@
+meta:
+  name: 'Samsung NASA HVAC'
+  name_en: 'Samsung NASA HVAC'
+  description: 'Controls Samsung HVAC systems using the NASA Protocol (RS485).'
+  description_en: 'Controls Samsung HVAC systems using the NASA Protocol (RS485).'
+  version: '1.0.0'
+  author: 'community'
+  tags: ['climate', 'samsung', 'hvac', 'nasa']
+
+entities:
+  climate:
+    - id: 'nasa_hvac_indoor_00'
+      name: 'Samsung HVAC Indoor Unit'
+      visual:
+        min_temperature: 16
+        max_temperature: 30
+        temperature_step: 1
+
+      # Packet Structure: 32 [SizeH] [SizeL] [Src] [Dst] [Info] [Type] [Num] [Cap] [MsgH] [MsgL] [Val] ... CRC 34
+      # MsgH starts at offset 12 (0-indexed after header strip).
+
+      state:
+        # Match Power On/Off message (0x4000)
+        offset: 12
+        data: [0x40, 0x00]
+
+      state_action: >-
+        data[14] == 1 ? 'heat' : 'off'
+
+      state_temperature_current:
+        # Matches separate message 0x4203 (Room Temp)
+        # Note: This assumes message 0x4203 arrives independently or is parsed as a separate event.
+        match:
+          offset: 12
+          data: [0x42, 0x03]
+        value:
+          offset: 14
+          length: 1
+          multiply: 0.1
+
+      state_temperature_target:
+        # Matches separate message 0x4201 (Set Temp)
+        match:
+          offset: 12
+          data: [0x42, 0x01]
+        value:
+          offset: 14
+          length: 1
+          multiply: 0.1
+
+      command_off:
+        # Generic command placeholder - Requires valid packet construction
+        data: [0x00, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x00, 0x00]
+      command_heat:
+        data: [0x00, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x00, 0x01]

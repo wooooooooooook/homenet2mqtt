@@ -1,0 +1,17 @@
+{
+  "serial": {
+    "baud_rate": 9600,
+    "data_bits": 8,
+    "parity": "even",
+    "stop_bits": 1
+  },
+  "packet_defaults": {
+    "rx_header": [50],
+    "rx_footer": [52],
+    "rx_checksum": "none",
+    "rx_checksum2": "crc_ccitt_xmodem",
+    "tx_checksum2": "crc_ccitt_xmodem",
+    "tx_timeout": "200ms",
+    "tx_retry_cnt": 3
+  }
+}

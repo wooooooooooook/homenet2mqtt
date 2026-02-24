@@ -52,6 +52,7 @@ jobs:
             hyundai_imazu_doorbell: '현대 imazu 현관문(주방폰)',
             ezville: '이지빌',
             samsung_sds: '삼성 SDS',
+            samsung_hvac: '삼성 HVAC (NASA)',
             cvnet: 'CVNet',
             'bestin': 'BESTIN',
             'bestin2.0': 'BESTIN2.0',
