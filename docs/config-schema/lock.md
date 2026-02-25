@@ -23,7 +23,7 @@
   - 선택: `suggested_area`, `device_class`, `unit_of_measurement`, `state_class`, `icon`
 - 잠금 전용
   - `command_topic`: `${MQTT_TOPIC_PREFIX}/${id}/set`
-  - `value_template`: `{{ value_json.state }}`
+  - `value_template`: <code v-pre>{{ value_json.state }}</code>
   - `state_locked`: `LOCKED`, `state_unlocked`: `UNLOCKED`
   - `state_locking`: `LOCKING`, `state_unlocking`: `UNLOCKING`
   - `state_jammed`: `JAMMED`

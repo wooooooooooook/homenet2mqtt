@@ -178,7 +178,7 @@ entities:
 
 | 속성 | 필수 | 설명 |
 | --- | --- | --- |
-| `count` | ✓ | 반복 횟수 (`숫자` 또는 `{{변수}}`) |
+| `count` | ✓ | 반복 횟수 (`숫자` 또는 <code v-pre>{{변수}}</code>) |
 | `as` | ✓ | 현재 인덱스 변수명 |
 | `start` |  | 시작 인덱스 (기본값: 1) |
 | `over` |  | 배열 반복 시 배열 변수명 (count 대신 사용) |
@@ -222,7 +222,7 @@ entities:
 
 ### 템플릿 표현식 (Common Expression Language)
 
-표현식 문법: `{{expression}}`
+표현식 문법: <code v-pre>{{expression}}</code>
 
 템플릿 표현식은 **[Common Expression Language (CEL)](https://github.com/google/cel-spec)**을 사용합니다.
 - JavaScript 문법과 유사하지만 더 엄격하며 안전합니다.
@@ -233,20 +233,20 @@ entities:
 
 | 표현식 | 설명 | 예시 |
 | --- | --- | --- |
-| `{{i}}` | 변수 직접 참조 | `1`, `2`, ... |
-| `{{i + 1}}` | 산술 연산 | `2`, `3`, ... |
-| `{{i * 2}}` | 곱셈 | `2`, `4`, ... |
-| `{{room.name}}` | 객체 속성 접근 | `"거실"` |
-| `{{hex(i)}}` | 헬퍼 함수: 16진수 변환 | `"0x01"` |
-| `{{pad(i, 2)}}` | 헬퍼 함수: 자릿수 패딩 | `"01"` |
-| `{{bcd_to_int(i)}}` | BCD → 정수 변환 | `0x12` → `12` |
-| `{{int_to_bcd(i)}}` | 정수 → BCD 변환 | `12` → `0x12` |
-| `{{bitAnd(i, 0x0F)}}` | 비트 AND | `0x1F` → `0x0F` |
-| `{{bitOr(i, 0x80)}}` | 비트 OR | `0x01` → `0x81` |
-| `{{bitXor(i, 0xFF)}}` | 비트 XOR | `0x00` → `0xFF` |
-| `{{bitNot(i)}}` | 비트 NOT | `0` → `-1` |
-| `{{bitShiftLeft(i, 4)}}` | 비트 Left Shift | `0x01` → `0x10` |
-| `{{bitShiftRight(i, 4)}}` | 비트 Right Shift | `0x10` → `0x01` |
+| <code v-pre>{{i}}</code> | 변수 직접 참조 | `1`, `2`, ... |
+| <code v-pre>{{i + 1}}</code> | 산술 연산 | `2`, `3`, ... |
+| <code v-pre>{{i * 2}}</code> | 곱셈 | `2`, `4`, ... |
+| <code v-pre>{{room.name}}</code> | 객체 속성 접근 | `"거실"` |
+| <code v-pre>{{hex(i)}}</code> | 헬퍼 함수: 16진수 변환 | `"0x01"` |
+| <code v-pre>{{pad(i, 2)}}</code> | 헬퍼 함수: 자릿수 패딩 | `"01"` |
+| <code v-pre>{{bcd_to_int(i)}}</code> | BCD → 정수 변환 | `0x12` → `12` |
+| <code v-pre>{{int_to_bcd(i)}}</code> | 정수 → BCD 변환 | `12` → `0x12` |
+| <code v-pre>{{bitAnd(i, 0x0F)}}</code> | 비트 AND | `0x1F` → `0x0F` |
+| <code v-pre>{{bitOr(i, 0x80)}}</code> | 비트 OR | `0x01` → `0x81` |
+| <code v-pre>{{bitXor(i, 0xFF)}}</code> | 비트 XOR | `0x00` → `0xFF` |
+| <code v-pre>{{bitNot(i)}}</code> | 비트 NOT | `0` → `-1` |
+| <code v-pre>{{bitShiftLeft(i, 4)}}</code> | 비트 Left Shift | `0x01` → `0x10` |
+| <code v-pre>{{bitShiftRight(i, 4)}}</code> | 비트 Right Shift | `0x10` → `0x01` |
 
 **주의사항:**
 - 변수는 `parameters`나 `$repeat`에서 정의된 것만 사용할 수 있습니다.
