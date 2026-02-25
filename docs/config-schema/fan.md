@@ -59,25 +59,25 @@ fan:
   - 선택: `suggested_area`, `device_class`, `unit_of_measurement`, `state_class`, `icon`
 - 팬 기본 제어/상태
   - `command_topic`: `${MQTT_TOPIC_PREFIX}/${id}/set`
-  - `state_value_template`: `{{ value_json.state }}`
+  - `state_value_template`: <code v-pre>{{ value_json.state }}</code>
   - `payload_on`: `ON`, `payload_off`: `OFF`
 - 속도/퍼센트 지원 시
   - `percentage_state_topic`: `${MQTT_TOPIC_PREFIX}/${id}/state`
   - `percentage_command_topic`: `${MQTT_TOPIC_PREFIX}/${id}/percentage/set`
-  - `percentage_value_template`: `{{ value_json.percentage | default(value_json.speed) }}`
+  - `percentage_value_template`: <code v-pre>{{ value_json.percentage | default(value_json.speed) }}</code>
   - `speed_range_min`: `1`, `speed_range_max`: `100`
 - 프리셋 모드 지원 시
   - `preset_modes`
   - `preset_mode_command_topic`: `${MQTT_TOPIC_PREFIX}/${id}/preset_mode/set`
   - `preset_mode_state_topic`: `${MQTT_TOPIC_PREFIX}/${id}/state`
-  - `preset_mode_value_template`: `{{ value_json.preset_mode }}`
+  - `preset_mode_value_template`: <code v-pre>{{ value_json.preset_mode }}</code>
 - 회전/방향 지원 시
   - `oscillation_state_topic`: `${MQTT_TOPIC_PREFIX}/${id}/state`
   - `oscillation_command_topic`: `${MQTT_TOPIC_PREFIX}/${id}/oscillation/set`
-  - `oscillation_value_template`: `{{ value_json.oscillating }}`
+  - `oscillation_value_template`: <code v-pre>{{ value_json.oscillating }}</code>
   - `direction_state_topic`: `${MQTT_TOPIC_PREFIX}/${id}/state`
   - `direction_command_topic`: `${MQTT_TOPIC_PREFIX}/${id}/direction/set`
-  - `direction_value_template`: `{{ value_json.direction }}`
+  - `direction_value_template`: <code v-pre>{{ value_json.direction }}</code>
 
 ## 예제: 속도 제어
 `cvnet.homenet_bridge.yaml`은 온/오프 패킷과 별도로 `command_speed`에서 목표 속도(`x`)를 삽입하고, `state_speed`로 현재 속도를 읽습니다. 가능하면 상태도 `state_speed`를 사용해 명령 키와 맞추는 것을 권장합니다.

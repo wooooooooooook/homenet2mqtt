@@ -69,11 +69,11 @@
   - `mode_command_topic`: `${MQTT_TOPIC_PREFIX}/${id}/mode/set`
   - `temperature_command_topic`: `${MQTT_TOPIC_PREFIX}/${id}/temperature/set`
   - `mode_state_topic`: `${MQTT_TOPIC_PREFIX}/${id}/state`
-  - `mode_state_template`: `{{ value_json.mode }}`
+  - `mode_state_template`: <code v-pre>{{ value_json.mode }}</code>
   - `temperature_state_topic`: `${MQTT_TOPIC_PREFIX}/${id}/state`
-  - `temperature_state_template`: `{{ value_json.target_temperature }}`
+  - `temperature_state_template`: <code v-pre>{{ value_json.target_temperature }}</code>
   - `current_temperature_topic`: `${MQTT_TOPIC_PREFIX}/${id}/state`
-  - `current_temperature_template`: `{{ value_json.current_temperature }}`
+  - `current_temperature_template`: <code v-pre>{{ value_json.current_temperature }}</code>
   - 선택: `action_topic` + `action_template` (설정에 `state_action`이 있을 때)
 - 가용 모드
   - `modes`: `state_off/state_heat/state_cool/state_fan_only/state_dry/state_auto` 존재 여부로 목록 생성
@@ -81,11 +81,11 @@
   - `fan_modes`: `state_fan_*`/`command_fan_*` 및 `custom_fan_mode` 목록을 합쳐 노출
   - `fan_mode_command_topic`: `${MQTT_TOPIC_PREFIX}/${id}/fan_mode/set`
   - `fan_mode_state_topic`: `${MQTT_TOPIC_PREFIX}/${id}/state`
-  - `fan_mode_state_template`: `{{ value_json.fan_mode }}`
+  - `fan_mode_state_template`: <code v-pre>{{ value_json.fan_mode }}</code>
   - `preset_modes`: `state_preset_*`/`command_preset_*` 및 `custom_preset` 목록을 합쳐 노출
   - `preset_mode_command_topic`: `${MQTT_TOPIC_PREFIX}/${id}/preset_mode/set`
   - `preset_mode_state_topic`: `${MQTT_TOPIC_PREFIX}/${id}/state`
-  - `preset_mode_value_template`: `{{ value_json.preset_mode }}`
+  - `preset_mode_value_template`: <code v-pre>{{ value_json.preset_mode }}</code>
 - 고정 값
   - `temperature_unit`: `C`
   - `min_temp`: `15`, `max_temp`: `30`, `temp_step`: `1`

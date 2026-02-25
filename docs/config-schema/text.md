@@ -25,7 +25,7 @@
   - 선택: `suggested_area`, `device_class`, `unit_of_measurement`, `state_class`, `icon`
 - 텍스트 입력 전용
   - `command_topic`: `${MQTT_TOPIC_PREFIX}/${id}/set`
-  - `value_template`: `{{ value_json.text }}`
+  - `value_template`: <code v-pre>{{ value_json.text }}</code>
   - 선택: `min`/`max`/`pattern`/`mode` (각각 `min_length`/`max_length`/`pattern`/`mode`에서 매핑)
 
 ## 예제 1: 스키마 기반 (ASCII 전송)

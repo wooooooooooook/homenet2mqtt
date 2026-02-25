@@ -20,7 +20,7 @@ On/Off 토글 장치는 `switch` 엔티티를 사용합니다. `type`은 `switch
   - 선택: `suggested_area`, `device_class`, `unit_of_measurement`, `state_class`, `icon`
 - 스위치 전용
   - `command_topic`: `${MQTT_TOPIC_PREFIX}/${id}/set`
-  - `value_template`: `{{ value_json.state }}`
+  - `value_template`: <code v-pre>{{ value_json.state }}</code>
   - `payload_on`: `ON`, `payload_off`: `OFF`
 
 ## 예제: 도어 호출 스위치
