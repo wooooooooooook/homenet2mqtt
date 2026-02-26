@@ -6,7 +6,7 @@
 - `command_press`: 버튼 눌림 시 송신할 패킷. [`CommandSchema`](./schemas.md#commandschema) 또는 CEL 표현식으로 작성합니다.
 
 ## 옵션 필드
-- 추가 필드는 없지만, `command_press`에 CEL 표현식을 사용해 다중 패킷 전송이나 동적 명령 생성을 구성할 수 있습니다. [CEL 가이드](../CEL_GUIDE.md)를 참고하세요.
+- 추가 필드는 없지만, `command_press`에 CEL 표현식을 사용해 다중 패킷 전송이나 동적 명령 생성을 구성할 수 있습니다. [CEL 가이드](../guide/cel-guide.md)를 참고하세요.
 - **`discovery_always`**: 버튼은 상태 패킷이 없는 경우가 많으므로, 기본값이 `true`로 설정됩니다. (`discovery_linked_id`가 설정된 경우 제외)
 
 ## MQTT 디스커버리 메시지 구성

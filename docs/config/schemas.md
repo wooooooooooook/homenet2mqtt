@@ -129,7 +129,7 @@ state_value:
 | `value_encode` | `DecodeEncodeType` | `'none'` | `bcd`, `ascii`, `signed_byte_half_degree` 등. |
 | `multiply_factor` | `number` | `1` | 값에 곱할 계수. 예: `multiply_factor: 10`이면 `2.5` → `25`. |
 | `low_priority` | `boolean` | `false` | `true`면 일반 큐가 비어 있을 때만 전송합니다. (Schedule 트리거 사용 시 기본값 `true`로 강제됨) |
-| `script` | `string` | - | 재사용 가능한 스크립트 ID 참조. [SCRIPTS.md](../SCRIPTS.md) 참고. |
+| `script` | `string` | - | 재사용 가능한 스크립트 ID 참조. [SCRIPTS.md](../guide/scripts.md) 참고. |
 
 ### ACK 동작 방식
 
@@ -268,7 +268,7 @@ button:
 ```
 
 ## CEL과의 연계
-- `state*`, `command*` 필드는 모두 [CEL 가이드](../CEL_GUIDE.md)의 표현식(문자열)으로 대체할 수 있습니다.
+- `state*`, `command*` 필드는 모두 [CEL 가이드](../guide/cel-guide.md)의 표현식(문자열)으로 대체할 수 있습니다.
 - CEL 컨텍스트 변수:
   - `x`: 입력값 (숫자 또는 원시 타입)
   - `xstr`: 입력값의 문자열 버전 (문자열 비교 시 사용)
@@ -283,14 +283,14 @@ button:
   # 올바른 예시
   command_custom_preset: 'xstr == "Away" ? [0x01] : [0x02]'
   ```
-- `automation` 트리거/액션에서 패킷 매칭은 `StateSchema` 규칙을, 명령 실행은 `CommandSchema` 규칙을 그대로 따릅니다. 자세한 예제는 [AUTOMATION.md](../AUTOMATION.md)를 참고하세요.
+- `automation` 트리거/액션에서 패킷 매칭은 `StateSchema` 규칙을, 명령 실행은 `CommandSchema` 규칙을 그대로 따릅니다. 자세한 예제는 [AUTOMATION.md](../guide/automation.md)를 참고하세요.
 - `automation` 액션에 `update_state`를 사용할 수 있습니다. 패킷 트리거와 조합해 엔티티 상태를 직접 갱신하며, 값은 `StateSchema/StateNumSchema`로 정의합니다. `offset`은 수신된 원본 패킷 전체(rx_header 포함)를 기준으로 계산합니다. 모든 엔티티 타입에서 `parseData`와 동일한 해석을 적용합니다.
 - 설정 파일에서는 `automation` 대신 `automations`를 최상위 키로 선언해도 동일하게 동작합니다.
 - `update_state`는 대상 엔티티에 정의된 `state_*` 및 해당 속성명만 허용하며, 정의되지 않은 속성은 오류로 처리됩니다.
 
 ## Scripts 블록
 자동화 액션 배열을 재사용하기 위한 `scripts` 블록을 설정 파일에 추가할 수 있습니다. 정의 방법과 활용 예시는
-[SCRIPTS.md](../SCRIPTS.md)를 참고하세요.
+[SCRIPTS.md](../guide/scripts.md)를 참고하세요.
 
 ## 인코딩 타입 상세 (Encoding Types)
 

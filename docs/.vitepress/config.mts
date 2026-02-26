@@ -7,65 +7,75 @@ export default defineConfig({
   themeConfig: {
     nav: [
       { text: "Home", link: "/" },
-      { text: "Configuration", link: "/config-schema/" },
-      { text: "Manufacturer Guides", link: "/제조사별안내/bestin" }
+      { text: "Guide", link: "/guide/introduction" },
+      { text: "Configuration", link: "/config/" },
+      { text: "Manufacturers", link: "/manufacturers/bestin" }
     ],
 
     sidebar: {
-      "/config-schema/": [
+      "/config/": [
         {
           text: "Configuration",
           items: [
-            { text: "Overview", link: "/config-schema/" },
-            { text: "Schemas", link: "/config-schema/schemas" },
-            { text: "Packet Defaults", link: "/config-schema/packet-defaults" },
-            { text: "Common Options", link: "/config-schema/common-entity-options" }
+            { text: "Overview", link: "/config/" },
+            { text: "Schemas", link: "/config/schemas" },
+            { text: "Packet Defaults", link: "/config/packet-defaults" },
+            { text: "Common Options", link: "/config/common-entity-options" },
+            { text: "Serial Options", link: "/config/serial" }
           ]
         },
         {
           text: "Entity Types",
           items: [
-            { text: "Binary Sensor", link: "/config-schema/binary-sensor" },
-            { text: "Button", link: "/config-schema/button" },
-            { text: "Climate", link: "/config-schema/climate" },
-            { text: "Fan", link: "/config-schema/fan" },
-            { text: "Light", link: "/config-schema/light" },
-            { text: "Lock", link: "/config-schema/lock" },
-            { text: "Number", link: "/config-schema/number" },
-            { text: "Select", link: "/config-schema/select" },
-            { text: "Sensor", link: "/config-schema/sensor" },
-            { text: "Switch", link: "/config-schema/switch" },
-            { text: "Text", link: "/config-schema/text" },
-            { text: "Text Sensor", link: "/config-schema/text-sensor" },
-            { text: "Valve", link: "/config-schema/valve" }
+            { text: "Binary Sensor", link: "/config/binary-sensor" },
+            { text: "Button", link: "/config/button" },
+            { text: "Climate", link: "/config/climate" },
+            { text: "Fan", link: "/config/fan" },
+            { text: "Light", link: "/config/light" },
+            { text: "Lock", link: "/config/lock" },
+            { text: "Number", link: "/config/number" },
+            { text: "Select", link: "/config/select" },
+            { text: "Sensor", link: "/config/sensor" },
+            { text: "Switch", link: "/config/switch" },
+            { text: "Text", link: "/config/text" },
+            { text: "Text Sensor", link: "/config/text-sensor" },
+            { text: "Valve", link: "/config/valve" }
           ]
         }
       ],
-      "/제조사별안내/": [
+      "/manufacturers/": [
         {
           text: "Manufacturer Guides",
           items: [
-            { text: "Bestin", link: "/제조사별안내/bestin" },
-            { text: "Commax", link: "/제조사별안내/commax" },
-            { text: "CVnet", link: "/제조사별안내/cvnet" },
-            { text: "Ezville", link: "/제조사별안내/ezville" },
-            { text: "Hyundai", link: "/제조사별안내/hyundai" },
-            { text: "Kocom", link: "/제조사별안내/kocom" },
-            { text: "Samsung SDS", link: "/제조사별안내/samsung_sds" }
+            { text: "Bestin", link: "/manufacturers/bestin" },
+            { text: "Commax", link: "/manufacturers/commax" },
+            { text: "CVnet", link: "/manufacturers/cvnet" },
+            { text: "Ezville", link: "/manufacturers/ezville" },
+            { text: "Hyundai", link: "/manufacturers/hyundai" },
+            { text: "Kocom", link: "/manufacturers/kocom" },
+            { text: "Samsung SDS", link: "/manufacturers/samsung_sds" }
           ]
         }
       ],
-      "/": [
+      "/guide/": [
         {
-          text: "Guide",
+          text: "Introduction",
           items: [
-            { text: "Introduction", link: "/" },
-            { text: "Automation", link: "/AUTOMATION" },
-            { text: "CEL Guide", link: "/CEL_GUIDE" },
-            { text: "Entity Examples", link: "/ENTITY_EXAMPLES" },
-            { text: "Gallery", link: "/GALLERY" },
-            { text: "Scripts", link: "/SCRIPTS" },
-            { text: "Breaking Changes", link: "/BREAKING_CHANGES" }
+            { text: "Introduction", link: "/guide/introduction" },
+            { text: "Getting Started", link: "/guide/getting-started" },
+            { text: "Troubleshooting", link: "/guide/troubleshooting" }
+          ]
+        },
+        {
+          text: "Advanced",
+          items: [
+            { text: "Automation", link: "/guide/automation" },
+            { text: "CEL Guide", link: "/guide/cel-guide" },
+            { text: "Scripts", link: "/guide/scripts" },
+            { text: "Entity Examples", link: "/guide/entity-examples" },
+            { text: "Gallery", link: "/guide/gallery" },
+            { text: "Optimization", link: "/guide/optimization" },
+            { text: "Breaking Changes", link: "/guide/breaking-changes" }
           ]
         }
       ]

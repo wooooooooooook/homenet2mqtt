@@ -202,7 +202,7 @@ ack: [0x06]
 > **참고**: `send_packet` 액션 자체에는 `retry/timeout/interval` 옵션이 없습니다. 필요 시 `packet_defaults`에서 전송 정책을 조정하세요.
 
 > [!WARNING]
-> CEL 표현식으로 패킷 리스트(`data`, `ack`)를 생성할 때, 모든 요소는 동일한 타입(주로 `int`)이어야 합니다. `states`나 `trigger` 등의 동적 값(`dyn`)을 포함할 때는 반드시 `int()`로 캐스팅해야 합니다. 자세한 내용은 [CEL 가이드 > 자주 발생하는 문제](./CEL_GUIDE.md#자주-발생하는-문제와-팁-troubleshooting)를 참고하세요.
+> CEL 표현식으로 패킷 리스트(`data`, `ack`)를 생성할 때, 모든 요소는 동일한 타입(주로 `int`)이어야 합니다. `states`나 `trigger` 등의 동적 값(`dyn`)을 포함할 때는 반드시 `int()`로 캐스팅해야 합니다. 자세한 내용은 [CEL 가이드 > 자주 발생하는 문제](./cel-guide.md#자주-발생하는-문제와-팁-troubleshooting)를 참고하세요.
 
 ### 상태 갱신 (Update State)
 
@@ -250,7 +250,7 @@ message: '자동화가 실행되었습니다.'
 
 ### 스크립트 실행 (Script)
 
-사전에 정의한 `scripts` 블록의 액션 시퀀스를 실행합니다. 설정 방법은 [SCRIPTS.md](./SCRIPTS.md)를 참고하세요.
+사전에 정의한 `scripts` 블록의 액션 시퀀스를 실행합니다. 설정 방법은 [SCRIPTS.md](./scripts.md)를 참고하세요.
 
 ```yaml
 action: script

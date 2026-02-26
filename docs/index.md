@@ -1,7 +1,32 @@
-# homenet2mqtt 문서
+---
+layout: home
 
-## 구성 스키마
-- **엔티티 스키마 총람**: [config-schema/README.md](./config-schema/README.md) – 엔티티별 문서와 공통 옵션 인덱스.
-- **상태·명령 스키마 정의**: [config-schema/schemas.md](./config-schema/schemas.md) – `StateSchema`, `StateNumSchema`, `CommandSchema` 필드 및 디코딩 옵션.
-- **CEL 표현식 가이드**: [CEL_GUIDE.md](./CEL_GUIDE.md)
-- **자동화 규칙**: [AUTOMATION.md](./AUTOMATION.md) – 트리거/액션 스키마와 CEL 가드 사용법.
+hero:
+  name: Homenet2MQTT
+  text: RS485 HomeNet to MQTT Bridge
+  tagline: Make your Korean Wallpad Smart
+  actions:
+    - theme: brand
+      text: 시작하기 (Get Started)
+      link: /guide/getting-started
+    - theme: alt
+      text: 소개 (Introduction)
+      link: /guide/introduction
+    - theme: alt
+      text: View on GitHub
+      link: https://github.com/wooooooooooook/homenet2mqtt
+
+features:
+  - icon: 🛠️
+    title: 간편한 설정 (Easy Config)
+    details: Web UI를 통해 복잡한 설정 없이 브라우저에서 간편하게 설정할 수 있습니다.
+  - icon: 🏠
+    title: HA 자동 발견 (Auto Discovery)
+    details: 설정이 완료되면 Home Assistant에 기기들이 자동으로 등록됩니다.
+  - icon: 🔌
+    title: 다양한 프로토콜 (Multi-Protocol)
+    details: Commax, Kocom 등 국내 주요 월패드 프로토콜을 지원하며 확장이 가능합니다.
+  - icon: 📊
+    title: 실시간 모니터링 (Real-time Monitoring)
+    details: Web UI를 통해 RS485 패킷의 흐름을 실시간으로 확인하고 분석할 수 있습니다.
+---

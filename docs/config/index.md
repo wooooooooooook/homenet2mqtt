@@ -8,8 +8,8 @@
 - [Packet Defaults](./packet-defaults.md)
 - [공통 엔티티 옵션](./common-entity-options.md)
 - [State/Command 스키마 정의](./schemas.md)
-- [CEL 가이드](../CEL_GUIDE.md)
-- [Automation](../AUTOMATION.md)
+- [CEL 가이드](../guide/cel-guide.md)
+- [Automation](../guide/automation.md)
 
 ### 엔티티별
 - [Binary Sensor](./binary-sensor.md)
