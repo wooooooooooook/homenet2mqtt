@@ -28,12 +28,12 @@ vi.mock('../src/state/state-manager.js', () => ({
 }));
 
 vi.mock('../src/utils/logger.js', () => ({
-    logger: {
-        info: vi.fn(),
-        error: vi.fn(),
-        debug: vi.fn(),
-        warn: vi.fn(),
-    }
+  logger: {
+    info: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+    warn: vi.fn(),
+  },
 }));
 
 describe('HomeNetBridge.constructCustomPacket', () => {
@@ -115,7 +115,7 @@ describe('HomeNetBridge.constructCustomPacket', () => {
     const config = {
       ...baseConfig,
       packet_defaults: {
-        rx_header: [0xAA],
+        rx_header: [0xaa],
         rx_footer: [0x55],
       },
     };
@@ -131,7 +131,7 @@ describe('HomeNetBridge.constructCustomPacket', () => {
     const config = {
       ...baseConfig,
       packet_defaults: {
-        rx_header: [0xAA],
+        rx_header: [0xaa],
         rx_footer: [0x55],
       },
     };
@@ -183,7 +183,7 @@ describe('HomeNetBridge.constructCustomPacket', () => {
     const config = {
       ...baseConfig,
       packet_defaults: {
-        rx_header: [0xFF],
+        rx_header: [0xff],
         rx_checksum: 'xor',
       },
     } as HomenetBridgeConfig;
@@ -202,7 +202,7 @@ describe('HomeNetBridge.constructCustomPacket', () => {
     const config = {
       ...baseConfig,
       packet_defaults: {
-        rx_header: [0xFF],
+        rx_header: [0xff],
         rx_checksum: 'xor_no_header',
       },
     } as HomenetBridgeConfig;
@@ -221,7 +221,7 @@ describe('HomeNetBridge.constructCustomPacket', () => {
     const config = {
       ...baseConfig,
       packet_defaults: {
-         rx_checksum2: 'xor_add',
+        rx_checksum2: 'xor_add',
       },
     } as HomenetBridgeConfig;
     bridge = await createBridge(config);
@@ -234,7 +234,7 @@ describe('HomeNetBridge.constructCustomPacket', () => {
   });
 
   it('should ignore checksum if not requested', async () => {
-     const config = {
+    const config = {
       ...baseConfig,
       packet_defaults: {
         rx_checksum: 'xor',
@@ -248,24 +248,28 @@ describe('HomeNetBridge.constructCustomPacket', () => {
   });
 
   it('should handle complex case with header, footer and checksum', async () => {
-      const config = {
-        ...baseConfig,
-        packet_defaults: {
-            rx_header: [0xAA],
-            rx_footer: [0x55],
-            rx_checksum: 'xor'
-        }
-      } as HomenetBridgeConfig;
-      bridge = await createBridge(config);
+    const config = {
+      ...baseConfig,
+      packet_defaults: {
+        rx_header: [0xaa],
+        rx_footer: [0x55],
+        rx_checksum: 'xor',
+      },
+    } as HomenetBridgeConfig;
+    bridge = await createBridge(config);
 
-      // Header: AA
-      // Data: 01 02
-      // Checksum: AA ^ 01 ^ 02 = A9
-      // Footer: 55
-      // Result: AA 01 02 A9 55
+    // Header: AA
+    // Data: 01 02
+    // Checksum: AA ^ 01 ^ 02 = A9
+    // Footer: 55
+    // Result: AA 01 02 A9 55
 
-      const result = bridge.constructCustomPacket('0102', { header: true, footer: true, checksum: true });
-      expect(result.success).toBe(true);
-      expect(result.packet).toBe('AA0102A955');
+    const result = bridge.constructCustomPacket('0102', {
+      header: true,
+      footer: true,
+      checksum: true,
+    });
+    expect(result.success).toBe(true);
+    expect(result.packet).toBe('AA0102A955');
   });
 });

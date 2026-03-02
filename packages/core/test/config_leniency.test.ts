@@ -1,4 +1,3 @@
-
 import { normalizeConfig } from '../src/config/index.js';
 import { describe, it, expect } from 'vitest';
 
@@ -10,9 +9,9 @@ describe('Config Leniency', () => {
         {
           id: 'test_sensor',
           state: { data: [0x01] },
-          state_text: { offset: 1, length: 1, type: 'byte' } // Wrong property
-        }
-      ]
+          state_text: { offset: 1, length: 1, type: 'byte' }, // Wrong property
+        },
+      ],
     };
 
     normalizeConfig(config);
@@ -28,9 +27,9 @@ describe('Config Leniency', () => {
         {
           id: 'test_text',
           state: { data: [0x02] },
-          state_value: { offset: 2, length: 2 } // Wrong property
-        }
-      ]
+          state_value: { offset: 2, length: 2 }, // Wrong property
+        },
+      ],
     };
 
     normalizeConfig(config);
@@ -46,9 +45,9 @@ describe('Config Leniency', () => {
         {
           id: 'test_sensor_val',
           state: { data: [0x03] },
-          state_value: { offset: 3, length: 1 } // Wrong property
-        }
-      ]
+          state_value: { offset: 3, length: 1 }, // Wrong property
+        },
+      ],
     };
 
     normalizeConfig(config);
@@ -64,9 +63,9 @@ describe('Config Leniency', () => {
         {
           id: 'test_text_num',
           state: { data: [0x04] },
-          state_number: { offset: 4, length: 4 } // Wrong property
-        }
-      ]
+          state_number: { offset: 4, length: 4 }, // Wrong property
+        },
+      ],
     };
 
     normalizeConfig(config);

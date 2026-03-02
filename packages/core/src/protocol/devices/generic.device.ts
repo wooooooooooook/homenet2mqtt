@@ -274,7 +274,10 @@ export class GenericDevice extends Device {
    */
   protected framePacket(commandData: number[]): number[] {
     const entityPacketParams = (this.config as any).packet_parameters || {};
-    const packetDefaults = { ...(this.protocolConfig.packet_defaults || {}), ...entityPacketParams };
+    const packetDefaults = {
+      ...(this.protocolConfig.packet_defaults || {}),
+      ...entityPacketParams,
+    };
     // DEBUG: Log packetDefaults to verify tx_checksum presence
     if (logger.isLevelEnabled('debug')) {
       logger.debug({ packetDefaults }, '[GenericDevice] framePacket defaults');

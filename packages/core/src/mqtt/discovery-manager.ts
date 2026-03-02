@@ -264,7 +264,10 @@ export class DiscoveryManager {
     }
 
     if (entity.discovery_skip === true) {
-      logger.debug({ id: entity.id }, '[DiscoveryManager] Skipping discovery due to discovery_skip flag');
+      logger.debug(
+        { id: entity.id },
+        '[DiscoveryManager] Skipping discovery due to discovery_skip flag',
+      );
       return;
     }
 

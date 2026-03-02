@@ -6,12 +6,8 @@ const SERIAL_WAIT_INTERVAL_MS = 500;
 const DEFAULT_SERIAL_WAIT_TIMEOUT_MS = 15000;
 
 const resolveSerialWaitTimeout = () => {
-  const raw = process.env.SERIAL_PATH_WAIT_TIMEOUT_MS ?? '';
-  const parsed = Number.parseInt(raw, 10);
-  if (Number.isNaN(parsed) || parsed <= 0) {
-    return DEFAULT_SERIAL_WAIT_TIMEOUT_MS;
-  }
-  return parsed;
+  const parsed = Number.parseInt(process.env.SERIAL_PATH_WAIT_TIMEOUT_MS || '', 10);
+  return parsed > 0 ? parsed : DEFAULT_SERIAL_WAIT_TIMEOUT_MS;
 };
 
 const SERIAL_WAIT_TIMEOUT_MS = resolveSerialWaitTimeout();

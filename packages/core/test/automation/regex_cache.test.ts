@@ -39,7 +39,7 @@ describe('AutomationManager Regex Caching', () => {
       mqttPublisher,
       'test-port',
       undefined,
-      stateManager
+      stateManager,
     );
   });
 

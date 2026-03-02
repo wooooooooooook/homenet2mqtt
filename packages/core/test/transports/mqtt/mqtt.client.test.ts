@@ -53,9 +53,7 @@ describe('MqttClient', () => {
     vi.mocked(mqtt.connect).mockReset();
 
     // Configure mqtt.connect to return mockClient first, then mockScanClient
-    vi.mocked(mqtt.connect)
-      .mockReturnValueOnce(mockClient)
-      .mockReturnValueOnce(mockScanClient);
+    vi.mocked(mqtt.connect).mockReturnValueOnce(mockClient).mockReturnValueOnce(mockScanClient);
   });
 
   afterEach(() => {
@@ -71,10 +69,13 @@ describe('MqttClient', () => {
 
       mqttClient = new MqttClient('mqtt://localhost:1883', { clientId: 'test-client' });
 
-      expect(mqtt.connect).toHaveBeenCalledWith('mqtt://localhost:1883', expect.objectContaining({
-        clientId: 'test-client',
-        connectTimeout: 10000,
-      }));
+      expect(mqtt.connect).toHaveBeenCalledWith(
+        'mqtt://localhost:1883',
+        expect.objectContaining({
+          clientId: 'test-client',
+          connectTimeout: 10000,
+        }),
+      );
     });
 
     it('should resolve connectionPromise on connect', async () => {
@@ -116,7 +117,9 @@ describe('MqttClient', () => {
 
     it('should throw if client is not connected', async () => {
       mockClient.connected = false;
-      await expect(mqttClient.clearRetainedMessages('test/topic')).rejects.toThrow('MQTT client is not connected');
+      await expect(mqttClient.clearRetainedMessages('test/topic')).rejects.toThrow(
+        'MQTT client is not connected',
+      );
     });
 
     it('should create a scan client and subscribe', async () => {
@@ -141,16 +144,18 @@ describe('MqttClient', () => {
 
       mockScanClient.on.mockImplementation((event: string, cb: any) => {
         if (event === 'connect') {
-            cb();
+          cb();
         } else if (event === 'message') {
-            messageHandler = cb;
+          messageHandler = cb;
         }
       });
 
       // Mock publish implementation to succeed
-      mockClient.publish.mockImplementation((topic: string, payload: Buffer, options: any, cb: any) => {
-        cb(null);
-      });
+      mockClient.publish.mockImplementation(
+        (topic: string, payload: Buffer, options: any, cb: any) => {
+          cb(null);
+        },
+      );
 
       const promise = mqttClient.clearRetainedMessages('test/topic');
 
@@ -163,10 +168,31 @@ describe('MqttClient', () => {
       // So messageHandler should be set.
 
       if (messageHandler!) {
-        messageHandler('test/topic/1', Buffer.from('data'), { retain: true, cmd: 'publish', qos: 0, dup: false, topic: 'test/topic/1', payload: Buffer.from('data') });
-        messageHandler('test/topic/2', Buffer.from('data'), { retain: true, cmd: 'publish', qos: 0, dup: false, topic: 'test/topic/2', payload: Buffer.from('data') });
+        messageHandler('test/topic/1', Buffer.from('data'), {
+          retain: true,
+          cmd: 'publish',
+          qos: 0,
+          dup: false,
+          topic: 'test/topic/1',
+          payload: Buffer.from('data'),
+        });
+        messageHandler('test/topic/2', Buffer.from('data'), {
+          retain: true,
+          cmd: 'publish',
+          qos: 0,
+          dup: false,
+          topic: 'test/topic/2',
+          payload: Buffer.from('data'),
+        });
         // Should ignore non-retained
-        messageHandler('test/topic/3', Buffer.from('data'), { retain: false, cmd: 'publish', qos: 0, dup: false, topic: 'test/topic/3', payload: Buffer.from('data') });
+        messageHandler('test/topic/3', Buffer.from('data'), {
+          retain: false,
+          cmd: 'publish',
+          qos: 0,
+          dup: false,
+          topic: 'test/topic/3',
+          payload: Buffer.from('data'),
+        });
       }
 
       vi.advanceTimersByTime(2000);
@@ -174,9 +200,24 @@ describe('MqttClient', () => {
       const count = await promise;
 
       expect(count).toBe(2);
-      expect(mockClient.publish).toHaveBeenCalledWith('test/topic/1', expect.any(Buffer), { retain: true, qos: 1 }, expect.any(Function));
-      expect(mockClient.publish).toHaveBeenCalledWith('test/topic/2', expect.any(Buffer), { retain: true, qos: 1 }, expect.any(Function));
-      expect(mockClient.publish).not.toHaveBeenCalledWith('test/topic/3', expect.any(Buffer), expect.any(Object), expect.any(Function));
+      expect(mockClient.publish).toHaveBeenCalledWith(
+        'test/topic/1',
+        expect.any(Buffer),
+        { retain: true, qos: 1 },
+        expect.any(Function),
+      );
+      expect(mockClient.publish).toHaveBeenCalledWith(
+        'test/topic/2',
+        expect.any(Buffer),
+        { retain: true, qos: 1 },
+        expect.any(Function),
+      );
+      expect(mockClient.publish).not.toHaveBeenCalledWith(
+        'test/topic/3',
+        expect.any(Buffer),
+        expect.any(Object),
+        expect.any(Function),
+      );
       expect(mockScanClient.end).toHaveBeenCalled();
     });
 
@@ -200,9 +241,9 @@ describe('MqttClient', () => {
       // Ensure error handler is triggered
       mockScanClient.on.mockImplementation((event: string, cb: any) => {
         if (event === 'error') {
-            // Delay error slightly or call immediately?
-            // The promise is created, then scanClient created.
-            cb(new Error('Scan error'));
+          // Delay error slightly or call immediately?
+          // The promise is created, then scanClient created.
+          cb(new Error('Scan error'));
         }
       });
 

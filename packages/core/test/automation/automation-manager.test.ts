@@ -1015,8 +1015,8 @@ describe('AutomationManager', () => {
 
   describe('Automation Mode', () => {
     it('parallel 모드(기본)에서는 여러 실행이 병렬로 진행되어야 한다', async () => {
-    const config: HomenetBridgeConfig = {
-      ...baseConfig,
+      const config: HomenetBridgeConfig = {
+        ...baseConfig,
         automation: [
           {
             id: 'parallel_test',
@@ -1063,8 +1063,8 @@ describe('AutomationManager', () => {
     });
 
     it('single 모드에서는 이미 실행 중이면 새 트리거가 무시되어야 한다', async () => {
-    const config: HomenetBridgeConfig = {
-      ...baseConfig,
+      const config: HomenetBridgeConfig = {
+        ...baseConfig,
         automation: [
           {
             id: 'single_test',
@@ -1111,8 +1111,8 @@ describe('AutomationManager', () => {
     });
 
     it('restart 모드에서는 이전 실행이 취소되고 새로 시작되어야 한다', async () => {
-    const config: HomenetBridgeConfig = {
-      ...baseConfig,
+      const config: HomenetBridgeConfig = {
+        ...baseConfig,
         automation: [
           {
             id: 'restart_test',
@@ -1161,8 +1161,8 @@ describe('AutomationManager', () => {
     });
 
     it('queued 모드에서는 자동화가 순차적으로 실행되어야 한다', async () => {
-    const config: HomenetBridgeConfig = {
-      ...baseConfig,
+      const config: HomenetBridgeConfig = {
+        ...baseConfig,
         automation: [
           {
             id: 'queued_test',
@@ -1215,8 +1215,8 @@ describe('AutomationManager', () => {
 
   describe('If Action', () => {
     it('조건이 참이면 then 블록을 실행해야 한다', async () => {
-    const config: HomenetBridgeConfig = {
-      ...baseConfig,
+      const config: HomenetBridgeConfig = {
+        ...baseConfig,
         sensor: [{ id: 'sensor_temp', name: 'Temp', type: 'sensor', state: { data: [0x01] } }],
         automation: [
           {
@@ -1256,8 +1256,8 @@ describe('AutomationManager', () => {
     });
 
     it('조건이 거짓이면 else 블록을 실행해야 한다', async () => {
-    const config: HomenetBridgeConfig = {
-      ...baseConfig,
+      const config: HomenetBridgeConfig = {
+        ...baseConfig,
         sensor: [{ id: 'sensor_temp', name: 'Temp', type: 'sensor', state: { data: [0x01] } }],
         automation: [
           {
@@ -1297,8 +1297,8 @@ describe('AutomationManager', () => {
     });
 
     it('else 블록이 없고 조건이 거짓이면 아무것도 실행하지 않아야 한다', async () => {
-    const config: HomenetBridgeConfig = {
-      ...baseConfig,
+      const config: HomenetBridgeConfig = {
+        ...baseConfig,
         sensor: [{ id: 'sensor_temp', name: 'Temp', type: 'sensor', state: { data: [0x01] } }],
         automation: [
           {
@@ -1338,8 +1338,8 @@ describe('AutomationManager', () => {
 
   describe('Repeat Action', () => {
     it('count 횟수만큼 반복 실행해야 한다', async () => {
-    const config: HomenetBridgeConfig = {
-      ...baseConfig,
+      const config: HomenetBridgeConfig = {
+        ...baseConfig,
         automation: [
           {
             id: 'repeat_count_test',
@@ -1368,8 +1368,8 @@ describe('AutomationManager', () => {
     });
 
     it('while 조건이 거짓이 되면 반복을 중단해야 한다', async () => {
-    const config: HomenetBridgeConfig = {
-      ...baseConfig,
+      const config: HomenetBridgeConfig = {
+        ...baseConfig,
         sensor: [{ id: 'counter', name: 'Counter', type: 'sensor', state: { data: [0x01] } }],
         automation: [
           {
@@ -1418,8 +1418,8 @@ describe('AutomationManager', () => {
     });
 
     it('max 제한에 도달하면 반복을 중단해야 한다', async () => {
-    const config: HomenetBridgeConfig = {
-      ...baseConfig,
+      const config: HomenetBridgeConfig = {
+        ...baseConfig,
         automation: [
           {
             id: 'repeat_max_test',
@@ -1450,8 +1450,8 @@ describe('AutomationManager', () => {
     });
 
     it('중첩된 if와 repeat 액션이 올바르게 동작해야 한다', async () => {
-    const config: HomenetBridgeConfig = {
-      ...baseConfig,
+      const config: HomenetBridgeConfig = {
+        ...baseConfig,
         sensor: [{ id: 'switch_1', name: 'Switch', type: 'sensor', state: { data: [0x01] } }],
         automation: [
           {
