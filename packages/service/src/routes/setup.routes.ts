@@ -306,15 +306,9 @@ export function createSetupRoutes(ctx: SetupRoutesContext): Router {
     }
 
     try {
-      // Use getInitializationState directly to ensure we have fresh state if needed,
-      // though the logic below has been relaxed as per previous code.
-      // const state = await getInitializationState();
-
       const { filename, serialPath, serialConfig, portId, packetDefaults, selectedEntities, mode } =
         req.body || {};
 
-      // Note: We no longer block initialization based on state.
-      // The 'mode' parameter still determines whether to create a new config file or overwrite.
       if (typeof filename !== 'string' || filename.includes('/') || filename.includes('\\')) {
         return res.status(400).json({ error: 'INVALID_FILENAME' });
       }
