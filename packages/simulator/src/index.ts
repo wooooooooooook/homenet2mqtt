@@ -235,6 +235,10 @@ export function createSimulator(options: SimulatorOptions = {}): Simulator {
   const writer = terminal as unknown as { write(data: string | Buffer): void };
   const ptyPath = terminal.pty ?? terminal.ptsName ?? (terminal as any)._pty;
 
+  if (typeof ptyPath !== 'string' || !ptyPath.startsWith('/dev/') || ptyPath.includes('\0')) {
+    throw new Error(`Invalid PTY path: ${ptyPath}`);
+  }
+
   if (spawnSync('stty', ['-F', ptyPath, 'raw', '-echo']).status !== 0)
     console.warn('RAW 모드 전환 실패');
 
