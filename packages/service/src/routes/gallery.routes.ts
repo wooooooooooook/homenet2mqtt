@@ -442,10 +442,14 @@ export function createGalleryRoutes(ctx: GalleryRoutesContext): Router {
           const typeKey = entityType as keyof HomenetBridgeConfig;
           if (!ENTITY_TYPE_KEYS.includes(typeKey)) continue;
 
-          const existingList = ((currentConfig[typeKey] as unknown[]) || []) as Record<
+          const existingList = ((currentConfig[typeKey] as any[]) || []) as Record<
             string,
             unknown
           >[];
+          const existingListMap = new Map<string, any>();
+          existingList.forEach((e) => {
+            if (e?.id) existingListMap.set(e.id, e);
+          });
 
           for (const entity of entities) {
             if (!entity || typeof entity !== 'object') continue;
@@ -461,7 +465,7 @@ export function createGalleryRoutes(ctx: GalleryRoutesContext): Router {
 
             // Add existingYaml to each candidate for diff display
             const candidatesWithYaml = allCandidates.map((candidate) => {
-              const existingEntity = existingList.find((e) => e.id === candidate.matchId);
+              const existingEntity = existingListMap.get(candidate.matchId);
               return {
                 ...candidate,
                 existingYaml: existingEntity ? dumpConfigToYaml(existingEntity) : '',
@@ -476,7 +480,7 @@ export function createGalleryRoutes(ctx: GalleryRoutesContext): Router {
             let existingYaml = '';
             let similarity: number | undefined;
 
-            const exactMatch = existingList.find((e) => e.id === entityId);
+            const exactMatch = existingListMap.get(entityId);
             if (exactMatch) {
               matchedId = entityId;
               existingYaml = dumpConfigToYaml(exactMatch);
@@ -519,7 +523,11 @@ export function createGalleryRoutes(ctx: GalleryRoutesContext): Router {
 
       // Check automations for conflicts
       if (expandedGalleryYaml.automation && Array.isArray(expandedGalleryYaml.automation)) {
-        const existingAutomations = ((currentConfig as any).automation as unknown[]) || [];
+        const existingAutomations = ((currentConfig as any).automation as any[]) || [];
+        const existingAutomationsMap = new Map<string, any>();
+        existingAutomations.forEach((a) => {
+          if (a?.id) existingAutomationsMap.set(a.id, a);
+        });
 
         for (const automation of expandedGalleryYaml.automation) {
           if (!automation || typeof automation !== 'object') continue;
@@ -535,7 +543,7 @@ export function createGalleryRoutes(ctx: GalleryRoutesContext): Router {
             continue;
           }
 
-          const existingAutomation = existingAutomations.find((a: any) => a.id === automationId);
+          const existingAutomation = existingAutomationsMap.get(automationId);
 
           // Add to matches instead of conflicts
           matches.push({
@@ -551,7 +559,11 @@ export function createGalleryRoutes(ctx: GalleryRoutesContext): Router {
 
       // Check scripts for conflicts
       if (expandedGalleryYaml.scripts && Array.isArray(expandedGalleryYaml.scripts)) {
-        const existingScripts = ((currentConfig as any).scripts as unknown[]) || [];
+        const existingScripts = ((currentConfig as any).scripts as any[]) || [];
+        const existingScriptsMap = new Map<string, any>();
+        existingScripts.forEach((s) => {
+          if (s?.id) existingScriptsMap.set(s.id, s);
+        });
 
         for (const script of expandedGalleryYaml.scripts) {
           if (!script || typeof script !== 'object') continue;
@@ -567,7 +579,7 @@ export function createGalleryRoutes(ctx: GalleryRoutesContext): Router {
             continue;
           }
 
-          const existingScript = existingScripts.find((s: any) => s.id === scriptId);
+          const existingScript = existingScriptsMap.get(scriptId);
 
           // Add to matches instead of conflicts
           matches.push({
@@ -785,7 +797,11 @@ export function createGalleryRoutes(ctx: GalleryRoutesContext): Router {
             (normalizedConfig as any)[typeKey] = [];
           }
 
-          const targetList = normalizedConfig[typeKey] as unknown[];
+          const targetList = normalizedConfig[typeKey] as any[];
+          const entityIdMap = new Map<string, number>();
+          targetList.forEach((e, i) => {
+            if (e?.id) entityIdMap.set(e.id, i);
+          });
 
           for (const entity of entities) {
             if (!entity || typeof entity !== 'object') continue;
@@ -805,11 +821,11 @@ export function createGalleryRoutes(ctx: GalleryRoutesContext): Router {
             }
 
             // Check for existing entity with same ID
-            let existingIndex = targetList.findIndex((e: any) => e.id === entityId);
+            let existingIndex = entityIdMap.get(entityId);
 
-            if (existingIndex === -1 && resolution === 'overwrite' && renameTarget) {
-              existingIndex = targetList.findIndex((e: any) => e.id === renameTarget);
-              if (existingIndex !== -1) {
+            if (existingIndex === undefined && resolution === 'overwrite' && renameTarget) {
+              existingIndex = entityIdMap.get(renameTarget);
+              if (existingIndex !== undefined) {
                 entityObj.id = renameTarget;
               } else {
                 logger.warn(
@@ -818,7 +834,7 @@ export function createGalleryRoutes(ctx: GalleryRoutesContext): Router {
               }
             }
 
-            if (existingIndex !== -1) {
+            if (existingIndex !== undefined) {
               // Conflict exists - check resolution
               if (resolution === 'rename') {
                 const newId = renames?.[entityId];
@@ -827,14 +843,16 @@ export function createGalleryRoutes(ctx: GalleryRoutesContext): Router {
                   continue;
                 }
                 // Check if new ID already exists
-                const newIdExists = targetList.some((e: any) => e.id === newId);
+                const newIdExists = entityIdMap.has(newId);
                 if (newIdExists) {
                   logger.warn(`[gallery] New ID ${newId} already exists, skipping`);
                   skippedEntities++;
                   continue;
                 }
                 entityObj.id = newId;
+                const newIndex = targetList.length;
                 targetList.push(entityObj);
+                entityIdMap.set(newId, newIndex);
                 addedEntities++;
                 logger.info(`[gallery] Added entity with new ID: ${newId} (was ${entityId})`);
               } else {
@@ -849,20 +867,24 @@ export function createGalleryRoutes(ctx: GalleryRoutesContext): Router {
               // Add new
               const newId = renames?.[entityId];
               if (newId) {
-                const newIdExists = targetList.some((e: any) => e.id === newId);
+                const newIdExists = entityIdMap.has(newId);
                 if (newIdExists) {
                   logger.warn(`[gallery] New ID ${newId} already exists, skipping add`);
                   skippedEntities++;
                   continue;
                 }
                 entityObj.id = newId;
+                const newIndex = targetList.length;
                 targetList.push(entityObj);
+                entityIdMap.set(newId, newIndex);
                 addedEntities++;
                 logger.info(
                   `[gallery] Added new entity with custom ID: ${newId} (was ${entityId})`,
                 );
               } else {
+                const newIndex = targetList.length;
                 targetList.push(entityObj);
+                entityIdMap.set(entityId, newIndex);
                 addedEntities++;
                 logger.info(`[gallery] Added new entity: ${entityId}`);
               }
@@ -877,7 +899,11 @@ export function createGalleryRoutes(ctx: GalleryRoutesContext): Router {
           (normalizedConfig as any).automation = [];
         }
 
-        const automationList = (normalizedConfig as any).automation as unknown[];
+        const automationList = (normalizedConfig as any).automation as any[];
+        const automationIdMap = new Map<string, number>();
+        automationList.forEach((a, i) => {
+          if (a?.id) automationIdMap.set(a.id, i);
+        });
 
         for (const automation of expandedGalleryYaml.automation) {
           if (!automation || typeof automation !== 'object') continue;
@@ -887,9 +913,9 @@ export function createGalleryRoutes(ctx: GalleryRoutesContext): Router {
 
           if (automationId) {
             // Check for existing automation with same ID
-            const existingIndex = automationList.findIndex((a: any) => a.id === automationId);
+            const existingIndex = automationIdMap.get(automationId);
 
-            if (existingIndex !== -1) {
+            if (existingIndex !== undefined) {
               // Conflict exists - check resolution
               const resolution = resolutions?.[automationId] || 'overwrite';
 
@@ -905,14 +931,16 @@ export function createGalleryRoutes(ctx: GalleryRoutesContext): Router {
                   );
                   continue;
                 }
-                const newIdExists = automationList.some((a: any) => a.id === newId);
+                const newIdExists = automationIdMap.has(newId);
                 if (newIdExists) {
                   logger.warn(`[gallery] New ID ${newId} already exists, skipping`);
                   skippedAutomations++;
                   continue;
                 }
                 automationObj.id = newId;
+                const newIndex = automationList.length;
                 automationList.push(automationObj);
+                automationIdMap.set(newId, newIndex);
                 addedAutomations++;
                 logger.info(
                   `[gallery] Added automation with new ID: ${newId} (was ${automationId})`,
@@ -927,20 +955,24 @@ export function createGalleryRoutes(ctx: GalleryRoutesContext): Router {
               // Add new
               const newId = renames?.[automationId];
               if (newId) {
-                const newIdExists = automationList.some((a: any) => a.id === newId);
+                const newIdExists = automationIdMap.has(newId);
                 if (newIdExists) {
                   logger.warn(`[gallery] New ID ${newId} already exists, skipping add`);
                   skippedAutomations++;
                   continue;
                 }
                 automationObj.id = newId;
+                const newIndex = automationList.length;
                 automationList.push(automationObj);
+                automationIdMap.set(newId, newIndex);
                 addedAutomations++;
                 logger.info(
                   `[gallery] Added new automation with custom ID: ${newId} (was ${automationId})`,
                 );
               } else {
+                const newIndex = automationList.length;
                 automationList.push(automationObj);
+                automationIdMap.set(automationId, newIndex);
                 addedAutomations++;
                 logger.info(`[gallery] Added new automation: ${automationId}`);
               }
@@ -959,7 +991,11 @@ export function createGalleryRoutes(ctx: GalleryRoutesContext): Router {
           (normalizedConfig as any).scripts = [];
         }
 
-        const scriptsList = (normalizedConfig as any).scripts as unknown[];
+        const scriptsList = (normalizedConfig as any).scripts as any[];
+        const scriptIdMap = new Map<string, number>();
+        scriptsList.forEach((s, i) => {
+          if (s?.id) scriptIdMap.set(s.id, i);
+        });
 
         for (const script of expandedGalleryYaml.scripts) {
           if (!script || typeof script !== 'object') continue;
@@ -968,9 +1004,9 @@ export function createGalleryRoutes(ctx: GalleryRoutesContext): Router {
           const scriptId = scriptObj.id as string | undefined;
 
           if (scriptId) {
-            const existingIndex = scriptsList.findIndex((s: any) => s.id === scriptId);
+            const existingIndex = scriptIdMap.get(scriptId);
 
-            if (existingIndex !== -1) {
+            if (existingIndex !== undefined) {
               const resolution = resolutions?.[scriptId] || 'overwrite';
 
               if (resolution === 'skip') {
@@ -983,14 +1019,16 @@ export function createGalleryRoutes(ctx: GalleryRoutesContext): Router {
                   logger.warn(`[gallery] Rename requested but no new ID provided for ${scriptId}`);
                   continue;
                 }
-                const newIdExists = scriptsList.some((s: any) => s.id === newId);
+                const newIdExists = scriptIdMap.has(newId);
                 if (newIdExists) {
                   logger.warn(`[gallery] New ID ${newId} already exists, skipping`);
                   skippedScripts++;
                   continue;
                 }
                 scriptObj.id = newId;
+                const newIndex = scriptsList.length;
                 scriptsList.push(scriptObj);
+                scriptIdMap.set(newId, newIndex);
                 addedScripts++;
                 logger.info(`[gallery] Added script with new ID: ${newId} (was ${scriptId})`);
               } else {
@@ -1003,20 +1041,24 @@ export function createGalleryRoutes(ctx: GalleryRoutesContext): Router {
               const newId = renames?.[scriptId];
               if (newId) {
                 // Check if new ID already exists
-                const newIdExists = scriptsList.some((s: any) => s.id === newId);
+                const newIdExists = scriptIdMap.has(newId);
                 if (newIdExists) {
                   logger.warn(`[gallery] New ID ${newId} already exists, skipping add`);
                   skippedScripts++;
                   continue;
                 }
                 scriptObj.id = newId;
+                const newIndex = scriptsList.length;
                 scriptsList.push(scriptObj);
+                scriptIdMap.set(newId, newIndex);
                 addedScripts++;
                 logger.info(
                   `[gallery] Added new script with custom ID: ${newId} (was ${scriptId})`,
                 );
               } else {
+                const newIndex = scriptsList.length;
                 scriptsList.push(scriptObj);
+                scriptIdMap.set(scriptId, newIndex);
                 addedScripts++;
                 logger.info(`[gallery] Added new script: ${scriptId}`);
               }
