@@ -384,30 +384,15 @@ export class LogRetentionService {
 
     const cutoff = Date.now() - this.getTtlMs();
 
-    const originalParsedCount = this.parsedPacketLogs.length;
     this.parsedPacketLogs = this.parsedPacketLogs.filter(
       (log) => new Date(log.timestamp).getTime() >= cutoff,
     );
 
-    const originalCommandCount = this.commandPacketLogs.length;
     this.commandPacketLogs = this.commandPacketLogs.filter(
       (log) => new Date(log.timestamp).getTime() >= cutoff,
     );
 
-    const originalActivityCount = this.activityLogs.length;
     this.activityLogs = this.activityLogs.filter((log) => log.timestamp >= cutoff);
-
-    const removed =
-      originalParsedCount -
-      this.parsedPacketLogs.length +
-      originalCommandCount -
-      this.commandPacketLogs.length +
-      originalActivityCount -
-      this.activityLogs.length;
-
-    if (removed > 0) {
-      logger.debug(`[LogRetention] Cleaned up ${removed} old log entries`);
-    }
 
     this.pruneDictionary();
   }
@@ -420,17 +405,11 @@ export class LogRetentionService {
     this.commandPacketLogs.forEach((log) => usedPacketIds.add(log.packetId));
 
     // Remove unused entries from dictionary
-    let removedCount = 0;
     for (const [packetId, payload] of this.packetDictionaryReverse.entries()) {
       if (!usedPacketIds.has(packetId)) {
         this.packetDictionaryReverse.delete(packetId);
         this.packetDictionary.delete(payload);
-        removedCount++;
       }
-    }
-
-    if (removedCount > 0) {
-      logger.debug(`[LogRetention] Pruned ${removedCount} unused packet dictionary entries`);
     }
   }
 
