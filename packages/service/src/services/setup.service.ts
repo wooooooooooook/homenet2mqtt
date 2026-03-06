@@ -81,6 +81,28 @@ export const DEFAULT_PACKET_DEFAULTS = {
   tx_retry_cnt: 3,
 };
 
+const IPV4_WITHOUT_PORT_PATTERN = /^(\d{1,3})(?:\.(\d{1,3})){3}$/;
+
+export const validateSerialPath = (serialPath: string): { error: string } | null => {
+  const normalizedPath = serialPath.trim();
+
+  if (!normalizedPath) {
+    return { error: 'SERIAL_PATH_REQUIRED' };
+  }
+
+  if (IPV4_WITHOUT_PORT_PATTERN.test(normalizedPath)) {
+    const octets = normalizedPath.split('.').map((value) => Number(value));
+    const isValidIpv4 = octets.every(
+      (value) => Number.isInteger(value) && value >= 0 && value <= 255,
+    );
+    if (isValidIpv4) {
+      return { error: 'SERIAL_TCP_PORT_REQUIRED' };
+    }
+  }
+
+  return null;
+};
+
 const applySerialPathToConfig = (
   configObject: unknown,
   serialPath: string,
@@ -144,6 +166,11 @@ const parseSerialConfigPayload = (
 
   if (!pathValue) {
     return { error: 'SERIAL_PATH_REQUIRED' };
+  }
+
+  const pathValidation = validateSerialPath(pathValue);
+  if (pathValidation) {
+    return pathValidation;
   }
 
   if (!Number.isFinite(baudRateValue) || baudRateValue <= 0) {

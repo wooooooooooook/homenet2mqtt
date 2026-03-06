@@ -43,6 +43,7 @@
   let consentSubmitting = $state(false);
   let error = $state('');
   let testingSerial = $state(false);
+  let serialTestRequestId = 0;
   let testError = $state('');
   let testPackets = $state<string[]>([]);
   let hasTested = $state(false);
@@ -395,7 +396,9 @@
       return;
     }
 
+    const requestId = ++serialTestRequestId;
     testingSerial = true;
+    error = '';
     testError = '';
     hasTested = true;
     testPackets = [];
@@ -419,6 +422,9 @@
       });
 
       const data = await res.json();
+      if (requestId !== serialTestRequestId) {
+        return;
+      }
 
       if (!res.ok) {
         const errorKey = data.error || 'UNKNOWN_ERROR';
@@ -443,11 +449,18 @@
 
       if (testPackets.length === 0) {
         error = $t('setup_wizard.serial_test_empty');
+      } else {
+        error = '';
       }
     } catch (err) {
+      if (requestId !== serialTestRequestId) {
+        return;
+      }
       error = $t('setup_wizard.serial_test_error');
     } finally {
-      testingSerial = false;
+      if (requestId === serialTestRequestId) {
+        testingSerial = false;
+      }
     }
   }
 
@@ -511,6 +524,19 @@
 
   function isFormReady() {
     return Boolean(buildSerialConfigPayload());
+  }
+
+  function hasTcpPortInSerialPath(value: string) {
+    const normalized = value.trim();
+    const ipv4Pattern = /^(?:\d{1,3}\.){3}\d{1,3}$/;
+
+    if (!ipv4Pattern.test(normalized)) {
+      return true;
+    }
+
+    const octets = normalized.split('.').map((item) => Number(item));
+    const isValidIpv4 = octets.every((item) => Number.isInteger(item) && item >= 0 && item <= 255);
+    return !isValidIpv4;
   }
 
   // Dialog State
@@ -614,6 +640,9 @@
     }
     if (!serialPath.trim()) {
       return $t('setup_wizard.serial_path_hint'); // "Enter the path..."
+    }
+    if (!hasTcpPortInSerialPath(serialPath)) {
+      return $t('errors.SERIAL_TCP_PORT_REQUIRED');
     }
     // Check other fields
     if (selectedExample === EMPTY_CONFIG_VALUE) {

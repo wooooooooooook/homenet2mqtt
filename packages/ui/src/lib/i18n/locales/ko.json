@@ -748,7 +748,8 @@
     "CORE_START_FAILED": "브릿지 시작에 실패했습니다.",
     "MQTT_CONNECT_FAILED": "MQTT 브로커 연결에 실패했습니다.",
     "MQTT_AUTH_FAILED": "MQTT 인증에 실패했습니다.",
-    "MQTT_DISCONNECTED": "MQTT 연결이 끊어졌습니다."
+    "MQTT_DISCONNECTED": "MQTT 연결이 끊어졌습니다.",
+    "SERIAL_TCP_PORT_REQUIRED": "TCP 주소를 사용할 때는 포트 번호를 함께 입력해주세요. 예: 192.168.0.83:8899"
   },
   "setup_wizard": {
     "title": "초기 설정",

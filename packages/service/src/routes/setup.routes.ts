@@ -7,6 +7,7 @@ import {
   type SetupWizardService,
   EMPTY_CONFIG_SENTINEL,
   DEFAULT_PACKET_DEFAULTS,
+  validateSerialPath,
   ENTITY_TYPE_KEYS,
 } from '../services/setup.service.js';
 
@@ -219,8 +220,13 @@ export function createSetupRoutes(ctx: SetupRoutesContext): Router {
         return;
       }
 
-      if (typeof serialPath !== 'string' || !serialPath.trim()) {
+      if (typeof serialPath !== 'string') {
         return res.status(400).json({ error: 'SERIAL_PATH_REQUIRED' });
+      }
+
+      const serialPathValidation = validateSerialPath(serialPath);
+      if (serialPathValidation) {
+        return res.status(400).json({ error: serialPathValidation.error });
       }
 
       const examples = await listExampleConfigs();
@@ -288,7 +294,16 @@ export function createSetupRoutes(ctx: SetupRoutesContext): Router {
   router.post('/api/config/check-duplicate-serial', async (req, res) => {
     try {
       const { serialPath, portId } = req.body || {};
-      const validation = await checkDuplicateSerial(serialPath, portId);
+      if (typeof serialPath !== 'string') {
+        return res.status(400).json({ error: 'SERIAL_PATH_REQUIRED' });
+      }
+
+      const serialPathValidation = validateSerialPath(serialPath);
+      if (serialPathValidation) {
+        return res.status(400).json({ error: serialPathValidation.error });
+      }
+
+      const validation = await checkDuplicateSerial(serialPath.trim(), portId);
       if (validation) {
         return res.status(400).json({ error: validation.error });
       }
@@ -341,8 +356,13 @@ export function createSetupRoutes(ctx: SetupRoutesContext): Router {
         const emptyConfig = buildEmptyConfig(parsed.serialConfig, packetDefaults);
         updatedYaml = dumpConfigToYaml(emptyConfig, { lineWidth: 120 });
       } else {
-        if (typeof serialPath !== 'string' || !serialPath.trim()) {
+        if (typeof serialPath !== 'string') {
           return res.status(400).json({ error: 'SERIAL_PATH_REQUIRED' });
+        }
+
+        const serialPathValidation = validateSerialPath(serialPath);
+        if (serialPathValidation) {
+          return res.status(400).json({ error: serialPathValidation.error });
         }
 
         const examples = await listExampleConfigs();

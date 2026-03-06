@@ -743,7 +743,8 @@
     "CORE_START_FAILED": "Failed to start the bridge.",
     "MQTT_CONNECT_FAILED": "Failed to connect to the MQTT broker.",
     "MQTT_AUTH_FAILED": "MQTT authentication failed.",
-    "MQTT_DISCONNECTED": "MQTT connection lost."
+    "MQTT_DISCONNECTED": "MQTT connection lost.",
+    "SERIAL_TCP_PORT_REQUIRED": "When using a TCP address, include a port number (e.g., 192.168.0.83:8899)."
   },
   "setup_wizard": {
     "title": "Initial Setup",
