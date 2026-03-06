@@ -207,6 +207,11 @@ export class MqttSubscriber {
         }
       }
 
+      // Light color temperature: Home Assistant uses color_temp_kelvin
+      if (targetEntity.type === 'light' && commandName === 'color_temp') {
+        commandName = 'color_temp_kelvin';
+      }
+
       // Fan Percentage -> speed
       if (targetEntity.type === 'fan' && commandName === 'percentage') {
         commandName = 'speed';

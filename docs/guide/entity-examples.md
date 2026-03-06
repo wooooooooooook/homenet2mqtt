@@ -455,17 +455,17 @@ light:
     state_on: { offset: 1, data: [0x01] }
     state_off: { offset: 1, data: [0x00] }
     state_brightness: { offset: 2, length: 1 }
-    state_color_temp: { offset: 3, length: 2 }  # mireds
+    state_color_temp_kelvin: { offset: 3, length: 2 }  # kelvin
     
-    min_mireds: 153  # 6500K (차가운 백색)
-    max_mireds: 500  # 2000K (따뜻한 백색)
+    min_color_temp_kelvin: 2000  # 따뜻한 백색
+    max_color_temp_kelvin: 6500  # 차가운 백색
     
     command_on: { data: [0x32, 0x01] }
     command_off: { data: [0x32, 0x00] }
     command_brightness:
       data: [0x32, 0x01, 0x00]
       value_offset: 2
-    command_color_temp:
+    command_color_temp_kelvin:
       data: [0x32, 0x01, 0x00, 0x00, 0x00]
       value_offset: 3
       length: 2
@@ -474,7 +474,7 @@ light:
 **지원하는 기능:**
 - **Brightness**: 0-255
 - **RGB Color**: Red, Green, Blue (각 0-255)
-- **Color Temperature**: mireds 단위
+- **Color Temperature**: kelvin 단위 (레거시 mired 설정도 호환)
 - **White Value**: 백색 채널
 - **Effects**: 이펙트 리스트
 

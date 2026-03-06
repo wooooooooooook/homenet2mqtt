@@ -64,7 +64,7 @@ describe('Light Entity', () => {
     const device = new LightDevice(lightConfig, protocolConfig);
     const packet = Buffer.from([0x30, 0x01, 0xff, 0x00, 0x00, 0x00, 0x01, 0xf4, 0x00]); // 500 mireds (0x01F4)
     const result = device.parseData(packet);
-    expect(result).toMatchObject({ color_temp: 500 });
+    expect(result).toMatchObject({ color_temp_kelvin: 2000 });
   });
 
   it('should parse white value', () => {
@@ -102,6 +102,12 @@ describe('Light Entity', () => {
   it('should construct color temp command', () => {
     const device = new LightDevice(lightConfig, protocolConfig);
     const command = device.constructCommand('color_temp', 500);
+    expect(command).toEqual([0x30, 0x03, 0x01, 0xf4]);
+  });
+
+  it('should construct color temp kelvin command using legacy mired schema', () => {
+    const device = new LightDevice(lightConfig, protocolConfig);
+    const command = device.constructCommand('color_temp_kelvin', 2000);
     expect(command).toEqual([0x30, 0x03, 0x01, 0xf4]);
   });
 

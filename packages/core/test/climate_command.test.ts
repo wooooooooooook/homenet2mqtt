@@ -58,6 +58,15 @@ describe('Climate Command Packet Generation', () => {
         rx_checksum: 'samsung_rx',
         tx_checksum: 'samsung_tx',
       },
+      light: [
+        {
+          id: 'light_1',
+          name: 'Light 1',
+          type: 'light',
+          state: { data: [0x30] },
+          command_color_temp: { data: [0x30, 0x03, 0x00, 0x00], value_offset: 2, length: 2 },
+        },
+      ],
       climate: [
         {
           id: 'room_0_heater',
@@ -106,6 +115,10 @@ describe('Climate Command Packet Generation', () => {
     mockPacketProcessor = {
       constructCommandPacket: vi.fn((entity, commandName, value) => {
         // Simulate command packet construction
+        if (entity.id === 'light_1' && commandName === 'color_temp_kelvin' && value !== undefined) {
+          return [0x30, 0x03, 0x01, 0xf4, 0x00];
+        }
+
         if (entity.id === 'room_0_heater') {
           if (commandName === 'off' && entity.command_off?.data) {
             // Return command_off data + checksum
@@ -213,4 +226,19 @@ describe('Climate Command Packet Generation', () => {
     expect(capturedCommands[1].command).toBe('temperature');
     expect(capturedCommands[1].value).toBe(22.5);
   });
+
+  it('should map light color_temp topic to color_temp_kelvin command', async () => {
+    const topic = 'homenet2mqtt/homedevice1/light_1/color_temp/set';
+    const message = Buffer.from('2000');
+
+    await (mqttSubscriber as any).handleMqttMessage(topic, message);
+
+    expect(mockPacketProcessor.constructCommandPacket).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'light_1' }),
+      'color_temp_kelvin',
+      2000,
+    );
+    expect(mockSerialPort.write).toHaveBeenCalled();
+  });
+
 });

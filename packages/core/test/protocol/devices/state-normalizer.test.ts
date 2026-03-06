@@ -66,14 +66,24 @@ describe('normalizeDeviceState', () => {
       });
     });
 
-    it('should normalize color temperature', () => {
+    it('should normalize color temperature kelvin directly', () => {
       const config = {
         type: 'light',
-        state_color_temp: { offset: 0, length: 1 },
+        state_color_temp_kelvin: { offset: 0, length: 2 },
       };
-      const payload = new Uint8Array([0x32]); // 50 decimal
+      const payload = new Uint8Array([0x0b, 0xb8]); // 3000K
       const result = normalizeDeviceState(config, payload, {});
-      expect(result).toEqual({ color_temp: 50 });
+      expect(result).toEqual({ color_temp_kelvin: 3000 });
+    });
+
+    it('should normalize legacy mired color temperature to kelvin', () => {
+      const config = {
+        type: 'light',
+        state_color_temp: { offset: 0, length: 2 },
+      };
+      const payload = new Uint8Array([0x01, 0xf4]); // 500 mireds
+      const result = normalizeDeviceState(config, payload, {});
+      expect(result).toEqual({ color_temp_kelvin: 2000 });
     });
   });
 

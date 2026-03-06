@@ -12,7 +12,13 @@ export interface LightEntity extends EntityConfig {
   state_brightness?: StateNumSchemaOrCEL;
   command_brightness?: CommandSchemaOrCEL;
 
-  // Color temperature support (mireds)
+  // Color temperature support (kelvin)
+  state_color_temp_kelvin?: StateNumSchemaOrCEL;
+  command_color_temp_kelvin?: CommandSchemaOrCEL;
+  min_color_temp_kelvin?: number;
+  max_color_temp_kelvin?: number;
+
+  // Deprecated: mired-based color temperature support
   state_color_temp?: StateNumSchemaOrCEL;
   command_color_temp?: CommandSchemaOrCEL;
   min_mireds?: number;
