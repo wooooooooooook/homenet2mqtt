@@ -325,7 +325,7 @@
           ]
         },
         "state_brightness": {
-          "description": "Numeric state schema that can be either a structured schema object or a CEL expression string.\nCEL expressions are evaluated at runtime to extract numeric values from packet data.",
+          "description": "[Deprecated] Numeric state schema in mireds. Prefer state_color_temp_kelvin.",
           "anyOf": [
             {
               "$ref": "#/definitions/StateNumSchema"
@@ -336,7 +336,7 @@
           ]
         },
         "command_brightness": {
-          "description": "Command schema that can be either a structured schema object or a CEL expression string.\nCEL expressions are evaluated at runtime to construct the command packet.\nFor commands, the CEL expression often constructs the raw bytes directly.",
+          "description": "[Deprecated] Command schema in mireds. Prefer command_color_temp_kelvin.",
           "anyOf": [
             {
               "$ref": "#/definitions/CommandSchema"
@@ -345,6 +345,34 @@
               "type": "string"
             }
           ]
+        },
+        "state_color_temp_kelvin": {
+          "description": "Numeric state schema for color temperature in kelvin.",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/StateNumSchema"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "command_color_temp_kelvin": {
+          "description": "Command schema for color temperature in kelvin.",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/CommandSchema"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "min_color_temp_kelvin": {
+          "type": "number"
+        },
+        "max_color_temp_kelvin": {
+          "type": "number"
         },
         "state_color_temp": {
           "description": "Numeric state schema that can be either a structured schema object or a CEL expression string.\nCEL expressions are evaluated at runtime to extract numeric values from packet data.",

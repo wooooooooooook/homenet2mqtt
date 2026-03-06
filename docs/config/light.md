@@ -9,7 +9,7 @@
 
 ## 옵션 필드 (상태)
 - 밝기: `state_brightness` — [`StateNumSchema`](./schemas.md#statenumschema).
-- 색온도(미레드): `state_color_temp` + `min_mireds`, `max_mireds`.
+- 색온도(켈빈): `state_color_temp_kelvin` + `min_color_temp_kelvin`, `max_color_temp_kelvin`. (구버전 호환: `state_color_temp`, `min_mireds`, `max_mireds`)
 - RGB: `state_red`, `state_green`, `state_blue` — 각각 `StateNumSchema`.
 - 화이트 채널: `state_white`.
 - 색상 모드: `state_color_mode` (`rgb`, `color_temp`, `white`).
@@ -17,7 +17,7 @@
 
 ## 옵션 필드 (명령)
 - 밝기: `command_brightness`.
-- 색온도: `command_color_temp`.
+- 색온도: `command_color_temp_kelvin`. (구버전 호환: `command_color_temp`)
 - RGB: `command_red`, `command_green`, `command_blue`.
 - 화이트 채널: `command_white`.
 - 효과: `command_effect`.
@@ -47,10 +47,11 @@
   - `rgb_command_topic`: `${MQTT_TOPIC_PREFIX}/${id}/rgb/set`
   - `rgb_value_template`: <code v-pre>{{ value_json.red }},{{ value_json.green }},{{ value_json.blue }}</code>
 - 색온도 지원 시
-  - `color_temp_state_topic`: `${MQTT_TOPIC_PREFIX}/${id}/state`
-  - `color_temp_command_topic`: `${MQTT_TOPIC_PREFIX}/${id}/color_temp/set`
-  - `color_temp_value_template`: <code v-pre>{{ value_json.color_temp }}</code>
-  - 선택: `min_mireds`, `max_mireds`
+  - `color_temp_kelvin_state_topic`: `${MQTT_TOPIC_PREFIX}/${id}/state`
+  - `color_temp_kelvin_command_topic`: `${MQTT_TOPIC_PREFIX}/${id}/color_temp_kelvin/set`
+  - `color_temp_kelvin_value_template`: <code v-pre>{{ value_json.color_temp_kelvin }}</code>
+  - 선택: `min_color_temp_kelvin`, `max_color_temp_kelvin`
+  - 레거시 설정(`min_mireds`, `max_mireds`) 사용 시 내부적으로 kelvin 값으로 변환되어 발행됩니다.
 - 효과 지원 시
   - `effect_list`
   - `effect_state_topic`: `${MQTT_TOPIC_PREFIX}/${id}/state`

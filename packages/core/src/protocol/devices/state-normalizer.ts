@@ -208,10 +208,18 @@ export const normalizeDeviceState = (
       }
     }
 
-    if (!normalized.color_temp && entityConfig.state_color_temp) {
+    if (!normalized.color_temp_kelvin && entityConfig.state_color_temp_kelvin) {
+      const colorTempKelvin = extractValue(payload, entityConfig.state_color_temp_kelvin, headerLen);
+      if (colorTempKelvin !== null) {
+        normalized.color_temp_kelvin = colorTempKelvin;
+      }
+    }
+
+    // Backward compatibility: legacy mireds field
+    if (!normalized.color_temp_kelvin && entityConfig.state_color_temp) {
       const colorTemp = extractValue(payload, entityConfig.state_color_temp, headerLen);
-      if (colorTemp !== null) {
-        normalized.color_temp = colorTemp;
+      if (typeof colorTemp === 'number' && colorTemp > 0) {
+        normalized.color_temp_kelvin = Math.round(1000000 / colorTemp);
       }
     }
 

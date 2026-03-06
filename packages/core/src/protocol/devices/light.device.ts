@@ -56,7 +56,28 @@ export class LightDevice extends GenericDevice {
       return this.framePacket(command);
     }
 
-    // Handle color temperature command
+    // Handle color temperature command (kelvin first, then legacy mireds)
+    if (
+      commandName === 'color_temp_kelvin' &&
+      typeof entityConfig.command_color_temp_kelvin !== 'string' &&
+      entityConfig.command_color_temp_kelvin?.data &&
+      value !== undefined
+    ) {
+      const command = [...entityConfig.command_color_temp_kelvin.data];
+      const valueOffset = (entityConfig.command_color_temp_kelvin as any).value_offset;
+      const length = (entityConfig.command_color_temp_kelvin as any).length || 2;
+      if (valueOffset !== undefined) {
+        const val = Math.round(value);
+        if (length === 2) {
+          command[valueOffset] = (val >> 8) & 0xff;
+          command[valueOffset + 1] = val & 0xff;
+        } else {
+          command[valueOffset] = val;
+        }
+      }
+      return this.framePacket(command);
+    }
+
     if (
       commandName === 'color_temp' &&
       typeof entityConfig.command_color_temp !== 'string' &&
@@ -73,6 +94,27 @@ export class LightDevice extends GenericDevice {
           command[valueOffset + 1] = val & 0xff;
         } else {
           command[valueOffset] = val;
+        }
+      }
+      return this.framePacket(command);
+    }
+
+    if (
+      commandName === 'color_temp_kelvin' &&
+      typeof entityConfig.command_color_temp !== 'string' &&
+      entityConfig.command_color_temp?.data &&
+      value !== undefined
+    ) {
+      const command = [...entityConfig.command_color_temp.data];
+      const valueOffset = (entityConfig.command_color_temp as any).value_offset;
+      const length = (entityConfig.command_color_temp as any).length || 2;
+      if (valueOffset !== undefined) {
+        const mired = Math.round(1000000 / Math.max(1, Number(value)));
+        if (length === 2) {
+          command[valueOffset] = (mired >> 8) & 0xff;
+          command[valueOffset + 1] = mired & 0xff;
+        } else {
+          command[valueOffset] = mired;
         }
       }
       return this.framePacket(command);

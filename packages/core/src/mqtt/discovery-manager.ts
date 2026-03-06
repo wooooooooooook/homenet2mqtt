@@ -396,17 +396,27 @@ export class DiscoveryManager {
             '{{ value_json.red }},{{ value_json.green }},{{ value_json.blue }}';
         }
 
-        // Color temperature support (mireds)
-        if (entity.state_color_temp || entity.command_color_temp) {
-          payload.color_temp_state_topic = `${this.mqttTopicPrefix}/${id}/state`;
-          payload.color_temp_command_topic = `${this.mqttTopicPrefix}/${id}/color_temp/set`;
-          payload.color_temp_value_template = '{{ value_json.color_temp }}';
+        // Color temperature support (kelvin)
+        if (
+          entity.state_color_temp_kelvin ||
+          entity.command_color_temp_kelvin ||
+          entity.state_color_temp ||
+          entity.command_color_temp
+        ) {
+          payload.color_temp_kelvin_state_topic = `${this.mqttTopicPrefix}/${id}/state`;
+          payload.color_temp_kelvin_command_topic = `${this.mqttTopicPrefix}/${id}/color_temp_kelvin/set`;
+          payload.color_temp_kelvin_value_template = '{{ value_json.color_temp_kelvin }}';
 
-          if (entity.min_mireds !== undefined) {
-            payload.min_mireds = entity.min_mireds;
+          if (entity.min_color_temp_kelvin !== undefined) {
+            payload.min_color_temp_kelvin = entity.min_color_temp_kelvin;
+          } else if (entity.max_mireds !== undefined && entity.max_mireds > 0) {
+            payload.min_color_temp_kelvin = Math.round(1000000 / entity.max_mireds);
           }
-          if (entity.max_mireds !== undefined) {
-            payload.max_mireds = entity.max_mireds;
+
+          if (entity.max_color_temp_kelvin !== undefined) {
+            payload.max_color_temp_kelvin = entity.max_color_temp_kelvin;
+          } else if (entity.min_mireds !== undefined && entity.min_mireds > 0) {
+            payload.max_color_temp_kelvin = Math.round(1000000 / entity.min_mireds);
           }
         }
 

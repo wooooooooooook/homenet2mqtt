@@ -101,6 +101,16 @@ describe('DiscoveryManager', () => {
           state: {},
         },
         {
+          id: 'ct_light',
+          name: 'Color Temp Light',
+          type: 'light',
+          discovery_always: true,
+          state: {},
+          state_color_temp: { offset: 3, length: 2 },
+          min_mireds: 153,
+          max_mireds: 500,
+        },
+        {
           id: 'skipped_switch',
           name: 'Skipped Switch',
           type: 'switch',
@@ -272,4 +282,24 @@ describe('DiscoveryManager', () => {
     expect(payload.preset_mode_state_topic).toBe('homenet2mqtt/homedevice1/climate_custom/state');
     expect(payload.preset_mode_value_template).toBe('{{ value_json.preset_mode }}');
   });
+
+  it('라이트 색온도 Discovery는 kelvin 필드를 사용한다', () => {
+    discoveryManager.discover();
+
+    const topic = 'homeassistant/light/homenet_main_ct_light/config';
+    const call = mockPublisher.publish.mock.calls.find((args: any[]) => args[0] === topic);
+    expect(call).toBeDefined();
+
+    const payload = JSON.parse(call[1]);
+    expect(payload.color_temp_kelvin_state_topic).toBe('homenet2mqtt/homedevice1/ct_light/state');
+    expect(payload.color_temp_kelvin_command_topic).toBe(
+      'homenet2mqtt/homedevice1/ct_light/color_temp_kelvin/set',
+    );
+    expect(payload.color_temp_kelvin_value_template).toBe('{{ value_json.color_temp_kelvin }}');
+    expect(payload.min_color_temp_kelvin).toBe(2000);
+    expect(payload.max_color_temp_kelvin).toBe(6536);
+    expect(payload.min_mireds).toBeUndefined();
+    expect(payload.max_mireds).toBeUndefined();
+  });
+
 });
