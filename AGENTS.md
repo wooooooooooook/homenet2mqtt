@@ -11,3 +11,4 @@ TypeScript (ESM, 2-space).
 No hardcoded config.
 Inject typed options.
 Test with Vitest.
+After modifying code, run `pnpm format` to format all packages.

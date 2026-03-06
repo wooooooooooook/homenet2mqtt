@@ -2,6 +2,10 @@
 - 한달정도 특별한 오류가 없으면 beta 딱지를 떼고 stable로 승격시킬 예정입니다.
 - 오류가 있으면 homeasssutant 카페, 깃헙, 디스코드 등으로 알려주세요.
 
+v2.9.0
+- feat: light 엔티티에 color_temp가 mired대신 kelvin을 사용하도록 수정. 
+- 기타 성능 최적화 및 버그수정
+
 v2.8.5
 - fix: entity에 packet_parameters로 정의한 tx_checksum등의 override가 무시되던 문제 수정.
 - 기타 성능 최적화
