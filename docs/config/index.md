@@ -1,17 +1,27 @@
-# 엔티티별 설정 스키마 가이드
+# 설정 가이드
 
-이 디렉터리는 homenet2mqtt에서 지원하는 엔티티 타입마다 YAML 설정을 작성하는 방법을 정리합니다.
+> 이 섹션에서 무엇을 해결하나요?
+>
+> - YAML 설정을 처음부터 작성할 때 필요한 최소 흐름을 제시합니다.
+> - 공통 개념(Serial, Packet Defaults, 스키마)을 먼저 익히고 엔티티 설정으로 확장합니다.
+> - 엔티티 타입별 문서를 레퍼런스로 빠르게 찾을 수 있습니다.
 
-## 문서 목록
-### 공통 상위 설정
+## 먼저 읽기 (권장 순서)
+
+1. [최소 동작 설정](./minimal-config.md)
+2. [공통 엔티티 옵션](./common-entity-options.md)
+3. 필요한 [엔티티 타입 문서](#엔티티-타입-레퍼런스)
+
+## 핵심 개념
+
 - [Serial](./serial.md)
 - [Packet Defaults](./packet-defaults.md)
-- [공통 엔티티 옵션](./common-entity-options.md)
 - [State/Command 스키마 정의](./schemas.md)
 - [CEL 가이드](../guide/cel-guide.md)
 - [Automation](../guide/automation.md)
 
-### 엔티티별
+## 엔티티 타입 레퍼런스
+
 - [Binary Sensor](./binary-sensor.md)
 - [Button](./button.md)
 - [Climate](./climate.md)
@@ -26,10 +36,8 @@
 - [Text Sensor](./text-sensor.md)
 - [Valve](./valve.md)
 
-### 활용 팁
-1. 기본 시리얼, 헤더/푸터, 체크섬 등 공통 설정은 상위 `homenet_bridge.packet_defaults`에서 정의하고, 엔티티 블록은 필요한 필드만 오버라이드합니다.
-2. [모든 엔티티 공통 필드](./common-entity-options.md): `id`, `name`, `discovery_always`, `packet_parameters` 등 모든 엔티티 타입에서 공통으로 사용할 수 있는 설정에 대한 자세한 설명입니다.
-3. `state*`/`command*` 필드는 [State/Command 스키마 정의](./schemas.md)에 따라 작성하거나 CEL 표현식으로 대체합니다. CEL로 체크섬을 계산하거나 조건부 패킷을 생성할 수 있습니다.
-4. 예제를 그대로 복사하기보다 현장 장비 패킷 구조(오프셋, 길이, 비트마스크)를 확인한 뒤 값을 맞춰 넣으세요.
-5. **수치 vs 텍스트**: 온도, 전력량, 층수 등 **숫자 데이터**는 [`sensor`](./sensor.md)를 사용하고, 엘리베이터 방향(`상승`, `정지`) 등 **문자열 데이터**는 [`text-sensor`](./text-sensor.md)를 사용하세요.
-   - 숫자 데이터에 `text-sensor`를 사용하면 Home Assistant에서 그래프(기록)가 정상적으로 표시되지 않습니다.
+## 활용 팁
+
+1. 공통 설정은 `homenet_bridge.packet_defaults`에 모으고 엔티티에서 필요한 필드만 오버라이드하세요.
+2. 숫자 값은 `sensor`, 문자열 값은 `text-sensor`를 사용해야 Home Assistant 그래프와 히스토리가 정상 동작합니다.
+3. 처음에는 최소 구성으로 성공한 뒤 엔티티를 한 개씩 추가하는 방식이 가장 안전합니다.

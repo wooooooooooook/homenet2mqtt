@@ -1,18 +1,29 @@
-# 소개 (Introduction)
+# 소개
 
-RS485 기반의 월패드(홈넷) 신호를 MQTT 메시지로 변환하여 Home Assistant 등에서 제어하고 모니터링할 수 있게 해주는 브릿지 솔루션입니다.
+> 이 섹션에서 무엇을 해결하나요?
+>
+> - Homenet2MQTT가 어떤 문제를 해결하는지 이해합니다.
+> - 설치 전에 알아야 할 하드웨어/네트워크 전제를 정리합니다.
+> - 권장 문서 읽기 순서를 확인합니다.
 
-## 🛠️ 주요 기능
+## 권장 읽기 순서
 
-- **Web UI 기반 설정**: 복잡한 설정 없이 브라우저에서 마법사를 통해 간편하게 설정 가능.
-- **Home Assistant 자동 발견**: 설정 완료 시 HA에 기기들이 자동으로 등록됩니다.
-- **다양한 프로토콜 지원**: Commax, Kocom 등 국내 주요 월패드 프로토콜 지원 및 확장 가능.
-- **실시간 모니터링**: Web UI를 통해 RS485 패킷의 흐름을 실시간으로 확인 가능.
+1. [5분 빠른 시작](./quick-start.md)
+2. [Home Assistant Add-on 설치](./install-addon.md) 또는 [Docker 설치](./install-docker.md)
+3. [초기 연결 확인](./getting-started.md)
+4. [환경변수 레퍼런스](./environment-variables.md)
+5. [트러블슈팅](./troubleshooting.md)
 
-## 🛠️ 준비물
+## Homenet2MQTT란?
 
-- **RS485 USB Serial 장치** 또는 **EW11** 같은 TCP-Serial 변환 장치
-- **USB 장치**: HA에 연결한 후 `설정` > `시스템` > `하드웨어` > `모든 하드웨어`에서 `tty`로 검색했을 때 나오는 경로(예: `/dev/ttyUSB0`)를 사용합니다.
-- **TCP-Serial 변환 장치(EW11 등)**: 장치의 IP 주소와 포트 번호를 사용합니다. (EW11 기본값: `아이피주소:8899`)
-- **MQTT 브로커**: HA 내장 `Mosquitto broker` 애드온 사용을 권장합니다.
-- **H2M을 실행할 서버**: HA가 설치된 서버 또는 별도의 서버
+Homenet2MQTT는 RS485 기반 월패드(홈넷) 신호를 MQTT 메시지로 변환해 Home Assistant에서 제어/모니터링할 수 있게 해주는 브릿지입니다.
+
+## 준비물
+
+- RS485 USB Serial 장치 또는 TCP-Serial 변환 장치(EW11 등)
+- MQTT 브로커(권장: Home Assistant Mosquitto add-on)
+- Homenet2MQTT 실행 환경(Add-on 또는 Docker)
+
+## 다음 단계
+
+- 빠르게 성공 사례부터 만들고 싶다면 [5분 빠른 시작](./quick-start.md)으로 이동하세요.

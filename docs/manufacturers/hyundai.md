@@ -1,3 +1,14 @@
+## 빠른 요약
+
+- 지원 기능: 조명, 스위치, 난방 등 기본 엔티티부터 순차 적용 권장
+- 필수 옵션: `serial.path`, `packet_defaults`, 엔티티별 헤더/체크섬
+- 자주 틀리는 설정: 헤더 오프셋, 길이 바이트, 체크섬 계산 방식
+- 검증 절차: 패킷 모니터 수신 확인 → 명령 전송 → 상태 응답 검증
+
+> 공통 점검: [트러블슈팅](../guide/troubleshooting.md)
+
+---
+
 ## 현대통신 - 힐스테이트
 ## references
 [요겨님 정리](https://yogyui.tistory.com/category/%ED%99%88%EB%84%A4%ED%8A%B8%EC%9B%8C%ED%81%AC%28IoT%29/%ED%9E%90%EC%8A%A4%ED%85%8C%EC%9D%B4%ED%8A%B8%20%EA%B4%91%EA%B5%90%EC%82%B0)

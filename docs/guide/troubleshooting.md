@@ -1,5 +1,26 @@
 # 자주 묻는 질문 (Troubleshooting)
 
+## 빠른 점검 순서
+
+1. [환경변수 레퍼런스](./environment-variables.md) 기준으로 `MQTT_URL`, `CONFIG_FILES`, `LOG_LEVEL` 값을 먼저 확인합니다.
+2. 로그 레벨을 `debug`로 올려 실제 에러 코드를 확인합니다.
+3. 아래 에러 코드 표에서 원인과 조치 방법을 따라 점검합니다.
+
+## 에러 코드 기반 진단표
+
+| 에러 코드 | 의미 | 주요 원인 | 즉시 조치 |
+|---|---|---|---|
+| `SERIAL_PATH_MISSING` | serial.path 누락 | YAML 설정 누락/오타 | 설정 파일의 `serial.path` 확인 |
+| `SERIAL_PATH_NOT_FOUND` | 장치 경로를 찾을 수 없음 | `/dev/ttyUSB0` 미존재, 장치 미인식 | 실제 장치 경로 재확인, 컨테이너 장치 매핑 확인 |
+| `SERIAL_PERMISSION_DENIED` | 장치 접근 권한 부족 | 권한/그룹 미설정 | `dialout` 그룹 및 권한 확인 |
+| `SERIAL_PORT_BUSY` | 포트 사용 중 | 다른 프로세스가 점유 | 점유 프로세스 종료 후 재시작 |
+| `SERIAL_HOST_NOT_FOUND` | TCP-Serial 호스트 해석 실패 | IP/호스트명 오타 | `serial.path`의 호스트 재확인 |
+| `SERIAL_CONNECTION_REFUSED` | TCP 연결 거부 | 포트 미오픈/방화벽 | EW11/변환기 포트 상태 확인 |
+| `SERIAL_CONNECTION_TIMEOUT` | TCP 연결 시간 초과 | 네트워크 지연/장치 응답 없음 | 네트워크 확인, 타임아웃 상향 |
+| `MQTT_AUTH_FAILED` | MQTT 인증 실패 | 계정/비밀번호 오류 | `MQTT_USER`, `MQTT_PASSWD` 재확인 |
+| `MQTT_CONNECT_FAILED` | MQTT 연결 실패 | 주소/포트/브로커 상태 문제 | `MQTT_URL` 및 브로커 상태 확인 |
+| `MQTT_DISCONNECTED` | MQTT 연결 끊김 | 브로커 재시작/네트워크 불안정 | 브로커 로그 확인, 자동 재연결 상태 점검 |
+
 ## 1. "Permission denied" 또는 시리얼 포트 열기 실패
 
 - **증상**: Docker 컨테이너 로그에 `Error: Permission denied, cannot open /dev/ttyUSB0` 와 같은 에러가 발생합니다.

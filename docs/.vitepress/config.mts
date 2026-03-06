@@ -6,26 +6,67 @@ export default defineConfig({
 
   themeConfig: {
     nav: [
-      { text: "Home", link: "/" },
-      { text: "Guide", link: "/guide/introduction" },
-      { text: "Configuration", link: "/config/" },
-      { text: "Manufacturers", link: "/manufacturers/bestin" }
+      { text: "홈", link: "/" },
+      { text: "시작하기", link: "/guide/quick-start" },
+      { text: "설치", link: "/guide/install-addon" },
+      { text: "설정", link: "/config/" },
+      { text: "제조사", link: "/manufacturers/index" },
+      { text: "운영/문제해결", link: "/guide/troubleshooting" },
+      { text: "참고", link: "/guide/introduction" }
     ],
 
     sidebar: {
-      "/config/": [
+      "/guide/": [
         {
-          text: "Configuration",
+          text: "시작하기",
           items: [
-            { text: "Overview", link: "/config/" },
-            { text: "Schemas", link: "/config/schemas" },
-            { text: "Packet Defaults", link: "/config/packet-defaults" },
-            { text: "Common Options", link: "/config/common-entity-options" },
-            { text: "Serial Options", link: "/config/serial" }
+            { text: "5분 빠른 시작", link: "/guide/quick-start" },
+            { text: "사전 준비", link: "/guide/introduction" }
           ]
         },
         {
-          text: "Entity Types",
+          text: "설치 방법",
+          items: [
+            { text: "Home Assistant Add-on 설치", link: "/guide/install-addon" },
+            { text: "Docker 설치", link: "/guide/install-docker" }
+          ]
+        },
+        {
+          text: "운영 가이드",
+          items: [
+            { text: "초기 연결 확인", link: "/guide/getting-started" },
+            { text: "환경변수 레퍼런스", link: "/guide/environment-variables" },
+            { text: "고급 설정", link: "/guide/advanced-setup" },
+            { text: "자동화", link: "/guide/automation" },
+            { text: "엔티티 예제", link: "/guide/entity-examples" },
+            { text: "CEL 가이드", link: "/guide/cel-guide" },
+            { text: "스크립트", link: "/guide/scripts" },
+            { text: "갤러리", link: "/guide/gallery" },
+            { text: "성능 최적화", link: "/guide/optimization" },
+            { text: "트러블슈팅", link: "/guide/troubleshooting" },
+            { text: "변경사항", link: "/guide/breaking-changes" }
+          ]
+        }
+      ],
+      "/config/": [
+        {
+          text: "처음 설정하기",
+          items: [
+            { text: "설정 개요", link: "/config/" },
+            { text: "최소 동작 설정", link: "/config/minimal-config" }
+          ]
+        },
+        {
+          text: "핵심 개념",
+          items: [
+            { text: "Serial 옵션", link: "/config/serial" },
+            { text: "Packet Defaults", link: "/config/packet-defaults" },
+            { text: "State/Command 스키마", link: "/config/schemas" },
+            { text: "공통 엔티티 옵션", link: "/config/common-entity-options" }
+          ]
+        },
+        {
+          text: "엔티티 타입 레퍼런스",
           items: [
             { text: "Binary Sensor", link: "/config/binary-sensor" },
             { text: "Button", link: "/config/button" },
@@ -45,8 +86,9 @@ export default defineConfig({
       ],
       "/manufacturers/": [
         {
-          text: "Manufacturer Guides",
+          text: "제조사 선택 가이드",
           items: [
+            { text: "제조사 허브", link: "/manufacturers/index" },
             { text: "Bestin", link: "/manufacturers/bestin" },
             { text: "Commax", link: "/manufacturers/commax" },
             { text: "CVnet", link: "/manufacturers/cvnet" },
@@ -54,28 +96,6 @@ export default defineConfig({
             { text: "Hyundai", link: "/manufacturers/hyundai" },
             { text: "Kocom", link: "/manufacturers/kocom" },
             { text: "Samsung SDS", link: "/manufacturers/samsung_sds" }
-          ]
-        }
-      ],
-      "/guide/": [
-        {
-          text: "Introduction",
-          items: [
-            { text: "Introduction", link: "/guide/introduction" },
-            { text: "Getting Started", link: "/guide/getting-started" },
-            { text: "Troubleshooting", link: "/guide/troubleshooting" }
-          ]
-        },
-        {
-          text: "Advanced",
-          items: [
-            { text: "Automation", link: "/guide/automation" },
-            { text: "CEL Guide", link: "/guide/cel-guide" },
-            { text: "Scripts", link: "/guide/scripts" },
-            { text: "Entity Examples", link: "/guide/entity-examples" },
-            { text: "Gallery", link: "/guide/gallery" },
-            { text: "Optimization", link: "/guide/optimization" },
-            { text: "Breaking Changes", link: "/guide/breaking-changes" }
           ]
         }
       ]
