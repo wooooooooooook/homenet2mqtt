@@ -12,7 +12,8 @@ export default defineConfig({
       { text: "설정", link: "/config/" },
       { text: "제조사", link: "/manufacturers/index" },
       { text: "운영/문제해결", link: "/guide/troubleshooting" },
-      { text: "참고", link: "/guide/introduction" }
+      { text: "참고", link: "/guide/introduction" },
+      { text: "☕ 후원", link: "/sponsor" }
     ],
 
     sidebar: {
@@ -95,6 +96,14 @@ export default defineConfig({
             { text: "Hyundai", link: "/manufacturers/hyundai" },
             { text: "Kocom", link: "/manufacturers/kocom" },
             { text: "Samsung SDS", link: "/manufacturers/samsung_sds" }
+          ]
+        }
+      ],
+      "/sponsor": [
+        {
+          text: "후원 안내",
+          items: [
+            { text: "☕ 후원하기", link: "/sponsor" }
           ]
         }
       ],
