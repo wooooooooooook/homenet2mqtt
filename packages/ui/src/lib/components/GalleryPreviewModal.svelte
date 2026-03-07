@@ -540,6 +540,9 @@
         for (const match of matches) {
           let selectedTarget = match.matchedId;
 
+          const hasMatchedTarget = Boolean(match.matchedId);
+          const canRecommendOverwrite = hasMatchedTarget && !usedTargets.has(match.matchedId);
+
           // If no matchedId (New Item), default to first candidate if available
           if (!selectedTarget && match.candidates && match.candidates.length > 0) {
             // Find first unused candidate if possible
@@ -555,8 +558,10 @@
             }
           }
 
-          // Default action: 'overwrite' if matchedId exists (Conflict/High Match), otherwise 'add'
-          actions[match.id] = match.matchedId ? 'overwrite' : 'add';
+          // Default action:
+          // - 'overwrite' only when matched target is not already recommended to another snippet
+          // - otherwise 'add' to avoid duplicate overwrite recommendations
+          actions[match.id] = canRecommendOverwrite ? 'overwrite' : 'add';
           targets[match.id] = selectedTarget;
 
           // Mark target as used if we are overwriting by default
