@@ -46,6 +46,7 @@
     onToggleEntities,
     onToggleAutomations,
     onToggleScripts,
+    onBrowseGallery,
     hideAutomationScripts = false,
     showInternal = false,
   }: {
@@ -81,6 +82,7 @@
     onToggleEntities?: () => void;
     onToggleAutomations?: () => void;
     onToggleScripts?: () => void;
+    onBrowseGallery?: () => void;
     hideAutomationScripts?: boolean;
     showInternal?: boolean;
   } = $props();
@@ -350,6 +352,11 @@
 
   function closeAddModal() {
     isAddModalOpen = false;
+  }
+
+  function handleBrowseGallery() {
+    closeAddModal();
+    onBrowseGallery?.();
   }
 
   function buildYamlTemplate(category: EntityCategory, entityType?: string) {
@@ -642,7 +649,12 @@
       <div class="modal-body">
         {#if addStep === 'select-category'}
           <section class="add-modal-section">
-            <h3>{$t('dashboard.add_modal.select_category')}</h3>
+            <div class="section-header-with-action">
+              <h3>{$t('dashboard.add_modal.select_category')}</h3>
+              <Button variant="outline-primary" onclick={handleBrowseGallery}>
+                {$t('dashboard.add_modal.browse_gallery')}
+              </Button>
+            </div>
             <div class="add-option-grid">
               <button
                 type="button"
@@ -1335,6 +1347,14 @@
     gap: 0.75rem;
     flex-wrap: wrap;
     justify-content: center;
+  }
+
+  .section-header-with-action {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
   }
 
   .section-header-with-desc {

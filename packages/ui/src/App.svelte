@@ -1967,6 +1967,7 @@
             onToggleEntities={toggleEntityCards}
             onToggleAutomations={toggleAutomationCards}
             onToggleScripts={toggleScriptCards}
+            onBrowseGallery={() => (activeView = 'gallery')}
           />
         {:else if activeView === 'analysis'}
           <Analysis

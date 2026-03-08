@@ -528,6 +528,7 @@
       "close": "닫기",
       "back": "이전",
       "select_category": "추가할 항목 선택",
+      "browse_gallery": "갤러리에서 추가가능한 항목 살펴보기",
       "select_device_type": "디바이스 타입 선택",
       "category_entity": "엔티티",
       "category_entity_desc": "RS485 장치 엔티티 추가",

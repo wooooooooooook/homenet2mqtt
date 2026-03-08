@@ -528,6 +528,7 @@
       "close": "Close",
       "back": "Back",
       "select_category": "Select what to add",
+      "browse_gallery": "Browse addable items in Gallery",
       "select_device_type": "Select a device type",
       "category_entity": "Entity",
       "category_entity_desc": "Add an RS485 device entity",
