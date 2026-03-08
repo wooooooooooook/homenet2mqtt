@@ -61,6 +61,7 @@ export default defineConfig({
           items: [
             { text: "Serial 옵션", link: "/config/serial" },
             { text: "Packet Defaults", link: "/config/packet-defaults" },
+            { text: "유효 패킷 탐지 전략", link: "/config/packet-validation-strategies" },
             { text: "State/Command 스키마", link: "/config/schemas" },
             { text: "공통 엔티티 옵션", link: "/config/common-entity-options" }
           ]
