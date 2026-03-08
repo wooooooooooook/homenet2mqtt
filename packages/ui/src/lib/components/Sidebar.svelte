@@ -86,7 +86,7 @@
     <p class="sponsor-title">☕ 개발자 후원하기</p>
     <p class="sponsor-desc">카카오페이로 후원해 주세요</p>
     <button type="button" class="sponsor-qr-btn" onclick={handleSponsorClick} aria-label="후원하기">
-      <img src="/kakaopay-qr.png" alt="카카오페이 후원 QR코드" class="sponsor-qr" />
+      <img src="./kakaopay-qr.png" alt="카카오페이 후원 QR코드" class="sponsor-qr" />
     </button>
     <p class="sponsor-hint">{isMobile ? '탭하여 후원' : '클릭하면 크게 볼 수 있어요'}</p>
   </div>
@@ -107,7 +107,7 @@
         aria-label="닫기"
         onclick={() => (showSponsorModal = false)}>✕</button
       >
-      <img src="/kakaopay-qr.png" alt="카카오페이 후원 QR코드" class="sponsor-modal-img" />
+      <img src="./kakaopay-qr.png" alt="카카오페이 후원 QR코드" class="sponsor-modal-img" />
       <p class="sponsor-modal-label">homenet2mqtt 개발자 후원하기</p>
     </div>
   </div>

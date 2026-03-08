@@ -11,7 +11,7 @@
 아래 QR코드를 스마트폰으로 스캔하거나, 버튼을 클릭하여 후원할 수 있습니다.
 
 <div style="text-align: center; margin: 32px 0;">
-  <img src="/kakaopay-qr.png" alt="카카오페이 후원 QR코드" style="width: 220px; height: auto; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.12);" />
+  <img src="./public/kakaopay-qr.png" alt="카카오페이 후원 QR코드" style="width: 220px; height: auto; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.12);" />
   <p style="margin-top: 16px;">
     <a href="https://qr.kakaopay.com/Ej7qgjcVK" target="_blank" rel="noopener noreferrer"
        style="display: inline-block; padding: 10px 24px; border-radius: 8px; background: #fee500; color: #1a1a1a; font-weight: 700; text-decoration: none; font-size: 15px;">
