@@ -91,6 +91,7 @@
     >
       <span class="icon" aria-hidden="true">📚</span>
       <span class="label">{$t('sidebar.docs')}</span>
+      <span class="external-link-icon" aria-hidden="true">↗</span>
     </a>
   </nav>
 
@@ -125,7 +126,9 @@
           href={sponsorUrl}
           target="_blank"
           rel="noopener noreferrer"
-          class="sponsor-modal-text-link">homenet2mqtt 개발자 후원하기</a
+          class="sponsor-modal-text-link"
+          >homenet2mqtt 개발자 후원하기 <span class="external-link-icon" aria-hidden="true">↗</span
+          ></a
         >
       </p>
     </div>
@@ -340,6 +343,11 @@
     color: inherit;
     text-decoration: underline;
     text-underline-offset: 2px;
+  }
+
+  .external-link-icon {
+    font-size: 0.8em;
+    opacity: 0.9;
   }
 
   .sponsor-modal-text-link:hover {
