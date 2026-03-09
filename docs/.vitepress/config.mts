@@ -3,8 +3,20 @@ import { defineConfig } from "vitepress"
 export default defineConfig({
   title: "Homenet2MQTT",
   description: "RS485 HomeNet to MQTT Bridge Documentation",
+  lastUpdated: true,
 
   themeConfig: {
+    lastUpdated: {
+      text: '마지막 업데이트',
+      formatOptions: {
+        dateStyle: 'full',
+        timeStyle: 'short'
+      }
+    },
+    editLink: {
+      pattern: 'https://github.com/wooooooooooook/homenet2mqtt/edit/main/docs/:path',
+      text: '이 페이지 수정하기'
+    },
     nav: [
       { text: "홈", link: "/" },
       { text: "시작하기", link: "/guide/quick-start" },
