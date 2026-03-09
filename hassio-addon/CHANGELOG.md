@@ -142,7 +142,7 @@ v2.0.0
 - ## **🚨Breaking change**
   - offset의 해석의 일관성을 위해 수정사항이 있으며 이로인해 설정이 깨졌을수 있습니다!
   - 모든 offset은 헤더를 포함한 수신패킷 전체의 0-based index로 해석됩니다.
-  - [Breaking change 안내](https://homenet2mqtt-docs.vercel.app/breaking-changes.html)
+  - [Breaking change 안내](https://github.com/wooooooooooook/homenet2mqtt/blob/main/docs/BREAKING_CHANGES.md)
     > **요약**
     >
     > 대상: **kocom, betin, cvnet, ezville, 현대통신**
