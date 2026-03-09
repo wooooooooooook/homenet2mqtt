@@ -581,11 +581,13 @@ export class LogRetentionService {
         files.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
         const toDelete = files.slice(0, files.length - this.retentionCount);
-        for (const file of toDelete) {
-          const filePath = path.join(this.logsSubDir, file.filename);
-          await fsp.unlink(filePath);
-          logger.info(`[LogRetention] Deleted old cache log: ${file.filename}`);
-        }
+        await Promise.all(
+          toDelete.map(async (file) => {
+            const filePath = path.join(this.logsSubDir, file.filename);
+            await fsp.unlink(filePath);
+            logger.info(`[LogRetention] Deleted old cache log: ${file.filename}`);
+          }),
+        );
       }
     } catch (error) {
       logger.error({ err: error }, '[LogRetention] Failed to cleanup old files');
@@ -648,15 +650,8 @@ export class LogRetentionService {
     // Files are already sorted by createdAt (newest first) from listSavedFiles
     const targets = mode === 'all' ? files : files.slice(Math.max(keepCount, 0));
 
-    let deletedCount = 0;
-    for (const file of targets) {
-      const success = await this.deleteFile(file.filename);
-      if (success) {
-        deletedCount++;
-      }
-    }
-
-    return deletedCount;
+    const results = await Promise.all(targets.map((file) => this.deleteFile(file.filename)));
+    return results.filter(Boolean).length;
   }
 
   public destroy() {
