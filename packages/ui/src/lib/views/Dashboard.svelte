@@ -187,11 +187,10 @@
   });
 
   const currentDocUrl = $derived.by<string | null>(() => {
-    const baseUrl = 'https://github.com/wooooooooooook/homenet2mqtt/blob/main/docs';
-    if (selectedCategory === 'automation') return `${baseUrl}/AUTOMATION.md`;
-    if (selectedCategory === 'script') return `${baseUrl}/SCRIPTS.md`;
-    if (selectedEntityType)
-      return `${baseUrl}/config-schema/${selectedEntityType.replace('_', '-')}.md`;
+    const baseUrl = 'https://homenet2mqtt-docs.vercel.app';
+    if (selectedCategory === 'automation') return `${baseUrl}/guide/automation.html`;
+    if (selectedCategory === 'script') return `${baseUrl}/guide/scripts.html`;
+    if (selectedEntityType) return `${baseUrl}/config/${selectedEntityType.replace('_', '-')}.html`;
     return null;
   });
 

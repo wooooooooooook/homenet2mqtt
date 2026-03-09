@@ -788,10 +788,10 @@
   });
 
   const currentDocUrl = $derived.by<string | null>(() => {
-    const baseUrl = 'https://github.com/wooooooooooook/homenet2mqtt/blob/main/docs';
-    if (isAutomation) return `${baseUrl}/AUTOMATION.md`;
-    if (isScript) return `${baseUrl}/SCRIPTS.md`;
-    if (entity.type) return `${baseUrl}/config-schema/${entity.type.replace('_', '-')}.md`;
+    const baseUrl = 'https://homenet2mqtt-docs.vercel.app';
+    if (isAutomation) return `${baseUrl}/guide/automation.html`;
+    if (isScript) return `${baseUrl}/guide/scripts.html`;
+    if (entity.type) return `${baseUrl}/config/${entity.type.replace('_', '-')}.html`;
     return null;
   });
 </script>
