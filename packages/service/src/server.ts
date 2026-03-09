@@ -288,12 +288,24 @@ async function checkAndFixDuplicatePortIds(
   const portIdUpdates: { pathIndex: number; originalPortId: string; newPortId: string }[] = [];
 
   // Step 1: Read each config file and collect portIds, checking for duplicates
-  for (let i = 0; i < resolvedPaths.length; i++) {
-    const configPath = resolvedPaths[i];
+  const fileContents = await Promise.all(
+    resolvedPaths.map((configPath) =>
+      fs.readFile(configPath, 'utf8').catch((err) => {
+        // Ignore file read errors (will be handled in loadAndStartBridges)
+        logger.debug({ err, configPath }, '[service] Failed to read config for portId check');
+        return null;
+      }),
+    ),
+  );
+
+  for (let i = 0; i < fileContents.length; i++) {
+    const fileContent = fileContents[i];
+    if (fileContent === null) continue;
+
     const filename = filenames[i];
+    const configPath = resolvedPaths[i];
 
     try {
-      const fileContent = await fs.readFile(configPath, 'utf8');
       const loadedYaml = yaml.load(fileContent) as { homenet_bridge?: HomenetBridgeConfig };
 
       if (!loadedYaml?.homenet_bridge?.serial) {
@@ -333,8 +345,7 @@ async function checkAndFixDuplicatePortIds(
         usedPortIds.set(portId, { filename, index: i });
       }
     } catch (err) {
-      // Ignore file read errors (will be handled in loadAndStartBridges)
-      logger.debug({ err, configPath }, '[service] Failed to read config for portId check');
+      logger.debug({ err, configPath }, '[service] Failed to parse YAML for portId check');
     }
   }
 
@@ -343,38 +354,40 @@ async function checkAndFixDuplicatePortIds(
     return { needsRestart: false, fixedFiles: [] };
   }
 
-  for (const update of portIdUpdates) {
-    const configPath = resolvedPaths[update.pathIndex];
-    const filename = filenames[update.pathIndex];
+  await Promise.all(
+    portIdUpdates.map(async (update) => {
+      const configPath = resolvedPaths[update.pathIndex];
+      const filename = filenames[update.pathIndex];
 
-    try {
-      const fileContent = await fs.readFile(configPath, 'utf8');
-      const loadedYaml = yaml.load(fileContent) as { homenet_bridge: HomenetBridgeConfig };
+      try {
+        const fileContent = await fs.readFile(configPath, 'utf8');
+        const loadedYaml = yaml.load(fileContent) as { homenet_bridge: HomenetBridgeConfig };
 
-      // Create backup
-      await saveBackup(configPath, loadedYaml, 'portid-fix');
+        // Create backup
+        await saveBackup(configPath, loadedYaml, 'portid-fix');
 
-      // Update portId
-      loadedYaml.homenet_bridge.serial!.portId = update.newPortId;
+        // Update portId
+        loadedYaml.homenet_bridge.serial!.portId = update.newPortId;
 
-      // Save the modified config
-      const updatedYaml = dumpConfigToYaml(loadedYaml);
-      await fs.writeFile(configPath, updatedYaml, 'utf-8');
+        // Save the modified config
+        const updatedYaml = dumpConfigToYaml(loadedYaml);
+        await fs.writeFile(configPath, updatedYaml, 'utf-8');
 
-      logger.info(
-        {
-          filename,
-          originalPortId: update.originalPortId,
-          newPortId: update.newPortId,
-        },
-        '[service] Fixed duplicate portId and saved configuration file.',
-      );
+        logger.info(
+          {
+            filename,
+            originalPortId: update.originalPortId,
+            newPortId: update.newPortId,
+          },
+          '[service] Fixed duplicate portId and saved configuration file.',
+        );
 
-      fixedFiles.push(filename);
-    } catch (err) {
-      logger.error({ err, configPath }, '[service] Error occurred while fixing duplicate portId.');
-    }
-  }
+        fixedFiles.push(filename);
+      } catch (err) {
+        logger.error({ err, configPath }, '[service] Error occurred while fixing duplicate portId.');
+      }
+    }),
+  );
 
   return { needsRestart: fixedFiles.length > 0, fixedFiles };
 }
@@ -382,17 +395,17 @@ async function checkAndFixDuplicatePortIds(
 type LoadResult = { config: HomenetBridgeConfig | null; error: BridgeErrorPayload | null };
 
 async function loadConfigs(resolvedPaths: string[]): Promise<LoadResult[]> {
-  const loadResults: LoadResult[] = [];
-  for (const configPath of resolvedPaths) {
-    try {
-      const config = await loadConfigFile(configPath);
-      loadResults.push({ config, error: null });
-    } catch (err) {
-      logger.error({ err, configPath }, '[service] Failed to load config file');
-      loadResults.push({ config: null, error: mapConfigLoadError(err) });
-    }
-  }
-  return loadResults;
+  return Promise.all(
+    resolvedPaths.map(async (configPath) => {
+      try {
+        const config = await loadConfigFile(configPath);
+        return { config, error: null };
+      } catch (err) {
+        logger.error({ err, configPath }, '[service] Failed to load config file');
+        return { config: null, error: mapConfigLoadError(err) };
+      }
+    }),
+  );
 }
 
 async function handleDuplicatePorts(
@@ -459,9 +472,21 @@ async function instantiateBridges(
   const loadedConfigs: HomenetBridgeConfig[] = [];
   const loadedConfigFilesForCollector: { name: string; content: string; portIds?: string[] }[] = [];
 
+  // Read all config file contents in parallel for log collector
+  const contents = await Promise.all(
+    filenames.map((_, i) => {
+      if (loadResults[i].config) {
+        return fs.readFile(resolvedPaths[i], 'utf-8').catch(() => null);
+      }
+      return Promise.resolve(null);
+    }),
+  );
+
   // Instantiate bridges only for successfully loaded configs
   for (let i = 0; i < filenames.length; i += 1) {
     const result = loadResults[i];
+    const content = contents[i];
+
     if (result.config) {
       const bridge = new HomeNetBridge({
         configPath: resolvedPaths[i],
@@ -492,15 +517,10 @@ async function instantiateBridges(
       newConfigErrors.push(null);
       newConfigStatuses.push('starting');
 
-      // Read file content for log collector
-      try {
-        const content = await fs.readFile(resolvedPaths[i], 'utf-8');
-        const portIds = result.config.serial
-          ? [normalizePortId(result.config.serial.portId, 0)]
-          : [];
+      // Add to log collector if content was successfully read
+      if (content !== null) {
+        const portIds = result.config.serial ? [normalizePortId(result.config.serial.portId, 0)] : [];
         loadedConfigFilesForCollector.push({ name: filenames[i], content, portIds });
-      } catch {
-        // Ignore read error for log collector
       }
     } else {
       // Config failed to load - add placeholder entries
