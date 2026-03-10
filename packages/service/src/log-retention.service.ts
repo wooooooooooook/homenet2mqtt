@@ -229,6 +229,7 @@ export class LogRetentionService {
    */
   public getParsedPacketEntities(portId?: string): Record<string, string[]> {
     const result: Record<string, string[]> = {};
+    const tempSets: Record<string, Set<string>> = {};
 
     const formatCommandLabel = (log: CommandLogEntry): string => {
       const base = `${log.entityId} (${log.command}`;
@@ -246,12 +247,12 @@ export class LogRetentionService {
       const packetHex = this.packetDictionaryReverse.get(log.packetId);
       if (!packetHex) continue;
 
-      if (!result[packetHex]) {
-        result[packetHex] = [];
+      let set = tempSets[packetHex];
+      if (!set) {
+        set = new Set<string>();
+        tempSets[packetHex] = set;
       }
-      if (!result[packetHex].includes(log.entityId)) {
-        result[packetHex].push(log.entityId);
-      }
+      set.add(log.entityId);
     }
 
     for (const log of this.commandPacketLogs) {
@@ -260,13 +261,16 @@ export class LogRetentionService {
       const packetHex = this.packetDictionaryReverse.get(log.packetId);
       if (!packetHex) continue;
 
-      if (!result[packetHex]) {
-        result[packetHex] = [];
+      let set = tempSets[packetHex];
+      if (!set) {
+        set = new Set<string>();
+        tempSets[packetHex] = set;
       }
-      const label = formatCommandLabel(log);
-      if (!result[packetHex].includes(label)) {
-        result[packetHex].push(label);
-      }
+      set.add(formatCommandLabel(log));
+    }
+
+    for (const key in tempSets) {
+      result[key] = Array.from(tempSets[key]);
     }
 
     return result;
