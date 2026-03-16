@@ -25,7 +25,7 @@ export const extractFromSchema = (packet: Buffer, schema: StateSchema | StateNum
       const dByte = data[i];
       let mByte = 0xff;
 
-      if (mask) {
+      if (mask !== undefined) {
         if (Array.isArray(mask)) {
           mByte = mask[i] ?? 0xff;
         } else {
@@ -50,9 +50,9 @@ export const extractFromSchema = (packet: Buffer, schema: StateSchema | StateNum
     const extractedBytes: number[] = [];
     for (let i = 0; i < length; i++) {
       let val = packet[offset + i];
-      if (mask || inverted) {
+      if (mask !== undefined || inverted) {
         let mByte = 0xff;
-        if (mask) {
+        if (mask !== undefined) {
           if (Array.isArray(mask)) {
             mByte = mask[i] ?? 0xff;
           } else {
@@ -81,9 +81,9 @@ export const extractFromSchema = (packet: Buffer, schema: StateSchema | StateNum
     const idx = endian === 'little' ? length - 1 : 0;
     let val = packet[offset + idx];
 
-    if (mask || inverted) {
+    if (mask !== undefined || inverted) {
       let mByte = 0xff;
-      if (mask) {
+      if (mask !== undefined) {
         if (Array.isArray(mask)) {
           mByte = mask[idx] ?? 0xff;
         } else {
@@ -115,9 +115,9 @@ export const extractFromSchema = (packet: Buffer, schema: StateSchema | StateNum
     for (let i = start; i !== end; i += step) {
       let val = packet[offset + i];
 
-      if (mask || inverted) {
+      if (mask !== undefined || inverted) {
         let mByte = 0xff;
-        if (mask) {
+        if (mask !== undefined) {
           if (Array.isArray(mask)) {
             mByte = mask[i] ?? 0xff;
           } else {

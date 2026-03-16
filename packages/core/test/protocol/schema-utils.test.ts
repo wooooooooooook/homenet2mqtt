@@ -62,6 +62,15 @@ describe('extractFromSchema', () => {
       // 0xAF & 0xF0 = 0xA0, 0xBF & 0xF0 = 0xB0 -> 0xA0B0
       expect(extractFromSchema(packet, schema)).toBe(0xa0b0);
     });
+
+    it('should match with shorter array mask (defaults to 0xff for missing)', () => {
+      const packet = Buffer.from([0xaa, 0xbb]);
+      const schema = { offset: 0, data: [0xa0, 0xbb], mask: [0xf0] };
+      // Byte 0: 0xAA & 0xF0 = 0xA0 (matches)
+      // Byte 1: 0xBB & 0xFF = 0xBB (matches)
+      // Extraction also uses the mask: 0xAA & 0xF0 = 0xA0, 0xBB & 0xFF = 0xBB -> 0xA0BB
+      expect(extractFromSchema(packet, schema)).toBe(0xa0bb);
+    });
   });
 
   describe('Decoding Strategies', () => {
@@ -88,6 +97,18 @@ describe('extractFromSchema', () => {
     it('should decode ASCII with mask and inversion', () => {
       const packet = Buffer.from([0x48 ^ 0xff, 0x65 ^ 0xff]);
       const schema = { offset: 0, length: 2, decode: 'ascii' as const, inverted: true };
+      expect(extractFromSchema(packet, schema)).toBe('He');
+    });
+
+    it('should decode ASCII with little endian', () => {
+      const packet = Buffer.from([0x48, 0x65]); // "He"
+      const schema = { offset: 0, length: 2, decode: 'ascii' as const, endian: 'little' as const };
+      expect(extractFromSchema(packet, schema)).toBe('eH');
+    });
+
+    it('should decode ASCII with array mask', () => {
+      const packet = Buffer.from([0x48 | 0x01, 0x65 | 0x02]);
+      const schema = { offset: 0, length: 2, decode: 'ascii' as const, mask: [0xfe, 0xfd] };
       expect(extractFromSchema(packet, schema)).toBe('He');
     });
 
@@ -118,6 +139,21 @@ describe('extractFromSchema', () => {
       const packet = Buffer.from([0xd4]);
       const schema = { offset: 0, decode: 'signed_byte_half_degree' as const, signed: true };
       expect(extractFromSchema(packet, schema)).toBe(-20.5);
+    });
+
+    it('should decode signed_byte_half_degree with little endian', () => {
+      const packet = Buffer.from([0x00, 0x94]); // 2nd byte is MSB
+      const schema = { offset: 0, length: 2, decode: 'signed_byte_half_degree' as const, endian: 'little' as const };
+      expect(extractFromSchema(packet, schema)).toBe(20.5);
+    });
+
+    it('should decode signed_byte_half_degree with mask and inverted', () => {
+      // 0x94 = 1001 0100
+      // ~0x94 = 0110 1011
+      // mask 0x80 -> 0x00 -> 0.0
+      const packet = Buffer.from([0x94]);
+      const schema = { offset: 0, decode: 'signed_byte_half_degree' as const, inverted: true, mask: 0x80 };
+      expect(extractFromSchema(packet, schema)).toBe(0.0);
     });
   });
 
@@ -163,5 +199,38 @@ describe('extractFromSchema', () => {
     const packet = Buffer.from([0xfe]); // ~0xFE = 0x01
     const schema = { offset: 0, inverted: true };
     expect(extractFromSchema(packet, schema)).toBe(1);
+  });
+
+  it('should handle numeric extraction with array mask', () => {
+    const packet = Buffer.from([0x12, 0x34]);
+    const schema = { offset: 0, length: 2, mask: [0x0f, 0x0f] };
+    // 0x12 & 0x0F = 0x02, 0x34 & 0x0F = 0x04 -> 0x0204 = 516
+    expect(extractFromSchema(packet, schema)).toBe(516);
+  });
+
+  it('should handle numeric extraction with mask and inversion', () => {
+    const packet = Buffer.from([0xfe]); // ~0xFE = 0x01, 0x01 & 0x00 = 0
+    const schema = { offset: 0, inverted: true, mask: 0x00 };
+    expect(extractFromSchema(packet, schema)).toBe(0);
+  });
+
+  it('should apply precision to negative values', () => {
+    const packet = Buffer.from([0xff, 0x85]); // -123 as 2nd complement
+    const schema = { offset: 0, length: 2, signed: true, precision: 1 };
+    expect(extractFromSchema(packet, schema)).toBe(-12.3);
+  });
+
+  it('should handle mask: 0', () => {
+    const packet = Buffer.from([0xff]);
+    const schema = { offset: 0, mask: 0 };
+    expect(extractFromSchema(packet, schema)).toBe(0);
+  });
+
+  it('should handle mapping with falsy values', () => {
+    const packet = Buffer.from([0x00, 0x01]);
+    const schema0 = { offset: 0, mapping: { 0: 'OFF', 1: 'ON' } };
+    const schema1 = { offset: 1, mapping: { 0: 'OFF', 1: 'ON' } };
+    expect(extractFromSchema(packet, schema0)).toBe('OFF');
+    expect(extractFromSchema(packet, schema1)).toBe('ON');
   });
 });

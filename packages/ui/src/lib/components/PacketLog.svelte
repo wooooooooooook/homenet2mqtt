@@ -3,7 +3,6 @@
   import type { CommandLogEntry, PacketLogEntry } from '../types';
   import VirtualList from '@humanspeak/svelte-virtual-list';
   import { formatTime } from '../utils/time';
-  import { fade } from 'svelte/transition';
   import Button from './Button.svelte';
   import { copyToClipboard } from '../utils/clipboard';
 
