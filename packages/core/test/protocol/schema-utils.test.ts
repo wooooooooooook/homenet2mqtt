@@ -143,7 +143,12 @@ describe('extractFromSchema', () => {
 
     it('should decode signed_byte_half_degree with little endian', () => {
       const packet = Buffer.from([0x00, 0x94]); // 2nd byte is MSB
-      const schema = { offset: 0, length: 2, decode: 'signed_byte_half_degree' as const, endian: 'little' as const };
+      const schema = {
+        offset: 0,
+        length: 2,
+        decode: 'signed_byte_half_degree' as const,
+        endian: 'little' as const,
+      };
       expect(extractFromSchema(packet, schema)).toBe(20.5);
     });
 
@@ -152,7 +157,12 @@ describe('extractFromSchema', () => {
       // ~0x94 = 0110 1011
       // mask 0x80 -> 0x00 -> 0.0
       const packet = Buffer.from([0x94]);
-      const schema = { offset: 0, decode: 'signed_byte_half_degree' as const, inverted: true, mask: 0x80 };
+      const schema = {
+        offset: 0,
+        decode: 'signed_byte_half_degree' as const,
+        inverted: true,
+        mask: 0x80,
+      };
       expect(extractFromSchema(packet, schema)).toBe(0.0);
     });
   });

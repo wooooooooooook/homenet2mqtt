@@ -5,10 +5,12 @@
   let {
     activeView = $bindable<'dashboard' | 'analysis' | 'gallery' | 'settings'>('dashboard'),
     isOpen = false,
+    disabled = false,
     onClose,
   }: {
     activeView: 'dashboard' | 'analysis' | 'gallery' | 'settings';
     isOpen?: boolean;
+    disabled?: boolean;
     onClose?: () => void;
   } = $props();
 
@@ -51,6 +53,7 @@
       class:active={activeView === 'dashboard'}
       aria-current={activeView === 'dashboard' ? 'page' : undefined}
       onclick={() => handleNavClick('dashboard')}
+      {disabled}
     >
       <span class="icon" aria-hidden="true">📊</span>
       <span class="label">{$t('sidebar.dashboard')}</span>
@@ -60,6 +63,7 @@
       class:active={activeView === 'analysis'}
       aria-current={activeView === 'analysis' ? 'page' : undefined}
       onclick={() => handleNavClick('analysis')}
+      {disabled}
     >
       <span class="icon" aria-hidden="true">📈</span>
       <span class="label">{$t('sidebar.analysis')}</span>
@@ -69,6 +73,7 @@
       class:active={activeView === 'gallery'}
       aria-current={activeView === 'gallery' ? 'page' : undefined}
       onclick={() => handleNavClick('gallery')}
+      {disabled}
     >
       <span class="icon" aria-hidden="true">📦</span>
       <span class="label">{$t('sidebar.gallery')}</span>
@@ -78,6 +83,7 @@
       class:active={activeView === 'settings'}
       aria-current={activeView === 'settings' ? 'page' : undefined}
       onclick={() => handleNavClick('settings')}
+      {disabled}
     >
       <span class="icon" aria-hidden="true">⚙️</span>
       <span class="label">{$t('sidebar.settings')}</span>
@@ -205,6 +211,17 @@
     background: rgba(37, 99, 235, 0.1);
     color: #3b82f6;
     font-weight: 600;
+  }
+
+  .nav-item:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    filter: grayscale(0.5);
+  }
+
+  .nav-item:disabled:hover {
+    background: transparent;
+    color: #94a3b8;
   }
 
   .icon {

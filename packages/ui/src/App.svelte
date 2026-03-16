@@ -372,6 +372,12 @@
   );
   let lastAppliedRawPacketMode = $state<RawPacketStreamMode>('valid');
 
+  const isWizardActive = $derived.by<boolean>(() => {
+    return (
+      bridgeInfo?.error === 'CONFIG_INITIALIZATION_REQUIRED' || bridgeInfo?.restartRequired === true
+    );
+  });
+
   type StreamEvent =
     | 'status'
     | 'mqtt-message'
@@ -1938,7 +1944,12 @@
       }}
     />
     <div class="content-body">
-      <Sidebar bind:activeView isOpen={isSidebarOpen} onClose={() => (isSidebarOpen = false)} />
+      <Sidebar
+        bind:activeView
+        isOpen={isSidebarOpen}
+        disabled={isWizardActive}
+        onClose={() => (isSidebarOpen = false)}
+      />
 
       <section id="main-content" class="main-content" tabindex="-1">
         {#if activeView === 'dashboard'}
