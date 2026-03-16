@@ -279,6 +279,12 @@
   };
 
   let bridgeInfo = $state<BridgeInfo | null>(null);
+  let isSetupMode = $derived.by(
+    () =>
+      bridgeInfo?.error === 'CONFIG_INITIALIZATION_REQUIRED' ||
+      bridgeInfo?.restartRequired === true,
+  );
+
   let infoLoading = $state(false);
   let infoError = $state('');
   let selectedPortId = $state<string | null>(null);
@@ -1938,7 +1944,12 @@
       }}
     />
     <div class="content-body">
-      <Sidebar bind:activeView isOpen={isSidebarOpen} onClose={() => (isSidebarOpen = false)} />
+      <Sidebar
+        bind:activeView
+        isOpen={isSidebarOpen}
+        onClose={() => (isSidebarOpen = false)}
+        {isSetupMode}
+      />
 
       <section id="main-content" class="main-content" tabindex="-1">
         {#if activeView === 'dashboard'}

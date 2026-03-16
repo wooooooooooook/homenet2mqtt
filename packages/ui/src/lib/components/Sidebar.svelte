@@ -5,10 +5,12 @@
   let {
     activeView = $bindable<'dashboard' | 'analysis' | 'gallery' | 'settings'>('dashboard'),
     isOpen = false,
+    isSetupMode = false,
     onClose,
   }: {
     activeView: 'dashboard' | 'analysis' | 'gallery' | 'settings';
     isOpen?: boolean;
+    isSetupMode?: boolean;
     onClose?: () => void;
   } = $props();
 
@@ -48,6 +50,7 @@
   <nav>
     <button
       class="nav-item"
+      disabled={isSetupMode}
       class:active={activeView === 'dashboard'}
       aria-current={activeView === 'dashboard' ? 'page' : undefined}
       onclick={() => handleNavClick('dashboard')}
@@ -57,6 +60,7 @@
     </button>
     <button
       class="nav-item"
+      disabled={isSetupMode}
       class:active={activeView === 'analysis'}
       aria-current={activeView === 'analysis' ? 'page' : undefined}
       onclick={() => handleNavClick('analysis')}
@@ -66,6 +70,7 @@
     </button>
     <button
       class="nav-item"
+      disabled={isSetupMode}
       class:active={activeView === 'gallery'}
       aria-current={activeView === 'gallery' ? 'page' : undefined}
       onclick={() => handleNavClick('gallery')}
@@ -75,6 +80,7 @@
     </button>
     <button
       class="nav-item"
+      disabled={isSetupMode}
       class:active={activeView === 'settings'}
       aria-current={activeView === 'settings' ? 'page' : undefined}
       onclick={() => handleNavClick('settings')}
@@ -199,6 +205,18 @@
     background: rgba(148, 163, 184, 0.1);
     color: #e2e8f0;
     box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+  }
+
+  .nav-item:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: transparent;
+    color: #94a3b8;
+  }
+
+  .nav-item:disabled:hover {
+    background: transparent;
+    color: #94a3b8;
   }
 
   .nav-item.active {
