@@ -1,3 +1,8 @@
+---
+next:
+  text: 'UI 설명'
+  link: '/guide/getting-started'
+---
 # Docker 설치
 
 > 이 섹션에서 무엇을 해결하나요?
@@ -26,19 +31,22 @@ services:
       PORT: '3000'
       LOG_LEVEL: info
       TIMEZONE: ''
+      # MQTT에 로그인 정보가 필요하다면 true로 설정하고 MQTT_USER, MQTT_PASSWD에 정보를 입력하세요.
       MQTT_NEED_LOGIN: 'false'
       MQTT_USER: ''
       MQTT_PASSWD: ''
       MQTT_TOPIC_PREFIX: homenet2mqtt
+      # Homeassistant에서 기기가 자동으로 추가되게하려면 true로 설정.
       DISCOVERY_ENABLED: 'false'
+    # USB RS485 장치를 사용하는경우 devices를 주석해제하여 사용하세요.
+    # devices:
+    #   - /dev/ttyUSB0:/dev/ttyUSB0
     volumes:
       - ./h2m-config:/config
     ports:
       - '3000:3000'
     restart: unless-stopped
 ```
-
-> USB Serial 장치를 쓸 경우 `devices`에 `/dev/ttyUSB0:/dev/ttyUSB0` 매핑을 추가하세요.
 
 > 환경변수 상세 설명은 [환경변수 레퍼런스](./environment-variables.md)를 참고하세요.
 
@@ -50,8 +58,3 @@ docker compose up -d
 
 - 브라우저에서 `http://<서버IP>:3000` 접속 후 설정 마법사를 진행합니다.
 - 설정 파일은 `./h2m-config`에 저장됩니다.
-
----
-
-이전: [5분 빠른 시작](./quick-start.md)
-다음: [초기 연결 확인](./getting-started.md)

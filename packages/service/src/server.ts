@@ -384,7 +384,10 @@ async function checkAndFixDuplicatePortIds(
 
         fixedFiles.push(filename);
       } catch (err) {
-        logger.error({ err, configPath }, '[service] Error occurred while fixing duplicate portId.');
+        logger.error(
+          { err, configPath },
+          '[service] Error occurred while fixing duplicate portId.',
+        );
       }
     }),
   );
@@ -519,7 +522,9 @@ async function instantiateBridges(
 
       // Add to log collector if content was successfully read
       if (content !== null) {
-        const portIds = result.config.serial ? [normalizePortId(result.config.serial.portId, 0)] : [];
+        const portIds = result.config.serial
+          ? [normalizePortId(result.config.serial.portId, 0)]
+          : [];
         loadedConfigFilesForCollector.push({ name: filenames[i], content, portIds });
       }
     } else {

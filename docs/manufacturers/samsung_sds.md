@@ -1,19 +1,10 @@
-## 빠른 요약
-
-- 지원 기능: 조명, 스위치, 난방 등 기본 엔티티부터 순차 적용 권장
-- 필수 옵션: `serial.path`, `packet_defaults`, 엔티티별 헤더/체크섬
-- 자주 틀리는 설정: 헤더 오프셋, 길이 바이트, 체크섬 계산 방식
-- 검증 절차: 패킷 모니터 수신 확인 → 명령 전송 → 상태 응답 검증
-
-> 공통 점검: [트러블슈팅](../guide/troubleshooting.md)
-
----
-
 ## 래미안, ezon
-## references
-[저장장치님 애드온 deepwiki](https://deepwiki.com/n-andflash/ha_addons)
-[저장장치님 정리자료](https://github.com/n-andflash/ha_addons/blob/master/sds_wallpad/DOCS_PACKETS.md)
 
+## references
+
+[저장장치님 애드온 deepwiki](https://deepwiki.com/n-andflash/ha_addons)
+
+[저장장치님 정리자료](https://github.com/n-andflash/ha_addons/blob/master/sds_wallpad/DOCS_PACKETS.md)
 
 # 삼성 SDS 홈넷 설정 안내
 
@@ -28,10 +19,10 @@
 ```yaml
 homenet_bridge:
   serial:
-    path: /dev/ttyUSB0   # 또는 EW11 주소 (예: 192.168.0.100:8899)
+    path: /dev/ttyUSB0 # 또는 EW11 주소 (예: 192.168.0.100:8899)
     baud_rate: 9600
     data_bits: 8
-    parity: EVEN         # ⚡ 필수: 반드시 EVEN으로 설정
+    parity: EVEN # ⚡ 필수: 반드시 EVEN으로 설정
     stop_bits: 1
 ```
 
@@ -44,14 +35,14 @@ homenet_bridge:
 **`rx_valid_headers`**를 설정하면 체크섬 충돌(checksum collision)로 인한 잘못된 패킷 인식을 방지할 수 있습니다. 삼성 SDS 패킷의 유효한 헤더 바이트(첫 번째 바이트)만 나열합니다.
 
 ```yaml
-  packet_defaults:
-    rx_timeout: 10ms
-    tx_delay: 50ms
-    tx_timeout: 500ms
-    tx_retry_cnt: 3
-    rx_checksum: samsung_xor
-    tx_checksum: samsung_xor
-    rx_valid_headers: [0xB0, 0xAB, 0xAC, 0xAD, 0xAE, 0xC2, 0xCC, 0xA4]
+packet_defaults:
+  rx_timeout: 10ms
+  tx_delay: 50ms
+  tx_timeout: 500ms
+  tx_retry_cnt: 3
+  rx_checksum: samsung_xor
+  tx_checksum: samsung_xor
+  rx_valid_headers: [0xB0, 0xAB, 0xAC, 0xAD, 0xAE, 0xC2, 0xCC, 0xA4]
 ```
 
 > 💡 **rx_valid_headers**: 체크섬이 유효해도 첫 바이트가 이 목록에 없으면 패킷으로 인식하지 않습니다. 패킷이 연속으로 수신될 때 우연히 체크섬이 맞는 잘못된 조합을 걸러냅니다.
@@ -80,6 +71,7 @@ homenet_bridge:
 ```
 
 **이유:**
+
 - 현관스위치 연동은 **요청-응답 타이밍이 매우 중요**합니다.
 - 월패드가 현관스위치에 주기적으로 상태를 질의하며, 일정 시간 내에 응답하지 않으면 통신 실패로 처리합니다.
 - 직접 연결된 RS485-USB 장치는 지연 시간이 최소화되어 **안정적인 응답**이 가능합니다.
@@ -92,6 +84,7 @@ homenet_bridge:
 EW11 등 WiFi 기반 RS485 변환기로도 시도해 볼 수 있으나, **권장하지 않습니다**.
 
 **문제점:**
+
 - WiFi 네트워크의 지연 시간(latency)이 일정하지 않습니다.
 - 요청-응답 간 **타이밍을 정확히 맞추기 어렵습니다**.
 - 간헐적으로 응답 시간이 초과되어 통신 실패가 발생합니다.
@@ -103,12 +96,13 @@ EW11 등 WiFi 기반 RS485 변환기로도 시도해 볼 수 있으나, **권장
 
 엘리베이터·현관문 연동 시 **현관스위치의 종류에 따라 다른 설정 파일**을 적용해야 합니다.
 
-| 구분 | 패킷 헤더 | 갤러리 설정 파일 |
-|------|-----------|------------------|
-| **구형** 현관스위치 | `0xAD` | `elevator_old_full.yaml` 또는 `elevator_old_minimal.yaml` |
-| **신형** 현관스위치 | `0xCC` | `elevator_new.yaml` |
+| 구분                | 패킷 헤더 | 갤러리 설정 파일                                          |
+| ------------------- | --------- | --------------------------------------------------------- |
+| **구형** 현관스위치 | `0xAD`    | `elevator_old_full.yaml` 또는 `elevator_old_minimal.yaml` |
+| **신형** 현관스위치 | `0xCC`    | `elevator_new.yaml`                                       |
 
 **확인 방법:**
+
 1. 브릿지를 RS485 라인에 연결합니다.
 2. UI의 **Raw Packet Log**에서 수신되는 패킷을 확인합니다.
 3. 현관스위치 관련 패킷의 첫 번째 바이트(헤더)를 확인합니다:
@@ -116,6 +110,7 @@ EW11 등 WiFi 기반 RS485 변환기로도 시도해 볼 수 있으나, **권장
    - `CC XX XX XX` → **신형** 스위치
 
 **갤러리 설정 적용:**
+
 - 구형 (AD): [`gallery/samsung_sds/elevator_old_full.yaml`](../../gallery/samsung_sds/elevator_old_full.yaml)
 - 신형 (CC): [`gallery/samsung_sds/elevator_new.yaml`](../../gallery/samsung_sds/elevator_new.yaml)
 
@@ -211,8 +206,8 @@ entities:
     # 상태 머신을 위한 내부 텍스트 엔티티
     - id: 'door_state'
       name: '현관문 상태'
-      internal: true      # HA Discovery 및 대시보드에서 숨김
-      optimistic: true    # 패킷 없이 상태 관리
+      internal: true # HA Discovery 및 대시보드에서 숨김
+      optimistic: true # 패킷 없이 상태 관리
       initial_value: 'D_IDLE'
 
 automation:
@@ -252,22 +247,23 @@ automation:
         condition: "get_from_states('door_state', 'state') == 'D_CALL'"
         then:
           - action: send_packet
-            data: [0xB0, 0x36, 0x01]  # 개인현관 통화
+            data: [0xB0, 0x36, 0x01] # 개인현관 통화
             checksum: true
         else:
           - action: if
             condition: "get_from_states('door_state', 'state') == 'D_OPEN'"
             then:
               - action: send_packet
-                data: [0xB0, 0x3B, 0x00]  # 개인현관 문열기
+                data: [0xB0, 0x3B, 0x00] # 개인현관 문열기
                 checksum: true
             else:
               - action: send_packet
-                data: [0xB0, 0x41, 0x00]  # 대기 상태
+                data: [0xB0, 0x41, 0x00] # 대기 상태
                 checksum: true
 ```
 
 **사용 방법:**
+
 1. `doorbell_auto_open_private` 스위치를 ON으로 설정
 2. 개인현관벨이 울리면 자동으로:
    - 2초 후 통화 (`0xB0 0x36 0x01`)

@@ -20,11 +20,8 @@ export default defineConfig({
     nav: [
       { text: "홈", link: "/" },
       { text: "시작하기", link: "/guide/quick-start" },
-      { text: "설치", link: "/guide/install-addon" },
       { text: "설정", link: "/config/" },
-      { text: "제조사", link: "/manufacturers/index" },
-      { text: "운영/문제해결", link: "/guide/troubleshooting" },
-      { text: "참고", link: "/guide/introduction" },
+      { text: "제조사별 문서", link: "/manufacturers/index" },
       { text: "☕ 후원", link: "/sponsor" }
     ],
 
@@ -33,7 +30,7 @@ export default defineConfig({
         {
           text: "시작하기",
           items: [
-            { text: "5분 빠른 시작", link: "/guide/quick-start" },
+            { text: "빠른 시작", link: "/guide/quick-start" },
             { text: "사전 준비", link: "/guide/introduction" }
           ]
         },
@@ -47,9 +44,9 @@ export default defineConfig({
         {
           text: "운영 가이드",
           items: [
-            { text: "초기 연결 확인", link: "/guide/getting-started" },
-            { text: "환경변수 레퍼런스", link: "/guide/environment-variables" },
-            { text: "고급 설정", link: "/guide/advanced-setup" },
+            { text: "UI 설명", link: "/guide/getting-started" },
+            { text: "Docker 환경변수 레퍼런스", link: "/guide/environment-variables" },
+            { text: "멀티브릿지 설정", link: "/guide/advanced-setup" },
             { text: "자동화", link: "/guide/automation" },
             { text: "엔티티 예제", link: "/guide/entity-examples" },
             { text: "CEL 가이드", link: "/guide/cel-guide" },
@@ -99,7 +96,7 @@ export default defineConfig({
       ],
       "/manufacturers/": [
         {
-          text: "제조사 선택 가이드",
+          text: "제조사별 문서",
           items: [
             { text: "제조사 허브", link: "/manufacturers/index" },
             { text: "Bestin", link: "/manufacturers/bestin" },
