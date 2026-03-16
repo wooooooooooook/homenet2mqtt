@@ -335,7 +335,7 @@ export function createEntitiesRoutes(ctx: EntitiesRoutesContext): Router {
     }
 
     const { entityId } = req.params;
-    const portId = req.query.portId as string | undefined;
+    const portId = typeof req.query.portId === 'string' ? req.query.portId : undefined;
 
     // Find config by portId if provided, otherwise fallback to finding by entityId
     const configIndex = portId
