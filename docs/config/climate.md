@@ -88,8 +88,11 @@
   - `preset_mode_value_template`: <code v-pre>{{ value_json.preset_mode }}</code>
 - 기본/고정 값
   - `temperature_unit`: 기본 `C` (climate 엔티티에 `temperature_unit: "F"`를 지정하면 `F`)
-    - 하위 호환: 기존 설정의 `unit_of_measurement: "°F"`/`"F"`/`"fahrenheit"`도 `F`로 해석
-  - `min_temp`: `15`, `max_temp`: `30`, `temp_step`: `1`
+  - `min_temp`/`max_temp`/`temp_step`:
+    - `visual.min_temperature`/`visual.max_temperature`/`visual.temperature_step`가 있으면 해당 값을 사용
+    - `visual` 값은 **number 사용이 원칙**이며, 단위를 포함한 string(`"23 °C"`)도 허용됩니다.
+    - string을 사용할 경우 숫자 부분만 파싱하며, 최종 단위 표시는 `temperature_unit`을 따릅니다. (자동 단위 변환 없음)
+    - 값이 없거나 파싱 불가 시 기본값 `min_temp: 15`, `max_temp: 30`, `temp_step: 1` 사용
 
 ## 예제: 온도·습도 설정
 현재/목표 온도와 상태 비트를 분리해 읽고, `command_temperature`로 온도를 설정하는 예시입니다.
