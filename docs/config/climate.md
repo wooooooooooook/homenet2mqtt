@@ -64,7 +64,7 @@
   - `state_topic`: `${MQTT_TOPIC_PREFIX}/${id}/state`
   - `availability`: `${MQTT_TOPIC_PREFIX}/bridge/status`
   - `device`: `devices` 설정 또는 브리지 기본 정보
-  - 선택: `suggested_area`, `device_class`, `unit_of_measurement`, `state_class`, `icon`
+  - 선택: `suggested_area`, `device_class`, `state_class`, `icon`
 - 모드/온도 제어
   - `mode_command_topic`: `${MQTT_TOPIC_PREFIX}/${id}/mode/set`
   - `temperature_command_topic`: `${MQTT_TOPIC_PREFIX}/${id}/temperature/set`
@@ -86,8 +86,9 @@
   - `preset_mode_command_topic`: `${MQTT_TOPIC_PREFIX}/${id}/preset_mode/set`
   - `preset_mode_state_topic`: `${MQTT_TOPIC_PREFIX}/${id}/state`
   - `preset_mode_value_template`: <code v-pre>{{ value_json.preset_mode }}</code>
-- 고정 값
-  - `temperature_unit`: `C`
+- 기본/고정 값
+  - `temperature_unit`: 기본 `C` (climate 엔티티에 `temperature_unit: "F"`를 지정하면 `F`)
+    - 하위 호환: 기존 설정의 `unit_of_measurement: "°F"`/`"F"`/`"fahrenheit"`도 `F`로 해석
   - `min_temp`: `15`, `max_temp`: `30`, `temp_step`: `1`
 
 ## 예제: 온도·습도 설정

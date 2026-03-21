@@ -283,6 +283,75 @@ describe('DiscoveryManager', () => {
     expect(payload.preset_mode_value_template).toBe('{{ value_json.preset_mode }}');
   });
 
+  it('climate unit_of_measurement가 없으면 temperature_unit은 C를 사용한다', () => {
+    discoveryManager.discover();
+    eventBus.emit('state:changed', { entityId: 'climate1', state: {}, portId: 'main' });
+
+    const climateTopic = 'homeassistant/climate/homenet_main_climate1/config';
+    const call = [...mockPublisher.publish.mock.calls]
+      .reverse()
+      .find((args: any[]) => args[0] === climateTopic);
+    expect(call).toBeDefined();
+
+    const payload = JSON.parse(call[1]);
+    expect(payload.temperature_unit).toBe('C');
+  });
+
+  it('climate temperature_unit을 F로 명시하면 temperature_unit은 F를 사용한다', () => {
+    (mockConfig.climate![0] as any).temperature_unit = 'F';
+    mockPublisher.publish.mockClear();
+
+    const mqttTopicPrefix = 'homenet2mqtt/homedevice1';
+    discoveryManager = new DiscoveryManager(
+      'main',
+      mockConfig,
+      mockPublisher,
+      mockSubscriber,
+      mqttTopicPrefix,
+    );
+    discoveryManager.setup();
+
+    discoveryManager.discover();
+    eventBus.emit('state:changed', { entityId: 'climate1', state: {}, portId: 'main' });
+
+    const climateTopic = 'homeassistant/climate/homenet_main_climate1/config';
+    const call = [...mockPublisher.publish.mock.calls]
+      .reverse()
+      .find((args: any[]) => args[0] === climateTopic);
+    expect(call).toBeDefined();
+
+    const payload = JSON.parse(call[1]);
+    expect(payload.temperature_unit).toBe('F');
+  });
+
+  it('climate에 unit_of_measurement가 있어도 discovery payload에는 포함하지 않는다', () => {
+    (mockConfig.climate![0] as any).unit_of_measurement = '°F';
+    mockPublisher.publish.mockClear();
+
+    const mqttTopicPrefix = 'homenet2mqtt/homedevice1';
+    discoveryManager = new DiscoveryManager(
+      'main',
+      mockConfig,
+      mockPublisher,
+      mockSubscriber,
+      mqttTopicPrefix,
+    );
+    discoveryManager.setup();
+
+    discoveryManager.discover();
+    eventBus.emit('state:changed', { entityId: 'climate1', state: {}, portId: 'main' });
+
+    const climateTopic = 'homeassistant/climate/homenet_main_climate1/config';
+    const call = [...mockPublisher.publish.mock.calls]
+      .reverse()
+      .find((args: any[]) => args[0] === climateTopic);
+    expect(call).toBeDefined();
+
+    const payload = JSON.parse(call[1]);
+    expect(payload.unit_of_measurement).toBeUndefined();
+    expect(payload.temperature_unit).toBe('F');
+  });
+
   it('라이트 색온도 Discovery는 kelvin 필드를 사용한다', () => {
     discoveryManager.discover();
 

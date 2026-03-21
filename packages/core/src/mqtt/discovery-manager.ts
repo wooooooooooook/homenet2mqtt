@@ -353,7 +353,7 @@ export class DiscoveryManager {
     if (entity.device_class) {
       payload.device_class = entity.device_class;
     }
-    if (entity.unit_of_measurement) {
+    if (entity.unit_of_measurement && type !== 'climate') {
       payload.unit_of_measurement = entity.unit_of_measurement;
     }
     if (entity.state_class) {
@@ -685,7 +685,10 @@ export class DiscoveryManager {
           payload.preset_mode_value_template = '{{ value_json.preset_mode }}';
         }
 
-        payload.temperature_unit = 'C';
+        payload.temperature_unit = this.resolveClimateTemperatureUnit(
+          entity.temperature_unit,
+          entity.unit_of_measurement,
+        );
         payload.min_temp = 15;
         payload.max_temp = 30;
         payload.temp_step = 1;
@@ -721,5 +724,29 @@ export class DiscoveryManager {
 
     this.publisher.publish(topic, JSON.stringify(payload), { retain: true });
     logger.debug({ topic, uniqueId }, '[DiscoveryManager] Published discovery config');
+  }
+
+  private resolveClimateTemperatureUnit(
+    temperatureUnit?: string,
+    unitOfMeasurement?: string,
+  ): 'C' | 'F' {
+    const normalizedTemperatureUnit = (temperatureUnit || '').trim().toLowerCase();
+    if (normalizedTemperatureUnit === 'f' || normalizedTemperatureUnit === '°f') {
+      return 'F';
+    }
+    if (normalizedTemperatureUnit === 'c' || normalizedTemperatureUnit === '°c') {
+      return 'C';
+    }
+
+    if (!unitOfMeasurement) {
+      return 'C';
+    }
+
+    const normalized = unitOfMeasurement.trim().toLowerCase();
+    if (normalized === 'f' || normalized === '°f' || normalized === 'fahrenheit') {
+      return 'F';
+    }
+
+    return 'C';
   }
 }

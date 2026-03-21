@@ -4,6 +4,7 @@ import { EntityConfig, CommandSchemaOrCEL } from './base.entity.js';
 import { StateSchema, StateNumSchemaOrCEL, StateSchemaOrCEL } from '../../protocol/types.js';
 
 export interface ClimateEntity extends EntityConfig {
+  temperature_unit?: 'C' | 'F';
   state: StateSchema;
 
   // Temperature modes
