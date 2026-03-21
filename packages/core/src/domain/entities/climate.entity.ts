@@ -3,8 +3,15 @@
 import { EntityConfig, CommandSchemaOrCEL } from './base.entity.js';
 import { StateSchema, StateNumSchemaOrCEL, StateSchemaOrCEL } from '../../protocol/types.js';
 
+export interface ClimateVisualOptions {
+  min_temperature?: number | string;
+  max_temperature?: number | string;
+  temperature_step?: number | string;
+}
+
 export interface ClimateEntity extends EntityConfig {
   temperature_unit?: 'C' | 'F';
+  visual?: ClimateVisualOptions;
   state: StateSchema;
 
   // Temperature modes

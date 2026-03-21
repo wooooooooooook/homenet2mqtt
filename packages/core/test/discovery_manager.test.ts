@@ -297,6 +297,39 @@ describe('DiscoveryManager', () => {
     expect(payload.temperature_unit).toBe('C');
   });
 
+  it('climate visual 온도 설정이 discovery payload에 반영된다', () => {
+    (mockConfig.climate![0] as any).visual = {
+      min_temperature: '6 °C',
+      max_temperature: '35 °C',
+      temperature_step: '0.5 °C',
+    };
+    mockPublisher.publish.mockClear();
+
+    const mqttTopicPrefix = 'homenet2mqtt/homedevice1';
+    discoveryManager = new DiscoveryManager(
+      'main',
+      mockConfig,
+      mockPublisher,
+      mockSubscriber,
+      mqttTopicPrefix,
+    );
+    discoveryManager.setup();
+
+    discoveryManager.discover();
+    eventBus.emit('state:changed', { entityId: 'climate1', state: {}, portId: 'main' });
+
+    const climateTopic = 'homeassistant/climate/homenet_main_climate1/config';
+    const call = [...mockPublisher.publish.mock.calls]
+      .reverse()
+      .find((args: any[]) => args[0] === climateTopic);
+    expect(call).toBeDefined();
+
+    const payload = JSON.parse(call[1]);
+    expect(payload.min_temp).toBe(6);
+    expect(payload.max_temp).toBe(35);
+    expect(payload.temp_step).toBe(0.5);
+  });
+
   it('climate temperature_unit을 F로 명시하면 temperature_unit은 F를 사용한다', () => {
     (mockConfig.climate![0] as any).temperature_unit = 'F';
     mockPublisher.publish.mockClear();

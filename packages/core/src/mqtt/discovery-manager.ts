@@ -689,9 +689,9 @@ export class DiscoveryManager {
           entity.temperature_unit,
           entity.unit_of_measurement,
         );
-        payload.min_temp = 15;
-        payload.max_temp = 30;
-        payload.temp_step = 1;
+        payload.min_temp = this.parseClimateVisualValue(entity.visual?.min_temperature) ?? 15;
+        payload.max_temp = this.parseClimateVisualValue(entity.visual?.max_temperature) ?? 30;
+        payload.temp_step = this.parseClimateVisualValue(entity.visual?.temperature_step) ?? 1;
         break;
       case 'button':
         payload.payload_press = 'PRESS';
@@ -748,5 +748,22 @@ export class DiscoveryManager {
     }
 
     return 'C';
+  }
+
+  private parseClimateVisualValue(value: number | string | undefined): number | undefined {
+    if (typeof value === 'number') {
+      return Number.isFinite(value) ? value : undefined;
+    }
+
+    if (typeof value !== 'string') {
+      return undefined;
+    }
+
+    const parsed = Number.parseFloat(value.replace(',', '.'));
+    if (!Number.isFinite(parsed)) {
+      return undefined;
+    }
+
+    return parsed;
   }
 }
