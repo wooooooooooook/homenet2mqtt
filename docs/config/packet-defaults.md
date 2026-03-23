@@ -44,6 +44,8 @@
 
 ### 1바이트 체크섬 (`rx_checksum` / `tx_checksum`)
 
+> 규칙: `crc8*`는 **헤더+데이터 포함**, `crc8*_no_header`는 **헤더 제외(데이터만)** 입니다.
+
 | 알고리즘 (값) | 범위 | 계산 로직 (Pseudo-code) |
 | :--- | :--- | :--- |
 | `add` | 헤더 + 데이터 | `Sum(All Bytes) & 0xFF` |
@@ -54,6 +56,10 @@
 | `samsung_tx` (Deprecated) | 데이터 | 초기값 `0x00`.<br>`crc = 0x00 ^ XOR(Data) ^ 0x80` |
 | `samsung_xor` | 패킷 전체 | 모든 바이트를 XOR한 후 최상위 비트를 0으로 설정 (`crc & 0x7F`) |
 | `bestin_sum` | 헤더 + 데이터 | 초기값 `3`.<br>각 바이트 `b`에 대해: `sum = ((b ^ sum) + 1) & 0xFF` |
+| `crc8` / `crc8_no_header` | 헤더+데이터 / 데이터 | CRC-8 (`poly=0x07`, `init=0x00`, `refin=false`, `refout=false`, `xorOut=0x00`) |
+| `crc8_maxim` / `crc8_maxim_no_header` | 헤더+데이터 / 데이터 | CRC-8/MAXIM (`poly=0x31`, `init=0x00`, `refin=true`, `refout=true`, `xorOut=0x00`) |
+| `crc8_rohc` / `crc8_rohc_no_header` | 헤더+데이터 / 데이터 | CRC-8/ROHC (`poly=0x07`, `init=0xFF`, `refin=true`, `refout=true`, `xorOut=0x00`) |
+| `crc8_wcdma` / `crc8_wcdma_no_header` | 헤더+데이터 / 데이터 | CRC-8/WCDMA (`poly=0x9B`, `init=0x00`, `refin=true`, `refout=true`, `xorOut=0x00`) |
 | `none` | - | 체크섬 검사를 하지 않음 |
 
 ### 2바이트 체크섬 (`rx_checksum2` / `tx_checksum2`)

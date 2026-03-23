@@ -9,6 +9,7 @@
  * - `samsung_tx`: (@deprecated) Specialized Samsung Wallpad TX checksum.
  * - `samsung_xor`: XOR of all bytes & 0x7F (Msb 0).
  * - `bestin_sum`: Cumulative XOR-based sum algorithm.
+ * - `crc8*`: CRC-8 variants. 기본형은 헤더+데이터, `_no_header`는 데이터만.
  * - `none`: No checksum calculation.
  */
 export type ChecksumType =
@@ -20,6 +21,14 @@ export type ChecksumType =
   | 'samsung_tx'
   | 'samsung_xor'
   | 'bestin_sum'
+  | 'crc8'
+  | 'crc8_no_header'
+  | 'crc8_maxim'
+  | 'crc8_maxim_no_header'
+  | 'crc8_rohc'
+  | 'crc8_rohc_no_header'
+  | 'crc8_wcdma'
+  | 'crc8_wcdma_no_header'
   | 'none';
 
 /**
