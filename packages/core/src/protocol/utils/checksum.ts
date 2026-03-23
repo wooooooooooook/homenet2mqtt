@@ -67,6 +67,14 @@ interface Crc16Spec {
   xorOut: number;
 }
 
+interface Crc8Spec {
+  poly: number;
+  init: number;
+  refin: boolean;
+  refout: boolean;
+  xorOut: number;
+}
+
 const CRC16_SPECS: Record<Crc16Variant, Crc16Spec> = {
   crc16_xmodem: { poly: 0x1021, init: 0x0000, refin: false, refout: false, xorOut: 0x0000 },
   crc16_ccitt_false: {
@@ -82,14 +90,76 @@ const CRC16_SPECS: Record<Crc16Variant, Crc16Spec> = {
   crc16_x25: { poly: 0x1021, init: 0xffff, refin: true, refout: true, xorOut: 0xffff },
 };
 
-const CRC8_SPECS: Record<
-  Crc8Variant,
-  { poly: number; init: number; refin: boolean; refout: boolean; xorOut: number }
-> = {
+const CRC8_SPECS: Record<Crc8Variant, Crc8Spec> = {
   crc8: { poly: 0x07, init: 0x00, refin: false, refout: false, xorOut: 0x00 },
   crc8_maxim: { poly: 0x31, init: 0x00, refin: true, refout: true, xorOut: 0x00 },
   crc8_rohc: { poly: 0x07, init: 0xff, refin: true, refout: true, xorOut: 0x00 },
   crc8_wcdma: { poly: 0x9b, init: 0x00, refin: true, refout: true, xorOut: 0x00 },
+};
+
+// ── Lookup Table Generation ──────────────────────────────────────────────────
+
+function generateCrc8Table(spec: Crc8Spec): Uint8Array {
+  const table = new Uint8Array(256);
+  if (spec.refin) {
+    const poly = reflect8(spec.poly);
+    for (let i = 0; i < 256; i++) {
+      let crc = i;
+      for (let j = 0; j < 8; j++) {
+        crc = crc & 1 ? ((crc >>> 1) ^ poly) & 0xff : (crc >>> 1) & 0xff;
+      }
+      table[i] = crc;
+    }
+  } else {
+    for (let i = 0; i < 256; i++) {
+      let crc = i;
+      for (let j = 0; j < 8; j++) {
+        crc = crc & 0x80 ? ((crc << 1) ^ spec.poly) & 0xff : (crc << 1) & 0xff;
+      }
+      table[i] = crc;
+    }
+  }
+  return table;
+}
+
+function generateCrc16Table(spec: Crc16Spec): Uint16Array {
+  const table = new Uint16Array(256);
+  if (spec.refin) {
+    const poly = reflect16(spec.poly);
+    for (let i = 0; i < 256; i++) {
+      let crc = i;
+      for (let j = 0; j < 8; j++) {
+        crc = crc & 1 ? ((crc >>> 1) ^ poly) & 0xffff : (crc >>> 1) & 0xffff;
+      }
+      table[i] = crc;
+    }
+  } else {
+    for (let i = 0; i < 256; i++) {
+      let crc = i << 8;
+      for (let j = 0; j < 8; j++) {
+        crc = crc & 0x8000 ? ((crc << 1) ^ spec.poly) & 0xffff : (crc << 1) & 0xffff;
+      }
+      table[i] = crc;
+    }
+  }
+  return table;
+}
+
+// Pre-computed lookup tables (generated once at module load)
+const CRC8_TABLES: Record<Crc8Variant, Uint8Array> = {
+  crc8: generateCrc8Table(CRC8_SPECS.crc8),
+  crc8_maxim: generateCrc8Table(CRC8_SPECS.crc8_maxim),
+  crc8_rohc: generateCrc8Table(CRC8_SPECS.crc8_rohc),
+  crc8_wcdma: generateCrc8Table(CRC8_SPECS.crc8_wcdma),
+};
+
+const CRC16_TABLES: Record<Crc16Variant, Uint16Array> = {
+  crc16_xmodem: generateCrc16Table(CRC16_SPECS.crc16_xmodem),
+  crc16_ccitt_false: generateCrc16Table(CRC16_SPECS.crc16_ccitt_false),
+  crc16_modbus: generateCrc16Table(CRC16_SPECS.crc16_modbus),
+  crc16_ibm: generateCrc16Table(CRC16_SPECS.crc16_ibm),
+  crc16_kermit: generateCrc16Table(CRC16_SPECS.crc16_kermit),
+  crc16_x25: generateCrc16Table(CRC16_SPECS.crc16_x25),
 };
 
 function resolveChecksumType(type: ChecksumType): Checksum1Resolution {
@@ -149,9 +219,11 @@ export type Checksum2Verifier = (
 export function calculateChecksum(header: ByteArray, data: ByteArray, type: ChecksumType): number {
   const resolved = resolveChecksumType(type);
   if (resolved.kind === 'crc8') {
+    const spec = CRC8_SPECS[resolved.baseType];
+    const table = CRC8_TABLES[resolved.baseType];
     return resolved.includeHeader
-      ? crc8FromParts(header, data, CRC8_SPECS[resolved.baseType])
-      : crc8FromBytes(data, CRC8_SPECS[resolved.baseType]);
+      ? crc8FromParts(header, data, spec, table)
+      : crc8FromBytes(data, spec, table);
   }
 
   switch (type) {
@@ -211,6 +283,7 @@ export function calculateChecksumFromBuffer(
       resolved.includeHeader ? dataStart : headerStart,
       dataStop,
       CRC8_SPECS[resolved.baseType],
+      CRC8_TABLES[resolved.baseType],
     );
   }
 
@@ -379,13 +452,16 @@ function bestinSumFromBuffer(buffer: ByteArray, start: number, end: number): num
   return sum;
 }
 
-function crc8FromBytes(
-  data: ByteArray,
-  spec: { poly: number; init: number; refin: boolean; refout: boolean; xorOut: number },
-): number {
+function crc8FromBytes(data: ByteArray, spec: Crc8Spec, table: Uint8Array): number {
   let crc = spec.init & 0xff;
-  for (const byte of data) {
-    crc = updateCrc8(crc, byte, spec);
+  if (spec.refin) {
+    for (const byte of data) {
+      crc = table[(crc ^ byte) & 0xff];
+    }
+  } else {
+    for (const byte of data) {
+      crc = table[(crc ^ byte) & 0xff];
+    }
   }
   return finalizeCrc8(crc, spec);
 }
@@ -393,14 +469,15 @@ function crc8FromBytes(
 function crc8FromParts(
   header: ByteArray,
   data: ByteArray,
-  spec: { poly: number; init: number; refin: boolean; refout: boolean; xorOut: number },
+  spec: Crc8Spec,
+  table: Uint8Array,
 ): number {
   let crc = spec.init & 0xff;
   for (const byte of header) {
-    crc = updateCrc8(crc, byte, spec);
+    crc = table[(crc ^ byte) & 0xff];
   }
   for (const byte of data) {
-    crc = updateCrc8(crc, byte, spec);
+    crc = table[(crc ^ byte) & 0xff];
   }
   return finalizeCrc8(crc, spec);
 }
@@ -415,47 +492,36 @@ export function crc8RangeCustom(
   refout: boolean,
   xorOut: number,
 ): number {
-  return crc8Range(buffer, start, end, { poly, init, refin, refout, xorOut });
+  const spec: Crc8Spec = { poly, init, refin, refout, xorOut };
+  const table = generateCrc8Table(spec);
+  return crc8RangeWithTable(buffer, start, end, spec, table);
 }
 
 function crc8Range(
   buffer: ByteArray,
   start: number,
   end: number,
-  spec: { poly: number; init: number; refin: boolean; refout: boolean; xorOut: number },
+  spec: Crc8Spec,
+  table: Uint8Array,
+): number {
+  return crc8RangeWithTable(buffer, start, end, spec, table);
+}
+
+function crc8RangeWithTable(
+  buffer: ByteArray,
+  start: number,
+  end: number,
+  spec: Crc8Spec,
+  table: Uint8Array,
 ): number {
   let crc = spec.init & 0xff;
   for (let i = start; i < end; i++) {
-    crc = updateCrc8(crc, buffer[i], spec);
+    crc = table[(crc ^ buffer[i]) & 0xff];
   }
   return finalizeCrc8(crc, spec);
 }
 
-function updateCrc8(
-  crc: number,
-  byte: number,
-  spec: { poly: number; init: number; refin: boolean; refout: boolean; xorOut: number },
-): number {
-  if (spec.refin) {
-    let cur = (crc ^ byte) & 0xff;
-    const poly = reflect8(spec.poly);
-    for (let i = 0; i < 8; i++) {
-      cur = cur & 1 ? ((cur >>> 1) ^ poly) & 0xff : (cur >>> 1) & 0xff;
-    }
-    return cur;
-  }
-
-  let cur = (crc ^ ((byte & 0xff) << 0)) & 0xff;
-  for (let i = 0; i < 8; i++) {
-    cur = cur & 0x80 ? ((cur << 1) ^ spec.poly) & 0xff : (cur << 1) & 0xff;
-  }
-  return cur;
-}
-
-function finalizeCrc8(
-  crc: number,
-  spec: { poly: number; init: number; refin: boolean; refout: boolean; xorOut: number },
-): number {
+function finalizeCrc8(crc: number, spec: Crc8Spec): number {
   let final = crc & 0xff;
   if (spec.refout !== spec.refin) {
     final = reflect8(final);
@@ -497,8 +563,13 @@ export function calculateChecksum2(
     case 'crc16_kermit':
     case 'crc16_x25':
       return resolved.includeHeader
-        ? crc16FromParts(header, data, CRC16_SPECS[resolved.baseType])
-        : crc16FromBytes(data, CRC16_SPECS[resolved.baseType]);
+        ? crc16FromParts(
+            header,
+            data,
+            CRC16_SPECS[resolved.baseType],
+            CRC16_TABLES[resolved.baseType],
+          )
+        : crc16FromBytes(data, CRC16_SPECS[resolved.baseType], CRC16_TABLES[resolved.baseType]);
     default:
       throw new Error(`Unknown 2-byte checksum type: ${resolved.normalizedType}`);
   }
@@ -651,7 +722,9 @@ export function getChecksumFunction(
   const resolved = resolveChecksumType(type);
   if (resolved.kind === 'crc8') {
     const spec = CRC8_SPECS[resolved.baseType];
-    return (buffer: ByteArray, start: number, end: number) => crc8Range(buffer, start, end, spec);
+    const table = CRC8_TABLES[resolved.baseType];
+    return (buffer: ByteArray, start: number, end: number) =>
+      crc8Range(buffer, start, end, spec, table);
   }
 
   switch (type) {
@@ -671,15 +744,6 @@ export function getChecksumFunction(
       return samsungXorAllMsb0FromBuffer;
     case 'bestin_sum':
       return bestinSumFromBuffer;
-    case 'crc8':
-    case 'crc8_no_header':
-    case 'crc8_maxim':
-    case 'crc8_maxim_no_header':
-    case 'crc8_rohc':
-    case 'crc8_rohc_no_header':
-    case 'crc8_wcdma':
-    case 'crc8_wcdma_no_header':
-      return null;
     default:
       return null;
   }
@@ -699,11 +763,11 @@ export function getChecksum2Verifier(type: Checksum2Type): Checksum2Verifier | n
     case 'crc16_modbus':
     case 'crc16_ibm':
     case 'crc16_kermit':
-    case 'crc16_x25':
-      if (!resolved.includeHeader) return null;
+    case 'crc16_x25': {
       const baseType = resolved.baseType as Crc16Variant;
       return (buffer, start, end, expectedHigh, expectedLow) =>
         verifyCrc16Range(buffer, start, end, expectedHigh, expectedLow, CRC16_SPECS[baseType]);
+    }
     default:
       return null;
   }
@@ -729,6 +793,16 @@ export function getChecksumOffsetType(type: ChecksumType): 'base' | 'header' {
     default:
       return 'base';
   }
+}
+
+/**
+ * Returns the offset type for 2-byte checksum functions.
+ * 'header': start = offset + headerLength (no_header variants)
+ * 'base': start = offset (includes header in checksum)
+ */
+export function getChecksum2OffsetType(type: Checksum2Type): 'base' | 'header' {
+  const resolved = resolveChecksum2Type(type);
+  return resolved.includeHeader ? 'base' : 'header';
 }
 
 function xorAddRange(buffer: ByteArray, start: number, end: number): number[] {
@@ -762,21 +836,41 @@ function verifyCrc16Range(
   return high === expectedHigh && low === expectedLow;
 }
 
-function crc16FromBytes(data: ByteArray, spec: Crc16Spec): number[] {
+function crc16FromBytes(data: ByteArray, spec: Crc16Spec, table: Uint16Array): number[] {
   let crc = spec.init & 0xffff;
-  for (const byte of data) {
-    crc = updateCrc16(crc, byte, spec);
+  if (spec.refin) {
+    for (const byte of data) {
+      crc = (table[(crc ^ byte) & 0xff] ^ (crc >>> 8)) & 0xffff;
+    }
+  } else {
+    for (const byte of data) {
+      crc = (table[((crc >>> 8) ^ byte) & 0xff] ^ ((crc << 8) & 0xffff)) & 0xffff;
+    }
   }
   return finalizeCrc16(crc, spec);
 }
 
-function crc16FromParts(header: ByteArray, data: ByteArray, spec: Crc16Spec): number[] {
+function crc16FromParts(
+  header: ByteArray,
+  data: ByteArray,
+  spec: Crc16Spec,
+  table: Uint16Array,
+): number[] {
   let crc = spec.init & 0xffff;
-  for (const byte of header) {
-    crc = updateCrc16(crc, byte, spec);
-  }
-  for (const byte of data) {
-    crc = updateCrc16(crc, byte, spec);
+  if (spec.refin) {
+    for (const byte of header) {
+      crc = (table[(crc ^ byte) & 0xff] ^ (crc >>> 8)) & 0xffff;
+    }
+    for (const byte of data) {
+      crc = (table[(crc ^ byte) & 0xff] ^ (crc >>> 8)) & 0xffff;
+    }
+  } else {
+    for (const byte of header) {
+      crc = (table[((crc >>> 8) ^ byte) & 0xff] ^ ((crc << 8) & 0xffff)) & 0xffff;
+    }
+    for (const byte of data) {
+      crc = (table[((crc >>> 8) ^ byte) & 0xff] ^ ((crc << 8) & 0xffff)) & 0xffff;
+    }
   }
   return finalizeCrc16(crc, spec);
 }
@@ -791,32 +885,38 @@ export function crc16RangeCustom(
   refout: boolean,
   xorOut: number,
 ): number[] {
-  return crc16Range(buffer, start, end, { poly, init, refin, refout, xorOut });
+  const spec: Crc16Spec = { poly, init, refin, refout, xorOut };
+  const table = generateCrc16Table(spec);
+  return crc16RangeWithTable(buffer, start, end, spec, table);
 }
 
 function crc16Range(buffer: ByteArray, start: number, end: number, spec: Crc16Spec): number[] {
-  let crc = spec.init & 0xffff;
-  for (let i = start; i < end; i++) {
-    crc = updateCrc16(crc, buffer[i], spec);
-  }
-  return finalizeCrc16(crc, spec);
+  // Find pre-computed table if available, otherwise generate
+  const variant = Object.entries(CRC16_SPECS).find(([, s]) => s === spec)?.[0] as
+    | Crc16Variant
+    | undefined;
+  const table = variant ? CRC16_TABLES[variant] : generateCrc16Table(spec);
+  return crc16RangeWithTable(buffer, start, end, spec, table);
 }
 
-function updateCrc16(crc: number, byte: number, spec: Crc16Spec): number {
+function crc16RangeWithTable(
+  buffer: ByteArray,
+  start: number,
+  end: number,
+  spec: Crc16Spec,
+  table: Uint16Array,
+): number[] {
+  let crc = spec.init & 0xffff;
   if (spec.refin) {
-    let cur = (crc ^ byte) & 0xffff;
-    const poly = reflect16(spec.poly);
-    for (let i = 0; i < 8; i++) {
-      cur = cur & 1 ? ((cur >>> 1) ^ poly) & 0xffff : (cur >>> 1) & 0xffff;
+    for (let i = start; i < end; i++) {
+      crc = (table[(crc ^ buffer[i]) & 0xff] ^ (crc >>> 8)) & 0xffff;
     }
-    return cur;
+  } else {
+    for (let i = start; i < end; i++) {
+      crc = (table[((crc >>> 8) ^ buffer[i]) & 0xff] ^ ((crc << 8) & 0xffff)) & 0xffff;
+    }
   }
-
-  let cur = (crc ^ ((byte & 0xff) << 8)) & 0xffff;
-  for (let i = 0; i < 8; i++) {
-    cur = cur & 0x8000 ? ((cur << 1) ^ spec.poly) & 0xffff : (cur << 1) & 0xffff;
-  }
-  return cur;
+  return finalizeCrc16(crc, spec);
 }
 
 function finalizeCrc16(crc: number, spec: Crc16Spec): number[] {

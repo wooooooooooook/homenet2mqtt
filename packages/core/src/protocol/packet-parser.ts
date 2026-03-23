@@ -1,10 +1,12 @@
 import { PacketDefaults, ChecksumType, Checksum2Type } from './types.js';
 import {
   calculateChecksumFromBuffer,
+  calculateChecksum2FromBuffer,
   verifyChecksum2FromBuffer,
   getChecksumFunction,
   getChecksum2Verifier,
   getChecksumOffsetType,
+  getChecksum2OffsetType,
   STANDARD_CHECKSUM_TYPES,
   STANDARD_CHECKSUM2_TYPES,
   ByteArray,
@@ -50,6 +52,7 @@ export class PacketParser {
   private cachedChecksumType: string | null = null;
   // Bolt: Optimized 2-byte checksum verifier
   private checksum2Fn: Checksum2Verifier | null = null;
+  private checksum2StartAdjust: number = 0;
   private cachedChecksum2Type: string | null = null;
 
   // Cached configuration values to avoid property access/checks in hot loops
@@ -138,6 +141,8 @@ export class PacketParser {
     // Bolt: Pre-resolve 2-byte checksum verifier
     if (this.isStandard2Byte) {
       this.checksum2Fn = getChecksum2Verifier(checksum2Type as Checksum2Type);
+      const offsetType = getChecksum2OffsetType(checksum2Type as Checksum2Type);
+      this.checksum2StartAdjust = offsetType === 'header' ? this.headerLength : 0;
       this.cachedChecksum2Type = checksum2Type as string;
     }
 
@@ -1146,7 +1151,13 @@ export class PacketParser {
             }
             return [temp & 0xff, (crc + (temp & 0xff)) & 0xff];
           }
-          return null;
+          return calculateChecksum2FromBuffer(
+            buffer,
+            checksumOrScript as Checksum2Type,
+            this.headerLength,
+            checksumStart - offset,
+            offset,
+          );
         }
 
         if (this.preparedChecksum2) {
@@ -1290,9 +1301,10 @@ export class PacketParser {
         if (this.isStandard2Byte) {
           // Bolt: Use pre-resolved verifier if available to bypass switch overhead
           if (this.checksum2Fn && checksumOrScript === this.cachedChecksum2Type) {
+            const start = offset + this.checksum2StartAdjust;
             return this.checksum2Fn(
               buffer,
-              offset,
+              start,
               checksumStart,
               buffer[checksumStart],
               buffer[checksumStart + 1],
