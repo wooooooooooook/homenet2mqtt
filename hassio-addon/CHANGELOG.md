@@ -3,9 +3,15 @@
 - 한달정도 특별한 오류가 없으면 beta 딱지를 떼고 stable로 승격시킬 예정입니다.
 - 오류가 있으면 homeasssutant 카페, 깃헙, 디스코드 등으로 알려주세요.
 
+
+v2.10.0
+- feat: 엔티티 추가모달과 엔티티 YAML 편집 모달에 MQTT 디스커버리 내용을 미리볼수있는 기능 추가함.
+- feat: crc16의 다양한 변형을 [지원하는 2-bytes checksum](https://homenet2mqtt-docs.vercel.app/config/packet-defaults.html#_2%E1%84%87%E1%85%A1%E1%84%8B%E1%85%B5%E1%84%90%E1%85%B3-%E1%84%8E%E1%85%A6%E1%84%8F%E1%85%B3%E1%84%89%E1%85%A5%E1%86%B7-rx-checksum2-tx-checksum2) 유형에 추가함.
+- fix: 설정폴더에서 모든 설정파일을 삭제했을 때 오류 대신 초기설정 마법사로 진입하도록 수정함.
+
 v2.9.3
 
--climate엔티티 수정
+- climate엔티티 수정
   - `temperature_unit` 옵션으로 온도 단위를 지정할수있습니다 (`C`또는 `F`, 기본값 `C`)
   - `visual`옵션에 `min_temp/max_temp/temp_step`가 숫자만 받도록변경됩니다. (이전처럼 단위가 붙어있는 문자열도 허용되지만 단위는 무시되고 `temperature_unit`의 단위를 사용합니다)
   - `visual`옵션이 하드코딩되어 반영되지 않는 문제 수정. 
