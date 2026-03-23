@@ -742,6 +742,43 @@ server.listen(port, async () => {
 
     const uniqueConfigFiles = [...new Set(availableConfigFiles)];
 
+    const missingConfigFiles = (
+      await Promise.all(
+        uniqueConfigFiles.map(async (file) => {
+          const configPath = path.resolve(CONFIG_DIR, file);
+          const exists = await fileExists(configPath);
+          return exists ? null : file;
+        }),
+      )
+    ).filter((file): file is string => file !== null);
+
+    const allConfigFilesMissing =
+      uniqueConfigFiles.length > 0 && missingConfigFiles.length === uniqueConfigFiles.length;
+
+    if (allConfigFilesMissing) {
+      if (await fileExists(CONFIG_INIT_MARKER)) {
+        await fs.unlink(CONFIG_INIT_MARKER).catch(() => {});
+        logger.warn(
+          {
+            missingConfigFiles,
+            markerPath: CONFIG_INIT_MARKER,
+          },
+          '[service] Missing configured files detected. Removed .initialized marker to reopen setup wizard.',
+        );
+      }
+
+      bridgeStatus = 'error';
+      bridgeError = createBridgeErrorPayload({
+        code: 'CONFIG_INITIALIZATION_REQUIRED',
+        message: 'Configuration initialization required.',
+        source: 'service',
+        severity: 'error',
+        retryable: false,
+      });
+      currentConfigFiles = [];
+      return;
+    }
+
     if (uniqueConfigFiles.length === 0) {
       // 설정 파일이 없으면 초기 설정 마법사 표시
       bridgeStatus = 'error';
