@@ -7,10 +7,11 @@ import path from 'node:path';
 import fs from 'node:fs/promises';
 import yaml from 'js-yaml';
 import { logger, normalizePortId, normalizeConfig } from '@rs485-homenet/core';
+import { DiscoveryManager } from '@rs485-homenet/core/mqtt/discovery-manager';
 import { dumpConfigToYaml } from '../utils/yaml-dumper.js';
 import type { HomenetBridgeConfig } from '@rs485-homenet/core';
 import type { AutomationConfig, ScriptConfig } from '@rs485-homenet/core/config/types';
-import { ENTITY_TYPE_KEYS } from '../utils/constants.js';
+import { BASE_MQTT_PREFIX, ENTITY_TYPE_KEYS } from '../utils/constants.js';
 import type { RateLimiter } from '../utils/rate-limiter.js';
 import type { BridgeInstance, PersistableHomenetBridgeConfig } from '../types/index.js';
 import { saveBackup } from '../services/backup.service.js';
@@ -456,6 +457,104 @@ export function createConfigRoutes(ctx: ConfigRoutesContext): Router {
     } catch (err) {
       logger.error({ err }, '[service] Failed to add config items');
       res.status(500).json({ error: err instanceof Error ? err.message : 'Add failed' });
+    }
+  });
+
+  router.post('/api/config/discovery-preview', async (req, res) => {
+    const {
+      portId,
+      entityType,
+      yaml: entityYaml,
+    } = req.body as {
+      portId?: string;
+      entityType?: string;
+      yaml?: string;
+    };
+
+    if (!portId || typeof portId !== 'string') {
+      return res.status(400).json({ error: 'portId is required' });
+    }
+    if (!entityType || !ENTITY_TYPE_KEYS.includes(entityType as keyof HomenetBridgeConfig)) {
+      return res.status(400).json({ error: 'valid entityType is required' });
+    }
+    if (!entityYaml || typeof entityYaml !== 'string') {
+      return res.status(400).json({ error: 'yaml is required' });
+    }
+
+    let parsedEntity: Record<string, unknown> | null = null;
+    try {
+      const loadedEntity = yaml.load(entityYaml);
+      if (!loadedEntity || typeof loadedEntity !== 'object' || Array.isArray(loadedEntity)) {
+        return res.status(400).json({ error: 'yaml must be a single entity object' });
+      }
+      parsedEntity = loadedEntity as Record<string, unknown>;
+    } catch {
+      return res.status(400).json({ error: 'Invalid YAML format' });
+    }
+
+    if (typeof parsedEntity.id !== 'string' || !parsedEntity.id.trim()) {
+      return res.status(400).json({ error: 'entity id is required in YAML' });
+    }
+
+    try {
+      const configIndex = findConfigIndexByPortId(ctx.getCurrentConfigs(), portId);
+      if (configIndex === -1) {
+        return res.status(404).json({ error: 'Config not found for the given portId' });
+      }
+
+      const portConfig = ctx.getCurrentConfigs()[configIndex];
+      const normalizedPortId = normalizePortId(portId, 0);
+      const mqttTopicPrefix = `${BASE_MQTT_PREFIX}/${normalizedPortId}`;
+      const published: Array<{ topic: string; payload: string }> = [];
+
+      const publisherStub = {
+        publish(topic: string, payload: string) {
+          published.push({ topic, payload });
+        },
+      };
+
+      const subscriberStub = {
+        subscribe() {
+          return undefined;
+        },
+      };
+
+      const previewConfig = {
+        devices: Array.isArray(portConfig.devices) ? portConfig.devices : [],
+      } as HomenetBridgeConfig;
+
+      const manager = new DiscoveryManager(
+        normalizedPortId,
+        previewConfig,
+        publisherStub as any,
+        subscriberStub as any,
+        mqttTopicPrefix,
+      );
+
+      (manager as any).publishDiscovery({
+        ...parsedEntity,
+        type: entityType,
+      });
+
+      const latest = published.at(-1);
+      if (!latest) {
+        return res.status(400).json({ error: 'Failed to generate discovery preview' });
+      }
+
+      let payloadObj: unknown = null;
+      try {
+        payloadObj = JSON.parse(latest.payload);
+      } catch {
+        payloadObj = latest.payload;
+      }
+
+      return res.json({
+        topic: latest.topic,
+        payload: payloadObj,
+      });
+    } catch (error) {
+      logger.error({ err: error }, '[service] Failed to build discovery preview');
+      return res.status(500).json({ error: 'Failed to generate discovery preview' });
     }
   });
 

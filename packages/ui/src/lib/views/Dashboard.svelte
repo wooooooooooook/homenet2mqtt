@@ -139,6 +139,9 @@
   let selectedEntityType = $state<string | null>(null);
   let yamlDraft = $state('');
   let yamlCopyMessage = $state<string | null>(null);
+  let discoveryPreview = $state<{ topic: string; payload: unknown } | null>(null);
+  let discoveryPreviewLoading = $state(false);
+  let discoveryPreviewError = $state<string | null>(null);
 
   const entityTypeOptions = [
     'light',
@@ -347,6 +350,9 @@
     selectedEntityType = null;
     yamlDraft = '';
     yamlCopyMessage = null;
+    discoveryPreview = null;
+    discoveryPreviewError = null;
+    discoveryPreviewLoading = false;
   }
 
   function closeAddModal() {
@@ -385,6 +391,8 @@
     }
 
     yamlCopyMessage = null;
+    discoveryPreview = null;
+    discoveryPreviewError = null;
     if (category === 'entity') {
       addStep = 'select-entity-type';
       return;
@@ -398,12 +406,16 @@
     selectedEntityType = type;
     selectedCategory = 'entity';
     yamlCopyMessage = null;
+    discoveryPreview = null;
+    discoveryPreviewError = null;
     yamlDraft = buildYamlTemplate('entity', type);
     addStep = 'edit-yaml';
   }
 
   function handleAddStepBack() {
     yamlCopyMessage = null;
+    discoveryPreview = null;
+    discoveryPreviewError = null;
     if (addStep === 'edit-yaml' && selectedCategory === 'entity') {
       addStep = 'select-entity-type';
       return;
@@ -510,6 +522,58 @@
 
   // Restart functionality
   let isRestarting = $state(false);
+
+  async function handleDiscoveryPreview() {
+    if (selectedCategory !== 'entity' || !selectedEntityType) return;
+
+    if (!activePortId) {
+      discoveryPreviewError = $t('errors.BRIDGE_NOT_FOUND_FOR_PORT', {
+        values: { portId: 'active' },
+      });
+      return;
+    }
+
+    discoveryPreviewLoading = true;
+    discoveryPreviewError = null;
+    discoveryPreview = null;
+
+    try {
+      const res = await fetch('./api/config/discovery-preview', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          portId: activePortId,
+          entityType: selectedEntityType,
+          yaml: yamlDraft,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to generate discovery preview');
+      }
+
+      discoveryPreview = {
+        topic: data.topic,
+        payload: data.payload,
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      discoveryPreviewError = $t('dashboard.add_modal.discovery_preview_error', {
+        values: { error: errorMessage },
+      });
+    } finally {
+      discoveryPreviewLoading = false;
+    }
+  }
+
+  $effect(() => {
+    yamlDraft;
+    discoveryPreview = null;
+    discoveryPreviewError = null;
+  });
 
   $effect(() => {
     const nextValue = searchText;
@@ -747,6 +811,39 @@
                 class="yaml-editor-instance"
               />
             </div>
+            {#if selectedCategory === 'entity'}
+              <div class="discovery-preview-block">
+                <div class="discovery-preview-header">
+                  <h4>{$t('dashboard.add_modal.discovery_preview_title')}</h4>
+                  <Button
+                    variant="outline-primary"
+                    onclick={handleDiscoveryPreview}
+                    disabled={discoveryPreviewLoading}
+                  >
+                    {discoveryPreviewLoading
+                      ? $t('dashboard.add_modal.discovery_preview_loading')
+                      : $t('dashboard.add_modal.discovery_preview_button')}
+                  </Button>
+                </div>
+
+                {#if discoveryPreviewError}
+                  <p class="error">{discoveryPreviewError}</p>
+                {:else if discoveryPreview}
+                  <div class="discovery-preview-result">
+                    <p class="preview-label">
+                      {$t('dashboard.add_modal.discovery_preview_topic')}
+                    </p>
+                    <pre>{discoveryPreview.topic}</pre>
+                    <p class="preview-label">
+                      {$t('dashboard.add_modal.discovery_preview_payload')}
+                    </p>
+                    <pre>{JSON.stringify(discoveryPreview.payload, null, 2)}</pre>
+                  </div>
+                {:else}
+                  <p class="preview-empty">{$t('dashboard.add_modal.discovery_preview_empty')}</p>
+                {/if}
+              </div>
+            {/if}
 
             {#if addError}
               <p class="error">{addError}</p>
@@ -1309,6 +1406,55 @@
     margin: 0;
     font-size: 0.9rem;
     text-align: right;
+  }
+
+  .discovery-preview-block {
+    border: 1px solid rgba(148, 163, 184, 0.3);
+    border-radius: 8px;
+    padding: 0.9rem;
+    background: rgba(15, 23, 42, 0.5);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .discovery-preview-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+
+  .discovery-preview-header h4 {
+    margin: 0;
+    font-size: 0.95rem;
+    color: #e2e8f0;
+  }
+
+  .discovery-preview-result pre {
+    margin: 0.35rem 0 0.75rem;
+    padding: 0.65rem;
+    border-radius: 6px;
+    background: rgba(2, 6, 23, 0.8);
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    color: #cbd5e1;
+    font-size: 0.8rem;
+    overflow: auto;
+    max-height: 220px;
+  }
+
+  .preview-label {
+    margin: 0;
+    color: #94a3b8;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  .preview-empty {
+    margin: 0;
+    color: #94a3b8;
+    font-size: 0.85rem;
   }
 
   .hint,

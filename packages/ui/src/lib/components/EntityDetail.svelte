@@ -58,6 +58,9 @@
   let configError = $state<string | null>(null);
   let isSaving = $state(false);
   let saveMessage = $state('');
+  let discoveryPreview = $state<{ topic: string; payload: unknown } | null>(null);
+  let discoveryPreviewLoading = $state(false);
+  let discoveryPreviewError = $state<string | null>(null);
   let renameInput = $state('');
   let renameLocalError = $state<string | null>(null);
   let renameEntityId = $state<string | null>(null);
@@ -505,6 +508,58 @@
       isSaving = false;
     }
   }
+
+  async function previewDiscoveryPublish() {
+    if (!isDeviceEntity || !entity.type) return;
+
+    if (!entity.portId) {
+      discoveryPreviewError = $t('errors.BRIDGE_NOT_FOUND_FOR_PORT', {
+        values: { portId: 'active' },
+      });
+      return;
+    }
+
+    discoveryPreviewLoading = true;
+    discoveryPreviewError = null;
+    discoveryPreview = null;
+
+    try {
+      const response = await fetch('./api/config/discovery-preview', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          portId: entity.portId,
+          entityType: entity.type,
+          yaml: editingConfig,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to generate discovery preview');
+      }
+
+      discoveryPreview = {
+        topic: data.topic,
+        payload: data.payload,
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      discoveryPreviewError = $t('entity_detail.config.discovery_preview_error', {
+        values: { error: message },
+      });
+    } finally {
+      discoveryPreviewLoading = false;
+    }
+  }
+
+  $effect(() => {
+    editingConfig;
+    discoveryPreview = null;
+    discoveryPreviewError = null;
+  });
 
   function handleRevokeDiscovery() {
     showConfirmDialog({
@@ -1197,6 +1252,41 @@
                     {/if}
                   </div>
                 </div>
+                {#if isDeviceEntity}
+                  <div class="discovery-preview-section">
+                    <div class="discovery-preview-header">
+                      <h4>{$t('entity_detail.config.discovery_preview_title')}</h4>
+                      <Button
+                        variant="outline-primary"
+                        onclick={previewDiscoveryPublish}
+                        disabled={discoveryPreviewLoading}
+                      >
+                        {discoveryPreviewLoading
+                          ? $t('entity_detail.config.discovery_preview_loading')
+                          : $t('entity_detail.config.discovery_preview_button')}
+                      </Button>
+                    </div>
+
+                    {#if discoveryPreviewError}
+                      <p class="save-message error">{discoveryPreviewError}</p>
+                    {:else if discoveryPreview}
+                      <div class="discovery-preview-result">
+                        <p class="preview-label">
+                          {$t('entity_detail.config.discovery_preview_topic')}
+                        </p>
+                        <pre>{discoveryPreview.topic}</pre>
+                        <p class="preview-label">
+                          {$t('entity_detail.config.discovery_preview_payload')}
+                        </p>
+                        <pre>{JSON.stringify(discoveryPreview.payload, null, 2)}</pre>
+                      </div>
+                    {:else}
+                      <p class="preview-empty">
+                        {$t('entity_detail.config.discovery_preview_empty')}
+                      </p>
+                    {/if}
+                  </div>
+                {/if}
               </div>
             {/if}
           </div>
@@ -1834,6 +1924,55 @@
 
   .save-message.error {
     color: #f87171;
+  }
+
+  .discovery-preview-section {
+    margin-top: 0.75rem;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    border-radius: 8px;
+    background: rgba(15, 23, 42, 0.45);
+    padding: 0.9rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .discovery-preview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .discovery-preview-header h4 {
+    margin: 0;
+    font-size: 0.95rem;
+    color: #e2e8f0;
+  }
+
+  .discovery-preview-result pre {
+    margin: 0.35rem 0 0.75rem;
+    padding: 0.65rem;
+    border-radius: 6px;
+    background: rgba(2, 6, 23, 0.8);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    color: #cbd5e1;
+    font-size: 0.82rem;
+    max-height: 220px;
+    overflow: auto;
+  }
+
+  .preview-label {
+    margin: 0;
+    color: #94a3b8;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+  }
+
+  .preview-empty {
+    margin: 0;
+    color: #94a3b8;
+    font-size: 0.85rem;
   }
 
   /* Unified Log Styles */
