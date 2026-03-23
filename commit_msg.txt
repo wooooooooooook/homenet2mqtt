@@ -1,0 +1,17 @@
+⚡ Bolt: [config.routes.ts] Replace O(N*M) duplicate ID checks with O(1) Map lookup
+
+💡 What:
+- Optimized the duplicate ID checking in `packages/service/src/routes/config.routes.ts` by replacing `targetList.find` and `otherList.some` operations inside a loop with a single pre-built `Map<string, string>` containing existing IDs and their entity types.
+- Replaced the linear array scan `findEntityConfig` inside `renameEntity` in `packages/core/src/service/bridge.service.ts` with the existing optimized `findEntityById` utility.
+
+🎯 Why:
+- Adding multiple entries inside the `/api/config/add` route handler previously executed nested iterations that linearly scanned the entire entity configuration structure for each new ID ($O(N \times M)$ complexity).
+- Using a Map reduces duplicate validation lookups to $O(1)$, avoiding event loop blockages for larger configurations.
+- Reusing `findEntityById` reduces duplicate code and centralizes optimization targets.
+
+📊 Impact:
+- Transforms duplicate configuration validation from $O(N \times M)$ to $O(N + M)$ time complexity.
+- Significantly speeds up bulk adding operations from external galleries or API modifications.
+
+🔬 Measurement:
+- Add a large bulk array of new entities to the `POST /api/config/add` endpoint; CPU utilization and response time should decrease noticeably.

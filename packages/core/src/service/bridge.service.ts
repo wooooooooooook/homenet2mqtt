@@ -314,14 +314,14 @@ export class HomeNetBridge extends EventEmitter {
       return { success: false, error: 'Bridge not initialized' };
     }
 
-    const entityEntry = this.findEntityConfig(entityId);
+    const entityEntry = findEntityById(this.config, entityId);
 
     if (!entityEntry) {
       logger.warn({ entityId }, '[core] Rename requested for unknown entity');
       return { success: false, error: 'Entity not found' };
     }
 
-    const { entity } = entityEntry;
+    const entity = entityEntry;
     const trimmedName = newName.trim();
     if (!trimmedName) {
       return { success: false, error: 'New name must not be empty' };
@@ -1069,18 +1069,5 @@ export class HomeNetBridge extends EventEmitter {
     };
   }
 
-  private findEntityConfig(
-    entityId: string,
-  ): { type: keyof HomenetBridgeConfig; entity: EntityConfig } | undefined {
-    for (const type of ENTITY_TYPE_KEYS) {
-      const entities = this.config?.[type];
-      if (!entities) continue;
 
-      const entity = (entities as EntityConfig[]).find((e) => e.id === entityId);
-      if (entity) {
-        return { type, entity };
-      }
-    }
-    return undefined;
-  }
 }
