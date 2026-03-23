@@ -20,21 +20,28 @@ export const extractFromSchema = (packet: Buffer, schema: StateSchema | StateNum
 
   // 1. Check Data Match (if data is provided)
   if (data) {
-    for (let i = 0; i < data.length; i++) {
-      const pByte = packet[offset + i];
-      const dByte = data[i];
-      let mByte = 0xff;
+    const hasMask = mask !== undefined;
 
-      if (mask !== undefined) {
-        if (Array.isArray(mask)) {
-          mByte = mask[i] ?? 0xff;
-        } else {
-          mByte = mask;
+    if (!hasMask) {
+      for (let i = 0; i < data.length; i++) {
+        if (packet[offset + i] !== data[i]) {
+          return null; // Mismatch
         }
       }
-
-      if ((pByte & mByte) !== (dByte & mByte)) {
-        return null; // Mismatch
+    } else if (!Array.isArray(mask)) {
+      const mByte = mask as number;
+      for (let i = 0; i < data.length; i++) {
+        if ((packet[offset + i] & mByte) !== (data[i] & mByte)) {
+          return null; // Mismatch
+        }
+      }
+    } else {
+      const maskArray = mask as number[];
+      for (let i = 0; i < data.length; i++) {
+        const mByte = maskArray[i] ?? 0xff;
+        if ((packet[offset + i] & mByte) !== (data[i] & mByte)) {
+          return null; // Mismatch
+        }
       }
     }
   }
@@ -48,23 +55,33 @@ export const extractFromSchema = (packet: Buffer, schema: StateSchema | StateNum
   // Handle ASCII separately (string creation)
   if (decode === 'ascii') {
     const extractedBytes: number[] = [];
-    for (let i = 0; i < length; i++) {
-      let val = packet[offset + i];
-      if (mask !== undefined || inverted) {
-        let mByte = 0xff;
-        if (mask !== undefined) {
-          if (Array.isArray(mask)) {
-            mByte = mask[i] ?? 0xff;
-          } else {
-            mByte = mask;
-          }
-        }
-        if (inverted) {
-          val = ~val;
-        }
-        val = val & mByte;
+    const hasMask = mask !== undefined;
+    const isArrayMask = hasMask && Array.isArray(mask);
+
+    if (!hasMask && !inverted) {
+      // Fast path: no mask, no inversion
+      for (let i = 0; i < length; i++) {
+        extractedBytes.push(packet[offset + i]);
       }
-      extractedBytes.push(val);
+    } else if (!isArrayMask) {
+      // Scalar mask or inversion
+      const mByte = hasMask ? (mask as number) : 0xff;
+      for (let i = 0; i < length; i++) {
+        let val = packet[offset + i];
+        if (inverted) val = ~val;
+        val = val & mByte;
+        extractedBytes.push(val);
+      }
+    } else {
+      // Array mask
+      const maskArray = mask as number[];
+      for (let i = 0; i < length; i++) {
+        let val = packet[offset + i];
+        const mByte = maskArray[i] ?? 0xff;
+        if (inverted) val = ~val;
+        val = val & mByte;
+        extractedBytes.push(val);
+      }
     }
     if (endian === 'little') {
       extractedBytes.reverse();
@@ -112,28 +129,48 @@ export const extractFromSchema = (packet: Buffer, schema: StateSchema | StateNum
     const end = endian === 'little' ? -1 : length;
     const step = endian === 'little' ? -1 : 1;
 
-    for (let i = start; i !== end; i += step) {
-      let val = packet[offset + i];
+    const isBcd = decode === 'bcd';
+    const hasMask = mask !== undefined;
+    const isArrayMask = hasMask && Array.isArray(mask);
 
-      if (mask !== undefined || inverted) {
-        let mByte = 0xff;
-        if (mask !== undefined) {
-          if (Array.isArray(mask)) {
-            mByte = mask[i] ?? 0xff;
-          } else {
-            mByte = mask;
-          }
+    if (!hasMask && !inverted) {
+      // Fast path: no mask, no inversion
+      for (let i = start; i !== end; i += step) {
+        const val = packet[offset + i];
+        if (isBcd) {
+          value = value * 100 + (val >> 4) * 10 + (val & 0x0f);
+        } else {
+          value = value * 256 + val;
         }
-        if (inverted) {
-          val = ~val;
-        }
-        val = val & mByte;
       }
+    } else if (!isArrayMask) {
+      // Scalar mask or inversion
+      const mByte = hasMask ? (mask as number) : 0xff;
+      for (let i = start; i !== end; i += step) {
+        let val = packet[offset + i];
+        if (inverted) val = ~val;
+        val = val & mByte;
 
-      if (decode === 'bcd') {
-        value = value * 100 + (val >> 4) * 10 + (val & 0x0f);
-      } else {
-        value = value * 256 + val;
+        if (isBcd) {
+          value = value * 100 + (val >> 4) * 10 + (val & 0x0f);
+        } else {
+          value = value * 256 + val;
+        }
+      }
+    } else {
+      // Array mask
+      const maskArray = mask as number[];
+      for (let i = start; i !== end; i += step) {
+        let val = packet[offset + i];
+        const mByte = maskArray[i] ?? 0xff;
+        if (inverted) val = ~val;
+        val = val & mByte;
+
+        if (isBcd) {
+          value = value * 100 + (val >> 4) * 10 + (val & 0x0f);
+        } else {
+          value = value * 256 + val;
+        }
       }
     }
   }
