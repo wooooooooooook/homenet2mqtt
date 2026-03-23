@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-02-15T13:57:34.643Z",
+  "generated_at": "2026-03-23T08:05:27.842Z",
   "vendors": [
     {
       "id": "bestin",
@@ -557,6 +557,26 @@
           }
         },
         {
+          "file": "ezville/lights dimming.yaml",
+          "name": "디밍 조명 예시",
+          "name_en": "Dimming Light Example",
+          "description": "디밍 조명 예시입니다.",
+          "description_en": "Dimming Light Example.",
+          "version": "1.0.0",
+          "author": "서울G하인츠",
+          "tags": [
+            "light",
+            "ezville",
+            "dimming"
+          ],
+          "parameters": [],
+          "content_summary": {
+            "entities": {},
+            "automations": 0,
+            "scripts": 0
+          }
+        },
+        {
           "file": "ezville/lights.yaml",
           "name": "조명 설정 (Room 1-5, 12개)",
           "name_en": "Lights (Room 1-5, 12 Lights)",
@@ -677,6 +697,29 @@
             },
             "automations": 0,
             "scripts": 2
+          }
+        },
+        {
+          "file": "hyundai_imazu/elevator2 copy.yaml",
+          "name": "현대통신 엘리베이터 2018년식",
+          "name_en": "Hyundai Telecom Elevator 2018",
+          "description": "2018년 말 입주한 아파트의 엘리베이터 동작이 조금 다른 부분이 있어서 수정한 설정입니다.\n엘리베이터 2개가 있고 호출버튼은 하나를 사용하는 환경입니다.\n",
+          "description_en": "Configuration for Hyundai Telecom elevators in a 2018 apartment complex with two elevators and a shared call button.\n",
+          "version": "1.0.0",
+          "author": "rootsnet",
+          "tags": [
+            "elevator",
+            "hyundai",
+            "imazu"
+          ],
+          "parameters": [],
+          "content_summary": {
+            "entities": {
+              "text_sensor": 4,
+              "button": 1
+            },
+            "automations": 0,
+            "scripts": 1
           }
         },
         {
