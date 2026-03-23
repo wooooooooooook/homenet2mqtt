@@ -5,6 +5,8 @@ import {
   getChecksumFunction,
   getChecksum2Verifier,
   getChecksumOffsetType,
+  STANDARD_CHECKSUM_TYPES,
+  STANDARD_CHECKSUM2_TYPES,
   ByteArray,
   Checksum2Verifier,
 } from './utils/checksum.js';
@@ -73,18 +75,8 @@ export class PacketParser {
     args: {},
   };
 
-  private static readonly CHECKSUM_TYPES = new Set([
-    'add',
-    'xor',
-    'add_no_header',
-    'xor_no_header',
-    'samsung_rx',
-    'samsung_tx',
-    'samsung_xor',
-    'bestin_sum',
-    'none',
-  ]);
-  private static readonly CHECKSUM2_TYPES = new Set(['xor_add']);
+  private static readonly CHECKSUM_TYPES = new Set<string>(STANDARD_CHECKSUM_TYPES);
+  private static readonly CHECKSUM2_TYPES = new Set<string>(STANDARD_CHECKSUM2_TYPES);
 
   /**
    * @param defaults - Configuration defining packet structure (header, footer, checksum, length)
@@ -622,7 +614,8 @@ export class PacketParser {
             }
           } else if (this.isStandard2Byte) {
             // Incremental Checksum Strategy for 2-byte Footer Delimited
-            // Currently only supports 'xor_add' as it's the only standard 2-byte type
+            // Incremental optimization path currently specializes on xor_add.
+            // Other standard 2-byte checksums use the generic verifier path below.
 
             let runningCrc = 0;
             let runningTemp = 0;
@@ -868,7 +861,7 @@ export class PacketParser {
               }
             }
           } else if (this.isStandard2Byte) {
-            // Incremental Checksum Strategy for 2-byte Checksums (xor_add)
+            // Incremental Checksum Strategy for 2-byte Checksums (xor_add only)
             // xor_add maintains two running values: crc (sum) and temp (xor).
             // Updates are commutative, so we can incrementally update them.
             // Checksum location: last 2 bytes [high, low] = [temp, crc]

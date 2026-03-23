@@ -6,6 +6,8 @@ import { CelExecutor, CompiledScript } from '../cel-executor.js';
 import {
   calculateChecksum,
   calculateChecksum2,
+  STANDARD_CHECKSUM_TYPES,
+  STANDARD_CHECKSUM2_TYPES,
   ChecksumType,
   Checksum2Type,
 } from '../utils/checksum.js';
@@ -294,17 +296,7 @@ export class GenericDevice extends Device {
     if (packetDefaults.tx_checksum && packetDefaults.tx_checksum !== 'none') {
       const checksumType = packetDefaults.tx_checksum as ChecksumType | string;
 
-      const standardChecksums = new Set([
-        'add',
-        'xor',
-        'add_no_header',
-        'xor_no_header',
-        'samsung_rx',
-        'samsung_tx',
-        'samsung_xor',
-        'bestin_sum',
-        'none',
-      ]);
+      const standardChecksums = new Set<string>(STANDARD_CHECKSUM_TYPES);
 
       if (typeof checksumType === 'string') {
         if (standardChecksums.has(checksumType)) {
@@ -337,7 +329,7 @@ export class GenericDevice extends Device {
     // Check for 2-byte checksum if 1-byte checksum is not used
     else if (packetDefaults.tx_checksum2) {
       const checksumType = packetDefaults.tx_checksum2 as Checksum2Type | string;
-      const standardChecksums2 = new Set(['xor_add']);
+      const standardChecksums2 = new Set<string>(STANDARD_CHECKSUM2_TYPES);
 
       if (typeof checksumType === 'string') {
         if (standardChecksums2.has(checksumType)) {

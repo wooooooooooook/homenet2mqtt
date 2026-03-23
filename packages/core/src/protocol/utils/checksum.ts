@@ -1,15 +1,133 @@
-export type ChecksumType =
-  | 'add'
-  | 'add_no_header'
-  | 'xor'
-  | 'xor_no_header'
-  | 'samsung_rx'
-  | 'samsung_tx'
-  | 'samsung_xor'
-  | 'bestin_sum'
-  | 'none';
+import type { ChecksumType, Checksum2Type } from '../types.js';
 
-export type Checksum2Type = 'xor_add' | 'crc_ccitt_xmodem';
+export type { ChecksumType, Checksum2Type };
+
+export const STANDARD_CHECKSUM_TYPES = [
+  'add',
+  'add_no_header',
+  'xor',
+  'xor_no_header',
+  'samsung_rx',
+  'samsung_tx',
+  'samsung_xor',
+  'bestin_sum',
+  'crc8',
+  'crc8_no_header',
+  'crc8_maxim',
+  'crc8_maxim_no_header',
+  'crc8_rohc',
+  'crc8_rohc_no_header',
+  'crc8_wcdma',
+  'crc8_wcdma_no_header',
+  'none',
+] as const satisfies readonly ChecksumType[];
+
+export const STANDARD_CHECKSUM2_TYPES = [
+  'xor_add',
+  'crc_ccitt_xmodem',
+  'crc16_xmodem',
+  'crc16_xmodem_no_header',
+  'crc16_ccitt_false',
+  'crc16_ccitt_false_no_header',
+  'crc16_modbus',
+  'crc16_modbus_no_header',
+  'crc16_ibm',
+  'crc16_ibm_no_header',
+  'crc16_kermit',
+  'crc16_kermit_no_header',
+  'crc16_x25',
+  'crc16_x25_no_header',
+] as const satisfies readonly Checksum2Type[];
+
+type Crc16Variant =
+  | 'crc16_xmodem'
+  | 'crc16_ccitt_false'
+  | 'crc16_modbus'
+  | 'crc16_ibm'
+  | 'crc16_kermit'
+  | 'crc16_x25';
+
+type Checksum2Resolution = {
+  normalizedType: Checksum2Type;
+  baseType: Crc16Variant | 'xor_add';
+  includeHeader: boolean;
+};
+
+type Crc8Variant = 'crc8' | 'crc8_maxim' | 'crc8_rohc' | 'crc8_wcdma';
+
+type Checksum1Resolution =
+  | { kind: 'native'; normalizedType: ChecksumType }
+  | { kind: 'crc8'; normalizedType: ChecksumType; baseType: Crc8Variant; includeHeader: boolean };
+
+interface Crc16Spec {
+  poly: number;
+  init: number;
+  refin: boolean;
+  refout: boolean;
+  xorOut: number;
+}
+
+const CRC16_SPECS: Record<Crc16Variant, Crc16Spec> = {
+  crc16_xmodem: { poly: 0x1021, init: 0x0000, refin: false, refout: false, xorOut: 0x0000 },
+  crc16_ccitt_false: {
+    poly: 0x1021,
+    init: 0xffff,
+    refin: false,
+    refout: false,
+    xorOut: 0x0000,
+  },
+  crc16_modbus: { poly: 0x8005, init: 0xffff, refin: true, refout: true, xorOut: 0x0000 },
+  crc16_ibm: { poly: 0x8005, init: 0x0000, refin: true, refout: true, xorOut: 0x0000 },
+  crc16_kermit: { poly: 0x1021, init: 0x0000, refin: true, refout: true, xorOut: 0x0000 },
+  crc16_x25: { poly: 0x1021, init: 0xffff, refin: true, refout: true, xorOut: 0xffff },
+};
+
+const CRC8_SPECS: Record<
+  Crc8Variant,
+  { poly: number; init: number; refin: boolean; refout: boolean; xorOut: number }
+> = {
+  crc8: { poly: 0x07, init: 0x00, refin: false, refout: false, xorOut: 0x00 },
+  crc8_maxim: { poly: 0x31, init: 0x00, refin: true, refout: true, xorOut: 0x00 },
+  crc8_rohc: { poly: 0x07, init: 0xff, refin: true, refout: true, xorOut: 0x00 },
+  crc8_wcdma: { poly: 0x9b, init: 0x00, refin: true, refout: true, xorOut: 0x00 },
+};
+
+function resolveChecksumType(type: ChecksumType): Checksum1Resolution {
+  if (type === 'crc8' || type === 'crc8_maxim' || type === 'crc8_rohc' || type === 'crc8_wcdma') {
+    return { kind: 'crc8', normalizedType: type, baseType: type, includeHeader: true };
+  }
+  if (
+    type === 'crc8_no_header' ||
+    type === 'crc8_maxim_no_header' ||
+    type === 'crc8_rohc_no_header' ||
+    type === 'crc8_wcdma_no_header'
+  ) {
+    return {
+      kind: 'crc8',
+      normalizedType: type,
+      baseType: type.replace(/_no_header$/, '') as Crc8Variant,
+      includeHeader: false,
+    };
+  }
+  return { kind: 'native', normalizedType: type };
+}
+
+function resolveChecksum2Type(type: Checksum2Type): Checksum2Resolution {
+  if (type === 'xor_add') {
+    return { normalizedType: type, baseType: 'xor_add', includeHeader: true };
+  }
+  if (type === 'crc_ccitt_xmodem') {
+    return {
+      normalizedType: type,
+      baseType: 'crc16_xmodem',
+      includeHeader: false,
+    };
+  }
+
+  const includeHeader = !type.endsWith('_no_header');
+  const baseType = (includeHeader ? type : type.replace(/_no_header$/, '')) as Crc16Variant;
+  return { normalizedType: type, baseType, includeHeader };
+}
 
 export type ByteArray = number[] | Buffer | Uint8Array;
 
@@ -29,6 +147,13 @@ export type Checksum2Verifier = (
  * @returns Single byte checksum value
  */
 export function calculateChecksum(header: ByteArray, data: ByteArray, type: ChecksumType): number {
+  const resolved = resolveChecksumType(type);
+  if (resolved.kind === 'crc8') {
+    return resolved.includeHeader
+      ? crc8FromParts(header, data, CRC8_SPECS[resolved.baseType])
+      : crc8FromBytes(data, CRC8_SPECS[resolved.baseType]);
+  }
+
   switch (type) {
     case 'add':
       return add(header, data);
@@ -46,6 +171,15 @@ export function calculateChecksum(header: ByteArray, data: ByteArray, type: Chec
       return samsungXorAllMsb0(header, data);
     case 'bestin_sum':
       return bestinSum(header, data);
+    case 'crc8':
+    case 'crc8_no_header':
+    case 'crc8_maxim':
+    case 'crc8_maxim_no_header':
+    case 'crc8_rohc':
+    case 'crc8_rohc_no_header':
+    case 'crc8_wcdma':
+    case 'crc8_wcdma_no_header':
+      throw new Error('CRC8 type should be resolved before switch');
     case 'none':
       throw new Error("Checksum type 'none' should not be calculated");
     default:
@@ -70,6 +204,16 @@ export function calculateChecksumFromBuffer(
   const dataStart = baseOffset;
   const headerStart = baseOffset + _headerLength;
   const dataStop = baseOffset + dataEnd;
+  const resolved = resolveChecksumType(type);
+  if (resolved.kind === 'crc8') {
+    return crc8Range(
+      buffer,
+      resolved.includeHeader ? dataStart : headerStart,
+      dataStop,
+      CRC8_SPECS[resolved.baseType],
+    );
+  }
+
   switch (type) {
     case 'add':
       return addRange(buffer, dataStart, dataStop);
@@ -87,6 +231,15 @@ export function calculateChecksumFromBuffer(
       return samsungXorAllMsb0FromBuffer(buffer, dataStart, dataStop);
     case 'bestin_sum':
       return bestinSumFromBuffer(buffer, dataStart, dataStop);
+    case 'crc8':
+    case 'crc8_no_header':
+    case 'crc8_maxim':
+    case 'crc8_maxim_no_header':
+    case 'crc8_rohc':
+    case 'crc8_rohc_no_header':
+    case 'crc8_wcdma':
+    case 'crc8_wcdma_no_header':
+      throw new Error('CRC8 type should be resolved before switch');
     case 'none':
       throw new Error("Checksum type 'none' should not be calculated");
     default:
@@ -226,6 +379,88 @@ function bestinSumFromBuffer(buffer: ByteArray, start: number, end: number): num
   return sum;
 }
 
+function crc8FromBytes(
+  data: ByteArray,
+  spec: { poly: number; init: number; refin: boolean; refout: boolean; xorOut: number },
+): number {
+  let crc = spec.init & 0xff;
+  for (const byte of data) {
+    crc = updateCrc8(crc, byte, spec);
+  }
+  return finalizeCrc8(crc, spec);
+}
+
+function crc8FromParts(
+  header: ByteArray,
+  data: ByteArray,
+  spec: { poly: number; init: number; refin: boolean; refout: boolean; xorOut: number },
+): number {
+  let crc = spec.init & 0xff;
+  for (const byte of header) {
+    crc = updateCrc8(crc, byte, spec);
+  }
+  for (const byte of data) {
+    crc = updateCrc8(crc, byte, spec);
+  }
+  return finalizeCrc8(crc, spec);
+}
+
+function crc8Range(
+  buffer: ByteArray,
+  start: number,
+  end: number,
+  spec: { poly: number; init: number; refin: boolean; refout: boolean; xorOut: number },
+): number {
+  let crc = spec.init & 0xff;
+  for (let i = start; i < end; i++) {
+    crc = updateCrc8(crc, buffer[i], spec);
+  }
+  return finalizeCrc8(crc, spec);
+}
+
+function updateCrc8(
+  crc: number,
+  byte: number,
+  spec: { poly: number; init: number; refin: boolean; refout: boolean; xorOut: number },
+): number {
+  if (spec.refin) {
+    let cur = (crc ^ byte) & 0xff;
+    const poly = reflect8(spec.poly);
+    for (let i = 0; i < 8; i++) {
+      cur = cur & 1 ? ((cur >>> 1) ^ poly) & 0xff : (cur >>> 1) & 0xff;
+    }
+    return cur;
+  }
+
+  let cur = (crc ^ ((byte & 0xff) << 0)) & 0xff;
+  for (let i = 0; i < 8; i++) {
+    cur = cur & 0x80 ? ((cur << 1) ^ spec.poly) & 0xff : (cur << 1) & 0xff;
+  }
+  return cur;
+}
+
+function finalizeCrc8(
+  crc: number,
+  spec: { poly: number; init: number; refin: boolean; refout: boolean; xorOut: number },
+): number {
+  let final = crc & 0xff;
+  if (spec.refout !== spec.refin) {
+    final = reflect8(final);
+  }
+  final = (final ^ spec.xorOut) & 0xff;
+  return final;
+}
+
+function reflect8(value: number): number {
+  let reflected = 0;
+  for (let i = 0; i < 8; i++) {
+    if (value & (1 << i)) {
+      reflected |= 1 << (7 - i);
+    }
+  }
+  return reflected & 0xff;
+}
+
 /**
  * Calculate 2-byte checksum
  * @param header Header bytes
@@ -238,13 +473,21 @@ export function calculateChecksum2(
   data: ByteArray,
   type: Checksum2Type,
 ): number[] {
-  switch (type) {
+  const resolved = resolveChecksum2Type(type);
+  switch (resolved.baseType) {
     case 'xor_add':
       return xorAdd(header, data);
-    case 'crc_ccitt_xmodem':
-      return crcCcittXmodem(header, data);
+    case 'crc16_xmodem':
+    case 'crc16_ccitt_false':
+    case 'crc16_modbus':
+    case 'crc16_ibm':
+    case 'crc16_kermit':
+    case 'crc16_x25':
+      return resolved.includeHeader
+        ? crc16FromParts(header, data, CRC16_SPECS[resolved.baseType])
+        : crc16FromBytes(data, CRC16_SPECS[resolved.baseType]);
     default:
-      throw new Error(`Unknown 2-byte checksum type: ${type}`);
+      throw new Error(`Unknown 2-byte checksum type: ${resolved.normalizedType}`);
   }
 }
 
@@ -261,14 +504,25 @@ export function calculateChecksum2FromBuffer(
   const dataStart = baseOffset;
   const headerStart = baseOffset + _headerLength;
   const dataStop = baseOffset + dataEnd;
-  switch (type) {
+  const resolved = resolveChecksum2Type(type);
+  switch (resolved.baseType) {
     case 'xor_add':
       // xorAdd processes header then data linearly, so we can process range 0..dataEnd
       return xorAddRange(buffer, dataStart, dataStop);
-    case 'crc_ccitt_xmodem':
-      return crcCcittXmodemRange(buffer, headerStart, dataStop);
+    case 'crc16_xmodem':
+    case 'crc16_ccitt_false':
+    case 'crc16_modbus':
+    case 'crc16_ibm':
+    case 'crc16_kermit':
+    case 'crc16_x25':
+      return crc16Range(
+        buffer,
+        resolved.includeHeader ? dataStart : headerStart,
+        dataStop,
+        CRC16_SPECS[resolved.baseType],
+      );
     default:
-      throw new Error(`Unknown 2-byte checksum type: ${type}`);
+      throw new Error(`Unknown 2-byte checksum type: ${resolved.normalizedType}`);
   }
 }
 
@@ -287,15 +541,28 @@ export function verifyChecksum2FromBuffer(
   const dataStart = baseOffset;
   const headerStart = baseOffset + _headerLength;
   const dataStop = baseOffset + dataEnd;
-  switch (type) {
+  const resolved = resolveChecksum2Type(type);
+  switch (resolved.baseType) {
     case 'xor_add':
       return verifyXorAddRange(buffer, dataStart, dataStop, expectedHigh, expectedLow);
-    case 'crc_ccitt_xmodem':
-      return verifyCrcCcittXmodemRange(buffer, headerStart, dataStop, expectedHigh, expectedLow);
+    case 'crc16_xmodem':
+    case 'crc16_ccitt_false':
+    case 'crc16_modbus':
+    case 'crc16_ibm':
+    case 'crc16_kermit':
+    case 'crc16_x25':
+      return verifyCrc16Range(
+        buffer,
+        resolved.includeHeader ? dataStart : headerStart,
+        dataStop,
+        expectedHigh,
+        expectedLow,
+        CRC16_SPECS[resolved.baseType],
+      );
     default: {
       const calculated = calculateChecksum2FromBuffer(
         buffer,
-        type,
+        resolved.normalizedType,
         _headerLength,
         dataEnd,
         baseOffset,
@@ -368,6 +635,12 @@ export function verifyXorAddRange(
 export function getChecksumFunction(
   type: ChecksumType,
 ): ((buffer: ByteArray, start: number, end: number) => number) | null {
+  const resolved = resolveChecksumType(type);
+  if (resolved.kind === 'crc8') {
+    const spec = CRC8_SPECS[resolved.baseType];
+    return (buffer: ByteArray, start: number, end: number) => crc8Range(buffer, start, end, spec);
+  }
+
   switch (type) {
     case 'add':
       return addRange;
@@ -385,6 +658,15 @@ export function getChecksumFunction(
       return samsungXorAllMsb0FromBuffer;
     case 'bestin_sum':
       return bestinSumFromBuffer;
+    case 'crc8':
+    case 'crc8_no_header':
+    case 'crc8_maxim':
+    case 'crc8_maxim_no_header':
+    case 'crc8_rohc':
+    case 'crc8_rohc_no_header':
+    case 'crc8_wcdma':
+    case 'crc8_wcdma_no_header':
+      return null;
     default:
       return null;
   }
@@ -395,11 +677,20 @@ export function getChecksumFunction(
  * Used to bypass switch statements in hot loops.
  */
 export function getChecksum2Verifier(type: Checksum2Type): Checksum2Verifier | null {
-  switch (type) {
+  const resolved = resolveChecksum2Type(type);
+  switch (resolved.baseType) {
     case 'xor_add':
       return verifyXorAddRange;
-    case 'crc_ccitt_xmodem':
-      return verifyCrcCcittXmodemRange;
+    case 'crc16_xmodem':
+    case 'crc16_ccitt_false':
+    case 'crc16_modbus':
+    case 'crc16_ibm':
+    case 'crc16_kermit':
+    case 'crc16_x25':
+      if (!resolved.includeHeader) return null;
+      const baseType = resolved.baseType as Crc16Variant;
+      return (buffer, start, end, expectedHigh, expectedLow) =>
+        verifyCrc16Range(buffer, start, end, expectedHigh, expectedLow, CRC16_SPECS[baseType]);
     default:
       return null;
   }
@@ -411,6 +702,11 @@ export function getChecksum2Verifier(type: Checksum2Type): Checksum2Verifier | n
  * 'base': start = offset
  */
 export function getChecksumOffsetType(type: ChecksumType): 'base' | 'header' {
+  const resolved = resolveChecksumType(type);
+  if (resolved.kind === 'crc8') {
+    return resolved.includeHeader ? 'base' : 'header';
+  }
+
   switch (type) {
     case 'add_no_header':
     case 'xor_no_header':
@@ -441,54 +737,77 @@ function xorAddRange(buffer: ByteArray, start: number, end: number): number[] {
   return [high, low];
 }
 
-/**
- * CRC-CCITT (XModem) implementation
- * Polynomial: 0x1021
- * Initial Value: 0x0000
- */
-function crcCcittXmodem(header: ByteArray, data: ByteArray): number[] {
-  let crc = 0x0000;
-
-  // For this specific checksum type (based on user request), we only calculate CRC on data
-  // The user provided: data = packet[2:17] (bytes 3 to 17), ignoring header
-  // So we ignore the header here.
-
-  for (const byte of data) {
-    crc = updateCrcCcitt(crc, byte);
-  }
-
-  const high = (crc >> 8) & 0xff;
-  const low = crc & 0xff;
-
-  return [high, low];
-}
-
-function crcCcittXmodemRange(buffer: ByteArray, start: number, end: number): number[] {
-  let crc = 0x0000;
-
-  for (let i = start; i < end; i++) {
-    crc = updateCrcCcitt(crc, buffer[i]);
-  }
-
-  const high = (crc >> 8) & 0xff;
-  const low = crc & 0xff;
-
-  return [high, low];
-}
-
-function verifyCrcCcittXmodemRange(
+function verifyCrc16Range(
   buffer: ByteArray,
   start: number,
   end: number,
   expectedHigh: number,
   expectedLow: number,
+  spec: Crc16Spec,
 ): boolean {
-  const [high, low] = crcCcittXmodemRange(buffer, start, end);
+  const [high, low] = crc16Range(buffer, start, end, spec);
   return high === expectedHigh && low === expectedLow;
 }
 
-function updateCrcCcitt(crc: number, byte: number): number {
-  let x = (crc >> 8) ^ byte;
-  x ^= x >> 4;
-  return ((crc << 8) ^ (x << 12) ^ (x << 5) ^ x) & 0xffff;
+function crc16FromBytes(data: ByteArray, spec: Crc16Spec): number[] {
+  let crc = spec.init & 0xffff;
+  for (const byte of data) {
+    crc = updateCrc16(crc, byte, spec);
+  }
+  return finalizeCrc16(crc, spec);
+}
+
+function crc16FromParts(header: ByteArray, data: ByteArray, spec: Crc16Spec): number[] {
+  let crc = spec.init & 0xffff;
+  for (const byte of header) {
+    crc = updateCrc16(crc, byte, spec);
+  }
+  for (const byte of data) {
+    crc = updateCrc16(crc, byte, spec);
+  }
+  return finalizeCrc16(crc, spec);
+}
+
+function crc16Range(buffer: ByteArray, start: number, end: number, spec: Crc16Spec): number[] {
+  let crc = spec.init & 0xffff;
+  for (let i = start; i < end; i++) {
+    crc = updateCrc16(crc, buffer[i], spec);
+  }
+  return finalizeCrc16(crc, spec);
+}
+
+function updateCrc16(crc: number, byte: number, spec: Crc16Spec): number {
+  if (spec.refin) {
+    let cur = (crc ^ byte) & 0xffff;
+    const poly = reflect16(spec.poly);
+    for (let i = 0; i < 8; i++) {
+      cur = cur & 1 ? ((cur >>> 1) ^ poly) & 0xffff : (cur >>> 1) & 0xffff;
+    }
+    return cur;
+  }
+
+  let cur = (crc ^ ((byte & 0xff) << 8)) & 0xffff;
+  for (let i = 0; i < 8; i++) {
+    cur = cur & 0x8000 ? ((cur << 1) ^ spec.poly) & 0xffff : (cur << 1) & 0xffff;
+  }
+  return cur;
+}
+
+function finalizeCrc16(crc: number, spec: Crc16Spec): number[] {
+  let final = crc & 0xffff;
+  if (spec.refout !== spec.refin) {
+    final = reflect16(final);
+  }
+  final = (final ^ spec.xorOut) & 0xffff;
+  return [(final >> 8) & 0xff, final & 0xff];
+}
+
+function reflect16(value: number): number {
+  let reflected = 0;
+  for (let i = 0; i < 16; i++) {
+    if (value & (1 << i)) {
+      reflected |= 1 << (15 - i);
+    }
+  }
+  return reflected & 0xffff;
 }

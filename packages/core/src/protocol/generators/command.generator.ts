@@ -11,7 +11,12 @@ import { FanEntity } from '../../domain/entities/fan.entity.js';
 import { SwitchEntity } from '../../domain/entities/switch.entity.js';
 import { ChecksumType, Checksum2Type } from '../types.js';
 import { logger } from '../../utils/logger.js';
-import { calculateChecksum, calculateChecksum2 } from '../utils/checksum.js';
+import {
+  calculateChecksum,
+  calculateChecksum2,
+  STANDARD_CHECKSUM_TYPES,
+  STANDARD_CHECKSUM2_TYPES,
+} from '../utils/checksum.js';
 import { CelExecutor } from '../cel-executor.js';
 import { Buffer } from 'buffer';
 
@@ -35,17 +40,8 @@ export class CommandGenerator {
   private config: HomenetBridgeConfig;
   private celExecutor: CelExecutor;
 
-  private static readonly CHECKSUM_TYPES = new Set([
-    'add',
-    'add_no_header',
-    'xor',
-    'xor_no_header',
-    'samsung_rx',
-    'samsung_tx',
-    'samsung_xor',
-  ]);
-
-  private static readonly CHECKSUM2_TYPES = new Set(['xor_add']);
+  private static readonly CHECKSUM_TYPES = new Set<string>(STANDARD_CHECKSUM_TYPES);
+  private static readonly CHECKSUM2_TYPES = new Set<string>(STANDARD_CHECKSUM2_TYPES);
 
   /**
    * @param config - Global bridge configuration (contains default packet settings like retries, timeouts).

@@ -9,6 +9,7 @@
  * - `samsung_tx`: (@deprecated) Specialized Samsung Wallpad TX checksum.
  * - `samsung_xor`: XOR of all bytes & 0x7F (Msb 0).
  * - `bestin_sum`: Cumulative XOR-based sum algorithm.
+ * - `crc8*`: CRC-8 variants. 기본형은 헤더+데이터, `_no_header`는 데이터만.
  * - `none`: No checksum calculation.
  */
 export type ChecksumType =
@@ -20,14 +21,39 @@ export type ChecksumType =
   | 'samsung_tx'
   | 'samsung_xor'
   | 'bestin_sum'
+  | 'crc8'
+  | 'crc8_no_header'
+  | 'crc8_maxim'
+  | 'crc8_maxim_no_header'
+  | 'crc8_rohc'
+  | 'crc8_rohc_no_header'
+  | 'crc8_wcdma'
+  | 'crc8_wcdma_no_header'
   | 'none';
 
 /**
  * Supported 2-byte checksum algorithms.
  *
- * - `xor_add`: Returns [XOR_SUM, (ADD_SUM + XOR_SUM) & 0xFF].
+ * - `xor_add`: 헤더 + 데이터 대상.
+ * - 기본 CRC16 이름(`crc16_*`): 헤더 + 데이터 대상.
+ * - `_no_header` 접미사 CRC16(`crc16_*_no_header`): 데이터만 대상.
+ * - `crc_ccitt_xmodem`: 레거시 alias (`crc16_xmodem_no_header`와 동일 동작).
  */
-export type Checksum2Type = 'xor_add';
+export type Checksum2Type =
+  | 'xor_add'
+  | 'crc_ccitt_xmodem'
+  | 'crc16_xmodem'
+  | 'crc16_xmodem_no_header'
+  | 'crc16_ccitt_false'
+  | 'crc16_ccitt_false_no_header'
+  | 'crc16_modbus'
+  | 'crc16_modbus_no_header'
+  | 'crc16_ibm'
+  | 'crc16_ibm_no_header'
+  | 'crc16_kermit'
+  | 'crc16_kermit_no_header'
+  | 'crc16_x25'
+  | 'crc16_x25_no_header';
 
 /**
  * Value encoding/decoding strategies for numeric states.
