@@ -1,0 +1,65 @@
+meta:
+  name: "현대통신 엘리베이터 2018년식"
+  name_en: "Hyundai Telecom Elevator 2018"
+  description: |
+    2018년 말 입주한 아파트의 엘리베이터 동작이 조금 다른 부분이 있어서 수정한 설정입니다.
+    엘리베이터 2개가 있고 호출버튼은 하나를 사용하는 환경입니다.
+  description_en: |
+    Configuration for Hyundai Telecom elevators in a 2018 apartment complex with two elevators and a shared call button.
+  version: "1.0.0"
+  author: "rootsnet"
+  tags: ["elevator", "hyundai", "imazu"]
+
+discovery:
+  match:
+    data: [0x0D, 0x01, 0x34, 0x01, 0x41]
+    mask: [0x00, 0xff, 0xff, 0xff, 0xff]
+scripts:
+  - id: elevator_call_down_script
+    actions:
+      - action: send_packet
+        data: [0x0B, 0x01, 0x34, 0x04, 0x41, 0x10, 0x00, 0x06]
+        checksum: true
+        header: true
+        footer: true
+entities:
+  text_sensor:
+    - id: elevator_floor_1
+      name: Elevator Floor 1
+      icon: mdi:elevator
+      state:
+        data: [0x0D, 0x01, 0x34, 0x01, 0x41, 0x10, 0x00, 0x00, 0x00, 0x27]
+        mask: [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0xFF]
+      state_text: |
+        data[9] >= 0xB0 ? 'B' + string(data[9] - 0xB0) : string(bcd_to_int(data[9]))
+    - id: elevator_state_1
+      name: Elevator State 1
+      icon: mdi:elevator-passenger
+      state:
+        data: [0x0D, 0x01, 0x34, 0x01, 0x41, 0x10, 0x00, 0x00, 0x00, 0x27]
+        mask: [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0xFF]
+      state_text: |
+        data[8] == 0x01 ? 'Arrived' : (bitShiftRight(data[8], 4) == 0xA ? 'Up' : (bitShiftRight(data[8], 4) == 0xB ? 'Down' : 'Idle'))
+    - id: elevator_floor_2
+      name: Elevator Floor 2
+      icon: mdi:elevator
+      state:
+        data: [0x0D, 0x01, 0x34, 0x01, 0x41, 0x10, 0x00, 0x00, 0x00, 0x28]
+        mask: [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0xFF]
+      state_text: |
+        data[9] >= 0xB0 ? 'B' + string(data[9] - 0xB0) : string(bcd_to_int(data[9]))
+    - id: elevator_state_2
+      name: Elevator State 2
+      icon: mdi:elevator-passenger
+      state:
+        data: [0x0D, 0x01, 0x34, 0x01, 0x41, 0x10, 0x00, 0x00, 0x00, 0x28]
+        mask: [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0xFF]
+      state_text: |
+        data[8] == 0x01 ? 'Arrived' : (bitShiftRight(data[8], 4) == 0xA ? 'Up' : (bitShiftRight(data[8], 4) == 0xB ? 'Down' : 'Idle'))
+  button:
+    - id: elevator_call_down
+      name: Call Elevator Down
+      icon: mdi:elevator-down
+      command_press:
+        script: elevator_call_down_script
+      discovery_linked_id: elevator_floor_1

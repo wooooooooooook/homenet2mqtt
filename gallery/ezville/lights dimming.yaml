@@ -1,0 +1,42 @@
+meta:
+  name: "디밍 조명 예시"
+  name_en: "Dimming Light Example"
+  description: "디밍 조명 예시입니다."
+  description_en: "Dimming Light Example."
+  version: "1.0.0"
+  author: "서울G하인츠"
+  tags: ["light", "ezville", "dimming"]
+
+entities:
+  light:
+    id: light_multi
+    name: light_multi
+    state:
+      data: [0x0E, 0x14, 0x81]
+    state_on:
+      offset: 6
+      data: [0x13, 0x23, 0x33, 0x43]
+    state_off:
+      offset: 6
+      data: [0x02]
+    state_brightness:
+      offset: 6
+      length: 1
+      mapping:
+        '19': 25
+        '35': 50
+        '51': 75
+        '67': 100
+    command_on:
+      data: [0x0E, 0x14, 0x41, 0x03, 0x0F, 0x01, 0x00]
+    command_off:
+      data: [0x0E, 0x14, 0x41, 0x03, 0x0F, 0x00, 0x00]
+    command_brightness: |
+      [[
+        0x0E, 0x14, 0x41, 0x03, 0x01,
+        x == 0 ? 0x00 :
+        x <= 64 ? 0x13 :
+        x <= 128 ? 0x23 :
+        x <= 192 ? 0x33 : 0x43,
+        0x00
+      ]]
