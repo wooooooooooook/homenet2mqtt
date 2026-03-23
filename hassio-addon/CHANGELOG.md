@@ -6,7 +6,8 @@
 
 v2.10.0
 - feat: 엔티티 추가모달과 엔티티 YAML 편집 모달에 MQTT 디스커버리 내용을 미리볼수있는 기능 추가함.
-- feat: crc16의 다양한 변형을 [지원하는 2-bytes checksum](https://homenet2mqtt-docs.vercel.app/config/packet-defaults.html#_2%E1%84%87%E1%85%A1%E1%84%8B%E1%85%B5%E1%84%90%E1%85%B3-%E1%84%8E%E1%85%A6%E1%84%8F%E1%85%B3%E1%84%89%E1%85%A5%E1%86%B7-rx-checksum2-tx-checksum2) 유형에 추가함.
+- feat: crc8 및 crc16의 다양한 변형을 [지원하는 1-byte 및 2-bytes checksum](https://homenet2mqtt-docs.vercel.app/config/packet-defaults.html#%E1%84%8C%E1%85%B5%E1%84%8B%E1%85%AF%E1%86%AB%E1%84%92%E1%85%A1%E1%84%82%E1%85%B3%E1%86%AB-%E1%84%8E%E1%85%A6%E1%84%8F%E1%85%B3%E1%84%89%E1%85%A5%E1%86%B7-%E1%84%8B%E1%85%A1%E1%86%AF%E1%84%80%E1%85%A9%E1%84%85%E1%85%B5%E1%84%8C%E1%85%B3%E1%86%B7-supported-checksum-algorithms) 유형에 추가함.
+- feat: crc8*, crc16* 파라미터를 입력하여 사용할 수 있는 체크섬 계산용 CEL 헬퍼함수 추가. 
 - fix: 설정폴더에서 모든 설정파일을 삭제했을 때 오류 대신 초기설정 마법사로 진입하도록 수정함.
 
 v2.9.3

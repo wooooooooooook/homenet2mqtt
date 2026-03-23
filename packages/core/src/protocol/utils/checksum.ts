@@ -405,6 +405,19 @@ function crc8FromParts(
   return finalizeCrc8(crc, spec);
 }
 
+export function crc8RangeCustom(
+  buffer: ByteArray,
+  start: number,
+  end: number,
+  poly: number,
+  init: number,
+  refin: boolean,
+  refout: boolean,
+  xorOut: number,
+): number {
+  return crc8Range(buffer, start, end, { poly, init, refin, refout, xorOut });
+}
+
 function crc8Range(
   buffer: ByteArray,
   start: number,
@@ -766,6 +779,19 @@ function crc16FromParts(header: ByteArray, data: ByteArray, spec: Crc16Spec): nu
     crc = updateCrc16(crc, byte, spec);
   }
   return finalizeCrc16(crc, spec);
+}
+
+export function crc16RangeCustom(
+  buffer: ByteArray,
+  start: number,
+  end: number,
+  poly: number,
+  init: number,
+  refin: boolean,
+  refout: boolean,
+  xorOut: number,
+): number[] {
+  return crc16Range(buffer, start, end, { poly, init, refin, refout, xorOut });
 }
 
 function crc16Range(buffer: ByteArray, start: number, end: number, spec: Crc16Spec): number[] {

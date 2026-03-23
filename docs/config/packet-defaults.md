@@ -82,8 +82,9 @@
 >
 > **사용 가능한 컨텍스트 변수**:
 > * `data`: 패킷 데이터 (List of int, 헤더 포함)
-> * `len`: 패킷 길이 (int)
-> * 상세 내용은 [CEL 가이드](../guide/cel-guide.md#6-체크섬-계산-rx_checksum-tx_checksum)를 참고하세요.
+> * `len`: 패킷 데이터 전체 길이 (int)
+> * `header_len`: 수신된 패킷의 헤더 길이 (int)
+> * 커스텀 파라미터 함수(`crc8`, `crc16` 등) 및 상세 내용은 [CEL 가이드](../guide/cel-guide.md#6-체크섬-계산-rx_checksum-tx_checksum)를 참고하세요.
 
 ### 체크섬 문제 해결 (Troubleshooting)
 
@@ -91,11 +92,6 @@
 
 1.  **로그 확인**: 로그 레벨을 `debug`로 설정하고 `Raw Packet` 로그를 확인하여 수신되는 패킷의 실제 바이트 값을 캡처합니다.
 2.  **알고리즘 검증**: 위 표의 로직을 사용하여 수동으로 체크섬을 계산해 봅니다.
-3.  **CEL 활용**: 표준 알고리즘과 미묘하게 다른 경우(예: 오프셋 차이, 초기값 차이), CEL 표현식을 사용하여 정확한 로직을 구현합니다.
-    ```yaml
-    # 예: XOR 체크섬인데 결과에 0xFF를 XOR 하는 변종
-    rx_checksum: "bitXor(bitXor(data[0], data[1]), 0xFF)"
-    ```
 
 > [!TIP]
 > 체크섬 계산 결과로 리스트(예: 2바이트 체크섬)를 반환하는 경우, 리스트 내 모든 요소의 타입이 일치해야 합니다. 동적 값(`dyn`)이 포함된다면 `int()`로 캐스팅하세요. (참고: [CEL 가이드](../guide/cel-guide.md#자주-발생하는-문제와-팁-troubleshooting))
@@ -115,20 +111,6 @@ homenet_bridge:
     tx_header: [0xAA, 0x55]
     tx_footer: [0x0D, 0x0D]
     rx_checksum: add_no_header
-    tx_checksum: add_no_header
-```
-
-## 방향별 헤더/체크섬이 다른 예제
-`cvnet.homenet_bridge.yaml`처럼 수신·송신 헤더가 같더라도 푸터와 체크섬 로직이 다를 수 있습니다.
-
-```yaml
-homenet_bridge:
-  packet_defaults:
-    rx_header: [0xF7]
-    rx_footer: [0xAA]
-    rx_checksum: add_no_header
-    tx_header: [0xF7]
-    tx_footer: [0xAA]
     tx_checksum: add_no_header
 ```
 

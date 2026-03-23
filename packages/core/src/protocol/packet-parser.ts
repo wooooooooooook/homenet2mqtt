@@ -69,6 +69,7 @@ export class PacketParser {
     xstr: '',
     data: null as any,
     len: 0n,
+    header_len: 0n,
     state: {},
     states: {},
     trigger: {},
@@ -1251,6 +1252,7 @@ export class PacketParser {
             // Reuse context object + bypass safety checks for speed
             // data matches reusableBufferView.proxy
             this.reusableContext.len = BigInt(dataEnd - offset);
+            this.reusableContext.header_len = BigInt(this.headerLength);
             const result = this.preparedChecksum.executeRaw(this.reusableContext);
             return result === checksumByte;
           } else {
@@ -1258,6 +1260,7 @@ export class PacketParser {
             const result = this.preparedChecksum.execute({
               data: buffer.subarray(offset, dataEnd),
               len: dataEnd - offset,
+              header_len: this.headerLength,
             });
             return result === checksumByte;
           }
@@ -1266,6 +1269,7 @@ export class PacketParser {
           const result = CelExecutor.shared().execute(checksumOrScript, {
             data: buffer.subarray(offset, dataEnd),
             len: dataEnd - offset,
+            header_len: this.headerLength,
           });
           return result === checksumByte;
         }
@@ -1311,6 +1315,7 @@ export class PacketParser {
 
             // Optimization: Reuse context object for 2-byte checksum
             this.reusableContext.len = BigInt(checksumStart - offset);
+            this.reusableContext.header_len = BigInt(this.headerLength);
 
             const result = this.preparedChecksum2.executeRaw(this.reusableContext);
 
@@ -1321,6 +1326,7 @@ export class PacketParser {
             const result = this.preparedChecksum2.execute({
               data: buffer.subarray(offset, checksumStart),
               len: checksumStart - offset,
+              header_len: this.headerLength,
             });
             if (Array.isArray(result) && result.length === 2) {
               return result[0] === buffer[checksumStart] && result[1] === buffer[checksumStart + 1];

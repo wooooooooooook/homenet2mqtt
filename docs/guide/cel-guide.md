@@ -143,27 +143,51 @@ sensor:
       data[1] == 0x01 && get_from_state('value') != null ? get_from_state('value') : ""
 ```
 
-### 6. 체크섬 계산 (`rx_checksum`, `tx_checksum`)
+### 6. 체크섬 계산 (`rx_checksum`, `tx_checksum`, `rx_checksum2`, `tx_checksum2`)
 
-`rx_checksum` (수신) 및 `tx_checksum` (송신) 속성에 표준 알고리즘(`add`, `xor` 등) 대신 CEL 표현식을 사용하여 커스텀 체크섬 로직을 구현할 수 있습니다.
+`rx_checksum` (수신) 및 `tx_checksum` (송신) 속성에 표준 알고리즘(`add`, `xor` 등) 대신 CEL 표현식을 사용하여 커스텀 체크섬 로직을 구현할 수 있습니다. 
 
-> **주의**: CEL에서는 반복문(`for`, `while`)을 사용할 수 없으므로, 가변 길이 데이터의 전체 합계(Sum)를 구하는 등의 로직은 구현할 수 없습니다. 고정 길이 패킷이나 특정 바이트를 참조하는 로직에 적합합니다.
+> **주의**: 
+> - CEL에서는 반복문(`for`, `while`)을 사용할 수 없으므로, 가변 길이 데이터의 전체 합계(Sum)를 구하는 등의 로직은 구현할 수 없습니다. 
+> - **반환 타입**: `rx_checksum`, `tx_checksum`은 단일 정수(`int`)를 반환해야 하며 계산 결과는 리틀 엔디언/빅 엔디언 여부에 관계 없이 1바이트로 추가됩니다. 반대로 2바이트 확장 체크섬인 `rx_checksum2`와 `tx_checksum2`는 2개의 정수를 담은 배열(`list`)을 반환해야 합니다.
 
-#### 수신 체크섬 (`rx_checksum`)
+#### 수신 체크섬 (`rx_checksum` / `rx_checksum2`)
 
 수신된 패킷의 유효성을 검증할 때 사용합니다. 표현식의 결과값은 패킷의 체크섬 바이트와 비교됩니다.
 
 - `data`: 체크섬을 제외한 전체 패킷(헤더 포함) 데이터 배열 (List of int).
 - `len`: 데이터의 길이 (int).
+- `header_len`: 수신 패킷의 헤더 길이 (int).
 - **주의**: `state` 및 `states` 변수는 사용할 수 없습니다.
 
-#### 송신 체크섬 (`tx_checksum`)
+#### 송신 체크섬 (`tx_checksum` / `tx_checksum2`)
 
 명령 패킷을 생성하여 전송하기 직전에 계산됩니다. 표현식의 결과값이 체크섬 바이트로 패킷 끝에 추가됩니다.
 
 - `data`: 헤더와 명령 데이터를 포함한 배열 (List of int).
 - `len`: 전체 데이터 길이 (int).
+- `header_len`: 송신 패킷의 헤더 길이 (int).
 - **주의**: `state` 및 `states` 변수는 사용할 수 없습니다.
+
+#### 커스텀 CRC 파라미터 함수 (Custom CRC Parameters via CEL)
+
+표준 `crc8`이나 `crc16`에서 `poly`, `init` 등 파라미터들을 직접 정의하고 변형해야 할 경우, 다음의 CEL 헬퍼 함수들을 사용할 수 있습니다. `no_header` 옵션이 필요한 경우 `*_no_header` 버전을 사용합니다.
+
+- `crc8(data, poly, init, refin, refout, xor_out)`: 전체 `data`에 대한 CRC-8 계산을 반환합니다. (반환 타입: `int`)
+  - 예: `rx_checksum: "crc8(data, 0x07, 0x00, false, false, 0x00)"`
+- `crc8_no_header(data, header_len, poly, init, refin, refout, xor_out)`: 헤더를 제외한 데이터 부분부터 끝까지에 대한 CRC-8 계산을 반환합니다. (반환 타입: `int`)
+  - 예: `rx_checksum: "crc8_no_header(data, header_len, 0x07, 0x00, false, false, 0x00)"`
+- `crc16(data, poly, init, refin, refout, xor_out)`: 전체 `data`에 대한 CRC-16 계산 결과를 **도출된 2바이트 배열(List)** 형태로 반환합니다. `rx_checksum2` / `tx_checksum2` 전용입니다. (반환 타입: `list`)
+  - 예: `rx_checksum2: "crc16(data, 0x1021, 0xFFFF, false, false, 0x0000)"`
+- `crc16_no_header(data, header_len, poly, init, refin, refout, xor_out)`: 헤더를 제외한 데이터 부분에 대한 CRC-16 계산을 2바이트 배열로 반환합니다. (반환 타입: `list`)
+  - 예: `rx_checksum2: "crc16_no_header(data, header_len, 0x1021, 0xFFFF, false, false, 0x0000)"`
+
+*파라미터 의미:*
+  - `poly`: 다항식 (Polynomial)
+  - `init`: 초기값 (Initial Value)
+  - `refin`: 입력 데이터 비트 역순 여부 (Reflect In)
+  - `refout`: 최종 결과 비트 역순 여부 (Reflect Out)
+  - `xor_out`: 최종 결과 XOR 할 값 (XOR Out)
 
 ### 7. 동적 패킷 길이 (`rx_length_expr`)
 

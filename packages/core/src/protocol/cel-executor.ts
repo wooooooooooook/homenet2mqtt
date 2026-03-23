@@ -1,6 +1,7 @@
 import { Environment, ParseResult } from '@marcbachmann/cel-js';
 import { Buffer } from 'buffer';
 import { logger } from '../utils/logger.js';
+import { crc8RangeCustom, crc16RangeCustom } from './utils/checksum.js';
 
 /**
  * Interface for a prepared script that can be executed directly without Map lookups.
@@ -55,6 +56,7 @@ interface ScriptCacheEntry {
   usesTrigger: boolean;
   usesArgs: boolean;
   usesLen: boolean;
+  usesHeaderLen: boolean;
   usesGetFromState: boolean;
   usesGetFromStates: boolean;
 }
@@ -196,6 +198,7 @@ export class CelExecutor {
     this.env.registerVariable('trigger', 'map');
     this.env.registerVariable('args', 'map');
     this.env.registerVariable('len', 'int');
+    this.env.registerVariable('header_len', 'int');
 
     // Helper: BCD to Int
     this.env.registerFunction('bcd_to_int(int): int', (bcd: bigint) => {
@@ -262,6 +265,136 @@ export class CelExecutor {
       const value = this.getFromState(key);
       return value === undefined ? fallback : value;
     });
+
+    // Custom CRC functions
+    this.env.registerFunction(
+      'crc8(list, int, int, bool, bool, int): int',
+      (data: any, poly: bigint, init: bigint, refin: boolean, refout: boolean, xorOut: bigint) => {
+        return this.computeCrc8(data, 0, Number(poly), Number(init), refin, refout, Number(xorOut));
+      },
+    );
+
+    this.env.registerFunction(
+      'crc8_no_header(list, int, int, int, bool, bool, int): int',
+      (
+        data: any,
+        header_len: bigint,
+        poly: bigint,
+        init: bigint,
+        refin: boolean,
+        refout: boolean,
+        xorOut: bigint,
+      ) => {
+        return this.computeCrc8(
+          data,
+          Number(header_len),
+          Number(poly),
+          Number(init),
+          refin,
+          refout,
+          Number(xorOut),
+        );
+      },
+    );
+
+    this.env.registerFunction(
+      'crc16(list, int, int, bool, bool, int): list',
+      (data: any, poly: bigint, init: bigint, refin: boolean, refout: boolean, xorOut: bigint) => {
+        return this.computeCrc16(
+          data,
+          0,
+          Number(poly),
+          Number(init),
+          refin,
+          refout,
+          Number(xorOut),
+        );
+      },
+    );
+
+    this.env.registerFunction(
+      'crc16_no_header(list, int, int, int, bool, bool, int): list',
+      (
+        data: any,
+        header_len: bigint,
+        poly: bigint,
+        init: bigint,
+        refin: boolean,
+        refout: boolean,
+        xorOut: bigint,
+      ) => {
+        return this.computeCrc16(
+          data,
+          Number(header_len),
+          Number(poly),
+          Number(init),
+          refin,
+          refout,
+          Number(xorOut),
+        );
+      },
+    );
+  }
+
+  private computeCrc8(
+    data: any,
+    startOffset: number,
+    poly: number,
+    init: number,
+    refin: boolean,
+    refout: boolean,
+    xorOut: number,
+  ): bigint {
+    let buf: Uint8Array;
+    let baseOffset = 0;
+    let endOffset = 0;
+
+    // Check if data is a proxy from ReusableBufferView
+    if (data && typeof data === 'object' && Array.isArray(data)) {
+      // It's a populated array or a standard Array
+      // But we passed proxy into it which acts like Array
+      // We need original buffer or we must allocate one
+      // The fastest way is to access ReusableBufferView internals but it's encapsulated.
+      // Alternatively, convert data back to Uint8Array. Since data acts like an array of BigInts:
+      buf = new Uint8Array(data.length);
+      for (let i = 0; i < data.length; i++) {
+        buf[i] = Number(data[i]);
+      }
+      endOffset = buf.length;
+    } else {
+      buf = new Uint8Array(0);
+    }
+
+    const startIdx = Math.min(startOffset, endOffset);
+    return BigInt(crc8RangeCustom(buf, startIdx, endOffset, poly, init, refin, refout, xorOut));
+  }
+
+  private computeCrc16(
+    data: any,
+    startOffset: number,
+    poly: number,
+    init: number,
+    refin: boolean,
+    refout: boolean,
+    xorOut: number,
+  ): bigint[] {
+    let buf: Uint8Array;
+    let baseOffset = 0;
+    let endOffset = 0;
+
+    if (data && typeof data === 'object' && Array.isArray(data)) {
+      buf = new Uint8Array(data.length);
+      for (let i = 0; i < data.length; i++) {
+        buf[i] = Number(data[i]);
+      }
+      endOffset = buf.length;
+    } else {
+      buf = new Uint8Array(0);
+    }
+
+    const startIdx = Math.min(startOffset, endOffset);
+    const result = crc16RangeCustom(buf, startIdx, endOffset, poly, init, refin, refout, xorOut);
+    return result.map((n) => BigInt(n));
   }
 
   /**
@@ -405,6 +538,7 @@ export class CelExecutor {
       const usesTrigger = script.includes('trigger');
       const usesArgs = script.includes('args');
       const usesLen = script.includes('len');
+      const usesHeaderLen = script.includes('header_len');
       const usesGetFromState = script.includes('get_from_state');
       const usesGetFromStates = script.includes('get_from_states');
 
@@ -416,6 +550,7 @@ export class CelExecutor {
         usesTrigger,
         usesArgs,
         usesLen,
+        usesHeaderLen,
         usesGetFromState,
         usesGetFromStates,
       };
@@ -485,6 +620,10 @@ export class CelExecutor {
 
     if (entry.usesLen && typeof contextData.len === 'number') {
       safeContext.len = BigInt(contextData.len);
+    }
+
+    if (entry.usesHeaderLen && typeof contextData.header_len === 'number') {
+      safeContext.header_len = BigInt(contextData.header_len);
     }
 
     return safeContext;

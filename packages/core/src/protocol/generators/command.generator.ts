@@ -235,6 +235,7 @@ export class CommandGenerator {
         const result = this.celExecutor.execute(checksumOrScript, {
           data: fullData,
           len: fullData.length,
+          header_len: txHeader.length,
         });
 
         if (typeof result === 'number') {
@@ -265,6 +266,7 @@ export class CommandGenerator {
           const result = this.celExecutor.execute(checksumOrScript, {
             data: fullData,
             len: fullData.length,
+            header_len: txHeader.length,
           });
 
           // Validate result is array of 2 bytes
