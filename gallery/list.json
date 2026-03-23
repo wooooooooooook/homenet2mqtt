@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-03-23T08:05:27.842Z",
+  "generated_at": "2026-03-23T14:05:55.438Z",
   "vendors": [
     {
       "id": "bestin",
@@ -562,7 +562,7 @@
           "name_en": "Dimming Light Example",
           "description": "디밍 조명 예시입니다.",
           "description_en": "Dimming Light Example.",
-          "version": "1.0.0",
+          "version": "1.0.1",
           "author": "서울G하인츠",
           "tags": [
             "light",
