@@ -666,9 +666,6 @@
     });
   }
 
-  // Deprecated usage of performRestart, keeping for reference or removing if unused.
-  // We remove performRestart since we using dialog now.
-
   // Auto-reload on error
   let autoReloadCountdown = $state(10);
 
