@@ -325,10 +325,10 @@
       const bCompatible = b.isCompatible ? 1 : 0;
       if (bCompatible !== aCompatible) return bCompatible - aCompatible;
 
-      // Then items with parameters
+      // Then quick-apply items first (no parameters)
       const aHasParams = (a.parameters?.length ?? 0) > 0 ? 1 : 0;
       const bHasParams = (b.parameters?.length ?? 0) > 0 ? 1 : 0;
-      return bHasParams - aHasParams;
+      return aHasParams - bHasParams;
     };
 
     discovered.sort(sortFn);

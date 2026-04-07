@@ -30,6 +30,11 @@
   const scriptCount = $derived(item.content_summary.scripts ?? 0);
   const hasScripts = $derived(scriptCount > 0);
   const hasParameters = $derived((item.parameters?.length ?? 0) > 0);
+  const parameterCount = $derived(item.parameters?.length ?? 0);
+  const hasDetectedParameters = $derived(
+    hasParameters && Boolean(discoveryResult?.parameterValues),
+  );
+  const isQuickApply = $derived(!hasParameters);
 
   function handleViewDetails(e: MouseEvent) {
     onViewDetails();
@@ -47,7 +52,18 @@
         </span>
       {/if}
       {#if hasParameters}
-        <span class="badge parameter" title={$t('gallery.has_parameters')}> ⚙️ </span>
+        <span class="badge parameter" title={$t('gallery.has_parameters')}>
+          ⚙️ {$t('gallery.requires_setup', { values: { count: parameterCount } })}
+        </span>
+      {:else}
+        <span class="badge quick-apply" title={$t('gallery.quick_apply')}>
+          ⚡ {$t('gallery.quick_apply')}
+        </span>
+      {/if}
+      {#if hasDetectedParameters}
+        <span class="badge auto-detected" title={$t('gallery.auto_detected_values')}>
+          🤖 {$t('gallery.auto_detected_values')}
+        </span>
       {/if}
     </div>
     <div class="card-badges">
@@ -111,7 +127,11 @@
     onclick={handleViewDetails}
     title={!isCompatible ? $t('gallery.incompatible_warning_title') : undefined}
   >
-    {$t('gallery.view_details')}
+    {#if isQuickApply}
+      {$t('gallery.start_apply')}
+    {:else}
+      {$t('gallery.configure_and_apply')}
+    {/if}
   </button>
 </div>
 
@@ -183,6 +203,18 @@
     background: rgba(99, 102, 241, 0.15);
     color: #818cf8;
     border: 1px solid rgba(99, 102, 241, 0.3);
+  }
+
+  .badge.quick-apply {
+    background: rgba(16, 185, 129, 0.2);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.35);
+  }
+
+  .badge.auto-detected {
+    background: rgba(14, 165, 233, 0.18);
+    color: #7dd3fc;
+    border: 1px solid rgba(14, 165, 233, 0.35);
   }
 
   .description {

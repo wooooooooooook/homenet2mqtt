@@ -77,6 +77,8 @@
   let matchTargets = $state<Record<string, string>>({}); // galleryId -> selected matchedId
   let expandedDiffs = $state<Set<string>>(new Set());
   let openDropdownMatchId = $state<string | null>(null);
+  let currentStep = $state<1 | 2 | 3>(1);
+  let showRawYaml = $state(false);
 
   function toggleDropdown(matchId: string, event: MouseEvent) {
     event.stopPropagation();
@@ -133,6 +135,7 @@
 
   const scriptCount = $derived(item.content_summary.scripts ?? 0);
   const hasParameters = $derived((item.parameters?.length ?? 0) > 0);
+  const hasAutoDetectedParameterValues = $derived(Boolean(discoveryResult?.parameterValues));
 
   function formatItemLabel(itemType: 'entity' | 'automation' | 'script', entityType?: string) {
     if (itemType === 'entity') {
@@ -270,7 +273,28 @@
   onMount(() => {
     loadYamlContent();
     initializeParameterInputs();
+    currentStep = hasParameters ? 1 : 3;
   });
+
+  function goToNextStep() {
+    if (currentStep === 1) {
+      currentStep = hasParameters ? 2 : 3;
+      return;
+    }
+    if (currentStep === 2) {
+      currentStep = 3;
+    }
+  }
+
+  function goToPreviousStep() {
+    if (currentStep === 3) {
+      currentStep = hasParameters ? 2 : 1;
+      return;
+    }
+    if (currentStep === 2) {
+      currentStep = 1;
+    }
+  }
 
   function initializeParameterInputs() {
     const inputs: Record<string, string> = {};
@@ -742,74 +766,114 @@
       </footer>
     {:else}
       <div class="modal-body">
-        <div class="info-section">
-          <div class="info-grid">
-            <div class="info-item">
-              <span class="info-label">{$t('gallery.vendor')}</span>
-              <span class="info-value">{item.vendorId}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">{$t('gallery.version')}</span>
-              <span class="info-value">v{item.version}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">{$t('gallery.author')}</span>
-              <span class="info-value">{item.author}</span>
-            </div>
-            {#if portId}
+        <div class="stepper" role="tablist" aria-label={$t('gallery.preview.flow_label')}>
+          <button class="step" class:active={currentStep === 1} onclick={() => (currentStep = 1)}>
+            1. {$t('gallery.preview.step_summary')}
+          </button>
+          {#if hasParameters}
+            <button class="step" class:active={currentStep === 2} onclick={() => (currentStep = 2)}>
+              2. {$t('gallery.preview.step_options')}
+            </button>
+          {/if}
+          <button
+            class="step"
+            class:active={currentStep === 3}
+            onclick={() => (currentStep = 3)}
+            disabled={loadingYaml}
+          >
+            {hasParameters ? '3.' : '2.'}
+            {$t('gallery.preview.step_review')}
+          </button>
+        </div>
+
+        {#if currentStep === 1}
+          <p class="step-hint">{$t('gallery.preview.step_summary_hint')}</p>
+        {/if}
+        {#if currentStep === 2}
+          <p class="step-hint">{$t('gallery.preview.parameters.help')}</p>
+        {/if}
+        {#if currentStep === 3}
+          <p class="step-hint">{$t('gallery.preview.review_hint')}</p>
+        {/if}
+
+        {#if currentStep === 1}
+          <div class="info-section">
+            <div class="info-grid">
               <div class="info-item">
-                <span class="info-label">{$t('gallery.preview.target_port')}</span>
-                <span class="info-value">{portId}</span>
+                <span class="info-label">{$t('gallery.vendor')}</span>
+                <span class="info-value">{item.vendorId}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">{$t('gallery.version')}</span>
+                <span class="info-value">v{item.version}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">{$t('gallery.author')}</span>
+                <span class="info-value">{item.author}</span>
+              </div>
+              {#if portId}
+                <div class="info-item">
+                  <span class="info-label">{$t('gallery.preview.target_port')}</span>
+                  <span class="info-value">{portId}</span>
+                </div>
+              {/if}
+            </div>
+
+            <div class="contents-summary">
+              <h4>{$t('gallery.preview.contents')}</h4>
+              <div class="summary-badges">
+                {#each Object.entries(item.content_summary.entities) as [type, count], index (`${type}-${index}`)}
+                  <span class="badge entity"
+                    >{$t('gallery.preview.entity_count', {
+                      values: { type, count },
+                    })}</span
+                  >
+                {/each}
+                {#if item.content_summary.automations > 0}
+                  <span class="badge automation"
+                    >{$t('gallery.preview.automation_count', {
+                      values: { count: item.content_summary.automations },
+                    })}</span
+                  >
+                {/if}
+                {#if scriptCount > 0}
+                  <span class="badge script"
+                    >{$t('gallery.preview.script_count', { values: { count: scriptCount } })}</span
+                  >
+                {/if}
+              </div>
+            </div>
+
+            {#if item.tags.length > 0}
+              <div class="tags-section">
+                <span class="info-label">{$t('gallery.tags')}</span>
+                <div class="tags">
+                  {#each item.tags as tag, index (`${tag}-${index}`)}
+                    <span class="tag">{tag}</span>
+                  {/each}
+                </div>
               </div>
             {/if}
           </div>
-
-          <div class="contents-summary">
-            <h4>{$t('gallery.preview.contents')}</h4>
-            <div class="summary-badges">
-              {#each Object.entries(item.content_summary.entities) as [type, count], index (`${type}-${index}`)}
-                <span class="badge entity"
-                  >{$t('gallery.preview.entity_count', {
-                    values: { type, count },
-                  })}</span
-                >
-              {/each}
-              {#if item.content_summary.automations > 0}
-                <span class="badge automation"
-                  >{$t('gallery.preview.automation_count', {
-                    values: { count: item.content_summary.automations },
-                  })}</span
-                >
-              {/if}
-              {#if scriptCount > 0}
-                <span class="badge script"
-                  >{$t('gallery.preview.script_count', { values: { count: scriptCount } })}</span
-                >
-              {/if}
-            </div>
-          </div>
-
-          {#if item.tags.length > 0}
-            <div class="tags-section">
-              <span class="info-label">{$t('gallery.tags')}</span>
-              <div class="tags">
-                {#each item.tags as tag, index (`${tag}-${index}`)}
-                  <span class="tag">{tag}</span>
-                {/each}
-              </div>
-            </div>
-          {/if}
-        </div>
-
-        {#if hasParameters}
+        {:else if currentStep === 2 && hasParameters}
           <div class="parameter-section">
             <h4 class="parameter-section-title">{$t('gallery.preview.parameters.title')}</h4>
+            {#if hasAutoDetectedParameterValues}
+              <p class="parameter-discovery-hint">
+                🤖 {$t('gallery.preview.parameters.auto_detected_hint')}
+              </p>
+            {/if}
             <div class="parameter-list">
               {#each item.parameters as parameter (parameter.name)}
                 <div class="parameter-item">
                   <label class="parameter-label" for={`parameter-${parameter.name}`}>
                     {resolveParameterLabel(parameter)}
                   </label>
+                  {#if discoveryResult?.parameterValues?.[parameter.name] !== undefined}
+                    <span class="detected-badge"
+                      >{$t('gallery.preview.parameters.detected_value')}</span
+                    >
+                  {/if}
                   {#if resolveParameterDescription(parameter)}
                     <p class="parameter-description">{resolveParameterDescription(parameter)}</p>
                   {/if}
@@ -879,20 +943,46 @@
               <div class="parameter-error">⚠️ {parameterError}</div>
             {/if}
           </div>
-        {/if}
-
-        <div class="yaml-section">
-          <h4>{$t('gallery.preview.yaml_content')}</h4>
-          {#if loadingYaml}
-            <div class="yaml-loading">
-              <div class="spinner"></div>
+        {:else if currentStep === 3}
+          <div class="review-summary">
+            <div class="summary-card">
+              <span class="summary-card-title">{$t('gallery.preview.new_items')}</span>
+              <strong
+                >{Object.values(item.content_summary.entities).reduce((a, b) => a + b, 0) +
+                  item.content_summary.automations +
+                  scriptCount}</strong
+              >
             </div>
-          {:else if yamlError}
-            <div class="yaml-error">⚠️ {yamlError}</div>
-          {:else}
-            <pre class="yaml-content"><code>{yamlContent}</code></pre>
-          {/if}
-        </div>
+            <div class="summary-card">
+              <span class="summary-card-title">{$t('gallery.preview.target_port')}</span>
+              <strong>{portId ?? '-'}</strong>
+            </div>
+            <div class="summary-card">
+              <span class="summary-card-title">{$t('gallery.preview.compatibility.title')}</span>
+              <strong>{item.vendorId}</strong>
+            </div>
+          </div>
+
+          <div class="yaml-section">
+            <div class="yaml-header-row">
+              <h4>{$t('gallery.preview.yaml_content')}</h4>
+              <button class="yaml-toggle-btn" onclick={() => (showRawYaml = !showRawYaml)}>
+                {showRawYaml
+                  ? $t('gallery.preview.hide_advanced_yaml')
+                  : $t('gallery.preview.show_advanced_yaml')}
+              </button>
+            </div>
+            {#if loadingYaml}
+              <div class="yaml-loading">
+                <div class="spinner"></div>
+              </div>
+            {:else if yamlError}
+              <div class="yaml-error">⚠️ {yamlError}</div>
+            {:else if showRawYaml}
+              <pre class="yaml-content"><code>{yamlContent}</code></pre>
+            {/if}
+          </div>
+        {/if}
       </div>
 
       <footer class="modal-footer">
@@ -902,23 +992,39 @@
 
         <div class="footer-controls">
           <div class="action-buttons">
-            <Button variant="secondary" onclick={onClose}>
-              {$t('common.cancel')}
-            </Button>
-            <Button
-              variant="primary"
-              onclick={confirmAndCheckConflicts}
-              isLoading={applying || checkingConflicts}
-              disabled={!portId || loadingYaml}
-            >
-              {#if applying}
-                {$t('gallery.preview.applying')}
-              {:else if checkingConflicts}
-                {$t('gallery.preview.checking')}
-              {:else}
-                {$t('gallery.preview.preview_button')}
-              {/if}
-            </Button>
+            {#if currentStep === 1}
+              <Button variant="secondary" onclick={onClose}>
+                {$t('common.cancel')}
+              </Button>
+              <Button variant="primary" onclick={goToNextStep}>
+                {$t('gallery.preview.next')}
+              </Button>
+            {:else if currentStep === 2}
+              <Button variant="secondary" onclick={goToPreviousStep}>
+                {$t('common.back')}
+              </Button>
+              <Button variant="primary" onclick={goToNextStep}>
+                {$t('gallery.preview.review_button')}
+              </Button>
+            {:else}
+              <Button variant="secondary" onclick={goToPreviousStep}>
+                {$t('common.back')}
+              </Button>
+              <Button
+                variant="primary"
+                onclick={confirmAndCheckConflicts}
+                isLoading={applying || checkingConflicts}
+                disabled={!portId || loadingYaml}
+              >
+                {#if applying}
+                  {$t('gallery.preview.applying')}
+                {:else if checkingConflicts}
+                  {$t('gallery.preview.checking')}
+                {:else}
+                  {$t('gallery.preview.check_changes')}
+                {/if}
+              </Button>
+            {/if}
           </div>
         </div>
       </footer>
@@ -1233,6 +1339,39 @@
     gap: 1rem;
   }
 
+  .stepper {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .step {
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    background: rgba(15, 23, 42, 0.6);
+    color: #94a3b8;
+    border-radius: 9999px;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.78rem;
+    cursor: pointer;
+  }
+
+  .step.active {
+    border-color: rgba(59, 130, 246, 0.65);
+    color: #bfdbfe;
+    background: rgba(37, 99, 235, 0.25);
+  }
+
+  .step:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .step-hint {
+    margin: 0;
+    font-size: 0.82rem;
+    color: #94a3b8;
+  }
+
   .parameter-section {
     display: flex;
     flex-direction: column;
@@ -1256,6 +1395,12 @@
     gap: 1rem;
   }
 
+  .parameter-discovery-hint {
+    margin: 0;
+    color: #7dd3fc;
+    font-size: 0.8rem;
+  }
+
   .parameter-item {
     display: flex;
     flex-direction: column;
@@ -1272,6 +1417,16 @@
     margin: 0;
     font-size: 0.75rem;
     color: #94a3b8;
+  }
+
+  .detected-badge {
+    width: fit-content;
+    color: #7dd3fc;
+    border: 1px solid rgba(14, 165, 233, 0.4);
+    background: rgba(14, 165, 233, 0.12);
+    border-radius: 9999px;
+    padding: 0.1rem 0.45rem;
+    font-size: 0.68rem;
   }
 
   .parameter-item input,
@@ -1378,10 +1533,51 @@
     min-height: 0;
   }
 
+  .yaml-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .yaml-toggle-btn {
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    background: rgba(15, 23, 42, 0.55);
+    color: #cbd5e1;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    padding: 0.3rem 0.55rem;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
   .yaml-section h4 {
     font-size: 0.85rem;
     color: #94a3b8;
-    margin: 0 0 0.75rem 0;
+    margin: 0;
+  }
+
+  .review-summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+
+  .summary-card {
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 8px;
+    background: rgba(15, 23, 42, 0.6);
+    padding: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .summary-card-title {
+    color: #94a3b8;
+    font-size: 0.72rem;
+    text-transform: uppercase;
   }
 
   .yaml-loading {
@@ -1504,6 +1700,10 @@
 
     .info-grid {
       grid-template-columns: 1fr 1fr;
+    }
+
+    .review-summary {
+      grid-template-columns: 1fr;
     }
 
     .footer-controls {
