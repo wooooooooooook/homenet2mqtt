@@ -545,7 +545,6 @@
           </div>
         {/if}
       </div>
-        
     </div>
     <p class="description">
       {$t('analysis.raw_log.desc')}

@@ -73,7 +73,6 @@ describe('PacketProcessor', () => {
         {
           id: 'light_1',
           name: 'Living Room Light',
-          command: 'ON',
         } as EntityConfig,
       ],
     } as HomenetBridgeConfig;
@@ -155,7 +154,7 @@ describe('PacketProcessor', () => {
 
   describe('constructCommandPacket', () => {
     it('should construct packet for registered device (Happy Path)', () => {
-      const entity: EntityConfig = { id: 'light_1', name: 'Light', command: 'ON' };
+      const entity: EntityConfig = { id: 'light_1', name: 'Light' };
       const expectedPacket = [0x01, 0x02];
 
       const mockDevice = {
@@ -177,15 +176,6 @@ describe('PacketProcessor', () => {
     it('should use GenericDevice as fallback if device not found', () => {
       const entity: EntityConfig = { id: 'unknown_1', name: 'Unknown' };
       mockProtocolManager.getDevice.mockReturnValue(undefined);
-
-      // We need to verify that a new GenericDevice was created and used
-      // Since GenericDevice is mocked, we can check mock.instances or implementation
-      // But the implementation returns an object with constructCommand mock
-
-      // Let's spy on constructCommand of the LAST created instance
-      // But we can't easily access it before call.
-      // However, we can mock GenericDevice implementation to return a specific mock object
-      // for this test OR just check that constructor was called.
 
       const expectedPacket = [0x03, 0x04];
       const mockConstructCommand = vi.fn().mockReturnValue(expectedPacket);

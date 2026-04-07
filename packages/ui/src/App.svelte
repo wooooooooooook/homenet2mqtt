@@ -142,55 +142,6 @@
       logs.length === 0 ||
       (logs[0].timestampMs ?? parseTimestampMs(logs[0].timestamp)) < entryTimestamp
     ) {
-      // Since we sort descending (newest first) in the UI usually?
-      // Wait, the previous code was binary searching.
-      // Let's check the sort order.
-      // The display logic in App.svelte seemed to use .sort((a,b) => b-a) for history,
-      // but insertSortedLogEntry seems to maintain existing order.
-      // Let's assume we want to maintain time order.
-      // PacketLog expects chronological order or reverse?
-      // mergePackets logic:
-      // while (rxIndex < rxLen || txIndex < txLen)
-      // if ( ... rxTimestamp >= txTimestamp )
-      // It seems to expect sorted arrays.
-      // If sorting is ascending or descending?
-      // mergePackets: checks rxTimestamp >= txTimestamp.
-      // If arrays are DESCENDING (newest first):
-      // rx[0] is newest. tx[0] is newest.
-      // if rx >= tx, take rx. This produces a merged DESCENDING list.
-      // So we need to maintain DESCENDING order in the logs.
-
-      // Let's check the previous sort in loadPacketHistory:
-      // .sort((a, b) => (b.timestampMs ?? 0) - (a.timestampMs ?? 0));
-      // So yes, DESCENDING (newest at index 0).
-
-      // If Newest (Largest TS) -> Index 0.
-      // If entry > logs[0], unshift?
-      // Unshift is O(N).
-      // If we keep arrays generic, O(N) unshift is unavoidable for array.
-      // BUT, Svelte 5 proxies might optimize or we can use a ring buffer?
-      // No, standard array unshift is O(N).
-      // However, existing `insertSortedLogEntry` was doing `[...logs]` which is O(N) copy, THEN splice.
-      // In-place `unshift` is still O(N) shift, but avoids the allocation/GC overhead of copying the whole array.
-      // Also `push` is O(1).
-
-      // Maybe we should store logs in ASCENDING order (push to end O(1)), and iterate backwards or reverse in UI?
-      // PacketLog `mergePackets` iterates 0..N.
-      // If we change storage order, we break `mergePackets`.
-      // Let's stick to in-place mutation first.
-
-      /* 
-           Wait, binary search logic was:
-           midTimestamp >= entryTimestamp -> left = mid + 1
-           Else -> right = mid
-           
-           If logs[mid] (element) > entry (new), we go RIGHT (index increases).
-           So larger timestamps are at LOWER indices.
-           So it IS Descending. (Newest at 0).
-           
-           So we usually insert at 0. `unshift`.
-        */
-
       // Fast path for newest packet
       if (
         logs.length === 0 ||
@@ -218,7 +169,6 @@
         logs.length = MAX_PACKETS;
       }
     } else {
-      // Fallback or logic check?
       // Re-implementing the whole binary search logic in-place.
       let left = 0;
       let right = logs.length;

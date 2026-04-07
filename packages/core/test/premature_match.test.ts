@@ -29,33 +29,6 @@ describe('PacketParser Premature Matching', () => {
 
     const parser = new PacketParser(defaults);
 
-    // Valid packet: B0 41 00 71 (checksum 71)
-    // B0 ^ 41 ^ 00 = F1.
-    // B0 < 7C is false.
-    // Wait, samsung_rx:
-    // crc = B0
-    // crc ^= B0 -> 0
-    // crc ^= 41 -> 41
-    // crc ^= 00 -> 41
-    // data[0] (B0) < 7C is false.
-    // Result 41.
-    // So checksum should be 41?
-
-    // Let's check the log: b0 41 00 71
-    // Maybe my manual calculation is wrong or the log has different checksum.
-    // 0xB0 is header.
-    // Data part: 41 00.
-    // Checksum: 71.
-
-    // samsung_rx implementation:
-    // crc = 0xb0
-    // for byte of data (41, 00)
-    // crc ^= 41 -> F1
-    // crc ^= 00 -> F1
-    // data[0] (41) < 7C is true.
-    // crc ^= 80 -> F1 ^ 80 = 71.
-    // Matches!
-
     expect(parser.parse(0xb0)).toBeNull();
     expect(parser.parse(0x41)).toBeNull();
     expect(parser.parse(0x00)).toBeNull();
