@@ -102,6 +102,17 @@
         "delete_confirm": "이 패킷 로그 파일을 삭제하시겠습니까?"
       }
     },
+    "gallery": {
+      "title": "갤러리 설정",
+      "desc": "갤러리 구성요소를 가져올 GitHub 리포지토리를 설정합니다.",
+      "save": "저장",
+      "githubUrl": "GitHub 저장소 URL",
+      "githubUrl_desc": "예: https://github.com/wooooooooooook/homenet2mqtt",
+      "branch": "브랜치명",
+      "branch_desc": "예: main",
+      "path": "경로명",
+      "path_desc": "예: gallery"
+    },
     "backup_management": {
       "title": "백업 관리",
       "desc": "설정 변경 시 생성된 백업 파일을 관리합니다.",

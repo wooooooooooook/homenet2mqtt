@@ -58,6 +58,11 @@ export type FrontendSettings = {
   dashboard?: {
     showInternal?: boolean;
   };
+  gallery?: {
+    githubUrl?: string; // e.g. "https://github.com/wooooooooooook/homenet2mqtt"
+    branch?: string; // e.g. "main"
+    path?: string; // e.g. "gallery"
+  };
 };
 
 // --- WebSocket/Stream Types ---

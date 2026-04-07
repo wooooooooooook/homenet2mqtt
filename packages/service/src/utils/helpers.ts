@@ -140,6 +140,11 @@ const DEFAULT_FRONTEND_SETTINGS: FrontendSettings = {
   dashboard: {
     showInternal: false,
   },
+  gallery: {
+    githubUrl: 'https://github.com/wooooooooooook/homenet2mqtt',
+    branch: 'main',
+    path: 'gallery',
+  },
 };
 
 /**
@@ -197,7 +202,47 @@ export const normalizeFrontendSettings = (
           ? value.dashboard.showInternal
           : (DEFAULT_FRONTEND_SETTINGS.dashboard?.showInternal ?? false),
     },
+    gallery: {
+      githubUrl:
+        typeof value?.gallery?.githubUrl === 'string' && value.gallery.githubUrl.trim() !== ''
+          ? value.gallery.githubUrl
+          : DEFAULT_FRONTEND_SETTINGS.gallery!.githubUrl,
+      branch:
+        typeof value?.gallery?.branch === 'string' && value.gallery.branch.trim() !== ''
+          ? value.gallery.branch
+          : DEFAULT_FRONTEND_SETTINGS.gallery!.branch,
+      path:
+        typeof value?.gallery?.path === 'string' && value.gallery.path.trim() !== ''
+          ? value.gallery.path
+          : DEFAULT_FRONTEND_SETTINGS.gallery!.path,
+    },
   };
+};
+
+export const getGalleryRawBaseUrl = (settings?: {
+  githubUrl?: string;
+  branch?: string;
+  path?: string;
+}): string => {
+  const url = settings?.githubUrl?.trim() || 'https://github.com/wooooooooooook/homenet2mqtt';
+  const branch = settings?.branch?.trim() || 'main';
+  const repoPath = settings?.path?.trim() || 'gallery';
+
+  // Convert github.com to raw.githubusercontent.com
+  let rawUrl = url.replace('github.com', 'raw.githubusercontent.com');
+  // Remove trailing slashes
+  if (rawUrl.endsWith('/')) {
+    rawUrl = rawUrl.slice(0, -1);
+  }
+  return `${rawUrl}/${branch}/${repoPath}`;
+};
+
+export const getGalleryListUrl = (settings?: {
+  githubUrl?: string;
+  branch?: string;
+  path?: string;
+}): string => {
+  return `${getGalleryRawBaseUrl(settings)}/list_new.json`;
 };
 
 /**

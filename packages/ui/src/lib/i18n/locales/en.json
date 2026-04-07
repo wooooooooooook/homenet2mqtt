@@ -102,6 +102,17 @@
         "delete_confirm": "Are you sure you want to delete this packet log file?"
       }
     },
+    "gallery": {
+      "title": "Gallery Settings",
+      "desc": "Configure the GitHub repository to fetch gallery components from.",
+      "save": "Save",
+      "githubUrl": "GitHub Repository URL",
+      "githubUrl_desc": "e.g. https://github.com/wooooooooooook/homenet2mqtt",
+      "branch": "Branch",
+      "branch_desc": "e.g. main",
+      "path": "Path",
+      "path_desc": "e.g. gallery"
+    },
     "backup_management": {
       "title": "Backup Management",
       "desc": "Manage configuration backup files created during edits.",

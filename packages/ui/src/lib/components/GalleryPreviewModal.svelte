@@ -6,6 +6,7 @@
   import Modal from './Modal.svelte';
   import HintBubble from './HintBubble.svelte';
   import Dialog from './Dialog.svelte';
+  import yaml from 'js-yaml';
   import { triggerSystemRestart as restartApp } from '../utils/appControl';
   import type {
     GalleryDiscoveryResult,
@@ -130,8 +131,13 @@
     $locale?.startsWith('en') && item.name_en ? item.name_en : item.name,
   );
 
+  let snippetDescription = $state('');
+  let snippetDescriptionEn = $state('');
+
   const displayDescription = $derived(
-    $locale?.startsWith('en') && item.description_en ? item.description_en : item.description,
+    $locale?.startsWith('en') && (snippetDescriptionEn || item.description_en)
+      ? snippetDescriptionEn || item.description_en
+      : snippetDescription || item.description,
   );
 
   const scriptCount = $derived(item.content_summary.scripts ?? 0);
@@ -263,6 +269,16 @@
       const response = await fetch(url);
       if (!response.ok) throw new Error('Failed to fetch YAML');
       yamlContent = await response.text();
+
+      try {
+        const parsed: any = yaml.load(yamlContent);
+        if (parsed && typeof parsed === 'object' && parsed.meta) {
+          snippetDescription = parsed.meta.description || '';
+          snippetDescriptionEn = parsed.meta.description_en || '';
+        }
+      } catch (e) {
+        console.warn('Failed to parse YAML meta for description', e);
+      }
     } catch (e) {
       yamlError = e instanceof Error ? e.message : 'Unknown error';
     } finally {
