@@ -21,13 +21,13 @@ import {
 import { getAppVersion, checkMinVersion } from '../utils/version-utils.js';
 import {
   CONFIG_DIR,
-  GALLERY_RAW_BASE_URL,
-  GALLERY_LIST_URL,
   GALLERY_STATS_URL,
   ENTITY_TYPE_KEYS,
   IS_DEV,
   LOCAL_GALLERY_DIR,
 } from '../utils/constants.js';
+import { getGalleryRawBaseUrl, getGalleryListUrl } from '../utils/helpers.js';
+import { getFrontendSettings } from '../services/frontend-settings.service.js';
 import { saveBackup } from '../services/backup.service.js';
 import {
   evaluateDiscovery,
@@ -103,7 +103,7 @@ export function createGalleryRoutes(ctx: GalleryRoutesContext): Router {
         }
       }
 
-      const response = await fetch(GALLERY_LIST_URL);
+      const response = await fetch(getGalleryListUrl(getFrontendSettings().gallery));
       if (!response.ok) {
         logger.warn(
           { status: response.status },
@@ -159,7 +159,7 @@ export function createGalleryRoutes(ctx: GalleryRoutesContext): Router {
         }
       }
 
-      const fileUrl = `${GALLERY_RAW_BASE_URL}/${normalizedPath}`;
+      const fileUrl = `${getGalleryRawBaseUrl(getFrontendSettings().gallery)}/${normalizedPath}`;
       const response = await fetch(fileUrl);
       if (!response.ok) {
         logger.warn(
@@ -281,14 +281,14 @@ export function createGalleryRoutes(ctx: GalleryRoutesContext): Router {
             '[gallery] Failed to read local gallery list',
           );
           // Fallback to GitHub
-          const listResponse = await fetch(GALLERY_LIST_URL);
+          const listResponse = await fetch(getGalleryListUrl(getFrontendSettings().gallery));
           if (!listResponse.ok) {
             return res.status(listResponse.status).json({ error: 'Failed to fetch gallery list' });
           }
           galleryList = await listResponse.json();
         }
       } else {
-        const listResponse = await fetch(GALLERY_LIST_URL);
+        const listResponse = await fetch(getGalleryListUrl(getFrontendSettings().gallery));
         if (!listResponse.ok) {
           return res.status(listResponse.status).json({ error: 'Failed to fetch gallery list' });
         }

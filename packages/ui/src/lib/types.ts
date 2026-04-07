@@ -53,6 +53,11 @@ export type FrontendSettings = {
   dashboard?: {
     showInternal?: boolean;
   };
+  gallery?: {
+    githubUrl?: string;
+    branch?: string;
+    path?: string;
+  };
 };
 
 export type LogRetentionSettings = {

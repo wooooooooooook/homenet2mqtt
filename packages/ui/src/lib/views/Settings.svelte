@@ -28,6 +28,7 @@
     onLocaleChange,
     onEditorChange,
     onDashboardChange,
+    onGalleryChange,
   }: {
     frontendSettings?: FrontendSettings | null;
     bridgeInfo?: BridgeInfo | null;
@@ -39,7 +40,28 @@
     onLocaleChange?: (value: string) => void;
     onEditorChange?: (value: 'monaco' | 'textarea') => void;
     onDashboardChange?: (value: boolean) => void;
+    onGalleryChange?: (value: { githubUrl: string; branch: string; path: string }) => void;
   } = $props();
+
+  let galleryGithubUrl = $state('');
+  let galleryBranch = $state('');
+  let galleryPath = $state('');
+
+  $effect(() => {
+    if (frontendSettings?.gallery) {
+      galleryGithubUrl = frontendSettings.gallery.githubUrl || '';
+      galleryBranch = frontendSettings.gallery.branch || '';
+      galleryPath = frontendSettings.gallery.path || '';
+    }
+  });
+
+  const handleGallerySave = () => {
+    onGalleryChange?.({
+      githubUrl: galleryGithubUrl,
+      branch: galleryBranch,
+      path: galleryPath,
+    });
+  };
 
   const getToastValue = (key: ToastSettingKey) => {
     return frontendSettings?.toast?.[key] ?? true;
@@ -951,6 +973,63 @@
     {/if}
   </div>
 
+  <!-- Gallery Config Card -->
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <h2>{$t('settings.gallery.title')}</h2>
+        <p>{$t('settings.gallery.desc')}</p>
+      </div>
+      <Button onclick={handleGallerySave} disabled={isSaving || isLoading} variant="primary">
+        {$t('settings.gallery.save')}
+      </Button>
+    </div>
+
+    {#if isLoading}
+      <div class="loading">{$t('settings.loading')}</div>
+    {:else}
+      <div class="setting sub-setting stack-vertical">
+        <div>
+          <div class="setting-title">{$t('settings.gallery.githubUrl')}</div>
+          <div class="setting-desc">{$t('settings.gallery.githubUrl_desc')}</div>
+        </div>
+        <input
+          type="text"
+          class="text-input"
+          bind:value={galleryGithubUrl}
+          placeholder="https://github.com/wooooooooooook/homenet2mqtt"
+          disabled={isSaving || isLoading}
+        />
+      </div>
+      <div class="setting sub-setting stack-vertical">
+        <div>
+          <div class="setting-title">{$t('settings.gallery.branch')}</div>
+          <div class="setting-desc">{$t('settings.gallery.branch_desc')}</div>
+        </div>
+        <input
+          type="text"
+          class="text-input"
+          bind:value={galleryBranch}
+          placeholder="main"
+          disabled={isSaving || isLoading}
+        />
+      </div>
+      <div class="setting sub-setting stack-vertical">
+        <div>
+          <div class="setting-title">{$t('settings.gallery.path')}</div>
+          <div class="setting-desc">{$t('settings.gallery.path_desc')}</div>
+        </div>
+        <input
+          type="text"
+          class="text-input"
+          bind:value={galleryPath}
+          placeholder="gallery"
+          disabled={isSaving || isLoading}
+        />
+      </div>
+    {/if}
+  </div>
+
   <!-- Log Caching Card -->
   <div class="card">
     <div class="card-header">
@@ -1692,20 +1771,48 @@
   }
 
   /* Log Caching Styles */
-  .number-input {
+  .number-input,
+  .text-input {
     background: rgba(15, 23, 42, 0.5);
     border: 1px solid rgba(148, 163, 184, 0.2);
     color: #e2e8f0;
     padding: 0.5rem 0.75rem;
     border-radius: 8px;
-    width: 80px;
-    text-align: center;
     font-size: 0.95rem;
   }
 
-  .number-input:focus {
+  .number-input {
+    width: 80px;
+    text-align: center;
+  }
+
+  .text-input {
+    width: 300px;
+    max-width: 100%;
+  }
+
+  .number-input:focus,
+  .text-input:focus {
     outline: none;
     border-color: rgba(59, 130, 246, 0.5);
+  }
+
+  .stack-vertical {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 1rem;
+    justify-content: space-between;
+  }
+
+  @media (max-width: 600px) {
+    .stack-vertical {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    .text-input {
+      width: 100%;
+    }
   }
 
   .stats {

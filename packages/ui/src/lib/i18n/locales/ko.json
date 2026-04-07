@@ -102,6 +102,17 @@
         "delete_confirm": "이 패킷 로그 파일을 삭제하시겠습니까?"
       }
     },
+    "gallery": {
+      "title": "갤러리 설정",
+      "desc": "갤러리 구성요소를 가져올 GitHub 리포지토리를 설정합니다.",
+      "save": "저장",
+      "githubUrl": "GitHub 저장소 URL",
+      "githubUrl_desc": "예: https://github.com/wooooooooooook/homenet2mqtt",
+      "branch": "브랜치명",
+      "branch_desc": "예: main",
+      "path": "경로명",
+      "path_desc": "예: gallery"
+    },
     "backup_management": {
       "title": "백업 관리",
       "desc": "설정 변경 시 생성된 백업 파일을 관리합니다.",
@@ -412,7 +423,7 @@
     "preview": {
       "title": "스니펫 미리보기",
       "preview_button": "미리보기",
-      "yaml_content": "YAML 내용",
+      "yaml_content": "스니펫 원본",
       "contents": "포함된 항목",
       "entity_count": "{type} {count}개",
       "automation_count": "자동화 {count}개",
@@ -434,7 +445,8 @@
       "option_match_skip": "추가 안함",
       "new_id_placeholder": "새 ID 입력",
       "target_label": "대상:",
-      "target_port": "적용 포트",
+      "target_port": "적용할 포트",
+      "target_port_tooltip": "현재 선택된 포트에 적용됩니다",
       "apply": "적용",
       "applying": "적용 중...",
       "checking": "충돌 확인 중...",
@@ -470,7 +482,7 @@
         "force_apply_warning": "호환되지 않는 설정으로 적용하면 제대로 작동하지 않을 수 있습니다."
       },
       "parameters": {
-        "title": "템플릿 파라미터",
+        "title": "파라미터 설정",
         "placeholder_integer": "숫자를 입력하세요",
         "placeholder_string": "값을 입력하세요",
         "placeholder_json": "JSON 배열/객체를 입력하세요",

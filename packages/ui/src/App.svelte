@@ -888,6 +888,24 @@
     }
   }
 
+  async function updateGallerySetting(gallery: {
+    githubUrl: string;
+    branch: string;
+    path: string;
+  }) {
+    const previous = frontendSettings ?? DEFAULT_FRONTEND_SETTINGS;
+    const next: FrontendSettings = {
+      ...previous,
+      gallery,
+    };
+    frontendSettings = next;
+    try {
+      await persistFrontendSettings(next);
+    } catch {
+      frontendSettings = previous;
+    }
+  }
+
   function toggleInactiveEntities() {
     showInactiveEntities = !showInactiveEntities;
     if (typeof window !== 'undefined') {
@@ -1959,6 +1977,7 @@
             onLocaleChange={(value) => updateLocaleSetting(value)}
             onEditorChange={(value) => updateEditorSetting(value)}
             onDashboardChange={(value) => updateDashboardSetting('showInternal', value)}
+            onGalleryChange={(value) => updateGallerySetting(value)}
           />
         {/if}
       </section>

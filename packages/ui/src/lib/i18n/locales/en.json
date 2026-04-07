@@ -102,6 +102,17 @@
         "delete_confirm": "Are you sure you want to delete this packet log file?"
       }
     },
+    "gallery": {
+      "title": "Gallery Settings",
+      "desc": "Configure the GitHub repository to fetch gallery components from.",
+      "save": "Save",
+      "githubUrl": "GitHub Repository URL",
+      "githubUrl_desc": "e.g. https://github.com/wooooooooooook/homenet2mqtt",
+      "branch": "Branch",
+      "branch_desc": "e.g. main",
+      "path": "Path",
+      "path_desc": "e.g. gallery"
+    },
     "backup_management": {
       "title": "Backup Management",
       "desc": "Manage configuration backup files created during edits.",
@@ -412,7 +423,7 @@
     "preview": {
       "title": "Snippet Preview",
       "preview_button": "Preview",
-      "yaml_content": "YAML Content",
+      "yaml_content": "Snippet Source",
       "contents": "Contents",
       "entity_count": "{count} {type}",
       "automation_count": "{count} automation(s)",
@@ -434,7 +445,8 @@
       "option_match_skip": "Do not add",
       "new_id_placeholder": "Enter new ID",
       "target_label": "Target:",
-      "target_port": "Target port",
+      "target_port": "Port to apply",
+      "target_port_tooltip": "Applies to the currently selected port",
       "apply": "Apply",
       "applying": "Applying...",
       "checking": "Checking conflicts...",
@@ -470,7 +482,7 @@
         "force_apply_warning": "Applying with incompatible settings may cause the snippet to not work properly."
       },
       "parameters": {
-        "title": "Template Parameters",
+        "title": "Parameter Settings",
         "placeholder_integer": "Enter a number",
         "placeholder_string": "Enter a value",
         "placeholder_json": "Enter a JSON array/object",

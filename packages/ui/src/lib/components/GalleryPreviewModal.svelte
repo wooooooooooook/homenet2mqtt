@@ -4,7 +4,9 @@
   import Button from './Button.svelte';
   import MonacoDiffEditor from './MonacoDiffEditor.svelte';
   import Modal from './Modal.svelte';
+  import HintBubble from './HintBubble.svelte';
   import Dialog from './Dialog.svelte';
+  import yaml from 'js-yaml';
   import { triggerSystemRestart as restartApp } from '../utils/appControl';
   import type {
     GalleryDiscoveryResult,
@@ -77,6 +79,8 @@
   let matchTargets = $state<Record<string, string>>({}); // galleryId -> selected matchedId
   let expandedDiffs = $state<Set<string>>(new Set());
   let openDropdownMatchId = $state<string | null>(null);
+  let showYaml = $state(false);
+  let showPortHint = $state(false);
 
   function toggleDropdown(matchId: string, event: MouseEvent) {
     event.stopPropagation();
@@ -127,8 +131,13 @@
     $locale?.startsWith('en') && item.name_en ? item.name_en : item.name,
   );
 
+  let snippetDescription = $state('');
+  let snippetDescriptionEn = $state('');
+
   const displayDescription = $derived(
-    $locale?.startsWith('en') && item.description_en ? item.description_en : item.description,
+    $locale?.startsWith('en') && (snippetDescriptionEn || item.description_en)
+      ? snippetDescriptionEn || item.description_en
+      : snippetDescription || item.description,
   );
 
   const scriptCount = $derived(item.content_summary.scripts ?? 0);
@@ -260,6 +269,16 @@
       const response = await fetch(url);
       if (!response.ok) throw new Error('Failed to fetch YAML');
       yamlContent = await response.text();
+
+      try {
+        const parsed: any = yaml.load(yamlContent);
+        if (parsed && typeof parsed === 'object' && parsed.meta) {
+          snippetDescription = parsed.meta.description || '';
+          snippetDescriptionEn = parsed.meta.description_en || '';
+        }
+      } catch (e) {
+        console.warn('Failed to parse YAML meta for description', e);
+      }
     } catch (e) {
       yamlError = e instanceof Error ? e.message : 'Unknown error';
     } finally {
@@ -697,6 +716,7 @@
   oncancel={onClose}
   ariaLabelledBy="gallery-preview-title"
   ariaDescribedBy="gallery-preview-desc"
+  overflow="visible"
 >
   <div class="modal-content-wrapper">
     <Dialog
@@ -714,7 +734,13 @@
     <header class="modal-header">
       <div class="header-content">
         <h2 id="gallery-preview-title">{displayName}</h2>
-        <p id="gallery-preview-desc" class="description">{displayDescription}</p>
+        <div class="meta-minimal">
+          <span class="meta-version">v{item.version}</span>
+          <span class="meta-separator">·</span>
+          <span class="meta-author">by {item.author}</span>
+          <span class="meta-separator">·</span>
+          <span class="meta-vendor">{item.vendorId}</span>
+        </div>
       </div>
       <button class="close-btn" onclick={onClose} aria-label={$t('common.close')}> × </button>
     </header>
@@ -742,28 +768,13 @@
       </footer>
     {:else}
       <div class="modal-body">
-        <div class="info-section">
-          <div class="info-grid">
-            <div class="info-item">
-              <span class="info-label">{$t('gallery.vendor')}</span>
-              <span class="info-value">{item.vendorId}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">{$t('gallery.version')}</span>
-              <span class="info-value">v{item.version}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">{$t('gallery.author')}</span>
-              <span class="info-value">{item.author}</span>
-            </div>
-            {#if portId}
-              <div class="info-item">
-                <span class="info-label">{$t('gallery.preview.target_port')}</span>
-                <span class="info-value">{portId}</span>
-              </div>
-            {/if}
+        {#if displayDescription}
+          <div class="description-section">
+            <p id="gallery-preview-desc">{displayDescription}</p>
           </div>
+        {/if}
 
+        <div class="info-section">
           <div class="contents-summary">
             <h4>{$t('gallery.preview.contents')}</h4>
             <div class="summary-badges">
@@ -882,15 +893,21 @@
         {/if}
 
         <div class="yaml-section">
-          <h4>{$t('gallery.preview.yaml_content')}</h4>
-          {#if loadingYaml}
-            <div class="yaml-loading">
-              <div class="spinner"></div>
-            </div>
-          {:else if yamlError}
-            <div class="yaml-error">⚠️ {yamlError}</div>
-          {:else}
-            <pre class="yaml-content"><code>{yamlContent}</code></pre>
+          <button class="section-header-toggle" onclick={() => (showYaml = !showYaml)}>
+            <h4>{$t('gallery.preview.yaml_content')}</h4>
+            <span class="toggle-icon">{showYaml ? '▲' : '▼'}</span>
+          </button>
+
+          {#if showYaml}
+            {#if loadingYaml}
+              <div class="yaml-loading">
+                <div class="spinner"></div>
+              </div>
+            {:else if yamlError}
+              <div class="yaml-error">⚠️ {yamlError}</div>
+            {:else}
+              <pre class="yaml-content"><code>{yamlContent}</code></pre>
+            {/if}
           {/if}
         </div>
       </div>
@@ -901,6 +918,26 @@
         {/if}
 
         <div class="footer-controls">
+          {#if portId}
+            <div class="target-port-wrapper">
+              <button
+                class="target-port-info"
+                onmouseenter={() => (showPortHint = true)}
+                onmouseleave={() => (showPortHint = false)}
+                onclick={() => (showPortHint = !showPortHint)}
+                type="button"
+              >
+                <span class="info-label">{$t('gallery.preview.target_port')}</span>
+                <span class="info-value">{portId}</span>
+              </button>
+
+              {#if showPortHint}
+                <HintBubble onDismiss={() => (showPortHint = false)}>
+                  {$t('gallery.preview.target_port_tooltip')}
+                </HintBubble>
+              {/if}
+            </div>
+          {/if}
           <div class="action-buttons">
             <Button variant="secondary" onclick={onClose}>
               {$t('common.cancel')}
@@ -1198,10 +1235,21 @@
     margin: 0 0 0.25rem 0;
   }
 
-  .header-content .description {
-    font-size: 0.85rem;
+  .meta-minimal {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8rem;
     color: #94a3b8;
-    margin: 0;
+  }
+
+  .meta-separator {
+    opacity: 0.5;
+  }
+
+  .meta-version {
+    color: #60a5fa;
+    font-weight: 500;
   }
 
   .close-btn {
@@ -1294,16 +1342,53 @@
     font-size: 0.8rem;
   }
 
-  .info-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1rem;
+  .description-section {
+    background: rgba(15, 23, 42, 0.4);
+    border-left: 3px solid #3b82f6;
+    padding: 1rem 1.25rem;
+    border-radius: 4px;
   }
 
-  .info-item {
+  .description-section p {
+    margin: 0;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: #e2e8f0;
+    white-space: pre-wrap;
+  }
+
+  .target-port-wrapper {
+    position: relative;
+  }
+
+  .target-port-info {
     display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.45rem 0.75rem;
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.15);
+    border-radius: 6px;
+    cursor: help;
+    transition: all 0.2s ease;
+  }
+
+  .target-port-info:hover {
+    background: rgba(59, 130, 246, 0.15);
+    border-color: rgba(59, 130, 246, 0.3);
+  }
+
+  .target-port-info .info-label {
+    text-transform: none;
+    font-size: 0.8rem;
+    color: #94a3b8;
+  }
+
+  .target-port-info .info-value {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #60a5fa;
+    font-family: 'Fira Code', monospace;
   }
 
   .info-label {
@@ -1374,14 +1459,39 @@
   }
 
   .yaml-section {
-    flex: 1;
-    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
   }
 
-  .yaml-section h4 {
+  .section-header-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    background: rgba(15, 23, 42, 0.3);
+    border: 1px solid rgba(148, 163, 184, 0.1);
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+  }
+
+  .section-header-toggle:hover {
+    background: rgba(15, 23, 42, 0.5);
+    border-color: rgba(148, 163, 184, 0.2);
+  }
+
+  .section-header-toggle h4 {
     font-size: 0.85rem;
     color: #94a3b8;
-    margin: 0 0 0.75rem 0;
+    margin: 0;
+  }
+
+  .toggle-icon {
+    font-size: 0.7rem;
+    color: #64748b;
   }
 
   .yaml-loading {
@@ -1487,7 +1597,8 @@
 
   .footer-controls {
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
+    align-items: center;
     gap: 1rem;
   }
 
@@ -1502,8 +1613,8 @@
       border-radius: 0;
     }
 
-    .info-grid {
-      grid-template-columns: 1fr 1fr;
+    .description-section p {
+      font-size: 0.85rem;
     }
 
     .footer-controls {

@@ -9,11 +9,13 @@ import { normalizeFrontendSettings, getDefaultFrontendSettings } from '../utils/
 import type { FrontendSettings } from '../types/index.js';
 
 const DEFAULT_FRONTEND_SETTINGS = getDefaultFrontendSettings();
+let currentSettings: FrontendSettings = { ...DEFAULT_FRONTEND_SETTINGS };
 
 /**
  * Save frontend settings to disk
  */
 export const saveFrontendSettings = async (settings: FrontendSettings): Promise<void> => {
+  currentSettings = settings;
   await fs.mkdir(CONFIG_DIR, { recursive: true });
   await fs.writeFile(FRONTEND_SETTINGS_FILE, JSON.stringify(settings, null, 2), 'utf-8');
 };
@@ -26,7 +28,8 @@ export const loadFrontendSettings = async (): Promise<FrontendSettings> => {
   try {
     const data = await fs.readFile(FRONTEND_SETTINGS_FILE, 'utf-8');
     const parsed = JSON.parse(data);
-    return normalizeFrontendSettings(parsed);
+    currentSettings = normalizeFrontendSettings(parsed);
+    return currentSettings;
   } catch (error) {
     const err = error as NodeJS.ErrnoException;
     if (err.code === 'ENOENT') {
@@ -36,6 +39,11 @@ export const loadFrontendSettings = async (): Promise<FrontendSettings> => {
     throw error;
   }
 };
+
+/**
+ * Get the current frontend settings synchronously
+ */
+export const getFrontendSettings = (): FrontendSettings => currentSettings;
 
 /**
  * Get the default frontend settings

@@ -1,7 +1,19 @@
 meta:
   name: "스마트 콘센트 설정"
   name_en: "Smart Plugs"
-  description: "코맥스 스마트 콘센트 설정입니다. 개수를 지정할 수 있습니다. 전력 사용량 센서도 포함되어 있습니다."
+  description: |
+    코맥스 스마트 콘센트 설정입니다. 개수를 지정할 수 있습니다. 전력 사용량 센서도 포함되어 있습니다.
+
+    상태      Head,   PWR,   ID, TYPE,   D1,   D2,   D3,  add checksum
+    상태      0xF9,  0xXX, 0x01, 0x11, 0xXX, 0xXX, 0xXX, add checksum
+
+    명령      Head,   ID,  CMD,  PWR, 0x00, 0x00, 0x00, add checksum
+    명령 ON   0x7A, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00, add checksum
+    명령 OFF  0x7A, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, add checksum
+
+    XX 설명:
+      - PWR (상태): index 1 (0x01:ON, 0x00:OFF, 0x11:ON+Auto, 0x10:OFF+Auto)
+      - D1, D2, D3: index 4-6 (실시간 전력량, BCD 형식)
   description_en: "Commax smart plugs with power consumption sensors. You can specify the count."
   version: "2.0.1"
   author: "wooooooooooook"

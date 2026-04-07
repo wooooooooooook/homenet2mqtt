@@ -10,6 +10,7 @@
     lockScroll = true,
     ariaLabelledBy,
     ariaDescribedBy,
+    overflow = 'auto',
   } = $props<{
     open?: boolean;
     width?: string;
@@ -19,6 +20,7 @@
     lockScroll?: boolean;
     ariaLabelledBy?: string;
     ariaDescribedBy?: string;
+    overflow?: string;
   }>();
 
   let dialog = $state<HTMLDialogElement>();
@@ -61,6 +63,7 @@
     class="common-modal"
     style:width={width === 'fit-content' ? 'fit-content' : '100%'}
     style:max-width={width}
+    style:overflow
     aria-labelledby={ariaLabelledBy}
     aria-describedby={ariaDescribedBy}
     transition:scale={{ duration: 200, start: 0.95 }}

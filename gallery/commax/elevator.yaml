@@ -1,7 +1,17 @@
 meta:
   name: "엘리베이터 호출 설정"
   name_en: "Elevator Call"
-  description: "코맥스 엘리베이터 호출 버튼과 현재 층수 센서 설정입니다."
+  description: |
+    코맥스 엘리베이터 호출 버튼과 현재 층수 센서 설정입니다.
+
+    상태      Head,   0x01,  Floor, 0x00, 0x00, 0x00, 0x00, add checksum
+    상태 ELV  0x23,   0x01,   0xXX, 0x00, 0x00, 0x00, 0x00, add checksum
+
+    명령      Head,   0x01,  0x01, 0x00, 0x08, 0x15, 0x00, add checksum
+    명령 CALL 0xA0,   0x01,  0x01, 0x00, 0x08, 0x15, 0x00, add checksum
+
+    XX 설명:
+      - Floor (현재 층): index 2 (BCD 형식)
   description_en: "Commax elevator call button and current floor sensor."
   version: "2.0.0"
   author: "wooooooooooook"
