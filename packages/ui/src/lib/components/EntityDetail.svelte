@@ -1771,8 +1771,6 @@
     margin-left: 0.5rem;
   }
 
-  /* .action-btn class is replaced by Button component, but might be used by other parts, so keeping it or removing if unused */
-  /* Replaced by Button component usage, so this style block is less relevant for the buttons but kept for safety if used elsewhere or similar structures */
 
   .input-group {
     display: flex;
