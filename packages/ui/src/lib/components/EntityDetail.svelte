@@ -1771,7 +1771,6 @@
     margin-left: 0.5rem;
   }
 
-
   .input-group {
     display: flex;
     height: 60px; /* Match standard button height */

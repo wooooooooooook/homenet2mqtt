@@ -4,6 +4,7 @@ import { MqttPublisher } from '../src/transports/mqtt/publisher.js';
 import { MqttSubscriber } from '../src/transports/mqtt/subscriber.js';
 import { HomenetBridgeConfig } from '../src/config/types.js';
 import { eventBus } from '../src/service/event-bus.js';
+import { normalizeConfig } from '../src/config/index.js';
 
 describe('DiscoveryManager', () => {
   let discoveryManager: DiscoveryManager;
@@ -124,7 +125,7 @@ describe('DiscoveryManager', () => {
 
     discoveryManager = new DiscoveryManager(
       'main',
-      mockConfig,
+      normalizeConfig(mockConfig),
       mockPublisher,
       mockSubscriber,
       mqttTopicPrefix,
@@ -308,7 +309,7 @@ describe('DiscoveryManager', () => {
     const mqttTopicPrefix = 'homenet2mqtt/homedevice1';
     discoveryManager = new DiscoveryManager(
       'main',
-      mockConfig,
+      normalizeConfig(mockConfig),
       mockPublisher,
       mockSubscriber,
       mqttTopicPrefix,
@@ -337,7 +338,7 @@ describe('DiscoveryManager', () => {
     const mqttTopicPrefix = 'homenet2mqtt/homedevice1';
     discoveryManager = new DiscoveryManager(
       'main',
-      mockConfig,
+      normalizeConfig(mockConfig),
       mockPublisher,
       mockSubscriber,
       mqttTopicPrefix,
@@ -364,7 +365,7 @@ describe('DiscoveryManager', () => {
     const mqttTopicPrefix = 'homenet2mqtt/homedevice1';
     discoveryManager = new DiscoveryManager(
       'main',
-      mockConfig,
+      normalizeConfig(mockConfig),
       mockPublisher,
       mockSubscriber,
       mqttTopicPrefix,

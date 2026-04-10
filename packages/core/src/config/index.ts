@@ -41,6 +41,19 @@ function normalizeSerialConfig(serial: SerialConfig): SerialConfig {
   return normalized;
 }
 
+function parseToNumber(value: unknown): number | undefined {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : undefined;
+  }
+
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  const parsed = Number.parseFloat(value.replace(',', '.'));
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
 function normalizeIndexAlias(value: unknown): void {
   if (!value || typeof value !== 'object') return;
 
@@ -127,6 +140,23 @@ export function normalizeConfig(config: HomenetBridgeConfig) {
               textSensor.state_text = textSensor.state_value;
             } else if (textSensor.state_number) {
               textSensor.state_text = textSensor.state_number;
+            }
+          }
+        }
+
+        // Handle climate visual normalization
+        if (type === 'climate') {
+          const climate = entity as any;
+          if (climate.visual && typeof climate.visual === 'object') {
+            const visual = climate.visual;
+            if (Object.hasOwn(visual, 'min_temperature')) {
+              visual.min_temperature = parseToNumber(visual.min_temperature);
+            }
+            if (Object.hasOwn(visual, 'max_temperature')) {
+              visual.max_temperature = parseToNumber(visual.max_temperature);
+            }
+            if (Object.hasOwn(visual, 'temperature_step')) {
+              visual.temperature_step = parseToNumber(visual.temperature_step);
             }
           }
         }
