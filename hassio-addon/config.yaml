@@ -34,7 +34,7 @@ options:
     - default.homenet_bridge.yaml
   timezone: ""
 schema:
-  log_level: list(trace|debug|info|warning|error|fatal)
+  log_level: list(trace|debug|info|warn|error|fatal)
   use_supervisor_mqtt: bool
   mqtt_url: str?
   mqtt_need_login: bool

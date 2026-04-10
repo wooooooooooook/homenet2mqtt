@@ -1,11 +1,8 @@
 import pino from 'pino';
 import { logBuffer } from './log-buffer.js';
 
-const rawLevel = process.env.LOG_LEVEL || 'info';
-const logLevel = rawLevel === 'warning' ? 'warn' : rawLevel;
-
 export const logger = pino({
-  level: logLevel,
+  level: process.env.LOG_LEVEL || 'info',
   hooks: {
     logMethod(inputArgs, method, level) {
       const levelLabel = pino.levels.labels[level] || 'unknown';
