@@ -1416,6 +1416,41 @@
     text-decoration: underline;
   }
 
+  .markdown-content :global(table) {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.25rem 0;
+    font-size: 0.9rem;
+    display: block;
+    overflow-x: auto;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 8px;
+    background: rgba(15, 23, 42, 0.2);
+  }
+
+  .markdown-content :global(th),
+  .markdown-content :global(td) {
+    padding: 0.75rem 1rem;
+    border: 1px solid rgba(148, 163, 184, 0.1);
+    text-align: left;
+    min-width: 120px;
+  }
+
+  .markdown-content :global(th) {
+    background: rgba(59, 130, 246, 0.1);
+    font-weight: 600;
+    color: #60a5fa;
+    border-bottom: 2px solid rgba(59, 130, 246, 0.2);
+  }
+
+  .markdown-content :global(tr:nth-child(even)) {
+    background: rgba(30, 41, 59, 0.3);
+  }
+
+  .markdown-content :global(tr:hover) {
+    background: rgba(59, 130, 246, 0.05);
+  }
+
   .target-port-wrapper {
     position: relative;
   }

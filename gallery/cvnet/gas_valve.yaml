@@ -1,7 +1,22 @@
 meta:
   name: "가스밸브 설정"
   name_en: "Gas Valve"
-  description: "CVNet 가스밸브 설정입니다."
+  description: |
+    CVNet 가스밸브 설정입니다.
+
+    | Index | 0 | 1 | 2 | 3 | 4 | 5 |
+    | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+    | 상태 | 0x20 | 0x01 | 0x11 | ... | ... | VALVE |
+
+    | Index | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 |
+    | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+    | 명령 | 0x20 | 0x11 | 0x01 | 0x11 | VALVE | 0x00 | 0x00 | 0x00 | 0x00 | 0x00 | 0x00 | 0x00 |
+
+    XX 설명:
+      상태 패킷:
+        - VALVE: 밸브 상태 (0x01: 열림, 0x00: 닫힘)
+      명령 패킷:
+        - VALVE: 밸브 제어 명령 (0x00: 닫기 전용)
   description_en: "CVNet gas valve configuration."
   version: "2.0.1"
   author: "wooooooooooook"

@@ -1,7 +1,23 @@
 meta:
   name: "조명 설정"
   name_en: "Lights"
-  description: "CVNet 조명 설정입니다. 방 개수와 방별 조명 개수를 설정할 수 있습니다."
+  description: |
+    CVNet 조명 설정입니다. 방 개수와 방별 조명 개수를 설정할 수 있습니다.
+
+    | Index | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 |
+    | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+    | 상태 | 0x20 | 0x01 | RoomID | ... | L1 | L2 | L3 | L4 |
+
+    | Index | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | ... |
+    | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+    | 명령 | 0x20 | RoomID | 0x01 | L_Num | CMD | 0x00 | 0x00 | 0x00 | ... |
+
+    XX 설명:
+      상태 패킷:
+        - L1~L4: 각 조명의 ON/OFF 상태 (0x01: ON, 0x00: OFF)
+      명령 패킷:
+        - L_Num: 제어할 조명 번호 (0x11: 1번, 0x12: 2번 ...)
+        - CMD: 조명 제어 명령 (0x01: ON, 0x00: OFF)
   description_en: "CVNet lights configuration. You can configure room count and lights per room."
   version: "2.0.1"
   author: "wooooooooooook"
