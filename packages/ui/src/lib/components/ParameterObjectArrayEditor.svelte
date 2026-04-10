@@ -207,7 +207,6 @@
 
   .field-item input[type='text'],
   .field-item input[type='number'] {
-    width: 100%;
     padding: 0.5rem 0.75rem;
     background: rgba(15, 23, 42, 0.6);
     border: 1px solid rgba(148, 163, 184, 0.2);
