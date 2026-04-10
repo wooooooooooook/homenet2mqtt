@@ -30,9 +30,9 @@
 
   function handleSponsorClick() {
     if (isMobile) {
-      window.open('https://qr.kakaopay.com/Ej7qgjcVK', '_blank', 'noopener,noreferrer');
-    } else {
       showSponsorModal = true;
+    } else {
+      window.open(sponsorUrl, '_blank', 'noopener,noreferrer');
     }
   }
 </script>
@@ -47,7 +47,7 @@
 {/if}
 
 <aside class="sidebar" class:open={isOpen}>
-  <nav>
+  <nav class="nav-group">
     <button
       class="nav-item"
       class:active={activeView === 'dashboard'}
@@ -88,6 +88,9 @@
       <span class="icon" aria-hidden="true">⚙️</span>
       <span class="label">{$t('sidebar.settings')}</span>
     </button>
+  </nav>
+
+  <nav class="nav-group bottom">
     <a
       class="nav-item"
       href={docsUrl}
@@ -99,16 +102,14 @@
       <span class="label">{$t('sidebar.docs')}</span>
       <span class="external-link-icon" aria-hidden="true">↗</span>
     </a>
-  </nav>
-
-  <div class="sponsor-panel">
-    <p class="sponsor-title">☕ 개발자 후원하기</p>
-    <p class="sponsor-desc">카카오페이로 후원해 주세요</p>
-    <button type="button" class="sponsor-qr-btn" onclick={handleSponsorClick} aria-label="후원하기">
-      <img src="./kakaopay-qr.png" alt="카카오페이 후원 QR코드" class="sponsor-qr" />
+    <button type="button" class="nav-item" onclick={handleSponsorClick}>
+      <span class="icon" aria-hidden="true">☕</span>
+      <span class="label">{$t('sidebar.sponsor')}</span>
+      {#if !isMobile}
+        <span class="external-link-icon" aria-hidden="true">↗</span>
+      {/if}
     </button>
-    <p class="sponsor-hint">{isMobile ? '탭하여 후원' : '클릭하면 크게 볼 수 있어요'}</p>
-  </div>
+  </nav>
 </aside>
 
 {#if showSponsorModal}
@@ -142,7 +143,7 @@
           target="_blank"
           rel="noopener noreferrer"
           class="sponsor-modal-text-link"
-          >homenet2mqtt 개발자 후원하기 <span class="external-link-icon" aria-hidden="true">↗</span
+          >homenet2mqtt 개발 후원하기 <span class="external-link-icon" aria-hidden="true">↗</span
           ></a
         >
       </p>
@@ -164,6 +165,7 @@
     left: 0;
     z-index: 50;
     transition: transform 0.3s ease-in-out;
+    backdrop-filter: blur(12px);
   }
 
   .sidebar-backdrop {
@@ -181,10 +183,16 @@
     cursor: pointer;
   }
 
-  nav {
+  .nav-group {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+  }
+
+  .nav-group.bottom {
+    margin-top: auto;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(148, 163, 184, 0.1);
   }
 
   .nav-item {
@@ -198,7 +206,7 @@
     color: #94a3b8;
     cursor: pointer;
     text-align: left;
-    transition: all 0.2s;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     font-family: inherit;
     font-size: 0.95rem;
     outline: none;
@@ -207,17 +215,18 @@
 
   .nav-item:hover {
     background: rgba(148, 163, 184, 0.1);
-    color: #e2e8f0;
+    color: #f8fafc;
+    transform: translateX(4px);
   }
 
   .nav-item:focus-visible {
     background: rgba(148, 163, 184, 0.1);
-    color: #e2e8f0;
+    color: #f8fafc;
     box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
   }
 
   .nav-item.active {
-    background: rgba(37, 99, 235, 0.1);
+    background: rgba(37, 99, 235, 0.15);
     color: #3b82f6;
     font-weight: 600;
   }
@@ -231,10 +240,22 @@
   .nav-item:disabled:hover {
     background: transparent;
     color: #94a3b8;
+    transform: none;
   }
 
   .icon {
     font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+  }
+
+  .external-link-icon {
+    margin-left: auto;
+    font-size: 0.8em;
+    opacity: 0.6;
   }
 
   @media (max-width: 768px) {
@@ -252,131 +273,86 @@
     }
   }
 
-  /* Sponsor panel */
-  .sponsor-panel {
-    margin-top: auto;
-    padding-top: 20px;
-    text-align: center;
-    border-top: 1px solid rgba(148, 163, 184, 0.12);
-  }
-
-  .sponsor-title {
-    margin: 0 0 2px;
-    font-size: 13px;
-    font-weight: 600;
-    color: #e2e8f0;
-  }
-
-  .sponsor-desc {
-    margin: 0 0 10px;
-    font-size: 11px;
-    color: #64748b;
-  }
-
-  .sponsor-qr-btn {
-    background: none;
-    border: none;
-    padding: 0;
-    cursor: pointer;
-    display: block;
-    margin: 0 auto 6px;
-    border-radius: 8px;
-    transition:
-      transform 0.2s,
-      box-shadow 0.2s;
-  }
-
-  .sponsor-qr-btn:hover {
-    transform: scale(1.04);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-  }
-
-  .sponsor-qr {
-    width: 140px;
-    height: 140px;
-    object-fit: cover;
-    border-radius: 8px;
-    display: block;
-  }
-
-  .sponsor-hint {
-    margin: 0;
-    font-size: 10px;
-    color: #475569;
-  }
-
   /* Modal */
   .sponsor-modal {
     position: fixed;
     inset: 0;
     z-index: 9999;
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(0, 0, 0, 0.8);
     display: flex;
     align-items: center;
     justify-content: center;
-    backdrop-filter: blur(6px);
-    animation: sponsorFadeIn 0.2s ease;
+    backdrop-filter: blur(8px);
+    animation: sponsorFadeIn 0.3s ease;
   }
 
   .sponsor-modal-inner {
     position: relative;
     background: #1e293b;
-    border: 1px solid rgba(148, 163, 184, 0.15);
-    border-radius: 16px;
-    padding: 28px 24px 20px;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 24px;
+    padding: 32px 24px 24px;
     text-align: center;
     max-width: 340px;
     width: 90%;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
-    animation: sponsorSlideUp 0.2s ease;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    animation: sponsorSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .sponsor-modal-close {
     position: absolute;
-    top: 12px;
-    right: 14px;
-    background: none;
+    top: 16px;
+    right: 16px;
+    background: rgba(148, 163, 184, 0.1);
     border: none;
-    font-size: 16px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
     cursor: pointer;
-    color: #64748b;
-    line-height: 1;
-    padding: 4px;
-    transition: color 0.15s;
+    color: #94a3b8;
+    transition: all 0.2s;
   }
 
   .sponsor-modal-close:hover {
-    color: #e2e8f0;
+    background: rgba(148, 163, 184, 0.2);
+    color: #f1f5f9;
   }
 
   .sponsor-modal-img {
     width: 100%;
     max-width: 260px;
     height: auto;
-    border-radius: 12px;
+    border-radius: 16px;
     display: block;
-    margin: 0 auto 12px;
+    margin: 0 auto 20px;
   }
 
   .sponsor-modal-label {
-    margin: 0 0 14px;
-    font-size: 14px;
-    font-weight: 600;
+    margin: 0;
+    font-size: 15px;
+    font-weight: 500;
     color: #e2e8f0;
   }
 
   .sponsor-modal-text-link {
     color: inherit;
-    text-decoration: underline;
-    text-underline-offset: 2px;
-  }
-
-  .external-link-icon {
-    font-size: 0.8em;
-    opacity: 0.9;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 16px;
+    background: rgba(59, 130, 246, 0.1);
+    border-radius: 20px;
+    color: #60a5fa;
+    transition: all 0.2s;
   }
 
   .sponsor-modal-text-link:hover {
+    background: rgba(59, 130, 246, 0.2);
     color: #93c5fd;
   }
 
@@ -391,7 +367,7 @@
 
   @keyframes sponsorSlideUp {
     from {
-      transform: translateY(16px);
+      transform: translateY(20px);
       opacity: 0;
     }
     to {
