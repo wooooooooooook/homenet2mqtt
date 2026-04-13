@@ -1,0 +1,73 @@
+meta:
+  name: "전열교환기 모드 설정"
+  name_en: "Heat Exchanger Fan Modes"
+  description: "현대 이마주 전열교환기 설정입니다. 전열/자동/바이패스/취침 프리셋과 속도 제어를 지원합니다."
+  description_en: "Hyundai Imazu heat-exchanger fan configuration with ventilation/auto/bypass/sleep presets and speed control."
+  version: "1.0.0"
+  author: "Qualified4"
+  tags: ["fan", "ventilation", "hyundai", "imazu", "preset"]
+
+discovery:
+  match:
+    data: [0x0E, 0x01, 0x2B, 0x04, 0x40, 0x11]
+    mask: [0x0F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]
+
+entities:
+  fan:
+    - name: "전열교환기"
+      id: "room_1_fan_1"
+      state:
+        data: [0x0E, 0x01, 0x2B, 0x04, 0x40, 0x11]
+        mask: [0x0F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]
+      state_on:
+        data: [0x01]
+        mask: [0xFF]
+        index: 9
+      state_off:
+        data: [0x00]
+        mask: [0xFF]
+        index: 9
+      state_speed:
+        mask: 255
+        mapping:
+          "0": 0
+          "1": 33
+          "3": 66
+          "7": 100
+        index: 9
+      preset_modes:
+        - "전열"
+        - "자동"
+        - "바이패스"
+        - "취침"
+      state_preset_mode: >-
+        data[8] == 0x01 ? "전열" :
+        (data[8] == 0x03 ? "자동" :
+        (data[8] == 0x81 ? "바이패스" :
+        (data[8] == 0x06 ? "취침" : "off")))
+      command_on: |-
+        [
+          [0x0B, 0x01, 0x2B, 0x02, 0x40, 0x11, 0x03, 0x00]
+        ]
+      command_off: |-
+        [
+          [0x0B, 0x01, 0x2B, 0x02, 0x40, 0x11, 0x02, 0x00]
+        ]
+      command_speed: |-
+        [
+          [0x0B, 0x01, 0x2B, 0x02, 0x42, 0x11,
+            get_from_state('preset_mode', 'off') == "off" ? 0x00 :
+              (x <= 34 ? 0x01 :
+                (x <= 67 ? 0x03 : 0x07)
+              ),
+          0x00]
+        ]
+      command_preset_mode: |-
+        [
+          [0x0B, 0x01, 0x2B, 0x02, 0x40, 0x11,
+            xstr == "전열" ? 0x01 :
+              (xstr == "바이패스" ? 0x81 :
+                (xstr == "취침" ? 0x06 : 0x03)
+              ),
+          0x00]
+        ]

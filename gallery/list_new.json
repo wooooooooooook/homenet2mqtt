@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-10T03:06:10.730Z",
+  "generated_at": "2026-04-13T07:10:42.864Z",
   "vendors": [
     {
       "id": "bestin",
@@ -2216,6 +2216,50 @@
                 255,
                 255,
                 253,
+                255
+              ]
+            }
+          }
+        },
+        {
+          "file": "hyundai_imazu/fan_modes.yaml",
+          "name": "전열교환기 모드 설정",
+          "name_en": "Heat Exchanger Fan Modes",
+          "description": "현대 이마주 전열교환기 설정입니다. 전열/자동/바이패스/취침 프리셋과 속도 제어를 지원합니다.",
+          "description_en": "Hyundai Imazu heat-exchanger fan configuration with ventilation/auto/bypass/sleep presets and speed control.",
+          "version": "1.0.0",
+          "author": "Qualified4",
+          "tags": [
+            "fan",
+            "ventilation",
+            "hyundai",
+            "imazu",
+            "preset"
+          ],
+          "parameters": [],
+          "content_summary": {
+            "entities": {
+              "fan": 1
+            },
+            "automations": 0,
+            "scripts": 0
+          },
+          "discovery": {
+            "match": {
+              "data": [
+                14,
+                1,
+                43,
+                4,
+                64,
+                17
+              ],
+              "mask": [
+                15,
+                255,
+                255,
+                255,
+                255,
                 255
               ]
             }
