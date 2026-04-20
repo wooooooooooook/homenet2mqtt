@@ -113,10 +113,7 @@ const applySerialPathToConfig = (
     return false;
   }
 
-  const bridgeConfig =
-    (configObject as Record<string, unknown>).homenet_bridge ||
-    (configObject as Record<string, unknown>).homenetBridge ||
-    configObject;
+  const bridgeConfig = (configObject as Record<string, unknown>).homenet_bridge || configObject;
 
   if (!bridgeConfig || typeof bridgeConfig !== 'object') {
     return false;

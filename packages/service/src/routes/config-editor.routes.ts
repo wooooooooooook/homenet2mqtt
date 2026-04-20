@@ -89,7 +89,7 @@ export function createConfigEditorRoutes(ctx: ConfigEditorRoutesContext): Router
 
       // Check for homenet_bridge root key
       const configObj = parsedConfig as Record<string, unknown>;
-      if (!configObj.homenet_bridge && !configObj.homenetBridge) {
+      if (!configObj.homenet_bridge) {
         return res.status(400).json({ error: 'MISSING_HOMENET_BRIDGE_KEY' });
       }
 

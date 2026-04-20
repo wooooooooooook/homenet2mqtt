@@ -82,8 +82,7 @@ export function createSetupRoutes(ctx: SetupRoutesContext): Router {
         const rawContent = await fs.readFile(sourcePath, 'utf-8');
         const parsedConfig = yaml.load(rawContent) as Record<string, unknown>;
 
-        const bridgeConfig =
-          parsedConfig.homenet_bridge || parsedConfig.homenetBridge || parsedConfig;
+        const bridgeConfig = parsedConfig.homenet_bridge || parsedConfig;
 
         if (!bridgeConfig || typeof bridgeConfig !== 'object') {
           return res.status(400).json({ error: 'SERIAL_CONFIG_MISSING' });
@@ -150,8 +149,7 @@ export function createSetupRoutes(ctx: SetupRoutesContext): Router {
         return res.status(500).json({ error: 'EXAMPLE_READ_FAILED' });
       }
 
-      const bridgeConfig =
-        parsedConfig.homenet_bridge || parsedConfig.homenetBridge || parsedConfig;
+      const bridgeConfig = parsedConfig.homenet_bridge || parsedConfig;
 
       // Normalize to ensure IDs are generated
       try {
@@ -255,10 +253,7 @@ export function createSetupRoutes(ctx: SetupRoutesContext): Router {
         return res.status(400).json({ error: 'SERIAL_CONFIG_MISSING' });
       }
 
-      const bridgeConfig =
-        (parsedConfig as Record<string, unknown>).homenet_bridge ||
-        (parsedConfig as Record<string, unknown>).homenetBridge ||
-        parsedConfig;
+      const bridgeConfig = (parsedConfig as Record<string, unknown>).homenet_bridge || parsedConfig;
 
       const normalized = normalizeConfig(
         JSON.parse(JSON.stringify(bridgeConfig)) as HomenetBridgeConfig,
@@ -380,7 +375,8 @@ export function createSetupRoutes(ctx: SetupRoutesContext): Router {
           parsedConfig = yaml.load(rawContent);
           // Normalize to ensure IDs are generated for matching
           try {
-            normalizeConfig(parsedConfig as HomenetBridgeConfig);
+            const bridgeConfigForNormalize = (parsedConfig as any).homenet_bridge || parsedConfig;
+            normalizeConfig(bridgeConfigForNormalize as HomenetBridgeConfig);
           } catch (e) {
             // Ignore errors
           }
@@ -395,10 +391,7 @@ export function createSetupRoutes(ctx: SetupRoutesContext): Router {
 
         // Filter entities if selectedEntities is provided
         if (selectedEntities && typeof selectedEntities === 'object') {
-          const bridgeConfig =
-            (parsedConfig as any).homenet_bridge ||
-            (parsedConfig as any).homenetBridge ||
-            parsedConfig;
+          const bridgeConfig = (parsedConfig as any).homenet_bridge || parsedConfig;
 
           if (bridgeConfig && typeof bridgeConfig === 'object') {
             for (const type of ENTITY_TYPE_KEYS) {
