@@ -208,6 +208,14 @@ export class PacketParser {
   }
 
   /**
+   * Resets the internal buffer and parsing state.
+   */
+  public reset(): void {
+    this.resetBuffer();
+    this.lastRxTime = 0;
+  }
+
+  /**
    * Processes a chunk of incoming data and returns any complete packets found.
    *
    * The method appends the chunk to the internal buffer and attempts to extract packets

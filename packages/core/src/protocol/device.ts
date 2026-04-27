@@ -98,6 +98,11 @@ export abstract class Device {
     this.state = { ...this.state, ...newState };
   }
 
+  public reset(): void {
+    this.state = {};
+    this.lastError = null;
+  }
+
   // Helper to extract data based on schema
   protected extractFromSchema(packet: Buffer, schema: StateSchema | StateNumSchema): any {
     return extractFromSchema(packet, schema);
