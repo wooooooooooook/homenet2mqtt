@@ -30,7 +30,7 @@ import { eventBus } from './event-bus.js';
 import { CommandManager } from './command.manager.js';
 import { clearStateCache } from '../state/store.js';
 import { DiscoveryManager } from '../mqtt/discovery-manager.js';
-import { ENTITY_TYPE_KEYS, findEntityById } from '../utils/entities.js';
+import { ENTITY_TYPE_KEYS, findEntityById, clearEntityCache } from '../utils/entities.js';
 import { AutomationManager } from '../automation/automation-manager.js';
 import { MQTT_TOPIC_PREFIX } from '../utils/constants.js';
 import { normalizePortId } from '../utils/port.js';
@@ -334,7 +334,10 @@ export class HomeNetBridge extends EventEmitter {
       entity.unique_id = ensuredUniqueId;
     }
 
+    clearEntityCache(this.config);
+
     eventBus.emit('entity:renamed', {
+
       entityId,
       newName: trimmedName,
       uniqueId: ensuredUniqueId,
