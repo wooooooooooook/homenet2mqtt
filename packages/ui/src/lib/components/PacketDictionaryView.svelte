@@ -146,6 +146,7 @@
   </div>
 
   <p class="description">{$t('analysis.packet_dictionary.desc')}</p>
+  <p class="description-hint">{$t('analysis.packet_dictionary.match_hint')}</p>
 
   {#if data}
     <div class="stats-bar">
@@ -315,6 +316,13 @@
   .description {
     color: var(--text-secondary);
     font-size: 0.85rem;
+    margin-bottom: 1rem;
+  }
+
+  .description-hint {
+    color: #94a3b8;
+    font-size: 0.8rem;
+    margin-top: -0.5rem;
     margin-bottom: 1rem;
   }
 

@@ -312,8 +312,8 @@
     },
     "packet_dictionary": {
       "title": "Packet Dictionary",
-      "desc": "View all packets collected by the bridge. 'Matched' packets are matched to entities, 'Unmatched' packets are valid but not matched to any entity.",
-      "parsed_count": "Matched: {count}",
+      "desc": "View all packets collected by the bridge. 'Matched' means parsed packets (state parsing + command logs), while 'Unmatched' are valid packets not linked to any item.",
+      "parsed_count": "Matched (parsed/command): {count}",
       "unmatched_count": "Unmatched: {count}",
       "tab_all": "All",
       "tab_parsed": "Matched",
@@ -321,7 +321,8 @@
       "empty": "No packets collected yet.",
       "sort_asc": "Sort A-Z",
       "sort_desc": "Sort Z-A",
-      "search_placeholder": "Search packet hex or entity name"
+      "search_placeholder": "Search packet hex, entity ID, or command",
+      "match_hint": "The → labels may include both state-matched entities and command-send logs."
     },
     "stats": {
       "title": "Packet Interval Analysis",
