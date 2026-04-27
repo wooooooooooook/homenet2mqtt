@@ -19,8 +19,6 @@ import {
   maskMqttPassword,
   normalizeTopicParts,
   normalizeRawPacket,
-  extractEntityIdFromTopic,
-  isStateTopic,
   BASE_PREFIX_PARTS,
 } from '../utils/helpers.js';
 import { mapMqttDisconnect, mapMqttError } from '../utils/bridge-errors.js';
@@ -150,23 +148,6 @@ export function createStreamManager(ctx: StreamManagerContext) {
         receivedAt,
         portId,
       });
-      if (isStateTopic(data.topic)) {
-        let parsedState: Record<string, unknown> = {};
-        try {
-          parsedState = JSON.parse(data.payload) as Record<string, unknown>;
-        } catch {
-          parsedState = {};
-        }
-        const stateChangeEvent: StateChangeEvent = {
-          entityId: extractEntityIdFromTopic(data.topic),
-          topic: data.topic,
-          payload: data.payload,
-          state: parsedState,
-          timestamp: receivedAt,
-          portId,
-        };
-        broadcastStateChange(stateChangeEvent);
-      }
     });
 
     eventBus.on('command-packet', (data: unknown) => {

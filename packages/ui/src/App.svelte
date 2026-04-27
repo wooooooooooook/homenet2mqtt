@@ -401,11 +401,6 @@
     return parts.slice(-2).join('/') === 'bridge/status';
   };
 
-  const isStateTopic = (topic: string) => {
-    const parts = normalizeTopicParts(topic);
-    return parts.length >= 3 && parts[parts.length - 1] === 'state';
-  };
-
   const normalizeRawPacket = (
     data: Partial<RawPacketWithInterval> & { payload?: string },
   ): RawPacketWithInterval => ({
@@ -979,12 +974,7 @@
       if (isBridgeStatusTopic(data.topic) && portId) {
         bridgeStatusByPort.set(portId, data.payload);
         bridgeStatusByPort = new Map(bridgeStatusByPort);
-        return;
       }
-
-      if (!isStateTopic(data.topic)) return;
-      deviceStates.set(data.topic, { payload: data.payload, portId: portId ?? undefined });
-      deviceStates = new Map(deviceStates);
     };
 
     const handleRawPacketWithInterval = (data: RawPacketWithInterval) => {

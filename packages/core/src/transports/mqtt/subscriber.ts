@@ -53,15 +53,26 @@ export class MqttSubscriber {
       if (entities) {
         entities.forEach((entity) => {
           const baseTopic = `${this.topicPrefix}/${entity.id}`;
-          // Subscribe to all subtopics under the entity's base topic
-          // This matches /set, /mode/set, /temperature/set, /brightness/set, etc.
-          this.mqttClient.client.subscribe(`${baseTopic}/#`, (err) => {
+          // Subscribe only to command topics.
+          // - ${baseTopic}/set
+          // - ${baseTopic}/{attribute}/set
+          // Avoid subscribing to state topics to prevent self-published state echo loops.
+          this.mqttClient.client.subscribe(`${baseTopic}/set`, (err) => {
             if (err)
               logger.error(
-                { err, topic: `${baseTopic}/#` },
+                { err, topic: `${baseTopic}/set` },
                 `[mqtt-subscriber] Failed to subscribe`,
               );
-            else logger.info(`[mqtt-subscriber] Subscribed to ${baseTopic}/#`);
+            else logger.info(`[mqtt-subscriber] Subscribed to ${baseTopic}/set`);
+          });
+
+          this.mqttClient.client.subscribe(`${baseTopic}/+/set`, (err) => {
+            if (err)
+              logger.error(
+                { err, topic: `${baseTopic}/+/set` },
+                `[mqtt-subscriber] Failed to subscribe`,
+              );
+            else logger.info(`[mqtt-subscriber] Subscribed to ${baseTopic}/+/set`);
           });
         });
       }
