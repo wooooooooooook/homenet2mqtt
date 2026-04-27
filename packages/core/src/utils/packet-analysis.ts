@@ -116,17 +116,18 @@ const buildDevices = (config: HomenetBridgeConfig) => {
     const entities = config[type] as EntityConfig[] | undefined;
     if (!entities) continue;
     for (const entity of entities) {
-      if (!entity.id && entity.name) {
-        entity.id = toEntityId(entity.name);
-        logger.debug(`[PacketAnalyzer] Generated ID for ${type}: ${entity.name} -> ${entity.id}`);
+      const entityCopy = { ...entity };
+      if (!entityCopy.id && entityCopy.name) {
+        entityCopy.id = toEntityId(entityCopy.name);
+        logger.debug(`[PacketAnalyzer] Generated ID for ${type}: ${entityCopy.name} -> ${entityCopy.id}`);
       }
       const DeviceClass = deviceMap[type] ?? GenericDevice;
-      const device = new DeviceClass(entity, protocolConfig);
+      const device = new DeviceClass(entityCopy, protocolConfig);
       devices.push(device);
-      if (entity.id) {
-        entityMeta.set(entity.id, {
-          id: entity.id,
-          name: entity.name ?? entity.id,
+      if (entityCopy.id) {
+        entityMeta.set(entityCopy.id, {
+          id: entityCopy.id,
+          name: entityCopy.name ?? entityCopy.id,
           type: type.toString(),
         });
       }
@@ -168,12 +169,33 @@ const matchesPacketTrigger = (
   return matchesPacket(match, packet, { baseOffset });
 };
 
+type CachedAnalyzer = {
+  devices: Device[];
+  entityMeta: Map<string, EntityMeta>;
+  parser: PacketParser;
+};
+
+const analyzerCache = new WeakMap<HomenetBridgeConfig, CachedAnalyzer>();
+
 export const analyzePacketChunk = (
   config: HomenetBridgeConfig,
   chunk: Buffer,
 ): PacketAnalysisResult => {
-  const { devices, entityMeta } = buildDevices(config);
-  const parser = new PacketParser(config.packet_defaults || {});
+  let { devices, entityMeta, parser } = analyzerCache.get(config) ?? {};
+
+  if (!devices || !entityMeta || !parser) {
+    const built = buildDevices(config);
+    devices = built.devices;
+    entityMeta = built.entityMeta;
+    parser = new PacketParser(config.packet_defaults || {});
+    analyzerCache.set(config, { devices, entityMeta, parser });
+  } else {
+    parser.reset();
+    for (const device of devices) {
+      device.reset();
+    }
+  }
+
   const packets = parser.parseChunk(chunk);
 
   const automationList = (config.automation || []).filter(
