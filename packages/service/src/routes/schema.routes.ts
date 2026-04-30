@@ -5,6 +5,7 @@
 import { Router } from 'express';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { logger } from '@rs485-homenet/core';
 import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -41,7 +42,7 @@ export function createSchemaRoutes(): Router {
       if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
         return res.status(404).json({ error: 'Schema not found' });
       }
-      console.error('[schema.routes] Error loading schema:', err);
+      logger.error({ err }, '[schema.routes] Error loading schema');
       return res.status(500).json({ error: 'Failed to load schema' });
     }
   });
@@ -62,7 +63,7 @@ export function createSchemaRoutes(): Router {
       if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
         return res.json({ schemas: [] });
       }
-      console.error('[schema.routes] Error listing schemas:', err);
+      logger.error({ err }, '[schema.routes] Error listing schemas');
       return res.status(500).json({ error: 'Failed to list schemas' });
     }
   });
