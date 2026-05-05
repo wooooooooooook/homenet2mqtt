@@ -337,7 +337,6 @@ export class HomeNetBridge extends EventEmitter {
     clearEntityCache(this.config);
 
     eventBus.emit('entity:renamed', {
-
       entityId,
       newName: trimmedName,
       uniqueId: ensuredUniqueId,

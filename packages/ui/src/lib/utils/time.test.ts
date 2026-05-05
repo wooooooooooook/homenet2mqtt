@@ -1,11 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import {
-  setTimeZone,
-  getTimeZone,
-  withTimeZone,
-  formatTime,
-  formatRelativeTime,
-} from './time';
+import { setTimeZone, getTimeZone, withTimeZone, formatTime, formatRelativeTime } from './time';
 
 describe('time utils', () => {
   beforeEach(() => {

@@ -86,6 +86,78 @@
   let showYaml = $state(false);
   let showPortHint = $state(false);
 
+  // HA Ingress 환경 감지 (URL 경로에 hassio_ingress 포함 여부)
+  const isIngress = $derived.by(() => {
+    if (typeof window === 'undefined') return false;
+    return window.location.pathname.includes('hassio_ingress');
+  });
+
+  // ===== GitHub Discussion 우회 (HA ingress 환경용) =====
+  const STATS_WORKER_URL = 'https://h2m-gallery-stats.nubiz.workers.dev';
+
+  let discussionLoading = $state(false);
+  let discussionError = $state<string | null>(null);
+
+  let showAnonymousComment = $state(false);
+  let anonymousName = $state('');
+  let anonymousMessage = $state('');
+  let commentSubmitting = $state(false);
+  let commentSuccess = $state(false);
+  let commentError = $state<string | null>(null);
+
+  async function openDiscussion() {
+    discussionLoading = true;
+    discussionError = null;
+    try {
+      const res = await fetch(
+        `${STATS_WORKER_URL}/discussion?term=${encodeURIComponent(item.file)}`,
+      );
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      window.open(data.url, '_blank', 'noopener,noreferrer');
+    } catch (e: any) {
+      discussionError = e?.message ?? 'Unknown error';
+    } finally {
+      discussionLoading = false;
+    }
+  }
+
+  async function submitAnonymousComment() {
+    if (!anonymousMessage.trim()) return;
+    commentSubmitting = true;
+    commentSuccess = false;
+    commentError = null;
+    try {
+      // 1단계: 토큰 발급 (로컬 서비스에서 발급 — 외부에서 위조 불가)
+      const tokenRes = await fetch('./api/gallery/discussion-token');
+      if (!tokenRes.ok) throw new Error(`Token error: HTTP ${tokenRes.status}`);
+      const { token } = await tokenRes.json();
+
+      // 2단계: 댓글 작성
+      const commentRes = await fetch(`${STATS_WORKER_URL}/discussion/comment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          term: item.file,
+          name: anonymousName.trim() || '익명',
+          message: anonymousMessage.trim(),
+          token,
+        }),
+      });
+      if (!commentRes.ok) {
+        const text = await commentRes.text();
+        throw new Error(text || `HTTP ${commentRes.status}`);
+      }
+      commentSuccess = true;
+      anonymousMessage = '';
+      anonymousName = '';
+    } catch (e: any) {
+      commentError = e?.message ?? 'Unknown error';
+    } finally {
+      commentSubmitting = false;
+    }
+  }
+
   function toggleDropdown(matchId: string, event: MouseEvent) {
     event.stopPropagation();
     if (openDropdownMatchId === matchId) {
@@ -931,7 +1003,7 @@
           {/if}
         </div>
 
-        <div class="giscus-section">
+        <div class="giscus-section" class:is-ingress={isIngress}>
           <Giscus
             repo="wooooooooooook/homenet2mqtt"
             repoId="R_kgDOQQ8nWw"
@@ -941,10 +1013,108 @@
             term={item.file}
             reactionsEnabled="1"
             emitMetadata="0"
-            inputPosition="top"
-            theme="dark"
+            inputPosition="bottom"
+            theme={isIngress ? `${STATS_WORKER_URL}/giscus-theme.css` : 'dark'}
             lang={$locale?.startsWith('en') ? 'en' : 'ko'}
           />
+
+          <!-- HA ingress 환경 우회: Discussion 이동 + 익명 댓글 -->
+          {#if isIngress}
+            <div class="discussion-fallback">
+              <div class="discussion-fallback-header">
+                <button
+                  id="gallery-open-discussion-btn"
+                  class="discussion-link-btn"
+                  onclick={openDiscussion}
+                  disabled={discussionLoading}
+                >
+                  {#if discussionLoading}
+                    <span class="btn-spinner"></span>
+                  {:else}
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"
+                      />
+                    </svg>
+                  {/if}
+                  GitHub Discussion으로 이동
+                </button>
+
+                <button
+                  id="gallery-anonymous-comment-toggle-btn"
+                  class="anonymous-toggle-btn"
+                  onclick={() => {
+                    showAnonymousComment = !showAnonymousComment;
+                    commentSuccess = false;
+                    commentError = null;
+                  }}
+                >
+                  {showAnonymousComment ? '▲' : '▼'} 익명으로 댓글 작성
+                </button>
+              </div>
+
+              {#if discussionError}
+                <p class="discussion-error">⚠️ {discussionError}</p>
+              {/if}
+
+              {#if showAnonymousComment}
+                <div class="anonymous-comment-form">
+                  {#if commentSuccess}
+                    <div class="comment-success">
+                      ✅ 댓글이 등록되었습니다. GitHub Discussion에서 확인할 수 있습니다.
+                    </div>
+                  {:else}
+                    <div class="anonymous-fields">
+                      <input
+                        id="gallery-anon-name-input"
+                        type="text"
+                        class="anon-input"
+                        placeholder="닉네임 (선택, 비우면 '익명')"
+                        bind:value={anonymousName}
+                        maxlength="50"
+                        disabled={commentSubmitting}
+                      />
+                      <textarea
+                        id="gallery-anon-message-input"
+                        class="anon-textarea"
+                        placeholder="댓글 내용을 입력하세요 (최대 2000자)"
+                        bind:value={anonymousMessage}
+                        maxlength="2000"
+                        rows="4"
+                        disabled={commentSubmitting}
+                      ></textarea>
+                    </div>
+
+                    {#if commentError}
+                      <p class="comment-error">⚠️ {commentError}</p>
+                    {/if}
+
+                    <div class="anonymous-actions">
+                      <span class="anon-notice">⚠️ 익명 댓글은 봇 계정으로 대신 게시됩니다.</span>
+                      <button
+                        id="gallery-anon-submit-btn"
+                        class="anon-submit-btn"
+                        onclick={submitAnonymousComment}
+                        disabled={commentSubmitting || !anonymousMessage.trim()}
+                      >
+                        {#if commentSubmitting}
+                          <span class="btn-spinner"></span> 등록 중...
+                        {:else}
+                          댓글 등록
+                        {/if}
+                      </button>
+                    </div>
+                  {/if}
+                </div>
+              {/if}
+            </div>
+          {/if}
         </div>
       </div>
 
@@ -1511,6 +1681,199 @@
     margin-top: 1rem;
     padding-top: 1rem;
     border-top: 1px solid rgba(148, 163, 184, 0.2);
+  }
+
+  /* ingress 환경에서 giscus 입력폼 숨기기 */
+  .giscus-section.is-ingress :global(.gsc-comments > form) {
+    display: none !important;
+  }
+
+  /* GitHub Discussion 우회 UI */
+  .discussion-fallback {
+    margin-top: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .discussion-fallback-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .discussion-link-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.45rem 0.85rem;
+    background: rgba(30, 215, 96, 0.1);
+    border: 1px solid rgba(30, 215, 96, 0.25);
+    border-radius: 6px;
+    color: #4ade80;
+    font-size: 0.82rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+  }
+
+  .discussion-link-btn:hover:not(:disabled) {
+    background: rgba(30, 215, 96, 0.18);
+    border-color: rgba(30, 215, 96, 0.45);
+  }
+
+  .discussion-link-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .anonymous-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.45rem 0.85rem;
+    background: rgba(99, 102, 241, 0.1);
+    border: 1px solid rgba(99, 102, 241, 0.25);
+    border-radius: 6px;
+    color: #818cf8;
+    font-size: 0.82rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+  }
+
+  .anonymous-toggle-btn:hover {
+    background: rgba(99, 102, 241, 0.18);
+    border-color: rgba(99, 102, 241, 0.45);
+  }
+
+  .discussion-error {
+    color: #f87171;
+    font-size: 0.8rem;
+    margin: 0.25rem 0 0;
+  }
+
+  .anonymous-comment-form {
+    background: rgba(15, 23, 42, 0.5);
+    border: 1px solid rgba(99, 102, 241, 0.2);
+    border-radius: 8px;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    animation: slideDown 0.2s ease;
+  }
+
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .anonymous-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .anon-input,
+  .anon-textarea {
+    background: rgba(15, 23, 42, 0.8);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 6px;
+    padding: 0.6rem 0.75rem;
+    color: #f1f5f9;
+    font-size: 0.85rem;
+    width: 100%;
+    box-sizing: border-box;
+    transition: border-color 0.2s;
+  }
+
+  .anon-input:focus,
+  .anon-textarea:focus {
+    outline: none;
+    border-color: rgba(99, 102, 241, 0.5);
+  }
+
+  .anon-input:disabled,
+  .anon-textarea:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .anon-textarea {
+    resize: vertical;
+    min-height: 90px;
+    font-family: inherit;
+  }
+
+  .anonymous-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .anon-notice {
+    font-size: 0.75rem;
+    color: #94a3b8;
+  }
+
+  .anon-submit-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.45rem 1rem;
+    background: rgba(99, 102, 241, 0.15);
+    border: 1px solid rgba(99, 102, 241, 0.35);
+    border-radius: 6px;
+    color: #818cf8;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+  }
+
+  .anon-submit-btn:hover:not(:disabled) {
+    background: rgba(99, 102, 241, 0.25);
+    border-color: rgba(99, 102, 241, 0.55);
+  }
+
+  .anon-submit-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .comment-success {
+    color: #4ade80;
+    font-size: 0.85rem;
+    padding: 0.5rem 0;
+  }
+
+  .comment-error {
+    color: #f87171;
+    font-size: 0.8rem;
+    margin: 0;
+  }
+
+  .btn-spinner {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-top-color: currentColor;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
   }
 
   .contents-summary h4 {

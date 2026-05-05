@@ -129,6 +129,10 @@ ENV NODE_ENV=production
 ARG LOG_COLLECTOR_API_KEY
 ENV LOG_COLLECTOR_API_KEY=$LOG_COLLECTOR_API_KEY
 
+# Inject Comment Secret (for anonymous discussion comment signing)
+ARG COMMENT_SECRET
+ENV COMMENT_SECRET=$COMMENT_SECRET
+
 # Setup run script
 COPY hassio-addon-dev/run.sh /run.sh
 RUN chmod +x /run.sh

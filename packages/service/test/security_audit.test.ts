@@ -23,7 +23,7 @@ describe('Security Audit - Path Traversal', () => {
     const validFiles = [
       'default.homenet_bridge.yaml',
       'living_room.homenet_bridge.yml',
-      'subdir/my.homenet_bridge.yaml'
+      'subdir/my.homenet_bridge.yaml',
     ];
 
     for (const file of validFiles) {

@@ -119,7 +119,9 @@ const buildDevices = (config: HomenetBridgeConfig) => {
       const entityCopy = { ...entity };
       if (!entityCopy.id && entityCopy.name) {
         entityCopy.id = toEntityId(entityCopy.name);
-        logger.debug(`[PacketAnalyzer] Generated ID for ${type}: ${entityCopy.name} -> ${entityCopy.id}`);
+        logger.debug(
+          `[PacketAnalyzer] Generated ID for ${type}: ${entityCopy.name} -> ${entityCopy.id}`,
+        );
       }
       const DeviceClass = deviceMap[type] ?? GenericDevice;
       const device = new DeviceClass(entityCopy, protocolConfig);

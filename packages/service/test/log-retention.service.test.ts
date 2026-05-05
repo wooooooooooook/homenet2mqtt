@@ -197,7 +197,10 @@ describe('LogRetentionService', () => {
       const now = Date.now();
       vi.setSystemTime(now);
 
-      handlers['parsed-packet']({ packet: 'OLD', timestamp: new Date(now - 2 * 3600 * 1000).toISOString() });
+      handlers['parsed-packet']({
+        packet: 'OLD',
+        timestamp: new Date(now - 2 * 3600 * 1000).toISOString(),
+      });
       handlers['parsed-packet']({ packet: 'NEW', timestamp: new Date(now).toISOString() });
 
       expect(service.getParsedPacketHistory()).toHaveLength(2);
@@ -230,7 +233,7 @@ describe('LogRetentionService', () => {
       expect(fsp.writeFile).toHaveBeenCalledWith(
         expect.stringContaining('cache_log_'),
         expect.stringContaining('P1'),
-        'utf-8'
+        'utf-8',
       );
       expect(result.filename).toMatch(/cache_log_.*\.json/);
     });
@@ -262,9 +265,7 @@ describe('LogRetentionService', () => {
     });
 
     it('should cleanup files with mode "all"', async () => {
-      vi.mocked(fsp.readdir).mockResolvedValue([
-        { isFile: () => true, name: 'log1.json' } as any,
-      ]);
+      vi.mocked(fsp.readdir).mockResolvedValue([{ isFile: () => true, name: 'log1.json' } as any]);
 
       const count = await service.cleanupFiles('all');
       expect(count).toBe(1);

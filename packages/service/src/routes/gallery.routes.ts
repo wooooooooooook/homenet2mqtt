@@ -5,6 +5,7 @@
 import { Router } from 'express';
 import path from 'node:path';
 import fs from 'node:fs/promises';
+import { createHmac } from 'node:crypto';
 import yaml from 'js-yaml';
 import { HomenetBridgeConfig, logger, normalizeConfig, normalizePortId } from '@rs485-homenet/core';
 import { dumpConfigToYaml } from '../utils/yaml-dumper.js';
@@ -79,6 +80,28 @@ export function createGalleryRoutes(ctx: GalleryRoutesContext): Router {
       logger.error({ err: error }, '[gallery] Failed to load gallery stats');
       res.status(500).json({ error: 'Failed to load stats' });
     }
+  });
+
+  // Issue short-lived HMAC token for anonymous discussion comment
+  // Token is signed with COMMENT_SECRET (shared only between this service and the Cloudflare Worker)
+  // This ensures only users with access to this homenet2mqtt instance can post anonymous comments.
+  router.get('/api/gallery/discussion-token', (req, res) => {
+    if (!ctx.configRateLimiter.check(req.ip || 'unknown')) {
+      return res.status(429).json({ error: 'Too many requests' });
+    }
+
+    const secret = process.env.COMMENT_SECRET;
+    if (!secret) {
+      return res.status(503).json({ error: 'Anonymous comments not configured' });
+    }
+
+    // 10분 윈도우 단위 타임스탬프 (Cloudflare Worker와 동일한 로직)
+    const TOKEN_VALIDITY_MS = 10 * 60 * 1000;
+    const ts = Math.floor(Date.now() / TOKEN_VALIDITY_MS);
+    const sig = createHmac('sha256', secret).update(String(ts)).digest('base64');
+    const token = `${ts}:${sig}`;
+
+    return res.json({ token });
   });
 
   // Get gallery list from GitHub
