@@ -28,4 +28,4 @@ v2.11.0
 - climate의 visual 옵션들의 타입을 숫자로 정규화함
 - 기타 UI 개선
 
-... 이전 내역은 [CHANGELOG_OLD.md](../CHANGELOG_OLD.md)에 기록되어 있습니다.
+... 이전 내역은 [CHANGELOG_OLD.md](https://github.com/wooooooooooook/homenet2mqtt/blob/main/hassio-addon/CHANGELOG_OLD.md)에 기록되어 있습니다.
