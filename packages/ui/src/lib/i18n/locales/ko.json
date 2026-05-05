@@ -500,6 +500,17 @@
         "add_item": "항목 추가",
         "remove_item": "제거",
         "item_index": "{index}번 항목"
+      },
+      "discussion": {
+        "guide": "본인 계정으로 댓글 작성 · 대댓글 · 반응은",
+        "open_btn": "GitHub Discussion에서 작성",
+        "anon_form_title": "익명으로 댓글 남기기",
+        "nickname_placeholder": "닉네임 (선택, 비우면 '익명')",
+        "message_placeholder": "댓글 내용을 입력하세요 (최대 2000자)",
+        "submit_btn": "댓글 등록",
+        "submitting": "등록 중...",
+        "success": "댓글이 등록되었습니다. 잠시 후 위 목록에서 확인할 수 있습니다.",
+        "bot_notice": "개발자 계정({botAccount})으로 대신 게시됩니다."
       }
     }
   },

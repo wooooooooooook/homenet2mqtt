@@ -289,10 +289,23 @@ export default {
     if (pathname === '/giscus-theme.css') {
       const giscusDarkThemeUrl =
         'https://raw.githubusercontent.com/giscus/giscus/main/styles/themes/dark.css';
-      const customCss = `
-        @import url("${giscusDarkThemeUrl}");
-        .gsc-comments > form { display: none !important; }
-      `;
+
+      // dark.css 원본을 직접 fetch하여 포함 (@import는 Giscus iframe CSP에 의해 차단될 수 있음)
+      let baseCss = '';
+      try {
+        const baseRes = await fetch(giscusDarkThemeUrl);
+        if (baseRes.ok) {
+          baseCss = await baseRes.text();
+        }
+      } catch {
+        // 실패해도 커스텀 스타일은 반환
+      }
+
+      const customCss =
+        baseCss +
+        '\n/* HA Ingress: 로그인 불가 환경에서 입력폼 숨김 */\n' +
+        '.gsc-comments > form { display: none !important; }\n';
+
       return new Response(customCss, {
         headers: {
           'Content-Type': 'text/css; charset=UTF-8',

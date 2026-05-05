@@ -104,6 +104,8 @@
   let commentSubmitting = $state(false);
   let commentSuccess = $state(false);
   let commentError = $state<string | null>(null);
+  // Giscus 재마운트 트리거 (익명 댓글 제출 성공 시 증가)
+  let giscusKey = $state(0);
 
   async function openDiscussion() {
     discussionLoading = true;
@@ -149,6 +151,7 @@
         throw new Error(text || `HTTP ${commentRes.status}`);
       }
       commentSuccess = true;
+      giscusKey += 1; // Giscus iframe 재마운트
       anonymousMessage = '';
       anonymousName = '';
     } catch (e: any) {
@@ -1003,59 +1006,54 @@
           {/if}
         </div>
 
-        <div class="giscus-section" class:is-ingress={isIngress}>
-          <Giscus
-            repo="wooooooooooook/homenet2mqtt"
-            repoId="R_kgDOQQ8nWw"
-            category="Q&A"
-            categoryId="DIC_kwDOQQ8nW84C6gGd"
-            mapping="specific"
-            term={item.file}
-            reactionsEnabled="1"
-            emitMetadata="0"
-            inputPosition="bottom"
-            theme={isIngress ? `${STATS_WORKER_URL}/giscus-theme.css` : 'dark'}
-            lang={$locale?.startsWith('en') ? 'en' : 'ko'}
-          />
+        <div class="giscus-section">
+          {#key giscusKey}
+            <Giscus
+              repo="wooooooooooook/homenet2mqtt"
+              repoId="R_kgDOQQ8nWw"
+              category="Q&A"
+              categoryId="DIC_kwDOQQ8nW84C6gGd"
+              mapping="specific"
+              term={item.file}
+              reactionsEnabled="1"
+              emitMetadata="0"
+              inputPosition="bottom"
+              theme={isIngress ? `${STATS_WORKER_URL}/giscus-theme.css` : 'dark'}
+              lang={$locale?.startsWith('en') ? 'en' : 'ko'}
+            />
+          {/key}
 
           <!-- HA ingress 환경 우회: Discussion 이동 + 익명 댓글 -->
           {#if isIngress}
             <div class="discussion-fallback">
-              <div class="discussion-fallback-header">
+              <!-- 안내 문구: Discussion 직접 이동 유도 -->
+              <div class="discussion-guide">
+                <span class="discussion-guide-text">
+                  {$t('gallery.preview.discussion.guide')}
+                </span>
                 <button
                   id="gallery-open-discussion-btn"
-                  class="discussion-link-btn"
+                  class="discussion-link-inline"
                   onclick={openDiscussion}
                   disabled={discussionLoading}
                 >
                   {#if discussionLoading}
-                    <span class="btn-spinner"></span>
+                    <span class="btn-spinner-sm"></span>
                   {:else}
                     <svg
-                      width="16"
-                      height="16"
+                      width="13"
+                      height="13"
                       viewBox="0 0 24 24"
                       fill="currentColor"
                       aria-hidden="true"
+                      style="display: inline; vertical-align: -2px; margin-right: 3px;"
                     >
                       <path
                         d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"
                       />
                     </svg>
+                    {$t('gallery.preview.discussion.open_btn')}
                   {/if}
-                  GitHub Discussion으로 이동
-                </button>
-
-                <button
-                  id="gallery-anonymous-comment-toggle-btn"
-                  class="anonymous-toggle-btn"
-                  onclick={() => {
-                    showAnonymousComment = !showAnonymousComment;
-                    commentSuccess = false;
-                    commentError = null;
-                  }}
-                >
-                  {showAnonymousComment ? '▲' : '▼'} 익명으로 댓글 작성
                 </button>
               </div>
 
@@ -1063,56 +1061,70 @@
                 <p class="discussion-error">⚠️ {discussionError}</p>
               {/if}
 
-              {#if showAnonymousComment}
-                <div class="anonymous-comment-form">
-                  {#if commentSuccess}
-                    <div class="comment-success">
-                      ✅ 댓글이 등록되었습니다. GitHub Discussion에서 확인할 수 있습니다.
-                    </div>
-                  {:else}
-                    <div class="anonymous-fields">
-                      <input
-                        id="gallery-anon-name-input"
-                        type="text"
-                        class="anon-input"
-                        placeholder="닉네임 (선택, 비우면 '익명')"
-                        bind:value={anonymousName}
-                        maxlength="50"
-                        disabled={commentSubmitting}
-                      />
-                      <textarea
-                        id="gallery-anon-message-input"
-                        class="anon-textarea"
-                        placeholder="댓글 내용을 입력하세요 (최대 2000자)"
-                        bind:value={anonymousMessage}
-                        maxlength="2000"
-                        rows="4"
-                        disabled={commentSubmitting}
-                      ></textarea>
-                    </div>
+              <!-- 익명 댓글 폼 (항상 펼침) -->
+              <div class="anonymous-comment-form">
+                {#if commentSuccess}
+                  <div class="comment-success">
+                    ✅ {$t('gallery.preview.discussion.success')}
+                  </div>
+                {:else}
+                  <p class="anon-form-title">{$t('gallery.preview.discussion.anon_form_title')}</p>
+                  <div class="anonymous-fields">
+                    <input
+                      id="gallery-anon-name-input"
+                      type="text"
+                      class="anon-input"
+                      placeholder={$t('gallery.preview.discussion.nickname_placeholder')}
+                      bind:value={anonymousName}
+                      maxlength="50"
+                      disabled={commentSubmitting}
+                    />
+                    <textarea
+                      id="gallery-anon-message-input"
+                      class="anon-textarea"
+                      placeholder={$t('gallery.preview.discussion.message_placeholder')}
+                      bind:value={anonymousMessage}
+                      maxlength="2000"
+                      rows="4"
+                      disabled={commentSubmitting}
+                    ></textarea>
+                  </div>
 
-                    {#if commentError}
-                      <p class="comment-error">⚠️ {commentError}</p>
-                    {/if}
-
-                    <div class="anonymous-actions">
-                      <span class="anon-notice">⚠️ 익명 댓글은 봇 계정으로 대신 게시됩니다.</span>
-                      <button
-                        id="gallery-anon-submit-btn"
-                        class="anon-submit-btn"
-                        onclick={submitAnonymousComment}
-                        disabled={commentSubmitting || !anonymousMessage.trim()}
-                      >
-                        {#if commentSubmitting}
-                          <span class="btn-spinner"></span> 등록 중...
-                        {:else}
-                          댓글 등록
-                        {/if}
-                      </button>
-                    </div>
+                  {#if commentError}
+                    <p class="comment-error">⚠️ {commentError}</p>
                   {/if}
-                </div>
-              {/if}
+
+                  <div class="anonymous-actions">
+                    <span class="anon-notice">
+                      {$t('gallery.preview.discussion.bot_notice', { values: { botAccount: '' } })
+                        .split('{botAccount}')
+                        .shift()}
+                      <a
+                        href="https://github.com/wooooooooooook"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="anon-bot-link">wooooooooooook</a
+                      >
+                      {$t('gallery.preview.discussion.bot_notice', { values: { botAccount: '' } })
+                        .split('{botAccount}')
+                        .pop()}
+                    </span>
+                    <button
+                      id="gallery-anon-submit-btn"
+                      class="anon-submit-btn"
+                      onclick={submitAnonymousComment}
+                      disabled={commentSubmitting || !anonymousMessage.trim()}
+                    >
+                      {#if commentSubmitting}
+                        <span class="btn-spinner"></span>
+                        {$t('gallery.preview.discussion.submitting')}
+                      {:else}
+                        {$t('gallery.preview.discussion.submit_btn')}
+                      {/if}
+                    </button>
+                  </div>
+                {/if}
+              </div>
             </div>
           {/if}
         </div>
@@ -1683,11 +1695,6 @@
     border-top: 1px solid rgba(148, 163, 184, 0.2);
   }
 
-  /* ingress 환경에서 giscus 입력폼 숨기기 */
-  .giscus-section.is-ingress :global(.gsc-comments > form) {
-    display: none !important;
-  }
-
   /* GitHub Discussion 우회 UI */
   .discussion-fallback {
     margin-top: 1rem;
@@ -1696,58 +1703,45 @@
     gap: 0.5rem;
   }
 
-  .discussion-fallback-header {
+  /* Discussion 이동 유도 안내줄 */
+  .discussion-guide {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-  }
-
-  .discussion-link-btn {
-    display: inline-flex;
-    align-items: center;
     gap: 0.4rem;
-    padding: 0.45rem 0.85rem;
-    background: rgba(30, 215, 96, 0.1);
-    border: 1px solid rgba(30, 215, 96, 0.25);
-    border-radius: 6px;
-    color: #4ade80;
-    font-size: 0.82rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    white-space: nowrap;
+    flex-wrap: wrap;
+    font-size: 0.8rem;
+    color: #94a3b8;
+    margin-bottom: 0.25rem;
   }
 
-  .discussion-link-btn:hover:not(:disabled) {
-    background: rgba(30, 215, 96, 0.18);
-    border-color: rgba(30, 215, 96, 0.45);
+  .discussion-guide-text {
+    flex-shrink: 0;
   }
 
-  .discussion-link-btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-
-  .anonymous-toggle-btn {
+  .discussion-link-inline {
     display: inline-flex;
     align-items: center;
     gap: 0.3rem;
-    padding: 0.45rem 0.85rem;
-    background: rgba(99, 102, 241, 0.1);
-    border: 1px solid rgba(99, 102, 241, 0.25);
-    border-radius: 6px;
-    color: #818cf8;
-    font-size: 0.82rem;
+    padding: 0.2rem 0.55rem;
+    background: rgba(30, 215, 96, 0.08);
+    border: 1px solid rgba(30, 215, 96, 0.2);
+    border-radius: 5px;
+    color: #4ade80;
+    font-size: 0.8rem;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
     white-space: nowrap;
   }
 
-  .anonymous-toggle-btn:hover {
-    background: rgba(99, 102, 241, 0.18);
-    border-color: rgba(99, 102, 241, 0.45);
+  .discussion-link-inline:hover:not(:disabled) {
+    background: rgba(30, 215, 96, 0.16);
+    border-color: rgba(30, 215, 96, 0.4);
+  }
+
+  .discussion-link-inline:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
   }
 
   .discussion-error {
@@ -1823,9 +1817,27 @@
     flex-wrap: wrap;
   }
 
+  .anon-form-title {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #cbd5e1;
+    margin: 0 0 0.25rem;
+  }
+
   .anon-notice {
     font-size: 0.75rem;
     color: #94a3b8;
+  }
+
+  .anon-bot-link {
+    color: #818cf8;
+    text-decoration: none;
+    transition: color 0.15s;
+  }
+
+  .anon-bot-link:hover {
+    color: #a5b4fc;
+    text-decoration: underline;
   }
 
   .anon-submit-btn {
@@ -1871,6 +1883,16 @@
     width: 12px;
     height: 12px;
     border: 2px solid rgba(255, 255, 255, 0.2);
+    border-top-color: currentColor;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+
+  .btn-spinner-sm {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border: 1.5px solid rgba(255, 255, 255, 0.2);
     border-top-color: currentColor;
     border-radius: 50%;
     animation: spin 0.7s linear infinite;

@@ -500,6 +500,17 @@
         "add_item": "Add Item",
         "remove_item": "Remove",
         "item_index": "Item {index}"
+      },
+      "discussion": {
+        "guide": "To post comments, replies, or reactions as yourself,",
+        "open_btn": "Post on GitHub Discussion",
+        "anon_form_title": "Post anonymously",
+        "nickname_placeholder": "Nickname (optional, default: 'Anonymous')",
+        "message_placeholder": "Enter your comment (max 2000 characters)",
+        "submit_btn": "Post Comment",
+        "submitting": "Posting...",
+        "success": "Comment posted. It will appear in the list above shortly.",
+        "bot_notice": "Your comment will be posted via the developer account ({botAccount})."
       }
     }
   },
