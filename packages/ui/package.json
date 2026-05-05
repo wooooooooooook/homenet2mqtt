@@ -1,6 +1,6 @@
 {
   "name": "@rs485-homenet/ui",
-  "version": "2.11.2",
+  "version": "2.11.3",
   "type": "module",
   "scripts": {
     "dev": "vite",
