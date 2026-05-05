@@ -1095,20 +1095,7 @@
                   {/if}
 
                   <div class="anonymous-actions">
-                    <span class="anon-notice">
-                      {$t('gallery.preview.discussion.bot_notice', { values: { botAccount: '' } })
-                        .split('{botAccount}')
-                        .shift()}
-                      <a
-                        href="https://github.com/wooooooooooook"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="anon-bot-link">wooooooooooook</a
-                      >
-                      {$t('gallery.preview.discussion.bot_notice', { values: { botAccount: '' } })
-                        .split('{botAccount}')
-                        .pop()}
-                    </span>
+                    <p class="anon-notice-desc">{$t('gallery.preview.discussion.bot_notice')}</p>
                     <button
                       id="gallery-anon-submit-btn"
                       class="anon-submit-btn"
@@ -1811,10 +1798,17 @@
 
   .anonymous-actions {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
-    flex-wrap: wrap;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.5rem;
+  }
+
+  .anon-notice-desc {
+    width: 100%;
+    font-size: 0.7rem;
+    color: #64748b;
+    margin: 0;
+    line-height: 1.4;
   }
 
   .anon-form-title {
@@ -1822,22 +1816,6 @@
     font-weight: 600;
     color: #cbd5e1;
     margin: 0 0 0.25rem;
-  }
-
-  .anon-notice {
-    font-size: 0.75rem;
-    color: #94a3b8;
-  }
-
-  .anon-bot-link {
-    color: #818cf8;
-    text-decoration: none;
-    transition: color 0.15s;
-  }
-
-  .anon-bot-link:hover {
-    color: #a5b4fc;
-    text-decoration: underline;
   }
 
   .anon-submit-btn {

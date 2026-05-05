@@ -510,7 +510,7 @@
         "submit_btn": "Post Comment",
         "submitting": "Posting...",
         "success": "Comment posted. It will appear in the list above shortly.",
-        "bot_notice": "Your comment will be posted via the developer account ({botAccount})."
+        "bot_notice": "Anonymous comments are posted via the developer account and cannot be edited or deleted."
       }
     }
   },
