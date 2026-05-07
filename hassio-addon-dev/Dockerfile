@@ -1,6 +1,6 @@
 # Stage 1: Common Builder (Host Architecture)
 # Builds UI and Service packages which are architecture independent
-FROM --platform=$BUILDPLATFORM node:22-slim AS common-builder
+FROM --platform=$BUILDPLATFORM node:24-slim AS common-builder
 
 ENV CI=true
 WORKDIR /app
@@ -31,7 +31,7 @@ RUN --mount=type=cache,target=/app/.turbo \
 
 # Stage 2: Builder (Target Architecture)
 # Rebuilds Core with native dependencies for the target architecture
-FROM node:22-slim AS builder
+FROM node:24-slim AS builder
 
 ENV CI=true
 WORKDIR /app
