@@ -133,6 +133,23 @@ describe('DiscoveryManager', () => {
     discoveryManager.setup();
   });
 
+  it('MQTT 재연결 시 bridge online 상태를 retain으로 다시 발행한다', () => {
+    const statusTopic = 'homenet2mqtt/homedevice1/bridge/status';
+
+    const initialCalls = mockPublisher.publish.mock.calls.filter(
+      (args: any[]) => args[0] === statusTopic && args[1] === 'online' && args[2]?.retain === true,
+    );
+    expect(initialCalls.length).toBe(1);
+
+    discoveryManager.discover();
+    discoveryManager.discover();
+
+    const republishedCalls = mockPublisher.publish.mock.calls.filter(
+      (args: any[]) => args[0] === statusTopic && args[1] === 'online' && args[2]?.retain === true,
+    );
+    expect(republishedCalls.length).toBe(3);
+  });
+
   it('상태 패킷 수신 후에만 스위치 디스커버리를 발행한다', () => {
     discoveryManager.discover();
 
