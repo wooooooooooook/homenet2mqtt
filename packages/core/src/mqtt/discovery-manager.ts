@@ -114,19 +114,23 @@ export class DiscoveryManager {
       },
     );
 
-    // Publish bridge online status
-    this.publisher.publish(this.bridgeStatusTopic, 'online', { retain: true });
-    logger.info('[DiscoveryManager] Published bridge online status');
+    this.publishBridgeOnlineStatus();
   }
 
   public discover(): void {
     logger.info('[DiscoveryManager] Checking discovery eligibility for configured entities');
+
+    this.publishBridgeOnlineStatus();
 
     for (const entity of this.entities) {
       this.publishDiscoveryIfEligible(entity);
     }
   }
 
+  private publishBridgeOnlineStatus(): void {
+    this.publisher.publish(this.bridgeStatusTopic, 'online', { retain: true });
+    logger.info('[DiscoveryManager] Published bridge online status');
+  }
   private collectEntities(): Array<EntityConfig & { type: string }> {
     return [
       ...(this.config.light || []).map((e) => ({ ...e, type: 'light' })),
