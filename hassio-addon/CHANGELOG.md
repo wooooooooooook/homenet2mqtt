@@ -1,6 +1,10 @@
 ** ⚠️ 업데이트 전 백업 권장 **
 - 오류가 있으면 homeasssutant [카페](https://cafe.naver.com/koreassistant), [깃헙](https://github.com/wooooooooooook/homenet2mqtt), [디스코드](https://discord.gg/kGwhUBMe5z) 등으로 알려주세요.
 
+v2.11.4
+- fix: mqtt 연결 끊김 후 재연결시 offline상태가 안풀리는 문제 수정
+
+
 v2.11.3
 - fix: 갤러리 댓글 기능이 homeassistant ingress환경에서는 작동하지 않는 문제 개선
   - ha ingress에서는 github login이 불가하여 giscus댓글작성이 안되어 우회하여 github discussion링크와 개발자계정으로 댓글 남기기 지원
