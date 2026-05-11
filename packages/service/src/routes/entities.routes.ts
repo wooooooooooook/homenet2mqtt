@@ -5,7 +5,7 @@
 import { Router } from 'express';
 import path from 'node:path';
 import fs from 'node:fs/promises';
-import { logger, normalizeConfig, normalizePortId } from '@rs485-homenet/core';
+import { logger, normalizeConfig } from '@rs485-homenet/core';
 import type { HomenetBridgeConfig } from '@rs485-homenet/core';
 import { dumpConfigToYaml } from '../utils/yaml-dumper.js';
 import { ENTITY_TYPE_KEYS } from '../utils/constants.js';

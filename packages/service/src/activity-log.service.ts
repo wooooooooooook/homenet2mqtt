@@ -1,10 +1,10 @@
-import {
-  eventBus,
-  type StateChangedEvent,
-  type MqttMessageEvent,
-  type AutomationGuardEvent,
-  type AutomationActionEvent,
-  type ScriptActionEvent,
+import { eventBus } from '@rs485-homenet/core';
+import type {
+  StateChangedEvent,
+  MqttMessageEvent,
+  AutomationGuardEvent,
+  AutomationActionEvent,
+  ScriptActionEvent,
 } from '@rs485-homenet/core';
 
 export interface ActivityLog {
