@@ -9,7 +9,6 @@ import { logger, normalizePortId, normalizeConfig } from '@rs485-homenet/core';
 import { dumpConfigToYaml } from '../utils/yaml-dumper.js';
 import type { HomenetBridgeConfig } from '@rs485-homenet/core';
 import type { AutomationConfig, ScriptConfig } from '@rs485-homenet/core/config/types';
-import { ENTITY_TYPE_KEYS } from '../utils/constants.js';
 import type { RateLimiter } from '../utils/rate-limiter.js';
 import type {
   BridgeInstance,
