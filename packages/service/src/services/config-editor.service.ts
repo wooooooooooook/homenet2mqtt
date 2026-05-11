@@ -1,3 +1,4 @@
+import type { HomenetBridgeConfig } from '@rs485-homenet/core';
 import yaml from 'js-yaml';
 
 export type ConfigEditorDeps = {
@@ -5,7 +6,7 @@ export type ConfigEditorDeps = {
   defaultConfigFilename: string;
   configRestartFlag: string;
   fileExists: (targetPath: string) => Promise<boolean>;
-  dumpConfigToYaml: (config: any, options?: yaml.DumpOptions) => string;
+  dumpConfigToYaml: (config: Partial<HomenetBridgeConfig> | Record<string, any>, options?: yaml.DumpOptions) => string;
   saveBackup: (configPath: string, config: any, reason: string) => Promise<string>;
   triggerRestart: () => Promise<void>;
   configRateLimiter: { check: (key: string) => boolean };
