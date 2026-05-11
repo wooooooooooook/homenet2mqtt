@@ -20,7 +20,8 @@ import {
 import { createSchemaRoutes } from './schema.routes.js';
 
 export interface RoutesContext
-  extends SystemRoutesContext,
+  extends
+    SystemRoutesContext,
     PacketToolsRoutesContext,
     GalleryRoutesContext,
     LogsRoutesContext,

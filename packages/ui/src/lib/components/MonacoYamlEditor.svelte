@@ -35,9 +35,8 @@
       }
 
       // Import workers FIRST before anything else (using Vite workaround)
-      const EditorWorkerModule = await import(
-        'monaco-editor/esm/vs/editor/editor.worker.js?worker'
-      );
+      const EditorWorkerModule =
+        await import('monaco-editor/esm/vs/editor/editor.worker.js?worker');
       const YamlWorkerModule = await import('$lib/yaml.worker.js?worker');
 
       const EditorWorker = EditorWorkerModule.default;
@@ -60,7 +59,7 @@
           completion: true,
           validate: true,
           hover: true,
-          format: true,
+          format: true as any,
           schemas: [], // Initialize empty, update later per editor
         });
         WIN.__MONACO_YAML_CONFIGURED__ = true;
@@ -213,7 +212,7 @@
           completion: true,
           validate: true,
           hover: true,
-          format: true,
+          format: true as any,
           schemas: schemaConfig,
         });
       } catch (e) {
