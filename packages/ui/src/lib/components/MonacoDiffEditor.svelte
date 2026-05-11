@@ -32,9 +32,8 @@
       }
 
       // Import workers
-      const EditorWorkerModule = await import(
-        'monaco-editor/esm/vs/editor/editor.worker.js?worker'
-      );
+      const EditorWorkerModule =
+        await import('monaco-editor/esm/vs/editor/editor.worker.js?worker');
       const YamlWorkerModule = await import('$lib/yaml.worker.js?worker');
 
       const EditorWorker = EditorWorkerModule.default;
