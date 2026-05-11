@@ -232,12 +232,11 @@ export class ProtocolManager extends EventEmitter {
     // This avoids expensive string allocation/regex ops in the hot path
     const isTrace = logger.isLevelEnabled('trace');
     let packetHex = '';
-    if (isTrace) {
-      const parts = new Array(packet.length);
-      for (let i = 0; i < packet.length; i++) {
-        parts[i] = HEX_STRINGS[packet[i]];
+    if (isTrace && packet.length > 0) {
+      packetHex = HEX_STRINGS[packet[0]];
+      for (let i = 1; i < packet.length; i++) {
+        packetHex += ' ' + HEX_STRINGS[packet[i]];
       }
-      packetHex = parts.join(' ');
     }
 
     for (const device of this.devices) {
