@@ -47,6 +47,8 @@ export class DiscoveryManager {
   private readonly devicesById = new Map<string, DeviceConfig>();
   private readonly stateReceived = new Set<string>();
   private readonly discoveryPublished = new Set<string>();
+  private readonly entitiesById = new Map<string, EntityConfig & { type: string }>();
+  private readonly entitiesByLinkedId = new Map<string, Array<EntityConfig & { type: string }>>();
 
   constructor(
     portId: string,
@@ -63,10 +65,20 @@ export class DiscoveryManager {
     this.bridgeStatusTopic = `${this.mqttTopicPrefix}/bridge/status`;
     this.registerDevices();
     this.entities = this.collectEntities();
+
+    for (const entity of this.entities) {
+      this.entitiesById.set(entity.id, entity);
+      if (entity.discovery_linked_id) {
+        if (!this.entitiesByLinkedId.has(entity.discovery_linked_id)) {
+          this.entitiesByLinkedId.set(entity.discovery_linked_id, []);
+        }
+        this.entitiesByLinkedId.get(entity.discovery_linked_id)!.push(entity);
+      }
+    }
   }
 
   public revokeDiscovery(entityId: string): void {
-    const entity = this.entities.find((e) => e.id === entityId);
+    const entity = this.entitiesById.get(entityId);
     if (!entity) {
       logger.warn({ entityId }, '[DiscoveryManager] Cannot revoke discovery for unknown entity');
       return;
@@ -195,15 +207,21 @@ export class DiscoveryManager {
   private handleStateReceived(entityId: string): void {
     this.stateReceived.add(`${this.portId}:${entityId}`);
 
-    for (const entity of this.entities) {
-      if (entity.id === entityId || entity.discovery_linked_id === entityId) {
-        this.publishDiscoveryIfEligible(entity);
+    const directMatch = this.entitiesById.get(entityId);
+    if (directMatch) {
+      this.publishDiscoveryIfEligible(directMatch);
+    }
+
+    const linkedMatches = this.entitiesByLinkedId.get(entityId);
+    if (linkedMatches) {
+      for (const linkedMatch of linkedMatches) {
+        this.publishDiscoveryIfEligible(linkedMatch);
       }
     }
   }
 
   private handleEntityRenamed(entityId: string, newName: string, updateObjectId: boolean): void {
-    const entity = this.entities.find((candidate) => candidate.id === entityId);
+    const entity = this.entitiesById.get(entityId);
 
     if (!entity) {
       logger.warn({ entityId }, '[DiscoveryManager] Attempted to rename unknown entity');
@@ -316,7 +334,7 @@ export class DiscoveryManager {
   private republishDiscovered(): void {
     for (const entityId of this.discoveryPublished) {
       const [, id] = entityId.split(':');
-      const entity = this.entities.find((candidate) => candidate.id === id);
+      const entity = this.entitiesById.get(id);
       if (entity) {
         this.publishDiscoveryIfEligible(entity, true);
       }
