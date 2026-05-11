@@ -1,8 +1,12 @@
 import yaml from 'js-yaml';
+import type { HomenetBridgeConfig } from '@rs485-homenet/core';
 import { ENTITY_TYPE_KEYS } from './constants.js';
 
 class HexSeqWrapper {
-  constructor(public items: any[]) {}
+  items: any[];
+  constructor(items: any[]) {
+    this.items = items;
+  }
 }
 
 const HexSeqType = new yaml.Type('!hexSeq', {
@@ -76,7 +80,7 @@ function markHex(obj: any): any {
   return obj;
 }
 
-export function dumpConfigToYaml(config: any, options: yaml.DumpOptions = {}): string {
+export function dumpConfigToYaml(config: Partial<HomenetBridgeConfig> | Record<string, any>, options: yaml.DumpOptions = {}): string {
   const markedConfig = markHex(config);
   const dump = yaml.dump(markedConfig, {
     schema: SCHEMA,

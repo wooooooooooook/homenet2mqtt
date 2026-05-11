@@ -21,7 +21,7 @@ export type SetupWizardDeps = {
   configRestartFlag: string;
   envConfigFilesSource: string | null;
   fileExists: (targetPath: string) => Promise<boolean>;
-  dumpConfigToYaml: (config: any, options?: yaml.DumpOptions) => string;
+  dumpConfigToYaml: (config: Partial<HomenetBridgeConfig> | Record<string, any>, options?: yaml.DumpOptions) => string;
   saveBackup: (configPath: string, config: any, reason: string) => Promise<string>;
   triggerRestart: () => Promise<void>;
   serialTestRateLimiter: { check: (key: string) => boolean };
