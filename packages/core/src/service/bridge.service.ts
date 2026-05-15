@@ -180,6 +180,23 @@ export class HomeNetBridge extends EventEmitter {
     return this._mqttClient.clearRetainedMessages(this.commonMqttTopicPrefix);
   }
 
+  async clearRetainedMessagesForEntity(entityId: string): Promise<number> {
+    if (!this._mqttClient || !this._mqttClient.isConnected) {
+      throw new Error('MQTT client is not connected');
+    }
+
+    const contexts = [...this.portContexts.values()];
+    if (contexts.length === 0) return 0;
+
+    let totalCleared = 0;
+    for (const context of contexts) {
+      totalCleared += await this._mqttClient.clearRetainedMessages(
+        `${this.getMqttTopicPrefix(context.portId)}/${entityId}`,
+      );
+    }
+    return totalCleared;
+  }
+
   /**
    * Construct a packet with optional header, footer, and checksum based on configuration
    */

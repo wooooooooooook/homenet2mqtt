@@ -151,6 +151,12 @@ export function createEntitiesRoutes(ctx: EntitiesRoutesContext): Router {
       const normalizedConfig = normalizeConfig(
         loadedYamlFromFile.homenet_bridge as HomenetBridgeConfig,
       );
+      const bridgeInstance = findBridgeForEntity(
+        ctx.getCurrentConfigs(),
+        ctx.getBridges(),
+        ctx.getCurrentConfigFiles(),
+        entityId,
+      );
 
       let targetEntity: any | null = null;
       for (const type of ENTITY_TYPE_KEYS) {
@@ -363,6 +369,12 @@ export function createEntitiesRoutes(ctx: EntitiesRoutesContext): Router {
       const normalizedConfig = normalizeConfig(
         loadedYamlFromFile.homenet_bridge as HomenetBridgeConfig,
       );
+      const bridgeInstance = findBridgeForEntity(
+        ctx.getCurrentConfigs(),
+        ctx.getBridges(),
+        ctx.getCurrentConfigFiles(),
+        entityId,
+      );
 
       // Backup
       const backupPath = await saveBackup(configPath, loadedYamlFromFile, 'entity_delete');
@@ -396,6 +408,22 @@ export function createEntitiesRoutes(ctx: EntitiesRoutesContext): Router {
       ctx.setCurrentRawConfigs(configIndex, normalizedConfig);
       ctx.setCurrentConfigs(configIndex, normalizedConfig);
       ctx.rebuildPortMappings();
+
+      if (bridgeInstance) {
+        const revokeResult = bridgeInstance.bridge.revokeDiscovery(entityId);
+        if (!revokeResult.success) {
+          logger.warn(
+            { entityId, error: revokeResult.error },
+            '[service] Failed to revoke discovery during entity delete',
+          );
+        }
+
+        const clearedCount = await bridgeInstance.bridge.clearRetainedMessagesForEntity(entityId);
+        logger.info(
+          { entityId, clearedCount },
+          '[service] Cleared retained MQTT messages during entity delete',
+        );
+      }
 
       logger.info(
         `[service] Entity ${entityId} deleted. Backup created at ${path.basename(backupPath)}`,
