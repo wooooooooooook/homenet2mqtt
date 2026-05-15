@@ -87,12 +87,22 @@ describe('bridge-errors utils', () => {
 
   describe('mapSerialError', () => {
     it('should map various serial errors', () => {
-      expect(mapSerialError({ code: 'ENOENT', message: 'no such file' }, 'port1').code).toBe('SERIAL_PATH_NOT_FOUND');
-      expect(mapSerialError({ code: 'EACCES', message: 'permission denied' }).code).toBe('SERIAL_PERMISSION_DENIED');
+      expect(mapSerialError({ code: 'ENOENT', message: 'no such file' }, 'port1').code).toBe(
+        'SERIAL_PATH_NOT_FOUND',
+      );
+      expect(mapSerialError({ code: 'EACCES', message: 'permission denied' }).code).toBe(
+        'SERIAL_PERMISSION_DENIED',
+      );
       expect(mapSerialError({ code: 'EBUSY', message: 'busy' }).code).toBe('SERIAL_PORT_BUSY');
-      expect(mapSerialError({ code: 'ENOTFOUND', message: 'not found' }).code).toBe('SERIAL_HOST_NOT_FOUND');
-      expect(mapSerialError({ code: 'ECONNREFUSED', message: 'refused' }).code).toBe('SERIAL_CONNECTION_REFUSED');
-      expect(mapSerialError({ code: 'ETIMEDOUT', message: 'timeout' }).code).toBe('SERIAL_CONNECTION_TIMEOUT');
+      expect(mapSerialError({ code: 'ENOTFOUND', message: 'not found' }).code).toBe(
+        'SERIAL_HOST_NOT_FOUND',
+      );
+      expect(mapSerialError({ code: 'ECONNREFUSED', message: 'refused' }).code).toBe(
+        'SERIAL_CONNECTION_REFUSED',
+      );
+      expect(mapSerialError({ code: 'ETIMEDOUT', message: 'timeout' }).code).toBe(
+        'SERIAL_CONNECTION_TIMEOUT',
+      );
       expect(mapSerialError('유효한 path가 필요합니다').code).toBe('SERIAL_PATH_MISSING');
       expect(mapSerialError(new Error('Unknown error')).code).toBe('SERIAL_CONNECT_FAILED');
     });
