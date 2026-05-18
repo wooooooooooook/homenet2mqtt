@@ -746,7 +746,7 @@
       parsedPacketLogs = enrichedParsedLogs.slice(0, MAX_PACKETS);
       logVersion += 1;
     } catch (err) {
-      console.error('Failed to load packet history:', err);
+      // silently ignore
     }
   }
 
