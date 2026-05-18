@@ -1,4 +1,5 @@
 import dotenv from 'dotenv';
+import { logger } from '@rs485-homenet/core';
 
 dotenv.config();
 
@@ -9,7 +10,7 @@ if (timezoneOverride) {
   try {
     Intl.DateTimeFormat(undefined, { timeZone: timezoneOverride });
   } catch (e) {
-    console.warn(
+    logger.warn(
       `[RuntimeEnv] Invalid timezone specified: "${timezoneOverride}". Falling back to UTC.`,
     );
     resolvedTimezone = 'UTC';
