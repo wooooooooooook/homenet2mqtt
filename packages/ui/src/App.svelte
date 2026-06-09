@@ -298,6 +298,10 @@
     dashboard: {
       showInternal: false,
     },
+    autoRestart: {
+      enabled: true,
+      timeoutMinutes: 5,
+    },
   };
   let frontendSettings = $state<FrontendSettings | null>(null);
   let settingsLoading = $state(false);
@@ -874,6 +878,23 @@
         ...(previous.editor ?? { default: 'monaco' }),
         default: value,
       },
+    };
+    frontendSettings = next;
+    try {
+      await persistFrontendSettings(next);
+    } catch {
+      frontendSettings = previous;
+    }
+  }
+
+  async function updateAutoRestartSetting(autoRestart: {
+    enabled: boolean;
+    timeoutMinutes: number;
+  }) {
+    const previous = frontendSettings ?? DEFAULT_FRONTEND_SETTINGS;
+    const next: FrontendSettings = {
+      ...previous,
+      autoRestart,
     };
     frontendSettings = next;
     try {
@@ -1968,6 +1989,7 @@
             onLocaleChange={(value) => updateLocaleSetting(value)}
             onEditorChange={(value) => updateEditorSetting(value)}
             onDashboardChange={(value) => updateDashboardSetting('showInternal', value)}
+            onAutoRestartChange={(value) => updateAutoRestartSetting(value)}
             onGalleryChange={(value) => updateGallerySetting(value)}
           />
         {/if}

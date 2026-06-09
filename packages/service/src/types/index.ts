@@ -58,6 +58,10 @@ export type FrontendSettings = {
   dashboard?: {
     showInternal?: boolean;
   };
+  autoRestart?: {
+    enabled: boolean;
+    timeoutMinutes: number;
+  };
   gallery?: {
     githubUrl?: string; // e.g. "https://github.com/wooooooooooook/homenet2mqtt"
     branch?: string; // e.g. "main"

@@ -14,6 +14,7 @@ import {
   normalizeConfig,
   normalizePortId,
   validateConfig,
+  eventBus,
 } from '@rs485-homenet/core';
 import { activityLogService } from './activity-log.service.js';
 import { logCollectorService } from './log-collector.service.js';
@@ -22,6 +23,7 @@ import { LogRetentionService } from './log-retention.service.js';
 import { RateLimiter } from './utils/rate-limiter.js';
 import { createSetupWizardService } from './services/setup.service.js';
 import { createConfigEditorService } from './services/config-editor.service.js';
+import { AutoRestartService } from './services/auto-restart.service.js';
 
 import type {
   BridgeInstance,
@@ -73,6 +75,23 @@ const wss = new WebSocketServer({
 });
 const port = process.env.PORT ? Number(process.env.PORT) : 3000;
 
+const restartProcess = () => {
+  setTimeout(async () => {
+    if (process.env.npm_lifecycle_event === 'dev') {
+      logger.info('[service] Dev mode detected. Touching file to trigger restart...');
+      try {
+        const now = new Date();
+        await fs.utimes(__filename, now, now);
+      } catch (err) {
+        logger.error({ err }, '[service] Failed to touch file for dev restart');
+      }
+    } else {
+      logger.info('[service] Exiting process to trigger restart...');
+      process.exit(0);
+    }
+  }, 500);
+};
+
 // Security: Rate Limiters
 const globalRateLimiter = new RateLimiter(60000, 300); // 300 requests per minute (General DoS protection)
 const commandRateLimiter = new RateLimiter(10000, 20); // 20 requests per 10 seconds
@@ -120,6 +139,7 @@ let currentConfigStatuses: ConfigStatus[] = [];
 let bridgeStatus: BridgeStatus = 'idle';
 let bridgeError: BridgeErrorPayload | null = null;
 let bridgeStartPromise: Promise<void> | null = null;
+let autoRestartSuppressed = false;
 
 // FrontendSettings functions are now imported from ./services/frontend-settings.service.js
 
@@ -144,6 +164,12 @@ app.use((req, res, next) => {
 activityLogService.addLog('log.service_started');
 const rawPacketLogger = new RawPacketLoggerService(CONFIG_DIR);
 const logRetentionService = new LogRetentionService(CONFIG_DIR);
+const autoRestartService = new AutoRestartService({
+  loadSettings: loadFrontendSettings,
+  triggerRestart,
+  restartProcess,
+  logger,
+});
 
 // Register modular routes (system, packets, gallery, logs, backups, utils)
 registerRoutes(app, {
@@ -207,6 +233,46 @@ const latestStates = streamManager.getLatestStates();
 streamManager.registerGlobalEventHandlers();
 streamManager.registerWebSocketHandlers();
 
+eventBus.on('mqtt:status', (event: { state: string; portId?: string }) => {
+  if (autoRestartSuppressed) return;
+
+  const portId = event.portId ?? 'default';
+  const faultKey = `mqtt:${portId}`;
+
+  if (event.state === 'connected') {
+    autoRestartService.clear(faultKey);
+    return;
+  }
+
+  void autoRestartService.schedule({
+    key: faultKey,
+    portId,
+    reason: `mqtt ${event.state}`,
+  });
+});
+
+eventBus.on('mqtt:error', (event: { portId?: string; message?: string }) => {
+  if (autoRestartSuppressed) return;
+
+  const portId = event.portId ?? 'default';
+  void autoRestartService.schedule({
+    key: `mqtt:${portId}`,
+    portId,
+    reason: event.message ? `mqtt error: ${event.message}` : 'mqtt error',
+  });
+});
+
+eventBus.on('mqtt:disconnected', (event: { portId?: string }) => {
+  if (autoRestartSuppressed) return;
+
+  const portId = event.portId ?? 'default';
+  void autoRestartService.schedule({
+    key: `mqtt:${portId}`,
+    portId,
+    reason: 'mqtt disconnected',
+  });
+});
+
 app.get('/api/stream', (_req, res) => {
   res.status(426).json({ error: '이 엔드포인트는 WebSocket 전용입니다.' });
 });
@@ -268,7 +334,10 @@ const stopAllBridges = async (options?: { preserveStatus?: boolean }) => {
   if (bridges.length === 0) return;
 
   logger.info('[service] Stopping existing bridges...');
+  autoRestartSuppressed = true;
+  autoRestartService.clearAll();
   await Promise.allSettled(bridges.map((instance) => instance.bridge.stop()));
+  autoRestartSuppressed = false;
   bridges = [];
   if (!options?.preserveStatus) {
     bridgeStatus = 'stopped';
@@ -507,6 +576,17 @@ async function instantiateBridges(
         if (cfgIndex !== -1) {
           currentConfigStatuses[cfgIndex] = event.status as ConfigStatus;
         }
+
+        const faultKey = `serial:${event.portId}`;
+        if (event.status === 'started') {
+          autoRestartService.clear(faultKey);
+        } else if (event.status === 'reconnecting' || event.status === 'error') {
+          void autoRestartService.schedule({
+            key: faultKey,
+            portId: event.portId,
+            reason: `serial ${event.status}`,
+          });
+        }
       });
 
       newBridges.push({
@@ -555,18 +635,23 @@ function startBridgesInBackground(bridgesToStart: BridgeInstance[], filenames: s
         if (originalIndex !== -1) {
           currentConfigStatuses[originalIndex] = 'started';
         }
+        const portId = normalizePortId(instance.config.serial?.portId ?? 'unknown', 0);
+        autoRestartService.clear(`serial:${portId}`);
       } catch (err) {
         logger.error(
           { err, configFile: instance.configFile },
           '[service] Failed to start bridge instance',
         );
+        const portId = normalizePortId(instance.config.serial?.portId ?? 'unknown', 0);
         if (originalIndex !== -1) {
           currentConfigStatuses[originalIndex] = 'error';
-          currentConfigErrors[originalIndex] = mapBridgeStartError(
-            err,
-            normalizePortId(instance.config.serial?.portId ?? 'unknown', 0),
-          );
+          currentConfigErrors[originalIndex] = mapBridgeStartError(err, portId);
         }
+        void autoRestartService.schedule({
+          key: `serial:${portId}`,
+          portId,
+          reason: 'serial start failed',
+        });
         // Remove failed bridge from the bridges array to prevent
         // "Bridge not initialized" errors when executing commands on other bridges
         const failedIndex = bridges.indexOf(instance);
