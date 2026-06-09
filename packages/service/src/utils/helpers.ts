@@ -142,6 +142,10 @@ const DEFAULT_FRONTEND_SETTINGS: FrontendSettings = {
   dashboard: {
     showInternal: false,
   },
+  autoRestart: {
+    enabled: true,
+    timeoutMinutes: 5,
+  },
   gallery: {
     githubUrl: 'https://github.com/wooooooooooook/homenet2mqtt',
     branch: 'main',
@@ -203,6 +207,18 @@ export const normalizeFrontendSettings = (
         typeof value?.dashboard?.showInternal === 'boolean'
           ? value.dashboard.showInternal
           : (DEFAULT_FRONTEND_SETTINGS.dashboard?.showInternal ?? false),
+    },
+    autoRestart: {
+      enabled:
+        typeof value?.autoRestart?.enabled === 'boolean'
+          ? value.autoRestart.enabled
+          : DEFAULT_FRONTEND_SETTINGS.autoRestart!.enabled,
+      timeoutMinutes:
+        typeof value?.autoRestart?.timeoutMinutes === 'number' &&
+        value.autoRestart.timeoutMinutes >= 1 &&
+        value.autoRestart.timeoutMinutes <= 1440
+          ? Math.floor(value.autoRestart.timeoutMinutes)
+          : DEFAULT_FRONTEND_SETTINGS.autoRestart!.timeoutMinutes,
     },
     gallery: {
       githubUrl:

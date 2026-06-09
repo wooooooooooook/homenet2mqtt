@@ -28,6 +28,7 @@
     onLocaleChange,
     onEditorChange,
     onDashboardChange,
+    onAutoRestartChange,
     onGalleryChange,
   }: {
     frontendSettings?: FrontendSettings | null;
@@ -40,6 +41,7 @@
     onLocaleChange?: (value: string) => void;
     onEditorChange?: (value: 'monaco' | 'textarea') => void;
     onDashboardChange?: (value: boolean) => void;
+    onAutoRestartChange?: (value: { enabled: boolean; timeoutMinutes: number }) => void;
     onGalleryChange?: (value: { githubUrl: string; branch: string; path: string }) => void;
   } = $props();
 
@@ -61,6 +63,26 @@
       branch: galleryBranch,
       path: galleryPath,
     });
+  };
+
+  const getAutoRestartSettings = () => {
+    return frontendSettings?.autoRestart ?? { enabled: true, timeoutMinutes: 5 };
+  };
+
+  const handleAutoRestartToggle = (checked: boolean) => {
+    const current = getAutoRestartSettings();
+    onAutoRestartChange?.({ ...current, enabled: checked });
+  };
+
+  const handleAutoRestartTimeoutChange = (event: Event) => {
+    const target = event.currentTarget as HTMLInputElement;
+    const timeoutMinutes = Number.parseInt(target.value, 10);
+    if (Number.isNaN(timeoutMinutes) || timeoutMinutes < 1 || timeoutMinutes > 1440) {
+      return;
+    }
+
+    const current = getAutoRestartSettings();
+    onAutoRestartChange?.({ ...current, timeoutMinutes });
   };
 
   const getToastValue = (key: ToastSettingKey) => {
@@ -922,6 +944,58 @@
               ariaDescribedBy="dashboard-internal-desc"
             />
           </div>
+        {/if}
+      </div>
+
+      <div class="card card-auto-restart" id="auto-restart-settings">
+        <div class="card-header">
+          <div>
+            <h2>{$t('settings.auto_restart.title')}</h2>
+            <p>{$t('settings.auto_restart.desc')}</p>
+          </div>
+          {#if isSaving}
+            <span class="badge">{$t('settings.saving')}</span>
+          {/if}
+        </div>
+
+        {#if isLoading}
+          <div class="loading">{$t('settings.loading')}</div>
+        {:else}
+          <div class="setting">
+            <div>
+              <div class="setting-title" id="auto-restart-enabled-title">
+                {$t('settings.auto_restart.enabled.title')}
+              </div>
+              <div class="setting-desc" id="auto-restart-enabled-desc">
+                {$t('settings.auto_restart.enabled.desc')}
+              </div>
+            </div>
+            <Toggle
+              checked={getAutoRestartSettings().enabled}
+              onchange={handleAutoRestartToggle}
+              disabled={isSaving || isLoading}
+              ariaLabelledBy="auto-restart-enabled-title"
+              ariaDescribedBy="auto-restart-enabled-desc"
+            />
+          </div>
+
+          {#if getAutoRestartSettings().enabled}
+            <div class="setting sub-setting">
+              <div>
+                <div class="setting-title">{$t('settings.auto_restart.timeout.title')}</div>
+                <div class="setting-desc">{$t('settings.auto_restart.timeout.desc')}</div>
+              </div>
+              <input
+                type="number"
+                class="number-input"
+                min="1"
+                max="1440"
+                value={getAutoRestartSettings().timeoutMinutes}
+                onchange={handleAutoRestartTimeoutChange}
+                disabled={isSaving || isLoading}
+              />
+            </div>
+          {/if}
         {/if}
       </div>
 

@@ -1,6 +1,10 @@
 ** ⚠️ 업데이트 전 백업 권장 **
 - 오류가 있으면 homeasssutant [카페](https://cafe.naver.com/koreassistant), [깃헙](https://github.com/wooooooooooook/homenet2mqtt), [디스코드](https://discord.gg/kGwhUBMe5z) 등으로 알려주세요.
 
+
+v2.12.0
+- feat: 5분간(기본값, 설정가능) serial혹은 mqtt연결 실패시 자동으로 애드온을 재시작하는 기능 추가
+
 v2.11.5
 - fix: 엔티티 삭제시 mqtt retain message도 삭제하도록 수정
 

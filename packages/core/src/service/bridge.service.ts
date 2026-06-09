@@ -931,6 +931,8 @@ export class HomeNetBridge extends EventEmitter {
 
       port.on('error', (err) => {
         logger.error({ err, serialPath, portId: normalizedPortId }, '[core] 시리얼 포트 오류');
+        this.emit('status', { portId: normalizedPortId, status: 'error' });
+        eventBus.emit('serial:error', { portId: normalizedPortId, error: err });
       });
 
       this.startSerialIdleWatchdog(context);

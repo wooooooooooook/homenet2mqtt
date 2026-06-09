@@ -53,6 +53,10 @@ export type FrontendSettings = {
   dashboard?: {
     showInternal?: boolean;
   };
+  autoRestart?: {
+    enabled: boolean;
+    timeoutMinutes: number;
+  };
   gallery?: {
     githubUrl?: string;
     branch?: string;
