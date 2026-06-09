@@ -945,61 +945,7 @@
             />
           </div>
         {/if}
-      </div>
-
-      <div class="card card-auto-restart" id="auto-restart-settings">
-        <div class="card-header">
-          <div>
-            <h2>{$t('settings.auto_restart.title')}</h2>
-            <p>{$t('settings.auto_restart.desc')}</p>
-          </div>
-          {#if isSaving}
-            <span class="badge">{$t('settings.saving')}</span>
-          {/if}
-        </div>
-
-        {#if isLoading}
-          <div class="loading">{$t('settings.loading')}</div>
-        {:else}
-          <div class="setting">
-            <div>
-              <div class="setting-title" id="auto-restart-enabled-title">
-                {$t('settings.auto_restart.enabled.title')}
-              </div>
-              <div class="setting-desc" id="auto-restart-enabled-desc">
-                {$t('settings.auto_restart.enabled.desc')}
-              </div>
-            </div>
-            <Toggle
-              checked={getAutoRestartSettings().enabled}
-              onchange={handleAutoRestartToggle}
-              disabled={isSaving || isLoading}
-              ariaLabelledBy="auto-restart-enabled-title"
-              ariaDescribedBy="auto-restart-enabled-desc"
-            />
-          </div>
-
-          {#if getAutoRestartSettings().enabled}
-            <div class="setting sub-setting">
-              <div>
-                <div class="setting-title">{$t('settings.auto_restart.timeout.title')}</div>
-                <div class="setting-desc">{$t('settings.auto_restart.timeout.desc')}</div>
-              </div>
-              <input
-                type="number"
-                class="number-input"
-                min="1"
-                max="1440"
-                value={getAutoRestartSettings().timeoutMinutes}
-                onchange={handleAutoRestartTimeoutChange}
-                disabled={isSaving || isLoading}
-              />
-            </div>
-          {/if}
-        {/if}
-      </div>
-
-      <div class="card card-activity-log" id="activity-log-settings">
+      </div><div class="card card-activity-log" id="activity-log-settings">
         <div class="card-header">
           <div>
             <h2>{$t('settings.activity_log.title')}</h2>
@@ -1759,6 +1705,52 @@
             {$t('settings.app_control.mqtt_cleanup')}
           </Button>
         </div>
+        <div class="section-divider"></div>
+
+        <div class="setting-group-header">
+          <h3>{$t('settings.auto_restart.title')}</h3>
+          <p>{$t('settings.auto_restart.desc')}</p>
+        </div>
+
+        {#if isLoading}
+          <div class="loading">{$t('settings.loading')}</div>
+        {:else}
+          <div class="setting">
+            <div>
+              <div class="setting-title" id="auto-restart-enabled-title">
+                {$t('settings.auto_restart.enabled.title')}
+              </div>
+              <div class="setting-desc" id="auto-restart-enabled-desc">
+                {$t('settings.auto_restart.enabled.desc')}
+              </div>
+            </div>
+            <Toggle
+              checked={getAutoRestartSettings().enabled}
+              onchange={handleAutoRestartToggle}
+              disabled={isSaving || isLoading}
+              ariaLabelledBy="auto-restart-enabled-title"
+              ariaDescribedBy="auto-restart-enabled-desc"
+            />
+          </div>
+
+          {#if getAutoRestartSettings().enabled}
+            <div class="setting sub-setting">
+              <div>
+                <div class="setting-title">{$t('settings.auto_restart.timeout.title')}</div>
+                <div class="setting-desc">{$t('settings.auto_restart.timeout.desc')}</div>
+              </div>
+              <input
+                type="number"
+                class="number-input"
+                min="1"
+                max="1440"
+                value={getAutoRestartSettings().timeoutMinutes}
+                onchange={handleAutoRestartTimeoutChange}
+                disabled={isSaving || isLoading}
+              />
+            </div>
+          {/if}
+        {/if}
       </div>
     </div>
   </div>
@@ -1908,6 +1900,30 @@
     font-size: 0.85rem;
   }
 
+
+  .section-divider {
+    height: 1px;
+    background: rgba(148, 163, 184, 0.15);
+    margin: 2rem 0 1.5rem 0;
+  }
+
+  .setting-group-header {
+    margin-bottom: 1.25rem;
+  }
+
+  .setting-group-header h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0 0 0.5rem 0;
+    color: #f1f5f9;
+  }
+
+  .setting-group-header p {
+    font-size: 0.9rem;
+    color: #94a3b8;
+    margin: 0;
+    line-height: 1.5;
+  }
   .setting {
     display: flex;
     justify-content: space-between;
@@ -2184,7 +2200,9 @@
       padding: 1rem;
     }
 
-    .setting {
+
+
+  .setting {
       padding: 0.75rem 0;
       gap: 0.75rem;
     }
