@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-09T13:23:00.880Z",
+  "generated_at": "2026-06-09T13:24:37.199Z",
   "vendors": [
     {
       "id": "bestin",
@@ -917,7 +917,7 @@
           "name_en": "Doorbell Set",
           "description": "현대 이마주 현관문세트 설정입니다. 개인현관문과 공동현관문의 벨 감지, 통화, 문열기 기능을 지원합니다. 주방폰에 baud_rate 3880으로 연결됩니다.",
           "description_en": "Hyundai Imazu doorbell set configuration. Supports bell detection, calling, and door opening for private and common entrances. It is thought that it needs to connect to the kitchen phone at baud_rate 3880.",
-          "version": "2.0.0",
+          "version": "2.0.1",
           "author": "blank-page-1203",
           "tags": [
             "doorbell",
