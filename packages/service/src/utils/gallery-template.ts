@@ -228,7 +228,7 @@ function evaluateExpression(expression: string, context: Record<string, unknown>
   });
   env.registerFunction('int_to_bcd(int): int', (val: bigint) => {
     const v = Number(val);
-    const res = (Math.floor(v / 10) % 10 << 4) | v % 10;
+    const res = ((Math.floor(v / 10) % 10) << 4) | (v % 10);
     return BigInt(res);
   });
   env.registerFunction('bitAnd(int, int): int', (a: bigint, b: bigint) => a & b);
