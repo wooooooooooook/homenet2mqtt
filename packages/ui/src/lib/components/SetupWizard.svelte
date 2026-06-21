@@ -936,7 +936,9 @@
                     bind:value={packetDefaults.tx_delay}
                     aria-describedby="tx-delay-hint"
                   />
-                  <p id="tx-delay-hint" class="field-hint">{$t('setup_wizard.pdf_tx_delay_hint')}</p>
+                  <p id="tx-delay-hint" class="field-hint">
+                    {$t('setup_wizard.pdf_tx_delay_hint')}
+                  </p>
                 </div>
               </div>
 

@@ -1,0 +1,16 @@
+{
+  "serial": {
+    "baud_rate": 9600,
+    "data_bits": 8,
+    "parity": "none",
+    "stop_bits": 1
+  },
+  "packet_defaults": {
+    "rx_checksum2": "crc16_modbus_no_header",
+    "tx_checksum2": "crc16_modbus_no_header",
+    "rx_header": [],
+    "tx_header": [],
+    "rx_footer": [],
+    "tx_footer": []
+  }
+}

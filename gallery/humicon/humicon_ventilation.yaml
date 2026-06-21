@@ -1,0 +1,261 @@
+meta:
+  name: "휴미컨 환기 시스템"
+  name_en: "Humicon Ventilation System"
+  description: >-
+    휴미컨(Humicon) 통합 제어기 환기 시스템 설정입니다.
+    Elfin EW11(RS485 to Wi-Fi)을 통해 연결합니다.
+    전원, 작동 모드(스마트/제습/환기/바이패스/청정), 목표 습도, 풍량,
+    실내외 온도/습도, CO2, PM10, PM2.5, RC 잠금을 지원합니다.
+  description_en: >-
+    Humicon integrated controller ventilation system configuration.
+    Connected via Elfin EW11 (RS485 to Wi-Fi).
+    Supports power, operation modes (Smart/Dehumidify/Ventilation/Bypass/Clean),
+    target humidity, fan speed, indoor/outdoor temperature/humidity, CO2, PM10, PM2.5, and RC lock.
+  version: "1.0.0"
+  min_version: "1.16.0"
+  author: "wooooooooooook"
+  tags: ["fan", "ventilation", "humicon", "hrv", "air_quality", "modbus"]
+
+# Modbus RTU 프로토콜
+# - CRC16(Modbus) 체크섬 (Little-Endian, 끝 2바이트)
+# - 헤더/푸터 없음
+# - Slave Address: 0x01, Function Codes: 0x03(Holding), 0x04(Input), 0x06(Write Single)
+
+entities:
+  # ── 센서 ───────────────────────────────────────────────────────────────────
+  sensor:
+    # Input Register (0x04) 응답 파싱
+    # TX: 01 04 00 00 00 16 [CRC]
+    # RX: 01 04 [byte_count] [data…] [CRC]
+    # byte_count = 0x2C (44 bytes = 22 registers × 2)
+    # data 시작 오프셋: 3 (slave_addr + func_code + byte_count)
+
+    - id: indoor_temperature
+      name: "실내 온도"
+      device_class: temperature
+      unit_of_measurement: "°C"
+      # Address 13 → offset = 3 + 13*2 = 29, length 2, signed, big-endian, /10
+      state:
+        data: [0x01, 0x04, 0x2C]
+        mask: [0xFF, 0xFF, 0xFF]
+      state_number: >-
+        double(int(bitOr(bitShiftLeft(data[29], 8), data[30])) >= 32768
+          ? int(bitOr(bitShiftLeft(data[29], 8), data[30])) - 65536
+          : int(bitOr(bitShiftLeft(data[29], 8), data[30]))) / 10.0
+
+    - id: indoor_humidity
+      name: "실내 습도"
+      device_class: humidity
+      unit_of_measurement: "%"
+      # Address 14 → offset 3 + 14*2 = 31
+      state:
+        data: [0x01, 0x04, 0x2C]
+        mask: [0xFF, 0xFF, 0xFF]
+      state_number: >-
+        double(bitOr(bitShiftLeft(data[31], 8), data[32])) / 10.0
+
+    - id: indoor_co2
+      name: "실내 CO2"
+      device_class: carbon_dioxide
+      unit_of_measurement: "ppm"
+      # Address 16 → offset 3 + 16*2 = 35
+      state:
+        data: [0x01, 0x04, 0x2C]
+        mask: [0xFF, 0xFF, 0xFF]
+      state_number:
+        offset: 35
+        length: 2
+        precision: 0
+
+    - id: indoor_pm10
+      name: "실내 PM10"
+      device_class: pm10
+      unit_of_measurement: "µg/m³"
+      # Address 17 → offset 3 + 17*2 = 37
+      state:
+        data: [0x01, 0x04, 0x2C]
+        mask: [0xFF, 0xFF, 0xFF]
+      state_number:
+        offset: 37
+        length: 2
+        precision: 0
+
+    - id: indoor_pm25
+      name: "실내 PM2.5"
+      device_class: pm25
+      unit_of_measurement: "µg/m³"
+      # Address 18 → offset 3 + 18*2 = 39
+      state:
+        data: [0x01, 0x04, 0x2C]
+        mask: [0xFF, 0xFF, 0xFF]
+      state_number:
+        offset: 39
+        length: 2
+        precision: 0
+
+    - id: outdoor_temperature
+      name: "외부 온도"
+      device_class: temperature
+      unit_of_measurement: "°C"
+      # Address 20 → offset 3 + 20*2 = 43
+      state:
+        data: [0x01, 0x04, 0x2C]
+        mask: [0xFF, 0xFF, 0xFF]
+      state_number: >-
+        double(int(bitOr(bitShiftLeft(data[43], 8), data[44])) >= 32768
+          ? int(bitOr(bitShiftLeft(data[43], 8), data[44])) - 65536
+          : int(bitOr(bitShiftLeft(data[43], 8), data[44]))) / 10.0
+
+    - id: outdoor_humidity
+      name: "외부 습도"
+      device_class: humidity
+      unit_of_measurement: "%"
+      # Address 21 → offset 3 + 21*2 = 45
+      state:
+        data: [0x01, 0x04, 0x2C]
+        mask: [0xFF, 0xFF, 0xFF]
+      state_number: >-
+        double(bitOr(bitShiftLeft(data[45], 8), data[46])) / 10.0
+
+  # ── 스위치: 전원 ────────────────────────────────────────────────────────────
+  switch:
+    - id: humicon_rc_lock
+      name: "RC 잠금"
+      icon: "mdi:lock"
+      # Holding Register (0x03) 응답: 01 03 0C [data 6 reg] [CRC]
+      # Address 0 (RC Lock) → offset 3 + 0*2 = 3
+      state:
+        data: [0x01, 0x03, 0x0C]
+        mask: [0xFF, 0xFF, 0xFF]
+      state_on:
+        offset: 3
+        data: [0x00, 0x01]
+        length: 2
+      state_off:
+        offset: 3
+        data: [0x00, 0x00]
+        length: 2
+      # Write: 01 06 00 0E 00 01 [CRC] (Address 14, RC Lock ON)
+      command_on:
+        data: [0x01, 0x06, 0x00, 0x0E, 0x00, 0x01]
+      # Write: 01 06 00 0E 00 00 [CRC] (RC Lock OFF)
+      command_off:
+        data: [0x01, 0x06, 0x00, 0x0E, 0x00, 0x00]
+
+  # ── 팬: 환기 시스템 (전원 + 풍량) ──────────────────────────────────────────
+  fan:
+    - id: humicon_fan
+      name: "휴미컨 환기"
+      icon: "mdi:hvac"
+      # Input Register Address 3 (전원): offset 3 + 3*2 = 9
+      state:
+        data: [0x01, 0x04, 0x2C]
+        mask: [0xFF, 0xFF, 0xFF]
+      state_on:
+        offset: 9
+        data: [0x00, 0x01]
+        length: 2
+      state_off:
+        offset: 9
+        data: [0x00, 0x00]
+        length: 2
+      # 풍량 Address 8 (0:꺼짐 1:약 2:중 3:강 4:자동) → offset 3 + 8*2 = 19
+      # 0→0%, 1→25%, 2→50%, 3→75%, 4→100%(Auto)
+      state_speed: >-
+        data[19] == 0 ? 0 :
+        (data[19] == 1 ? 25 :
+        (data[19] == 2 ? 50 :
+        (data[19] == 3 ? 75 : 100)))
+      # 전원 ON: 01 06 00 01 00 01 [CRC]
+      command_on:
+        data: [0x01, 0x06, 0x00, 0x01, 0x00, 0x01]
+      # 전원 OFF: 01 06 00 01 00 00 [CRC]
+      command_off:
+        data: [0x01, 0x06, 0x00, 0x01, 0x00, 0x00]
+      # 풍량 제어: 01 06 00 05 00 [speed] [CRC]
+      # 0-25%→1(약), 26-50%→2(중), 51-75%→3(강), 76-100%→4(자동)
+      command_speed: >-
+        [0x01, 0x06, 0x00, 0x05, 0x00,
+         x <= 0 ? 0 : (x <= 25 ? 1 : (x <= 50 ? 2 : (x <= 75 ? 3 : 4)))]
+
+  # ── 선택: 작동 모드 ─────────────────────────────────────────────────────────
+  select:
+    - id: humicon_mode
+      name: "작동 모드"
+      icon: "mdi:hvac"
+      options:
+        - "스마트"
+        - "제습 자동"
+        - "제습 수동"
+        - "환기 자동"
+        - "환기 수동"
+        - "바이패스"
+        - "청정 자동"
+        - "청정 수동"
+      # Input Register Address 4 (작동 모드): offset 3 + 4*2 = 11
+      state:
+        data: [0x01, 0x04, 0x2C]
+        mask: [0xFF, 0xFF, 0xFF]
+      state_select: >-
+        data[11] == 1 ? "스마트" :
+        (data[11] == 2 ? "제습 자동" :
+        (data[11] == 3 ? "제습 수동" :
+        (data[11] == 4 ? "환기 자동" :
+        (data[11] == 5 ? "환기 수동" :
+        (data[11] == 6 ? "바이패스" :
+        (data[11] == 7 ? "청정 자동" :
+        (data[11] == 8 ? "청정 수동" : "")))))))
+      # 모드 변경: 01 06 00 02 00 [mode_num] [CRC]
+      command_select: >-
+        [0x01, 0x06, 0x00, 0x02, 0x00,
+         xstr == "스마트" ? 1 :
+         (xstr == "제습 자동" ? 2 :
+         (xstr == "제습 수동" ? 3 :
+         (xstr == "환기 자동" ? 4 :
+         (xstr == "환기 수동" ? 5 :
+         (xstr == "바이패스" ? 6 :
+         (xstr == "청정 자동" ? 7 : 8))))))]
+
+    - id: humicon_humidity_mode
+      name: "목표 습도 모드"
+      icon: "mdi:water-percent"
+      options:
+        - "에코"
+        - "쾌적"
+        - "건조"
+        - "사용자 지정"
+      # Input Register Address 6 (습도 모드): offset 3 + 6*2 = 15
+      state:
+        data: [0x01, 0x04, 0x2C]
+        mask: [0xFF, 0xFF, 0xFF]
+      state_select: >-
+        data[15] == 0 ? "에코" :
+        (data[15] == 1 ? "쾌적" :
+        (data[15] == 2 ? "건조" : "사용자 지정"))
+      # 습도 모드 변경: 01 06 00 03 00 [mode_num] [CRC]
+      command_select: >-
+        [0x01, 0x06, 0x00, 0x03, 0x00,
+         xstr == "에코" ? 0 :
+         (xstr == "쾌적" ? 1 :
+         (xstr == "건조" ? 2 : 3))]
+
+  # ── 숫자: 목표 습도 수치 ────────────────────────────────────────────────────
+  number:
+    - id: humicon_target_humidity
+      name: "목표 습도"
+      icon: "mdi:water-percent"
+      min_value: 30
+      max_value: 80
+      step: 5
+      unit_of_measurement: "%"
+      # Input Register Address 7 (목표 습도): offset 3 + 7*2 = 17
+      state:
+        data: [0x01, 0x04, 0x2C]
+        mask: [0xFF, 0xFF, 0xFF]
+      state_number:
+        offset: 17
+        length: 2
+        precision: 0
+      # 목표 습도 설정: 01 06 00 04 00 [value] [CRC]
+      command_number: >-
+        [0x01, 0x06, 0x00, 0x04, 0x00, int(x)]

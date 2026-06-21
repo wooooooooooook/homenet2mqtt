@@ -1643,11 +1643,11 @@
             </select>
           </div>
 
-          <!-- Auto Restart Sub-section -->          
+          <!-- Auto Restart Sub-section -->
           <div class="subsection-header">
             <div>
-                <h3>{$t('settings.auto_restart.enabled.title')}</h3>
-                <p>{$t('settings.auto_restart.enabled.desc')}</p>
+              <h3>{$t('settings.auto_restart.enabled.title')}</h3>
+              <p>{$t('settings.auto_restart.enabled.desc')}</p>
             </div>
             <Toggle
               checked={getAutoRestartSettings().enabled}
@@ -1660,25 +1660,22 @@
           <div class="setting-subsection">
             {#if isLoading}
               <div class="loading">{$t('settings.loading')}</div>
-            {:else}
-
-              {#if getAutoRestartSettings().enabled}
-                <div class="setting sub-setting">
-                  <div>
-                    <div class="setting-title">{$t('settings.auto_restart.timeout.title')}</div>
-                    <div class="setting-desc">{$t('settings.auto_restart.timeout.desc')}</div>
-                  </div>
-                  <input
-                    type="number"
-                    class="number-input"
-                    min="1"
-                    max="1440"
-                    value={getAutoRestartSettings().timeoutMinutes}
-                    onchange={handleAutoRestartTimeoutChange}
-                    disabled={isSaving || isLoading}
-                  />
+            {:else if getAutoRestartSettings().enabled}
+              <div class="setting sub-setting">
+                <div>
+                  <div class="setting-title">{$t('settings.auto_restart.timeout.title')}</div>
+                  <div class="setting-desc">{$t('settings.auto_restart.timeout.desc')}</div>
                 </div>
-              {/if}
+                <input
+                  type="number"
+                  class="number-input"
+                  min="1"
+                  max="1440"
+                  value={getAutoRestartSettings().timeoutMinutes}
+                  onchange={handleAutoRestartTimeoutChange}
+                  disabled={isSaving || isLoading}
+                />
+              </div>
             {/if}
           </div>
 
