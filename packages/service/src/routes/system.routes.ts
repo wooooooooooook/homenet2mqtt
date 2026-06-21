@@ -6,12 +6,15 @@ import { Router } from 'express';
 import fs from 'node:fs/promises';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
+import path from 'node:path';
 import { logger, normalizePortId, HomenetBridgeConfig } from '@rs485-homenet/core';
 import {
   triggerRestart,
   maskMqttPassword,
   fileExists,
   normalizeFrontendSettings,
+  isDefaultGallerySettings,
+  getGalleryListUrl,
 } from '../utils/helpers.js';
 import { RateLimiter } from '../utils/rate-limiter.js';
 import { getAppVersion } from '../utils/version-utils.js';
@@ -21,7 +24,12 @@ import type {
   BridgeStatus,
   ConfigStatus,
 } from '../types/index.js';
-import { CONFIG_RESTART_FLAG, BASE_MQTT_PREFIX } from '../utils/constants.js';
+import {
+  CONFIG_RESTART_FLAG,
+  BASE_MQTT_PREFIX,
+  IS_DEV,
+  LOCAL_GALLERY_DIR,
+} from '../utils/constants.js';
 import {
   loadFrontendSettings,
   saveFrontendSettings,
@@ -224,6 +232,37 @@ export function createSystemRoutes(ctx: SystemRoutesContext): Router {
 
     try {
       const payload = normalizeFrontendSettings(req.body?.settings ?? req.body);
+
+      // Validate gallery settings if provided
+      if (payload.gallery) {
+        if (IS_DEV && isDefaultGallerySettings(payload.gallery)) {
+          const listPath = path.join(LOCAL_GALLERY_DIR, 'list_new.json');
+          try {
+            await fs.access(listPath);
+          } catch {
+            return res.status(400).json({
+              error: '로컬 갤러리 목록 파일(list_new.json)을 찾을 수 없습니다.',
+            });
+          }
+        } else {
+          const galleryListUrl = getGalleryListUrl(payload.gallery);
+          try {
+            const fetchRes = await fetch(galleryListUrl);
+            if (!fetchRes.ok) {
+              return res.status(400).json({
+                error: `갤러리 목록을 불러오지 못했습니다. (HTTP ${fetchRes.status}: ${fetchRes.statusText})`,
+              });
+            }
+            const text = await fetchRes.text();
+            JSON.parse(text);
+          } catch (err) {
+            return res.status(400).json({
+              error: `갤러리 설정을 검증할 수 없습니다. URL 및 브랜치명이 유효한지 확인하세요. (${err instanceof Error ? err.message : 'Unknown error'})`,
+            });
+          }
+        }
+      }
+
       await saveFrontendSettings(payload);
       res.json({ settings: payload });
     } catch (error) {

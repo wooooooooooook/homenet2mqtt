@@ -126,7 +126,8 @@ services:
         set -euo pipefail
         corepack enable
         pnpm install --filter @rs485-homenet/ui... --frozen-lockfile
-        pnpm --filter @rs485-homenet/ui dev --host 0.0.0.0
+        cd packages/ui
+        pnpm dev --host 0.0.0.0
       "
     depends_on:
       app:

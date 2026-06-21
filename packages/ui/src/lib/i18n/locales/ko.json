@@ -1,6 +1,10 @@
 {
   "settings": {
     "title": "설정",
+    "log": {
+      "title": "로그 설정",
+      "desc": "활동 로그, 로그 보관 및 로그 공유 설정을 관리합니다."
+    },
     "toast": {
       "title": "토스트 알림",
       "desc": "상태 업데이트나 명령 전송 이벤트 발생 시 토스트 표시 여부를 제어합니다.",
@@ -32,7 +36,9 @@
     "log_sharing": {
       "title": "로그 및 데이터 공유",
       "desc": "문제 해결을 위해 익명화된 로그와 패킷(1000개)을 개발자에게 전송합니다.",
-      "enable": "로그 공유 활성화",
+      "enable": "로그 및 데이터 전송",
+      "send": "전송",
+      "collecting": "수집 중 ({count}/1000)",
       "uid_title": "User ID",
       "uid_desc": "익명화된 식별자입니다: {uid}",
       "consent_modal": {
@@ -45,7 +51,7 @@
         "collection_item_4": "수신 패킷 데이터 (최초 1000개)",
         "collection_item_5": "애플리케이션 실행 로그",
         "collection_timing_title": "수집 시점",
-        "collection_timing": "동의 시점부터 애드온이 시작될 때 마다 패킷 수집이 시작되며, <strong>1000개의 패킷이 모이면 1회 전송</strong> 후 자동으로 수집이 종료됩니다. 애드온이 재시작되기 전까지 추가로 수집하지 않습니다.",
+        "collection_timing": "동의및시작 버튼을 누르면 패킷 수집이 시작되며, 1000개의 패킷이 모이면 1회 전송 후 자동으로 수집이 종료됩니다.",
         "privacy_note": "* 개인정보는 포함되지 않으며, 설정에서 언제든지 변경할 수 있습니다.",
         "decline": "거절",
         "accept": "동의 및 시작"
@@ -67,7 +73,7 @@
       "ttl": "로그 유지 TTL (시간)",
       "ttl_desc": "TTL 동안 로그를 메모리에 보관하며, 만료된 로그는 자동으로 삭제됩니다.",
       "auto_save": "TTL마다 파일 저장",
-      "auto_save_desc": "활성화 시 TTL({ttl}시간)마다 로그가 파일 1개로 자동 저장됩니다.",
+      "auto_save_desc": "활성화 시 오래된 로그가 삭제되는 대신 TTL({ttl}시간)마다 파일로 자동 저장되어 보관됩니다.",
       "retention_count": "유지할 파일 개수",
       "retention_count_desc": "오래된 파일은 자동으로 삭제됩니다.",
       "saved_files": "저장된 로그 파일",
@@ -106,6 +112,7 @@
       "title": "갤러리 설정",
       "desc": "갤러리 구성요소를 가져올 GitHub 리포지토리를 설정합니다.",
       "save": "저장",
+      "restore_defaults": "기본값 복원",
       "githubUrl": "GitHub 저장소 URL",
       "githubUrl_desc": "예: https://github.com/wooooooooooook/homenet2mqtt",
       "branch": "브랜치명",
@@ -148,9 +155,10 @@
     },
     "bridge_config": {
       "title": "브릿지 관리",
-      "add_title": "브릿지 추가",
-      "add_desc": "새로운 RS485 브릿지 설정을 추가합니다.",
-      "add_button": "브릿지 추가",
+      "desc": "RS485 시리얼 장치와 그에 대한 설정 조합이 하나의 브릿지가 되며, MQTT 브로커는 모든 브릿지에서 공통으로 사용합니다.",
+      "add_title": "브릿지 추가 마법사",
+      "add_desc": "새로운 RS485 브릿지 설정을 추가합니다. RS485 시리얼 장치당 하나의 브릿지를 등록할 수 있습니다.",
+      "add_button": "브릿지 추가 마법사",
       "current_configs": "현재 브릿지 설정 목록",
       "edit_button": "설정 수정",
       "edit_title": "브릿지 설정 편집",

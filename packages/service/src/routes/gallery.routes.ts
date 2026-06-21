@@ -27,7 +27,13 @@ import {
   IS_DEV,
   LOCAL_GALLERY_DIR,
 } from '../utils/constants.js';
-import { getGalleryRawBaseUrl, getGalleryListUrl, resolveSecurePath } from '../utils/helpers.js';
+import {
+  getGalleryRawBaseUrl,
+  getGalleryListUrl,
+  resolveSecurePath,
+  getDefaultFrontendSettings,
+  isDefaultGallerySettings,
+} from '../utils/helpers.js';
 import { getFrontendSettings } from '../services/frontend-settings.service.js';
 import { saveBackup } from '../services/backup.service.js';
 import {
@@ -112,7 +118,7 @@ export function createGalleryRoutes(ctx: GalleryRoutesContext): Router {
 
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     try {
-      if (IS_DEV) {
+      if (IS_DEV && isDefaultGallerySettings(getFrontendSettings().gallery)) {
         const listPath = path.join(LOCAL_GALLERY_DIR, 'list_new.json');
         try {
           const listContent = await fs.readFile(listPath, 'utf8');
@@ -168,7 +174,7 @@ export function createGalleryRoutes(ctx: GalleryRoutesContext): Router {
         return res.status(400).json({ error: 'Only YAML gallery files are supported' });
       }
 
-      if (IS_DEV) {
+      if (IS_DEV && isDefaultGallerySettings(getFrontendSettings().gallery)) {
         const localFilePath = resolveSecurePath(LOCAL_GALLERY_DIR, normalizedPath);
         if (!localFilePath) {
           return res.status(400).json({ error: 'Invalid gallery path' });
@@ -296,7 +302,7 @@ export function createGalleryRoutes(ctx: GalleryRoutesContext): Router {
         }>;
       };
 
-      if (IS_DEV) {
+      if (IS_DEV && isDefaultGallerySettings(getFrontendSettings().gallery)) {
         const listPath = path.join(LOCAL_GALLERY_DIR, 'list_new.json');
         try {
           const listContent = await fs.readFile(listPath, 'utf8');

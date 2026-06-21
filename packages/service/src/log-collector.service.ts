@@ -51,9 +51,6 @@ export class LogCollectorService {
     this.bridges = bridges;
     this.configFiles = configFiles;
     await this.loadConfig();
-    if (this.config.consent) {
-      this.startCollection();
-    }
   }
 
   private async loadConfig() {
@@ -112,6 +109,8 @@ export class LogCollectorService {
       asked: this.config.consent !== null,
       consented: this.config.consent === true,
       uid: this.config.uid,
+      isCollecting: this.isCollecting,
+      packetCount: this.packetCount,
     };
   }
 
@@ -174,7 +173,15 @@ export class LogCollectorService {
 
     if (this.packetCount >= 1000) {
       this.stopCollection();
-      this.sendData();
+      this.config.consent = false;
+      this.saveConfig()
+        .then(() => {
+          this.sendData();
+        })
+        .catch((err) => {
+          logger.error({ err }, '[LogCollector] Failed to reset consent after collection');
+          this.sendData();
+        });
     }
   }
 

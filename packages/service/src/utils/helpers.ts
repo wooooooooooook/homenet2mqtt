@@ -339,3 +339,20 @@ export const getLocalTimestamp = (dateInput?: Date | string | number): string =>
 
   return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${ms}${offsetString}`;
 };
+
+/**
+ * Checks if the gallery settings are default.
+ */
+export const isDefaultGallerySettings = (gallery?: {
+  githubUrl?: string;
+  branch?: string;
+  path?: string;
+}): boolean => {
+  if (!gallery) return true;
+  const defaults = DEFAULT_FRONTEND_SETTINGS.gallery!;
+  return (
+    (gallery.githubUrl?.trim() || defaults.githubUrl) === defaults.githubUrl &&
+    (gallery.branch?.trim() || defaults.branch) === defaults.branch &&
+    (gallery.path?.trim() || defaults.path) === defaults.path
+  );
+};

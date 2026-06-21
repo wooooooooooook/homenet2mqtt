@@ -2,6 +2,11 @@
 - 오류가 있으면 homeasssutant [카페](https://cafe.naver.com/koreassistant), [깃헙](https://github.com/wooooooooooook/homenet2mqtt), [디스코드](https://discord.gg/kGwhUBMe5z) 등으로 알려주세요.
 
 
+v2.12.1
+- ui: 설정화면과 분석화면을 정리했습니다.
+- 로그수집을 설치시 동의후 계속 수집하는 방식에서 설정화면에서 1회성으로 버튼을 눌러 수행하는 방식으로 변경했습니다.
+
+
 v2.12.0
 - feat: 5분간(기본값, 설정가능) serial혹은 mqtt연결 실패시 자동으로 애드온을 재시작하는 기능 추가
 

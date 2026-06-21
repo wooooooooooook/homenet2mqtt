@@ -65,6 +65,12 @@
     });
   };
 
+  const resetGalleryToDefault = () => {
+    galleryGithubUrl = 'https://github.com/wooooooooooook/homenet2mqtt';
+    galleryBranch = 'main';
+    galleryPath = 'gallery';
+  };
+
   const getAutoRestartSettings = () => {
     return frontendSettings?.autoRestart ?? { enabled: true, timeoutMinutes: 5 };
   };
@@ -104,9 +110,13 @@
   };
 
   // Log Sharing State
-  let logSharingStatus = $state<{ asked: boolean; consented: boolean; uid?: string | null } | null>(
-    null,
-  );
+  let logSharingStatus = $state<{
+    asked: boolean;
+    consented: boolean;
+    uid?: string | null;
+    isCollecting?: boolean;
+    packetCount?: number;
+  } | null>(null);
   let showConsentModal = $state(false);
   let showAddBridgeModal = $state(false);
   let editingConfigFile = $state<string | null>(null);
@@ -123,39 +133,6 @@
   $effect(() => {
     fetchLogSharingStatus();
   });
-
-  const handleLogSharingToggle = async (checked: boolean) => {
-    const consent = checked;
-
-    if (consent) {
-      // Enabling: Show modal for consent
-      showConsentModal = true;
-      return;
-    }
-
-    // Disabling: Process immediately
-    // Optimistic update
-    if (logSharingStatus) {
-      logSharingStatus = { ...logSharingStatus, consented: false };
-    }
-
-    try {
-      const res = await fetch('./api/log-sharing/consent', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ consent: false }),
-      });
-      if (res.ok) {
-        logSharingStatus = await res.json();
-      }
-    } catch (error) {
-      console.error('Failed to update log sharing', error);
-      // Revert on error
-      if (logSharingStatus) {
-        logSharingStatus = { ...logSharingStatus, consented: true };
-      }
-    }
-  };
 
   // Log Caching State
   let cacheSettings = $state<{
@@ -269,6 +246,17 @@
         fetchCacheStats();
       }
     }, 30000);
+
+    return () => clearInterval(interval);
+  });
+
+  // 빠른 폴링: 로그 및 데이터 수집 중일 때 1초 간격으로 진행률 업데이트
+  $effect(() => {
+    if (!logSharingStatus?.consented) return;
+
+    const interval = setInterval(() => {
+      fetchLogSharingStatus();
+    }, 1000);
 
     return () => clearInterval(interval);
   });
@@ -849,72 +837,86 @@
     <aside class="settings-sidebar" aria-label={$t('settings.title')}>
       <nav>
         <a href="#bridge-config">{$t('settings.bridge_config.title')}</a>
-        <a href="#gallery-config">{$t('settings.gallery.title')}</a>
         <a href="#dashboard-settings">{$t('settings.dashboard.title')}</a>
-        <a href="#activity-log-settings">{$t('settings.activity_log.title')}</a>
-        <a href="#toast-settings">{$t('settings.toast.title')}</a>
-        <a href="#log-sharing-settings">{$t('settings.log_sharing.title')}</a>
-        <a href="#log-retention-settings">{$t('settings.log_retention.title')}</a>
+        <a href="#log-settings">{$t('settings.log.title')}</a>
         <a href="#backup-management">{$t('settings.backup_management.title')}</a>
+        <a href="#gallery-config">{$t('settings.gallery.title')}</a>
         <a href="#app-control">{$t('settings.app_control.title')}</a>
       </nav>
     </aside>
 
     <div class="settings-content">
-      <div class="card card-toast" id="toast-settings">
-        <div class="card-header">
+      <!-- 1. Bridge Config Section -->
+      <div class="settings-section card-bridge-config" id="bridge-config">
+        <div class="section-header">
           <div>
-            <h2>{$t('settings.toast.title')}</h2>
-            <p>{$t('settings.toast.desc')}</p>
+            <h2>{$t('settings.bridge_config.title')}</h2>
+            <p>{$t('settings.bridge_config.desc')}</p>
           </div>
-          {#if isSaving}
-            <span class="badge">{$t('settings.saving')}</span>
-          {/if}
         </div>
+        <div class="card">
+          {#if bridgeInfo?.bridges && bridgeInfo.bridges.length > 0}
+            <div class="setting list">
+              <div class="setting-title">{$t('settings.bridge_config.current_configs')}</div>
+              <div class="files-list">
+                {#each bridgeInfo.bridges as bridge (bridge.configFile)}
+                  <div class="file-row">
+                    <div class="bridge-info">
+                      <span class="file-name">{bridge.configFile}</span>
+                      <div class="bridge-details">
+                        {#if bridge.serial}
+                          <span class="badge sm">{bridge.serial.portId}: {bridge.serial.path}</span>
+                        {/if}
+                      </div>
+                    </div>
 
-        {#if isLoading}
-          <div class="loading">{$t('settings.loading')}</div>
-        {:else}
-          <div class="setting">
-            <div>
-              <div class="setting-title" id="toast-state-title">
-                {$t('settings.toast.state_change.title')}
-              </div>
-              <div class="setting-desc" id="toast-state-desc">
-                {$t('settings.toast.state_change.desc')}
+                    <div class="file-actions">
+                      <Button
+                        variant="secondary"
+                        class="file-action-btn"
+                        onclick={() => (editingConfigFile = bridge.configFile)}
+                        ariaLabel={$t('settings.bridge_config.edit_button')}
+                        title={$t('settings.bridge_config.edit_button')}
+                      >
+                        ✏️
+                      </Button>
+                      <Button
+                        variant="danger"
+                        class="file-action-btn"
+                        onclick={() => handleDeleteConfig(bridge.configFile)}
+                        isLoading={deletingConfig === bridge.configFile}
+                        ariaLabel={$t('common.delete')}
+                        title={isLastBridge
+                          ? $t('settings.bridge_config.delete_last_warning')
+                          : $t('common.delete')}
+                      >
+                        🗑
+                      </Button>
+                    </div>
+                  </div>
+                {/each}
               </div>
             </div>
-            <Toggle
-              checked={getToastValue('stateChange')}
-              onchange={(checked) => onToastChange?.('stateChange', checked)}
-              disabled={isSaving || isLoading}
-              ariaLabelledBy="toast-state-title"
-              ariaDescribedBy="toast-state-desc"
-            />
-          </div>
-
+          {/if}
           <div class="setting">
             <div>
-              <div class="setting-title" id="toast-command-title">
-                {$t('settings.toast.command.title')}
+              <div class="setting-title">
+                {$t('settings.bridge_config.add_title')}
               </div>
-              <div class="setting-desc" id="toast-command-desc">
-                {$t('settings.toast.command.desc')}
+              <div class="setting-desc">
+                {$t('settings.bridge_config.add_desc')}
               </div>
             </div>
-            <Toggle
-              checked={getToastValue('command')}
-              onchange={(checked) => onToastChange?.('command', checked)}
-              disabled={isSaving || isLoading}
-              ariaLabelledBy="toast-command-title"
-              ariaDescribedBy="toast-command-desc"
-            />
+            <Button onclick={() => (showAddBridgeModal = true)}>
+              {$t('settings.bridge_config.add_button')}
+            </Button>
           </div>
-        {/if}
+        </div>
       </div>
 
-      <div class="card card-dashboard" id="dashboard-settings">
-        <div class="card-header">
+      <!-- 2. Dashboard Settings Section -->
+      <div class="settings-section card-dashboard" id="dashboard-settings">
+        <div class="section-header">
           <div>
             <h2>{$t('settings.dashboard.title')}</h2>
             <p>{$t('settings.dashboard.desc')}</p>
@@ -923,509 +925,446 @@
             <span class="badge">{$t('settings.saving')}</span>
           {/if}
         </div>
-
-        {#if isLoading}
-          <div class="loading">{$t('settings.loading')}</div>
-        {:else}
-          <div class="setting">
-            <div>
-              <div class="setting-title" id="dashboard-internal-title">
-                {$t('settings.dashboard.show_internal.title')}
-              </div>
-              <div class="setting-desc" id="dashboard-internal-desc">
-                {$t('settings.dashboard.show_internal.desc')}
-              </div>
-            </div>
-            <Toggle
-              checked={frontendSettings?.dashboard?.showInternal ?? false}
-              onchange={(checked) => onDashboardChange?.(checked)}
-              disabled={isSaving || isLoading}
-              ariaLabelledBy="dashboard-internal-title"
-              ariaDescribedBy="dashboard-internal-desc"
-            />
-          </div>
-        {/if}
-      </div>
-
-      <div class="card card-auto-restart" id="auto-restart-settings">
-        <div class="card-header">
-          <div>
-            <h2>{$t('settings.auto_restart.title')}</h2>
-            <p>{$t('settings.auto_restart.desc')}</p>
-          </div>
-          {#if isSaving}
-            <span class="badge">{$t('settings.saving')}</span>
-          {/if}
-        </div>
-
-        {#if isLoading}
-          <div class="loading">{$t('settings.loading')}</div>
-        {:else}
-          <div class="setting">
-            <div>
-              <div class="setting-title" id="auto-restart-enabled-title">
-                {$t('settings.auto_restart.enabled.title')}
-              </div>
-              <div class="setting-desc" id="auto-restart-enabled-desc">
-                {$t('settings.auto_restart.enabled.desc')}
-              </div>
-            </div>
-            <Toggle
-              checked={getAutoRestartSettings().enabled}
-              onchange={handleAutoRestartToggle}
-              disabled={isSaving || isLoading}
-              ariaLabelledBy="auto-restart-enabled-title"
-              ariaDescribedBy="auto-restart-enabled-desc"
-            />
-          </div>
-
-          {#if getAutoRestartSettings().enabled}
-            <div class="setting sub-setting">
-              <div>
-                <div class="setting-title">{$t('settings.auto_restart.timeout.title')}</div>
-                <div class="setting-desc">{$t('settings.auto_restart.timeout.desc')}</div>
-              </div>
-              <input
-                type="number"
-                class="number-input"
-                min="1"
-                max="1440"
-                value={getAutoRestartSettings().timeoutMinutes}
-                onchange={handleAutoRestartTimeoutChange}
-                disabled={isSaving || isLoading}
-              />
-            </div>
-          {/if}
-        {/if}
-      </div>
-
-      <div class="card card-activity-log" id="activity-log-settings">
-        <div class="card-header">
-          <div>
-            <h2>{$t('settings.activity_log.title')}</h2>
-            <p>{$t('settings.activity_log.desc')}</p>
-          </div>
-          {#if isSaving}
-            <span class="badge">{$t('settings.saving')}</span>
-          {/if}
-        </div>
-
-        {#if isLoading}
-          <div class="loading">{$t('settings.loading')}</div>
-        {:else}
-          <div class="setting">
-            <div>
-              <div class="setting-title" id="activity-log-hide-title">
-                {$t('settings.activity_log.hide_automation_scripts.title')}
-              </div>
-              <div class="setting-desc" id="activity-log-hide-desc">
-                {$t('settings.activity_log.hide_automation_scripts.desc')}
-              </div>
-            </div>
-            <Toggle
-              checked={getActivityLogValue()}
-              onchange={(checked) => onActivityLogChange?.(checked)}
-              disabled={isSaving || isLoading}
-              ariaLabelledBy="activity-log-hide-title"
-              ariaDescribedBy="activity-log-hide-desc"
-            />
-          </div>
-        {/if}
-      </div>
-
-      <div class="card card-log-sharing" id="log-sharing-settings">
-        <div class="card-header">
-          <div>
-            <h2>{$t('settings.log_sharing.title')}</h2>
-            <p>{$t('settings.log_sharing.desc')}</p>
-          </div>
-        </div>
-
-        {#if !logSharingStatus}
-          <div class="loading">{$t('settings.loading')}</div>
-        {:else}
-          <div class="setting">
-            <div>
-              <div class="setting-title" id="log-sharing-title">
-                {$t('settings.log_sharing.enable')}
-              </div>
-            </div>
-            <Toggle
-              checked={logSharingStatus.consented}
-              onchange={(checked) => handleLogSharingToggle(checked)}
-              ariaLabelledBy="log-sharing-title"
-            />
-          </div>
-
-          {#if logSharingStatus.consented && logSharingStatus.uid}
-            <div class="setting sub-setting">
-              <div>
-                <div class="setting-title">{$t('settings.log_sharing.uid_title')}</div>
-                <div class="setting-desc">
-                  {$t('settings.log_sharing.uid_desc', { values: { uid: logSharingStatus.uid } })}
-                </div>
-              </div>
-            </div>
-          {/if}
-        {/if}
-      </div>
-
-      <!-- Gallery Config Card -->
-      <div class="card card-gallery" id="gallery-config">
-        <div class="card-header">
-          <div>
-            <h2>{$t('settings.gallery.title')}</h2>
-            <p>{$t('settings.gallery.desc')}</p>
-          </div>
-          <Button onclick={handleGallerySave} disabled={isSaving || isLoading} variant="primary">
-            {$t('settings.gallery.save')}
-          </Button>
-        </div>
-
-        {#if isLoading}
-          <div class="loading">{$t('settings.loading')}</div>
-        {:else}
-          <div class="setting sub-setting stack-vertical">
-            <div>
-              <div class="setting-title">{$t('settings.gallery.githubUrl')}</div>
-              <div class="setting-desc">{$t('settings.gallery.githubUrl_desc')}</div>
-            </div>
-            <input
-              type="text"
-              class="text-input"
-              bind:value={galleryGithubUrl}
-              placeholder="https://github.com/wooooooooooook/homenet2mqtt"
-              disabled={isSaving || isLoading}
-            />
-          </div>
-          <div class="setting sub-setting stack-vertical">
-            <div>
-              <div class="setting-title">{$t('settings.gallery.branch')}</div>
-              <div class="setting-desc">{$t('settings.gallery.branch_desc')}</div>
-            </div>
-            <input
-              type="text"
-              class="text-input"
-              bind:value={galleryBranch}
-              placeholder="main"
-              disabled={isSaving || isLoading}
-            />
-          </div>
-          <div class="setting sub-setting stack-vertical">
-            <div>
-              <div class="setting-title">{$t('settings.gallery.path')}</div>
-              <div class="setting-desc">{$t('settings.gallery.path_desc')}</div>
-            </div>
-            <input
-              type="text"
-              class="text-input"
-              bind:value={galleryPath}
-              placeholder="gallery"
-              disabled={isSaving || isLoading}
-            />
-          </div>
-        {/if}
-      </div>
-
-      <!-- Log Caching Card -->
-      <div class="card card-log-retention" id="log-retention-settings">
-        <div class="card-header">
-          <div>
-            <h2>{$t('settings.log_retention.title')}</h2>
-            <p>{$t('settings.log_retention.desc')}</p>
-          </div>
-          {#if isCacheSaving}
-            <span class="badge">{$t('settings.saving')}</span>
-          {/if}
-        </div>
-
-        {#if !cacheSettings}
-          <div class="loading">{$t('settings.loading')}</div>
-        {:else}
-          <div class="setting">
-            <div>
-              <div class="setting-title" id="log-retention-title">
-                {$t('settings.log_retention.enable')}
-              </div>
-              <div class="setting-desc" id="log-retention-desc">
-                {$t('settings.log_retention.enable_desc')}
-              </div>
-            </div>
-            <Toggle
-              checked={cacheSettings.enabled}
-              onchange={(checked) => updateCacheSettings({ enabled: checked })}
-              disabled={isCacheSaving}
-              ariaLabelledBy="log-retention-title"
-              ariaDescribedBy="log-retention-desc"
-            />
-          </div>
-
-          {#if cacheSettings.enabled && cacheStats}
-            <div class="setting sub-setting">
-              <div>
-                <div class="setting-title">{$t('settings.log_retention.memory_usage')}</div>
-                <div class="setting-desc stats">
-                  <span class="stat-value">{formatBytes(cacheStats.memoryUsageBytes)}</span>
-                  <span class="stat-detail">
-                    ({$t('settings.log_retention.packets')}: {cacheStats.packetLogCount.toLocaleString()},
-                    {$t('settings.log_retention.activity')}: {cacheStats.activityLogCount.toLocaleString()})
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div class="setting sub-setting">
-              <div>
-                <div class="setting-title">{$t('settings.log_retention.ttl')}</div>
-                <div class="setting-desc">{$t('settings.log_retention.ttl_desc')}</div>
-              </div>
-              <input
-                type="number"
-                class="number-input"
-                min="1"
-                max="168"
-                value={cacheSettings.ttlHours}
-                onchange={handleTtlChange}
-                disabled={isCacheSaving}
-              />
-            </div>
-
+        <div class="card">
+          {#if isLoading}
+            <div class="loading">{$t('settings.loading')}</div>
+          {:else}
             <div class="setting">
               <div>
-                <div class="setting-title">{$t('settings.log_retention.manual_save')}</div>
-                <div class="setting-desc">{$t('settings.log_retention.manual_save_desc')}</div>
-              </div>
-              <Button
-                onclick={handleManualSave}
-                isLoading={isCacheSaving}
-                disabled={isCacheSaving}
-                variant="secondary"
-              >
-                {$t('settings.log_retention.save_now')}
-              </Button>
-            </div>
-
-            <div class="setting">
-              <div>
-                <div class="setting-title" id="auto-save-title">
-                  {$t('settings.log_retention.auto_save')}
+                <div class="setting-title" id="dashboard-internal-title">
+                  {$t('settings.dashboard.show_internal.title')}
                 </div>
-                <div class="setting-desc" id="auto-save-desc">
-                  {$t('settings.log_retention.auto_save_desc', {
-                    values: { ttl: cacheSettings.ttlHours },
-                  })}
+                <div class="setting-desc" id="dashboard-internal-desc">
+                  {$t('settings.dashboard.show_internal.desc')}
                 </div>
               </div>
               <Toggle
-                checked={cacheSettings.autoSaveEnabled}
-                onchange={(checked) => updateCacheSettings({ autoSaveEnabled: checked })}
-                disabled={isCacheSaving}
-                ariaLabelledBy="auto-save-title"
-                ariaDescribedBy="auto-save-desc"
+                checked={frontendSettings?.dashboard?.showInternal ?? false}
+                onchange={(checked) => onDashboardChange?.(checked)}
+                disabled={isSaving || isLoading}
+                ariaLabelledBy="dashboard-internal-title"
+                ariaDescribedBy="dashboard-internal-desc"
+              />
+            </div>
+          {/if}
+        </div>
+      </div>
+
+      <!-- 3. Log Settings Section (Unified logs) -->
+      <div class="settings-section card-log" id="log-settings">
+        <div class="section-header">
+          <div>
+            <h2>{$t('settings.log.title')}</h2>
+            <p>{$t('settings.log.desc')}</p>
+          </div>
+          {#if isSaving || isCacheSaving}
+            <span class="badge">{$t('settings.saving')}</span>
+          {/if}
+        </div>
+        <div class="card">
+          {#if isLoading}
+            <div class="loading">{$t('settings.loading')}</div>
+          {:else}
+            <!-- 3-1. Activity Log Setting (General Setting Item) -->
+            <div class="setting" id="activity-log-settings">
+              <div>
+                <div class="setting-title" id="activity-log-hide-title">
+                  {$t('settings.activity_log.hide_automation_scripts.title')}
+                </div>
+                <div class="setting-desc" id="activity-log-hide-desc">
+                  {$t('settings.activity_log.hide_automation_scripts.desc')}
+                </div>
+              </div>
+              <Toggle
+                checked={getActivityLogValue()}
+                onchange={(checked) => onActivityLogChange?.(checked)}
+                disabled={isSaving || isLoading}
+                ariaLabelledBy="activity-log-hide-title"
+                ariaDescribedBy="activity-log-hide-desc"
               />
             </div>
 
-            {#if cacheSettings.autoSaveEnabled}
-              <div class="setting sub-setting">
+            {#if !logSharingStatus}
+              <div class="loading">{$t('settings.loading')}</div>
+            {:else}
+              <div class="setting" id="log-sharing-settings">
                 <div>
-                  <div class="setting-title">{$t('settings.log_retention.retention_count')}</div>
-                  <div class="setting-desc">
-                    {$t('settings.log_retention.retention_count_desc')}
+                  <div class="setting-title" id="log-sharing-title">
+                    {$t('settings.log_sharing.title')}
                   </div>
+                  <div class="setting-desc" id="log-sharing-desc">
+                    {$t('settings.log_sharing.desc')}
+                  </div>
+                  {#if logSharingStatus.consented}
+                    <div
+                      class="setting-desc emphasis text-primary"
+                      style="color: #3b82f6; font-weight: 600; margin-top: 0.25rem;"
+                    >
+                      {$t('settings.log_sharing.collecting', {
+                        values: { count: logSharingStatus.packetCount ?? 0 },
+                      })}
+                    </div>
+                  {/if}
+                  {#if logSharingStatus.uid}
+                    <div
+                      class="setting-desc"
+                      style="margin-top: 0.5rem; font-size: 0.8rem; color: #64748b;"
+                    >
+                      {$t('settings.log_sharing.uid_desc', {
+                        values: { uid: logSharingStatus.uid },
+                      })}
+                    </div>
+                  {/if}
                 </div>
-                <input
-                  type="number"
-                  class="number-input"
-                  min="1"
-                  max="30"
-                  value={cacheSettings.retentionCount}
-                  onchange={handleRetentionChange}
-                  disabled={isCacheSaving}
-                />
+                <Button
+                  onclick={() => {
+                    showConsentModal = true;
+                  }}
+                  disabled={logSharingStatus.consented}
+                  variant={logSharingStatus.consented ? 'secondary' : 'primary'}
+                >
+                  {#if logSharingStatus.consented}
+                    {$t('settings.log_sharing.collecting', {
+                      values: { count: logSharingStatus.packetCount ?? 0 },
+                    })}
+                  {:else}
+                    {$t('settings.log_sharing.send')}
+                  {/if}
+                </Button>
               </div>
             {/if}
           {/if}
 
-          {#if cacheFiles.length > 0}
-            <div class="setting">
-              <div>
-                <div class="setting-title">{$t('settings.log_retention.total_usage')}</div>
-                <div class="setting-desc stats">
-                  <span class="stat-value">{formatBytes(cacheTotalSize)}</span>
-                  <span class="stat-detail">
-                    {$t('settings.log_retention.file_count', {
-                      values: { count: cacheFiles.length.toLocaleString() },
-                    })}
-                  </span>
-                </div>
-              </div>
-              <div class="setting-actions">
-                <Button
-                  variant="secondary"
-                  onclick={handleDeleteExceptRecentCacheFiles}
-                  isLoading={isCacheWorking}
-                  disabled={isCacheWorking || cacheFiles.length <= 3}
-                >
-                  {$t('settings.log_retention.delete_except_recent', { values: { count: 3 } })}
-                </Button>
-                <Button
-                  variant="danger"
-                  onclick={handleDeleteAllCacheFiles}
-                  isLoading={isCacheWorking}
-                  disabled={isCacheWorking || cacheFiles.length === 0}
-                >
-                  {$t('settings.log_retention.delete_all')}
-                </Button>
-              </div>
-            </div>
-
-            <div class="setting files-section">
-              <div class="setting-title">{$t('settings.log_retention.saved_files')}</div>
-              {#if shouldCollapseCacheFiles}
-                <details class="files-collapse" bind:open={cacheFilesOpen}>
-                  <summary class="collapse-summary">
-                    <span>
-                      {cacheFilesOpen
-                        ? $t('settings.log_retention.hide_files')
-                        : $t('settings.log_retention.show_files', {
-                            values: { count: cacheFiles.length.toLocaleString() },
-                          })}
-                    </span>
-                    <span class="count-badge">{cacheFiles.length.toLocaleString()}</span>
-                  </summary>
-                  <div class="files-list">
-                    {#each cacheFiles as file (file.filename)}
-                      <div class="file-row">
-                        <span class="file-name">{file.filename}</span>
-                        <span class="file-size">{formatBytes(file.size)}</span>
-                        <div class="file-actions">
-                          <Button
-                            variant="secondary"
-                            class="file-action-btn"
-                            onclick={() => downloadCacheFile(file.filename)}
-                            ariaLabel={$t('settings.log_retention.download')}
-                            title={$t('settings.log_retention.download')}
-                          >
-                            ⬇
-                          </Button>
-                          <Button
-                            variant="danger"
-                            class="file-action-btn"
-                            onclick={() => deleteCacheFile(file.filename)}
-                            isLoading={deletingFile === file.filename}
-                            ariaLabel={$t('settings.log_retention.delete')}
-                            title={$t('settings.log_retention.delete')}
-                          >
-                            🗑
-                          </Button>
-                        </div>
-                      </div>
-                    {/each}
+          <!-- 3-2. Log Retention Sub-section -->
+          <div class="subsection-header" id="log-retention-settings">
+            <h3>{$t('settings.log_retention.title')}</h3>
+            <p>{$t('settings.log_retention.desc')}</p>
+          </div>
+          <div class="setting-subsection">
+            {#if !cacheSettings}
+              <div class="loading">{$t('settings.loading')}</div>
+            {:else}
+              <div class="setting">
+                <div>
+                  <div class="setting-title" id="log-retention-title">
+                    {$t('settings.log_retention.enable')}
                   </div>
-                  {#if downloadError}
-                    <div class="setting-desc warning">{downloadError}</div>
-                  {/if}
-                </details>
-              {:else}
-                <div class="files-list">
-                  {#each cacheFiles as file (file.filename)}
-                    <div class="file-row">
-                      <span class="file-name">{file.filename}</span>
-                      <span class="file-size">{formatBytes(file.size)}</span>
-                      <div class="file-actions">
-                        <Button
-                          variant="secondary"
-                          class="file-action-btn"
-                          onclick={() => downloadCacheFile(file.filename)}
-                          ariaLabel={$t('settings.log_retention.download')}
-                          title={$t('settings.log_retention.download')}
-                        >
-                          ⬇
-                        </Button>
-                        <Button
-                          variant="danger"
-                          class="file-action-btn"
-                          onclick={() => deleteCacheFile(file.filename)}
-                          isLoading={deletingFile === file.filename}
-                          ariaLabel={$t('settings.log_retention.delete')}
-                          title={$t('settings.log_retention.delete')}
-                        >
-                          🗑
-                        </Button>
+                  <div class="setting-desc" id="log-retention-desc">
+                    {$t('settings.log_retention.enable_desc')}
+                  </div>
+                </div>
+                <Toggle
+                  checked={cacheSettings.enabled}
+                  onchange={(checked) => updateCacheSettings({ enabled: checked })}
+                  disabled={isCacheSaving}
+                  ariaLabelledBy="log-retention-title"
+                  ariaDescribedBy="log-retention-desc"
+                />
+              </div>
+
+              {#if cacheSettings.enabled && cacheStats}
+                <div class="setting sub-setting">
+                  <div>
+                    <div class="setting-title">{$t('settings.log_retention.memory_usage')}</div>
+                    <div class="setting-desc stats">
+                      <span class="stat-value">{formatBytes(cacheStats.memoryUsageBytes)}</span>
+                      <span class="stat-detail">
+                        ({$t('settings.log_retention.packets')}: {cacheStats.packetLogCount.toLocaleString()},
+                        {$t('settings.log_retention.activity')}: {cacheStats.activityLogCount.toLocaleString()})
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="setting sub-setting">
+                  <div>
+                    <div class="setting-title">{$t('settings.log_retention.ttl')}</div>
+                    <div class="setting-desc">{$t('settings.log_retention.ttl_desc')}</div>
+                  </div>
+                  <input
+                    type="number"
+                    class="number-input"
+                    min="1"
+                    max="168"
+                    value={cacheSettings.ttlHours}
+                    onchange={handleTtlChange}
+                    disabled={isCacheSaving}
+                  />
+                </div>
+
+                <div class="setting">
+                  <div>
+                    <div class="setting-title">{$t('settings.log_retention.manual_save')}</div>
+                    <div class="setting-desc">{$t('settings.log_retention.manual_save_desc')}</div>
+                  </div>
+                  <Button
+                    onclick={handleManualSave}
+                    isLoading={isCacheSaving}
+                    disabled={isCacheSaving}
+                    variant="secondary"
+                  >
+                    {$t('settings.log_retention.save_now')}
+                  </Button>
+                </div>
+
+                <div class="setting">
+                  <div>
+                    <div class="setting-title" id="auto-save-title">
+                      {$t('settings.log_retention.auto_save')}
+                    </div>
+                    <div class="setting-desc" id="auto-save-desc">
+                      {$t('settings.log_retention.auto_save_desc', {
+                        values: { ttl: cacheSettings.ttlHours },
+                      })}
+                    </div>
+                  </div>
+                  <Toggle
+                    checked={cacheSettings.autoSaveEnabled}
+                    onchange={(checked) => updateCacheSettings({ autoSaveEnabled: checked })}
+                    disabled={isCacheSaving}
+                    ariaLabelledBy="auto-save-title"
+                    ariaDescribedBy="auto-save-desc"
+                  />
+                </div>
+
+                {#if cacheSettings.autoSaveEnabled}
+                  <div class="setting sub-setting">
+                    <div>
+                      <div class="setting-title">
+                        {$t('settings.log_retention.retention_count')}
+                      </div>
+                      <div class="setting-desc">
+                        {$t('settings.log_retention.retention_count_desc')}
                       </div>
                     </div>
-                  {/each}
-                </div>
-                {#if downloadError}
-                  <div class="setting-desc warning">{downloadError}</div>
+                    <input
+                      type="number"
+                      class="number-input"
+                      min="1"
+                      max="30"
+                      value={cacheSettings.retentionCount}
+                      onchange={handleRetentionChange}
+                      disabled={isCacheSaving}
+                    />
+                  </div>
                 {/if}
               {/if}
-            </div>
-          {:else if cacheSettings.autoSaveEnabled}
-            <div class="setting sub-setting">
-              <div class="setting-desc muted">{$t('settings.log_retention.no_files')}</div>
-            </div>
-          {/if}
 
-          <!-- Packet Log Files Section -->
+              {#if cacheFiles.length > 0}
+                <div class="setting">
+                  <div>
+                    <div class="setting-title">{$t('settings.log_retention.total_usage')}</div>
+                    <div class="setting-desc stats">
+                      <span class="stat-value">{formatBytes(cacheTotalSize)}</span>
+                      <span class="stat-detail">
+                        {$t('settings.log_retention.file_count', {
+                          values: { count: cacheFiles.length.toLocaleString() },
+                        })}
+                      </span>
+                    </div>
+                  </div>
+                  <div class="setting-actions">
+                    <Button
+                      variant="secondary"
+                      onclick={handleDeleteExceptRecentCacheFiles}
+                      isLoading={isCacheWorking}
+                      disabled={isCacheWorking || cacheFiles.length <= 3}
+                    >
+                      {$t('settings.log_retention.delete_except_recent', { values: { count: 3 } })}
+                    </Button>
+                    <Button
+                      variant="danger"
+                      onclick={handleDeleteAllCacheFiles}
+                      isLoading={isCacheWorking}
+                      disabled={isCacheWorking || cacheFiles.length === 0}
+                    >
+                      {$t('settings.log_retention.delete_all')}
+                    </Button>
+                  </div>
+                </div>
+
+                <div class="setting files-section">
+                  <div class="setting-title">{$t('settings.log_retention.saved_files')}</div>
+                  {#if shouldCollapseCacheFiles}
+                    <details class="files-collapse" bind:open={cacheFilesOpen}>
+                      <summary class="collapse-summary">
+                        <span>
+                          {cacheFilesOpen
+                            ? $t('settings.log_retention.hide_files')
+                            : $t('settings.log_retention.show_files', {
+                                values: { count: cacheFiles.length.toLocaleString() },
+                              })}
+                        </span>
+                        <span class="count-badge">{cacheFiles.length.toLocaleString()}</span>
+                      </summary>
+                      <div class="files-list">
+                        {#each cacheFiles as file (file.filename)}
+                          <div class="file-row">
+                            <span class="file-name">{file.filename}</span>
+                            <span class="file-size">{formatBytes(file.size)}</span>
+                            <div class="file-actions">
+                              <Button
+                                variant="secondary"
+                                class="file-action-btn"
+                                onclick={() => downloadCacheFile(file.filename)}
+                                ariaLabel={$t('settings.log_retention.download')}
+                                title={$t('settings.log_retention.download')}
+                              >
+                                ⬇
+                              </Button>
+                              <Button
+                                variant="danger"
+                                class="file-action-btn"
+                                onclick={() => deleteCacheFile(file.filename)}
+                                isLoading={deletingFile === file.filename}
+                                ariaLabel={$t('settings.log_retention.delete')}
+                                title={$t('settings.log_retention.delete')}
+                              >
+                                🗑
+                              </Button>
+                            </div>
+                          </div>
+                        {/each}
+                      </div>
+                      {#if downloadError}
+                        <div class="setting-desc warning">{downloadError}</div>
+                      {/if}
+                    </details>
+                  {:else}
+                    <div class="files-list">
+                      {#each cacheFiles as file (file.filename)}
+                        <div class="file-row">
+                          <span class="file-name">{file.filename}</span>
+                          <span class="file-size">{formatBytes(file.size)}</span>
+                          <div class="file-actions">
+                            <Button
+                              variant="secondary"
+                              class="file-action-btn"
+                              onclick={() => downloadCacheFile(file.filename)}
+                              ariaLabel={$t('settings.log_retention.download')}
+                              title={$t('settings.log_retention.download')}
+                            >
+                              ⬇
+                            </Button>
+                            <Button
+                              variant="danger"
+                              class="file-action-btn"
+                              onclick={() => deleteCacheFile(file.filename)}
+                              isLoading={deletingFile === file.filename}
+                              ariaLabel={$t('settings.log_retention.delete')}
+                              title={$t('settings.log_retention.delete')}
+                            >
+                              🗑
+                            </Button>
+                          </div>
+                        </div>
+                      {/each}
+                    </div>
+                    {#if downloadError}
+                      <div class="setting-desc warning">{downloadError}</div>
+                    {/if}
+                  {/if}
+                </div>
+              {:else if cacheSettings.autoSaveEnabled}
+                <div class="setting sub-setting">
+                  <div class="setting-desc muted">{$t('settings.log_retention.no_files')}</div>
+                </div>
+              {/if}
+            {/if}
+          </div>
+
           {#if packetLogFiles.length > 0}
-            <div class="setting">
-              <div>
-                <div class="setting-title">{$t('settings.log_retention.packet_log.title')}</div>
-                <div class="setting-desc">{$t('settings.log_retention.packet_log.desc')}</div>
-              </div>
+            <div class="subsection-header" id="packet-log-settings">
+              <h3>{$t('settings.log_retention.packet_log.title')}</h3>
+              <p>{$t('settings.log_retention.packet_log.desc')}</p>
             </div>
-
-            <div class="setting">
-              <div>
-                <div class="setting-title">
-                  {$t('settings.log_retention.packet_log.total_usage')}
-                </div>
-                <div class="setting-desc stats">
-                  <span class="stat-value">{formatBytes(packetLogTotalSize)}</span>
-                  <span class="stat-detail">
-                    {$t('settings.log_retention.packet_log.file_count', {
-                      values: { count: packetLogFiles.length.toLocaleString() },
-                    })}
-                  </span>
-                </div>
-              </div>
-              <div class="setting-actions">
-                <Button
-                  variant="secondary"
-                  onclick={handleDeleteExceptRecentPacketLogFiles}
-                  isLoading={isPacketLogWorking}
-                  disabled={isPacketLogWorking || packetLogFiles.length <= 3}
-                >
-                  {$t('settings.log_retention.packet_log.delete_except_recent', {
-                    values: { count: 3 },
-                  })}
-                </Button>
-                <Button
-                  variant="danger"
-                  onclick={handleDeleteAllPacketLogFiles}
-                  isLoading={isPacketLogWorking}
-                  disabled={isPacketLogWorking || packetLogFiles.length === 0}
-                >
-                  {$t('settings.log_retention.packet_log.delete_all')}
-                </Button>
-              </div>
-            </div>
-
-            <div class="setting files-section">
-              <div class="setting-title">{$t('settings.log_retention.packet_log.saved_files')}</div>
-              {#if shouldCollapsePacketLogFiles}
-                <details class="files-collapse" bind:open={packetLogFilesOpen}>
-                  <summary class="collapse-summary">
-                    <span>
-                      {packetLogFilesOpen
-                        ? $t('settings.log_retention.packet_log.hide_files')
-                        : $t('settings.log_retention.packet_log.show_files', {
-                            values: { count: packetLogFiles.length.toLocaleString() },
-                          })}
+            <div class="setting-subsection">
+              <div class="setting">
+                <div>
+                  <div class="setting-title">
+                    {$t('settings.log_retention.packet_log.total_usage')}
+                  </div>
+                  <div class="setting-desc stats">
+                    <span class="stat-value">{formatBytes(packetLogTotalSize)}</span>
+                    <span class="stat-detail">
+                      {$t('settings.log_retention.packet_log.file_count', {
+                        values: { count: packetLogFiles.length.toLocaleString() },
+                      })}
                     </span>
-                    <span class="count-badge">{packetLogFiles.length.toLocaleString()}</span>
-                  </summary>
+                  </div>
+                </div>
+                <div class="setting-actions">
+                  <Button
+                    variant="secondary"
+                    onclick={handleDeleteExceptRecentPacketLogFiles}
+                    isLoading={isPacketLogWorking}
+                    disabled={isPacketLogWorking || packetLogFiles.length <= 3}
+                  >
+                    {$t('settings.log_retention.packet_log.delete_except_recent', {
+                      values: { count: 3 },
+                    })}
+                  </Button>
+                  <Button
+                    variant="danger"
+                    onclick={handleDeleteAllPacketLogFiles}
+                    isLoading={isPacketLogWorking}
+                    disabled={isPacketLogWorking || packetLogFiles.length === 0}
+                  >
+                    {$t('settings.log_retention.packet_log.delete_all')}
+                  </Button>
+                </div>
+              </div>
+
+              <div class="setting files-section">
+                <div class="setting-title">
+                  {$t('settings.log_retention.packet_log.saved_files')}
+                </div>
+                {#if shouldCollapsePacketLogFiles}
+                  <details class="files-collapse" bind:open={packetLogFilesOpen}>
+                    <summary class="collapse-summary">
+                      <span>
+                        {packetLogFilesOpen
+                          ? $t('settings.log_retention.packet_log.hide_files')
+                          : $t('settings.log_retention.packet_log.show_files', {
+                              values: { count: packetLogFiles.length.toLocaleString() },
+                            })}
+                      </span>
+                      <span class="count-badge">{packetLogFiles.length.toLocaleString()}</span>
+                    </summary>
+                    <div class="files-list">
+                      {#each packetLogFiles as file (file.filename)}
+                        <div class="file-row">
+                          <span class="file-name">{file.filename}</span>
+                          <span class="file-size">{formatBytes(file.size)}</span>
+                          <div class="file-actions">
+                            <Button
+                              variant="secondary"
+                              class="file-action-btn"
+                              onclick={() => downloadPacketLogFile(file.filename)}
+                              ariaLabel={$t('settings.log_retention.packet_log.download')}
+                              title={$t('settings.log_retention.packet_log.download')}
+                            >
+                              ⬇
+                            </Button>
+                            <Button
+                              variant="danger"
+                              class="file-action-btn"
+                              onclick={() => deletePacketLogFile(file.filename)}
+                              isLoading={deletingPacketLog === file.filename}
+                              ariaLabel={$t('settings.log_retention.packet_log.delete')}
+                              title={$t('settings.log_retention.packet_log.delete')}
+                            >
+                              🗑
+                            </Button>
+                          </div>
+                        </div>
+                      {/each}
+                    </div>
+                    {#if packetLogDownloadError}
+                      <div class="setting-desc warning">{packetLogDownloadError}</div>
+                    {/if}
+                  </details>
+                {:else}
                   <div class="files-list">
                     {#each packetLogFiles as file (file.filename)}
                       <div class="file-row">
@@ -1458,102 +1397,103 @@
                   {#if packetLogDownloadError}
                     <div class="setting-desc warning">{packetLogDownloadError}</div>
                   {/if}
-                </details>
-              {:else}
-                <div class="files-list">
-                  {#each packetLogFiles as file (file.filename)}
-                    <div class="file-row">
-                      <span class="file-name">{file.filename}</span>
-                      <span class="file-size">{formatBytes(file.size)}</span>
-                      <div class="file-actions">
-                        <Button
-                          variant="secondary"
-                          class="file-action-btn"
-                          onclick={() => downloadPacketLogFile(file.filename)}
-                          ariaLabel={$t('settings.log_retention.packet_log.download')}
-                          title={$t('settings.log_retention.packet_log.download')}
-                        >
-                          ⬇
-                        </Button>
-                        <Button
-                          variant="danger"
-                          class="file-action-btn"
-                          onclick={() => deletePacketLogFile(file.filename)}
-                          isLoading={deletingPacketLog === file.filename}
-                          ariaLabel={$t('settings.log_retention.packet_log.delete')}
-                          title={$t('settings.log_retention.packet_log.delete')}
-                        >
-                          🗑
-                        </Button>
-                      </div>
-                    </div>
-                  {/each}
-                </div>
-                {#if packetLogDownloadError}
-                  <div class="setting-desc warning">{packetLogDownloadError}</div>
                 {/if}
-              {/if}
+              </div>
             </div>
           {/if}
-        {/if}
+        </div>
       </div>
 
-      <!-- Backup Management Card -->
-      <div class="card card-backup" id="backup-management">
-        <div class="card-header">
+      <!-- 4. Backup Management Section -->
+      <div class="settings-section card-backup" id="backup-management">
+        <div class="section-header">
           <div>
             <h2>{$t('settings.backup_management.title')}</h2>
             <p>{$t('settings.backup_management.desc')}</p>
           </div>
         </div>
-
-        <div class="setting">
-          <div>
-            <div class="setting-title">{$t('settings.backup_management.total_usage')}</div>
-            <div class="setting-desc stats">
-              <span class="stat-value">{formatBytes(backupTotalSize)}</span>
-              <span class="stat-detail">
-                {$t('settings.backup_management.file_count', {
-                  values: { count: backupFiles.length.toLocaleString() },
-                })}
-              </span>
+        <div class="card">
+          <div class="setting">
+            <div>
+              <div class="setting-title">{$t('settings.backup_management.total_usage')}</div>
+              <div class="setting-desc stats">
+                <span class="stat-value">{formatBytes(backupTotalSize)}</span>
+                <span class="stat-detail">
+                  {$t('settings.backup_management.file_count', {
+                    values: { count: backupFiles.length.toLocaleString() },
+                  })}
+                </span>
+              </div>
+            </div>
+            <div class="setting-actions">
+              <Button
+                variant="secondary"
+                onclick={handleDeleteExceptRecent}
+                isLoading={isBackupWorking}
+                disabled={isBackupWorking || backupFiles.length <= 3}
+              >
+                {$t('settings.backup_management.delete_except_recent', { values: { count: 3 } })}
+              </Button>
+              <Button
+                variant="danger"
+                onclick={handleDeleteAllBackups}
+                isLoading={isBackupWorking}
+                disabled={isBackupWorking || backupFiles.length === 0}
+              >
+                {$t('settings.backup_management.delete_all')}
+              </Button>
             </div>
           </div>
-          <div class="setting-actions">
-            <Button
-              variant="secondary"
-              onclick={handleDeleteExceptRecent}
-              isLoading={isBackupWorking}
-              disabled={isBackupWorking || backupFiles.length <= 3}
-            >
-              {$t('settings.backup_management.delete_except_recent', { values: { count: 3 } })}
-            </Button>
-            <Button
-              variant="danger"
-              onclick={handleDeleteAllBackups}
-              isLoading={isBackupWorking}
-              disabled={isBackupWorking || backupFiles.length === 0}
-            >
-              {$t('settings.backup_management.delete_all')}
-            </Button>
-          </div>
-        </div>
 
-        {#if backupFiles.length > 0}
-          <div class="setting files-section">
-            <div class="setting-title">{$t('settings.backup_management.saved_files')}</div>
-            {#if shouldCollapseBackupFiles}
-              <details class="files-collapse" bind:open={backupFilesOpen}>
-                <summary class="collapse-summary">
-                  <span>
-                    {backupFilesOpen
-                      ? $t('settings.backup_management.hide_files')
-                      : $t('settings.backup_management.show_files', {
-                          values: { count: backupFiles.length.toLocaleString() },
-                        })}
-                  </span>
-                  <span class="count-badge">{backupFiles.length.toLocaleString()}</span>
-                </summary>
+          {#if backupFiles.length > 0}
+            <div class="setting files-section">
+              <div class="setting-title">{$t('settings.backup_management.saved_files')}</div>
+              {#if shouldCollapseBackupFiles}
+                <details class="files-collapse" bind:open={backupFilesOpen}>
+                  <summary class="collapse-summary">
+                    <span>
+                      {backupFilesOpen
+                        ? $t('settings.backup_management.hide_files')
+                        : $t('settings.backup_management.show_files', {
+                            values: { count: backupFiles.length.toLocaleString() },
+                          })}
+                    </span>
+                    <span class="count-badge">{backupFiles.length.toLocaleString()}</span>
+                  </summary>
+                  <div class="files-list">
+                    {#each backupFiles as file (file.filename)}
+                      <div class="file-row">
+                        <span class="file-name">{file.filename}</span>
+                        <span class="file-size">{formatBytes(file.size)}</span>
+                        <div class="file-actions">
+                          <Button
+                            variant="secondary"
+                            class="file-action-btn"
+                            onclick={() => downloadBackupFile(file.filename)}
+                            ariaLabel={$t('settings.backup_management.download')}
+                            title={$t('settings.backup_management.download')}
+                          >
+                            ⬇
+                          </Button>
+                          <Button
+                            variant="danger"
+                            class="file-action-btn"
+                            onclick={() => deleteBackupFile(file.filename)}
+                            isLoading={deletingBackup === file.filename}
+                            ariaLabel={$t('settings.backup_management.delete')}
+                            title={$t('settings.backup_management.delete')}
+                          >
+                            🗑
+                          </Button>
+                        </div>
+                      </div>
+                    {/each}
+                  </div>
+                  {#if backupDownloadError}
+                    <div class="setting-desc warning">{backupDownloadError}</div>
+                  {/if}
+                </details>
+              {:else}
                 <div class="files-list">
                   {#each backupFiles as file (file.filename)}
                     <div class="file-row">
@@ -1586,178 +1526,238 @@
                 {#if backupDownloadError}
                   <div class="setting-desc warning">{backupDownloadError}</div>
                 {/if}
-              </details>
-            {:else}
-              <div class="files-list">
-                {#each backupFiles as file (file.filename)}
-                  <div class="file-row">
-                    <span class="file-name">{file.filename}</span>
-                    <span class="file-size">{formatBytes(file.size)}</span>
-                    <div class="file-actions">
-                      <Button
-                        variant="secondary"
-                        class="file-action-btn"
-                        onclick={() => downloadBackupFile(file.filename)}
-                        ariaLabel={$t('settings.backup_management.download')}
-                        title={$t('settings.backup_management.download')}
-                      >
-                        ⬇
-                      </Button>
-                      <Button
-                        variant="danger"
-                        class="file-action-btn"
-                        onclick={() => deleteBackupFile(file.filename)}
-                        isLoading={deletingBackup === file.filename}
-                        ariaLabel={$t('settings.backup_management.delete')}
-                        title={$t('settings.backup_management.delete')}
-                      >
-                        🗑
-                      </Button>
-                    </div>
-                  </div>
-                {/each}
+              {/if}
+            </div>
+          {:else}
+            <div class="setting sub-setting">
+              <div class="setting-desc muted">{$t('settings.backup_management.no_files')}</div>
+            </div>
+          {/if}
+        </div>
+      </div>
+
+      <!-- 5. Gallery Settings Section -->
+      <div class="settings-section card-gallery" id="gallery-config">
+        <div class="section-header">
+          <div>
+            <h2>{$t('settings.gallery.title')}</h2>
+            <p>{$t('settings.gallery.desc')}</p>
+          </div>
+        </div>
+        <div class="card">
+          {#if isLoading}
+            <div class="loading">{$t('settings.loading')}</div>
+          {:else}
+            <div class="setting sub-setting stack-vertical">
+              <div>
+                <div class="setting-title">{$t('settings.gallery.githubUrl')}</div>
+                <div class="setting-desc">{$t('settings.gallery.githubUrl_desc')}</div>
               </div>
-              {#if backupDownloadError}
-                <div class="setting-desc warning">{backupDownloadError}</div>
+              <input
+                type="text"
+                class="text-input"
+                bind:value={galleryGithubUrl}
+                placeholder="https://github.com/wooooooooooook/homenet2mqtt"
+                disabled={isSaving || isLoading}
+              />
+            </div>
+            <div class="setting sub-setting stack-vertical">
+              <div>
+                <div class="setting-title">{$t('settings.gallery.branch')}</div>
+                <div class="setting-desc">{$t('settings.gallery.branch_desc')}</div>
+              </div>
+              <input
+                type="text"
+                class="text-input"
+                bind:value={galleryBranch}
+                placeholder="main"
+                disabled={isSaving || isLoading}
+              />
+            </div>
+            <div class="setting sub-setting stack-vertical">
+              <div>
+                <div class="setting-title">{$t('settings.gallery.path')}</div>
+                <div class="setting-desc">{$t('settings.gallery.path_desc')}</div>
+              </div>
+              <input
+                type="text"
+                class="text-input"
+                bind:value={galleryPath}
+                placeholder="gallery"
+                disabled={isSaving || isLoading}
+              />
+            </div>
+            <div class="setting" style="justify-content: flex-end; gap: 0.5rem;">
+              <Button
+                onclick={resetGalleryToDefault}
+                disabled={isSaving || isLoading}
+                variant="secondary"
+              >
+                {$t('settings.gallery.restore_defaults')}
+              </Button>
+              <Button
+                onclick={handleGallerySave}
+                disabled={isSaving || isLoading}
+                variant="primary"
+              >
+                {$t('settings.gallery.save')}
+              </Button>
+            </div>
+          {/if}
+        </div>
+      </div>
+
+      <!-- 6. Application Control Section -->
+      <div class="settings-section card-app-control" id="app-control">
+        <div class="section-header">
+          <h2>{$t('settings.app_control.title')}</h2>
+        </div>
+        <div class="card">
+          <div class="setting">
+            <div>
+              <div class="setting-title">{$t('settings.app_control.editor_title')}</div>
+              <div class="setting-desc">{$t('settings.app_control.editor_desc')}</div>
+            </div>
+            <select
+              class="select"
+              value={frontendSettings?.editor?.default ?? 'monaco'}
+              onchange={handleEditorChange}
+              disabled={isSaving}
+            >
+              <option
+                value="monaco"
+                selected={(frontendSettings?.editor?.default ?? 'monaco') === 'monaco'}
+              >
+                {$t('settings.app_control.editor_monaco')}
+              </option>
+              <option
+                value="textarea"
+                selected={(frontendSettings?.editor?.default ?? 'monaco') === 'textarea'}
+              >
+                {$t('settings.app_control.editor_textarea')}
+              </option>
+            </select>
+          </div>
+
+          <div class="setting">
+            <div>
+              <div class="setting-title">{$t('settings.app_control.restart')}</div>
+              <div class="setting-desc">{$t('settings.app_control.restart_desc')}</div>
+            </div>
+            <Button
+              variant="danger"
+              onclick={handleRestart}
+              isLoading={isRestarting}
+              disabled={isRestarting}
+            >
+              {$t('settings.app_control.restart')}
+            </Button>
+          </div>
+
+          <div class="setting">
+            <div>
+              <div class="setting-title">{$t('settings.app_control.mqtt_cleanup')}</div>
+              <div class="setting-desc">{$t('settings.app_control.mqtt_cleanup_desc')}</div>
+            </div>
+            <Button
+              onclick={handleClearMqtt}
+              variant="danger"
+              isLoading={isClearingMqtt}
+              disabled={isClearingMqtt || isRestarting}
+            >
+              {$t('settings.app_control.mqtt_cleanup')}
+            </Button>
+          </div>
+
+          <!-- Auto Restart Sub-section (No Title) -->
+          <div class="setting-subsection">
+            {#if isLoading}
+              <div class="loading">{$t('settings.loading')}</div>
+            {:else}
+              <div class="setting">
+                <div>
+                  <div class="setting-title" id="auto-restart-enabled-title">
+                    {$t('settings.auto_restart.enabled.title')}
+                  </div>
+                  <div class="setting-desc" id="auto-restart-enabled-desc">
+                    {$t('settings.auto_restart.enabled.desc')}
+                  </div>
+                </div>
+                <Toggle
+                  checked={getAutoRestartSettings().enabled}
+                  onchange={handleAutoRestartToggle}
+                  disabled={isSaving || isLoading}
+                  ariaLabelledBy="auto-restart-enabled-title"
+                  ariaDescribedBy="auto-restart-enabled-desc"
+                />
+              </div>
+
+              {#if getAutoRestartSettings().enabled}
+                <div class="setting sub-setting">
+                  <div>
+                    <div class="setting-title">{$t('settings.auto_restart.timeout.title')}</div>
+                    <div class="setting-desc">{$t('settings.auto_restart.timeout.desc')}</div>
+                  </div>
+                  <input
+                    type="number"
+                    class="number-input"
+                    min="1"
+                    max="1440"
+                    value={getAutoRestartSettings().timeoutMinutes}
+                    onchange={handleAutoRestartTimeoutChange}
+                    disabled={isSaving || isLoading}
+                  />
+                </div>
               {/if}
             {/if}
           </div>
-        {:else}
-          <div class="setting sub-setting">
-            <div class="setting-desc muted">{$t('settings.backup_management.no_files')}</div>
-          </div>
-        {/if}
-      </div>
 
-      <!-- Bridge Config Card -->
-      <div class="card card-bridge-config" id="bridge-config">
-        <div class="card-header">
-          <div>
-            <h2>{$t('settings.bridge_config.title')}</h2>
+          <!-- Toast Notification Sub-section -->
+          <div class="subsection-header" id="toast-settings">
+            <h3>{$t('settings.toast.title')}</h3>
+            <p>{$t('settings.toast.desc')}</p>
           </div>
-        </div>
-
-        <div class="setting">
-          <div>
-            <div class="setting-title">
-              {$t('settings.bridge_config.add_title')}
-            </div>
-            <div class="setting-desc">
-              {$t('settings.bridge_config.add_desc')}
-            </div>
-          </div>
-          <Button onclick={() => (showAddBridgeModal = true)}>
-            {$t('settings.bridge_config.add_button')}
-          </Button>
-        </div>
-
-        {#if bridgeInfo?.bridges && bridgeInfo.bridges.length > 0}
-          <div class="setting sub-setting list">
-            <div class="setting-title">{$t('settings.bridge_config.current_configs')}</div>
-            <div class="files-list">
-              {#each bridgeInfo.bridges as bridge (bridge.configFile)}
-                <div class="file-row">
-                  <div class="bridge-info">
-                    <span class="file-name">{bridge.configFile}</span>
-                    <div class="bridge-details">
-                      {#if bridge.serial}
-                        <span class="badge sm">{bridge.serial.portId}: {bridge.serial.path}</span>
-                      {/if}
-                    </div>
+          <div class="setting-subsection">
+            {#if isLoading}
+              <div class="loading">{$t('settings.loading')}</div>
+            {:else}
+              <div class="setting">
+                <div>
+                  <div class="setting-title" id="toast-state-title">
+                    {$t('settings.toast.state_change.title')}
                   </div>
-
-                  <div class="file-actions">
-                    <Button
-                      variant="secondary"
-                      class="file-action-btn"
-                      onclick={() => (editingConfigFile = bridge.configFile)}
-                      ariaLabel={$t('settings.bridge_config.edit_button')}
-                      title={$t('settings.bridge_config.edit_button')}
-                    >
-                      ✏️
-                    </Button>
-                    <Button
-                      variant="danger"
-                      class="file-action-btn"
-                      onclick={() => handleDeleteConfig(bridge.configFile)}
-                      isLoading={deletingConfig === bridge.configFile}
-                      ariaLabel={$t('common.delete')}
-                      title={isLastBridge
-                        ? $t('settings.bridge_config.delete_last_warning')
-                        : $t('common.delete')}
-                    >
-                      🗑
-                    </Button>
+                  <div class="setting-desc" id="toast-state-desc">
+                    {$t('settings.toast.state_change.desc')}
                   </div>
                 </div>
-              {/each}
-            </div>
-          </div>
-        {/if}
-      </div>
+                <Toggle
+                  checked={getToastValue('stateChange')}
+                  onchange={(checked) => onToastChange?.('stateChange', checked)}
+                  disabled={isSaving || isLoading}
+                  ariaLabelledBy="toast-state-title"
+                  ariaDescribedBy="toast-state-desc"
+                />
+              </div>
 
-      <!-- Application Control Card -->
-      <div class="card card-app-control" id="app-control">
-        <div class="card-header">
-          <div>
-            <h2>{$t('settings.app_control.title')}</h2>
+              <div class="setting">
+                <div>
+                  <div class="setting-title" id="toast-command-title">
+                    {$t('settings.toast.command.title')}
+                  </div>
+                  <div class="setting-desc" id="toast-command-desc">
+                    {$t('settings.toast.command.desc')}
+                  </div>
+                </div>
+                <Toggle
+                  checked={getToastValue('command')}
+                  onchange={(checked) => onToastChange?.('command', checked)}
+                  disabled={isSaving || isLoading}
+                  ariaLabelledBy="toast-command-title"
+                  ariaDescribedBy="toast-command-desc"
+                />
+              </div>
+            {/if}
           </div>
-        </div>
-
-        <div class="setting">
-          <div>
-            <div class="setting-title">{$t('settings.app_control.editor_title')}</div>
-            <div class="setting-desc">{$t('settings.app_control.editor_desc')}</div>
-          </div>
-          <select
-            class="select"
-            value={frontendSettings?.editor?.default ?? 'monaco'}
-            onchange={handleEditorChange}
-            disabled={isSaving}
-          >
-            <option
-              value="monaco"
-              selected={(frontendSettings?.editor?.default ?? 'monaco') === 'monaco'}
-            >
-              {$t('settings.app_control.editor_monaco')}
-            </option>
-            <option
-              value="textarea"
-              selected={(frontendSettings?.editor?.default ?? 'monaco') === 'textarea'}
-            >
-              {$t('settings.app_control.editor_textarea')}
-            </option>
-          </select>
-        </div>
-
-        <div class="setting">
-          <div>
-            <div class="setting-title">{$t('settings.app_control.restart')}</div>
-            <div class="setting-desc">{$t('settings.app_control.restart_desc')}</div>
-          </div>
-          <Button
-            variant="danger"
-            onclick={handleRestart}
-            isLoading={isRestarting}
-            disabled={isRestarting}
-          >
-            {$t('settings.app_control.restart')}
-          </Button>
-        </div>
-
-        <div class="setting">
-          <div>
-            <div class="setting-title">{$t('settings.app_control.mqtt_cleanup')}</div>
-            <div class="setting-desc">{$t('settings.app_control.mqtt_cleanup_desc')}</div>
-          </div>
-          <Button
-            onclick={handleClearMqtt}
-            variant="danger"
-            isLoading={isClearingMqtt}
-            disabled={isClearingMqtt || isRestarting}
-          >
-            {$t('settings.app_control.mqtt_cleanup')}
-          </Button>
         </div>
       </div>
     </div>
@@ -1809,7 +1809,7 @@
   .settings-content {
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: 0;
   }
 
   .card {
@@ -1820,36 +1820,24 @@
     order: 1;
   }
 
-  .card-gallery {
+  .card-dashboard {
     order: 2;
   }
 
-  .card-dashboard {
+  .card-log {
     order: 3;
   }
 
-  .card-activity-log {
+  .card-backup {
     order: 4;
   }
 
-  .card-toast {
+  .card-gallery {
     order: 5;
   }
 
-  .card-log-sharing {
-    order: 6;
-  }
-
-  .card-log-retention {
-    order: 7;
-  }
-
-  .card-backup {
-    order: 8;
-  }
-
   .card-app-control {
-    order: 9;
+    order: 6;
   }
 
   .view-header {
@@ -1881,19 +1869,23 @@
     box-shadow: 0 20px 40px rgba(15, 23, 42, 0.4);
   }
 
-  .card-header {
+  .section-header {
     display: flex;
     justify-content: space-between;
+    align-items: flex-start;
     gap: 1rem;
-    margin-bottom: 1.5rem;
+    margin-bottom: 0.5rem;
+    padding: 0 0.5rem;
   }
 
-  .card-header h2 {
+  .section-header h2 {
     margin: 0;
-    font-size: 1.2rem;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #f8fafc;
   }
 
-  .card-header p {
+  .section-header p {
     margin: 0.25rem 0 0;
     color: #94a3b8;
     font-size: 0.9rem;
@@ -1984,6 +1976,7 @@
   .stack-vertical {
     display: flex;
     flex-direction: row;
+    flex-wrap: wrap;
     align-items: center;
     gap: 1rem;
     justify-content: space-between;
@@ -2223,5 +2216,70 @@
   .select option {
     background: #1e293b;
     color: #e2e8f0;
+  }
+
+  .setting-subsection {
+    border: 1px solid rgba(148, 163, 184, 0.12);
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin-top: 1rem;
+  }
+
+  .setting-subsection .setting {
+    border-top: 1px solid rgba(148, 163, 184, 0.1);
+    padding: 0.85rem 0;
+  }
+
+  .setting-subsection .setting:first-of-type {
+    border-top: none;
+    padding-top: 0;
+  }
+
+  .setting-subsection .setting:last-of-type {
+    padding-bottom: 0;
+  }
+
+  .subsection-header {
+    border-top: 1px solid rgba(148, 163, 184, 0.15);
+    margin-top: 1.5rem;
+    margin-bottom: 0.5rem;
+    padding: 1.25rem 0.25rem 0;
+  }
+
+  .subsection-header:first-child {
+    border-top: none;
+    margin-top: 0;
+    padding-top: 0;
+  }
+
+  .subsection-header + .setting-subsection {
+    margin-top: 0;
+  }
+
+  .subsection-header h3 {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: #f1f5f9;
+  }
+
+  .subsection-header p {
+    margin: 0.25rem 0 0;
+    color: #94a3b8;
+    font-size: 0.85rem;
+  }
+
+  .settings-section {
+    scroll-margin-top: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .settings-section + .settings-section {
+    border-top: 1px solid rgba(148, 163, 184, 0.12);
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
   }
 </style>

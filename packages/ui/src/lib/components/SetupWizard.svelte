@@ -17,7 +17,7 @@
     mode?: 'init' | 'add';
   } = $props();
 
-  type WizardStep = 'config' | 'packet_defaults' | 'entity_selection' | 'consent' | 'complete';
+  type WizardStep = 'config' | 'packet_defaults' | 'entity_selection' | 'complete';
 
   // ... (rest of simple variable declarations unchanged)
   // To avoid huge diff, I will target the script block first to add props and import.
@@ -40,7 +40,6 @@
   let serialStopBits = $state('1');
   let loading = $state(false);
   let submitting = $state(false);
-  let consentSubmitting = $state(false);
   let error = $state('');
   let testingSerial = $state(false);
   let serialTestRequestId = 0;
@@ -147,11 +146,8 @@
     loading = true;
     error = '';
     try {
-      // 예제 목록과 로그 동의 상태를 동시에 확인
-      const [configRes, consentRes] = await Promise.all([
-        fetch('./api/config/examples'),
-        fetch('./api/log-sharing/status'),
-      ]);
+      // 예제 목록 확인
+      const configRes = await fetch('./api/config/examples');
 
       if (!configRes.ok) throw new Error('Failed to load examples');
       const data = await configRes.json();
@@ -164,19 +160,9 @@
 
       if (mode === 'add') return;
 
-      // 로그 동의가 이미 완료된 경우 바로 complete 화면으로
-      if (consentRes.ok) {
-        const consentStatus = await consentRes.json();
-        if (consentStatus.asked) {
-          currentStep = 'complete';
-          loading = false;
-          return;
-        }
-      }
-
-      // 초기화가 이미 끝났거나 사용자가 직접 설정 파일을 지정한 경우에만 1단계 건너뛰기
+      // 초기화가 이미 끝났거나 사용자가 직접 설정 파일을 지정한 경우에만 바로 complete 단계로
       if (!data.requiresInitialization && data.hasCustomConfig) {
-        currentStep = 'consent';
+        currentStep = 'complete';
       }
     } catch (err) {
       error = $t('setup_wizard.load_error');
@@ -313,15 +299,11 @@
           return;
         }
 
+        currentStep = 'complete';
         if (mode === 'add') {
-          currentStep = 'complete';
           requiresManualUpdate = data.requiresManualConfigUpdate;
           createdFilename = data.target;
-          return;
         }
-
-        // 설정 완료 → 로그 동의 단계로 이동
-        currentStep = 'consent';
       } catch (err) {
         error = $t('setup_wizard.submit_error');
       } finally {
@@ -384,8 +366,6 @@
       currentStep = 'config';
     } else if (currentStep === 'entity_selection') {
       currentStep = 'packet_defaults';
-    } else if (currentStep === 'consent') {
-      currentStep = 'entity_selection';
     }
   }
 
@@ -461,23 +441,6 @@
       if (requestId === serialTestRequestId) {
         testingSerial = false;
       }
-    }
-  }
-
-  async function handleConsent(consent: boolean) {
-    consentSubmitting = true;
-    try {
-      await fetch('./api/log-sharing/consent', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ consent }),
-      });
-    } catch (err) {
-      console.error(err);
-    } finally {
-      consentSubmitting = false;
-      currentStep = 'complete';
-      // oncomplete은 호출하지 않음 - complete 화면에서 재시작 안내 표시
     }
   }
 
@@ -706,26 +669,13 @@
         <div
           class="step"
           class:active={currentStep === 'entity_selection'}
-          class:done={currentStep === 'consent' || currentStep === 'complete'}
+          class:done={currentStep === 'complete'}
           role="listitem"
           aria-current={currentStep === 'entity_selection' ? 'step' : undefined}
         >
           <span class="step-number">3</span>
           <span class="step-label">{$t('setup_wizard.step_entities')}</span>
         </div>
-        <div class="step-line" aria-hidden="true"></div>
-        {#if mode !== 'add'}
-          <div
-            class="step"
-            class:active={currentStep === 'consent'}
-            class:done={currentStep === 'complete'}
-            role="listitem"
-            aria-current={currentStep === 'consent' ? 'step' : undefined}
-          >
-            <span class="step-number">4</span>
-            <span class="step-label">{$t('setup_wizard.step_consent')}</span>
-          </div>
-        {/if}
       </div>
 
       {#if loading}
@@ -1280,56 +1230,6 @@
             </Button>
           </div>
         </div>
-      {:else if currentStep === 'consent'}
-        <div class="consent-section">
-          <p class="consent-desc">{$t('settings.log_sharing.consent_modal.desc')}</p>
-
-          <div class="details">
-            <h3>{$t('settings.log_sharing.consent_modal.collection_items_title')}</h3>
-            <ul>
-              <li>{$t('settings.log_sharing.consent_modal.collection_item_1')}</li>
-              <li>{$t('settings.log_sharing.consent_modal.collection_item_2')}</li>
-              <li>{$t('settings.log_sharing.consent_modal.collection_item_3')}</li>
-              <li>{$t('settings.log_sharing.consent_modal.collection_item_4')}</li>
-              <li>{$t('settings.log_sharing.consent_modal.collection_item_5')}</li>
-            </ul>
-
-            <h3>{$t('settings.log_sharing.consent_modal.collection_timing_title')}</h3>
-            <p>{@html $t('settings.log_sharing.consent_modal.collection_timing')}</p>
-
-            <p class="privacy-note">{$t('settings.log_sharing.consent_modal.privacy_note')}</p>
-          </div>
-
-          <div class="consent-actions">
-            <Button
-              type="button"
-              variant="secondary"
-              onclick={handlePrevious}
-              disabled={consentSubmitting}
-              class="wizard-btn-flex"
-            >
-              {$t('setup_wizard.prev')}
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              onclick={() => handleConsent(false)}
-              disabled={consentSubmitting}
-              class="wizard-btn-flex"
-            >
-              {$t('settings.log_sharing.consent_modal.decline')}
-            </Button>
-            <Button
-              type="button"
-              variant="primary"
-              onclick={() => handleConsent(true)}
-              disabled={consentSubmitting}
-              class="wizard-btn-flex"
-            >
-              {$t('settings.log_sharing.consent_modal.accept')}
-            </Button>
-          </div>
-        </div>
       {:else if currentStep === 'complete'}
         <div class="success-state" role="status" aria-live="polite">
           {#if requiresManualUpdate}
@@ -1678,61 +1578,6 @@
     font-size: 1rem !important;
   }
 
-  .consent-section {
-    padding: 0.5rem 0;
-  }
-
-  .consent-desc {
-    color: #cbd5e1;
-    line-height: 1.6;
-    margin: 0 0 1rem 0;
-  }
-
-  .details {
-    font-size: 0.9rem;
-    color: #94a3b8;
-    background: rgba(15, 23, 42, 0.5);
-    padding: 1.25rem;
-    border-radius: 0.5rem;
-    margin-bottom: 1.5rem;
-  }
-
-  .details h3 {
-    margin: 0 0 0.75rem 0;
-    color: #e2e8f0;
-    font-size: 0.95rem;
-  }
-
-  .details ul {
-    margin: 0 0 1.25rem 0;
-    padding-left: 1.25rem;
-  }
-
-  .details li {
-    margin-bottom: 0.4rem;
-  }
-
-  .details p {
-    margin: 0 0 0.5rem 0;
-    line-height: 1.5;
-  }
-
-  .privacy-note {
-    font-size: 0.8rem;
-    color: #64748b;
-    margin-top: 1rem !important;
-  }
-
-  .consent-actions {
-    display: flex;
-    gap: 1rem;
-  }
-
-  :global(.wizard-btn-flex) {
-    flex: 1;
-    padding: 0.875rem 1.5rem !important;
-  }
-
   .loading-state,
   .success-state {
     text-align: center;
@@ -1905,10 +1750,6 @@
 
     .step-label {
       display: none;
-    }
-
-    .consent-actions {
-      flex-direction: column;
     }
   }
   /* Modal Styles for SetupWizard */

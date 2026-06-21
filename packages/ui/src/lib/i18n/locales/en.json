@@ -1,6 +1,10 @@
 {
   "settings": {
     "title": "Settings",
+    "log": {
+      "title": "Log Settings",
+      "desc": "Manage activity logs, log retention, and data sharing."
+    },
     "toast": {
       "title": "Toast Notifications",
       "desc": "Control whether to show toasts on state updates or command events.",
@@ -32,7 +36,9 @@
     "log_sharing": {
       "title": "Log & Data Sharing",
       "desc": "Send anonymized logs and packets (1000) to the developer for troubleshooting.",
-      "enable": "Enable Log Sharing",
+      "enable": "Send Logs & Data",
+      "send": "Send",
+      "collecting": "Collecting ({count}/1000)",
       "uid_title": "User ID",
       "uid_desc": "Anonymized Identifier: {uid}",
       "consent_modal": {
@@ -45,7 +51,7 @@
         "collection_item_4": "Received packet data (first 1000 packets)",
         "collection_item_5": "Application runtime logs",
         "collection_timing_title": "Collection Timing",
-        "collection_timing_desc": "Packet collection starts every time the add-on starts after consent. Once <strong>1000 packets are collected, they are sent once</strong> and collection automatically stops. No further collection occurs until the add-on is restarted.",
+        "collection_timing_desc": "Once you click 'Agree & Start', packet collection will begin. After collecting 1000 packets, they will be sent once and the collection will stop automatically.",
         "privacy_note": "* No personal information is included. You can change this setting anytime.",
         "decline": "Decline",
         "accept": "Accept & Start"
@@ -67,7 +73,7 @@
       "ttl": "Log TTL (hours)",
       "ttl_desc": "Keep logs in memory for the TTL, and automatically remove expired entries.",
       "auto_save": "Auto-save every TTL",
-      "auto_save_desc": "When enabled, a single file is saved every TTL ({ttl} hours).",
+      "auto_save_desc": "When enabled, instead of being deleted, logs are automatically archived to a file every TTL ({ttl} hours).",
       "retention_count": "Files to retain",
       "retention_count_desc": "Older files will be automatically deleted.",
       "saved_files": "Saved Log Files",
@@ -106,6 +112,7 @@
       "title": "Gallery Settings",
       "desc": "Configure the GitHub repository to fetch gallery components from.",
       "save": "Save",
+      "restore_defaults": "Restore Defaults",
       "githubUrl": "GitHub Repository URL",
       "githubUrl_desc": "e.g. https://github.com/wooooooooooook/homenet2mqtt",
       "branch": "Branch",
@@ -148,9 +155,10 @@
     },
     "bridge_config": {
       "title": "Bridge Management",
-      "add_title": "Add Bridge",
-      "add_desc": "Add a new RS485 bridge configuration.",
-      "add_button": "Add Bridge",
+      "desc": "A combination of an RS485 serial device and its configuration makes one bridge. The MQTT broker is shared commonly across all bridges.",
+      "add_title": "Bridge Setup Wizard",
+      "add_desc": "Add a new RS485 bridge configuration. You can have one bridge per RS485 serial device.",
+      "add_button": "Bridge Setup Wizard",
       "current_configs": "Current Bridge Configurations",
       "edit_button": "Edit Config",
       "edit_title": "Edit Bridge Configuration",
