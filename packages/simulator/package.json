@@ -1,6 +1,6 @@
 {
   "name": "@rs485-homenet/simulator",
-  "version": "2.12.1",
+  "version": "2.12.2",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
