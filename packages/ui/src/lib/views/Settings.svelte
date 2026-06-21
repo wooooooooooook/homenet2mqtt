@@ -1037,8 +1037,10 @@
 
           <!-- 3-2. Log Retention Sub-section -->
           <div class="subsection-header" id="log-retention-settings">
-            <h3>{$t('settings.log_retention.title')}</h3>
-            <p>{$t('settings.log_retention.desc')}</p>
+            <div>
+              <h3>{$t('settings.log_retention.title')}</h3>
+              <p>{$t('settings.log_retention.desc')}</p>
+            </div>
           </div>
           <div class="setting-subsection">
             {#if !cacheSettings}
@@ -1275,8 +1277,10 @@
 
           {#if packetLogFiles.length > 0}
             <div class="subsection-header" id="packet-log-settings">
-              <h3>{$t('settings.log_retention.packet_log.title')}</h3>
-              <p>{$t('settings.log_retention.packet_log.desc')}</p>
+              <div>
+                <h3>{$t('settings.log_retention.packet_log.title')}</h3>
+                <p>{$t('settings.log_retention.packet_log.desc')}</p>
+              </div>
             </div>
             <div class="setting-subsection">
               <div class="setting">
@@ -1639,58 +1643,24 @@
             </select>
           </div>
 
-          <div class="setting">
+          <!-- Auto Restart Sub-section -->          
+          <div class="subsection-header">
             <div>
-              <div class="setting-title">{$t('settings.app_control.restart')}</div>
-              <div class="setting-desc">{$t('settings.app_control.restart_desc')}</div>
+                <h3>{$t('settings.auto_restart.enabled.title')}</h3>
+                <p>{$t('settings.auto_restart.enabled.desc')}</p>
             </div>
-            <Button
-              variant="danger"
-              onclick={handleRestart}
-              isLoading={isRestarting}
-              disabled={isRestarting}
-            >
-              {$t('settings.app_control.restart')}
-            </Button>
+            <Toggle
+              checked={getAutoRestartSettings().enabled}
+              onchange={handleAutoRestartToggle}
+              disabled={isSaving || isLoading}
+              ariaLabelledBy="auto-restart-enabled-title"
+              ariaDescribedBy="auto-restart-enabled-desc"
+            />
           </div>
-
-          <div class="setting">
-            <div>
-              <div class="setting-title">{$t('settings.app_control.mqtt_cleanup')}</div>
-              <div class="setting-desc">{$t('settings.app_control.mqtt_cleanup_desc')}</div>
-            </div>
-            <Button
-              onclick={handleClearMqtt}
-              variant="danger"
-              isLoading={isClearingMqtt}
-              disabled={isClearingMqtt || isRestarting}
-            >
-              {$t('settings.app_control.mqtt_cleanup')}
-            </Button>
-          </div>
-
-          <!-- Auto Restart Sub-section (No Title) -->
           <div class="setting-subsection">
             {#if isLoading}
               <div class="loading">{$t('settings.loading')}</div>
             {:else}
-              <div class="setting">
-                <div>
-                  <div class="setting-title" id="auto-restart-enabled-title">
-                    {$t('settings.auto_restart.enabled.title')}
-                  </div>
-                  <div class="setting-desc" id="auto-restart-enabled-desc">
-                    {$t('settings.auto_restart.enabled.desc')}
-                  </div>
-                </div>
-                <Toggle
-                  checked={getAutoRestartSettings().enabled}
-                  onchange={handleAutoRestartToggle}
-                  disabled={isSaving || isLoading}
-                  ariaLabelledBy="auto-restart-enabled-title"
-                  ariaDescribedBy="auto-restart-enabled-desc"
-                />
-              </div>
 
               {#if getAutoRestartSettings().enabled}
                 <div class="setting sub-setting">
@@ -1714,8 +1684,10 @@
 
           <!-- Toast Notification Sub-section -->
           <div class="subsection-header" id="toast-settings">
-            <h3>{$t('settings.toast.title')}</h3>
-            <p>{$t('settings.toast.desc')}</p>
+            <div>
+              <h3>{$t('settings.toast.title')}</h3>
+              <p>{$t('settings.toast.desc')}</p>
+            </div>
           </div>
           <div class="setting-subsection">
             {#if isLoading}
@@ -1757,6 +1729,35 @@
                 />
               </div>
             {/if}
+          </div>
+          <div class="setting">
+            <div>
+              <div class="setting-title">{$t('settings.app_control.restart')}</div>
+              <div class="setting-desc">{$t('settings.app_control.restart_desc')}</div>
+            </div>
+            <Button
+              variant="danger"
+              onclick={handleRestart}
+              isLoading={isRestarting}
+              disabled={isRestarting}
+            >
+              {$t('settings.app_control.restart')}
+            </Button>
+          </div>
+
+          <div class="setting">
+            <div>
+              <div class="setting-title">{$t('settings.app_control.mqtt_cleanup')}</div>
+              <div class="setting-desc">{$t('settings.app_control.mqtt_cleanup_desc')}</div>
+            </div>
+            <Button
+              onclick={handleClearMqtt}
+              variant="danger"
+              isLoading={isClearingMqtt}
+              disabled={isClearingMqtt || isRestarting}
+            >
+              {$t('settings.app_control.mqtt_cleanup')}
+            </Button>
           </div>
         </div>
       </div>
@@ -1902,6 +1903,7 @@
 
   .setting {
     display: flex;
+    gap: 2rem;
     justify-content: space-between;
     align-items: center;
     padding: 1rem 0;
@@ -2245,6 +2247,9 @@
     margin-top: 1.5rem;
     margin-bottom: 0.5rem;
     padding: 1.25rem 0.25rem 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
   }
 
   .subsection-header:first-child {
