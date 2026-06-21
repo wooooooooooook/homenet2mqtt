@@ -11,6 +11,7 @@ import {
   validateSerialPath,
   ENTITY_TYPE_KEYS,
 } from '../services/setup.service.js';
+import { CONFIG_INIT_MARKER } from '../utils/constants.js';
 
 export interface SetupRoutesContext {
   setupWizardService: SetupWizardService;
@@ -433,6 +434,14 @@ export function createSetupRoutes(ctx: SetupRoutesContext): Router {
 
       await fs.writeFile(targetPath, updatedYaml, 'utf-8');
       await fs.writeFile(configRestartFlag, 'restart', 'utf-8');
+
+      // 초기 설정 마법사 완료 시(mode !== 'add') .initialized 마커 생성
+      if (mode !== 'add' && !(await fileExists(CONFIG_INIT_MARKER))) {
+        await fs.writeFile(CONFIG_INIT_MARKER, new Date().toISOString(), 'utf-8');
+        logger.info(
+          '[service] Initialization complete, .initialized marker created from setup wizard',
+        );
+      }
 
       logger.info(
         { filename, targetPath, serialPath: serialPathValue },
