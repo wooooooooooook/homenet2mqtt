@@ -167,7 +167,7 @@ export function createControlsRoutes(ctx: ControlsRoutesContext): Router {
           }
 
           // Select entity
-          if (entityType === 'select' && key === 'command_option') {
+          if (entityType === 'select' && key === 'command_select') {
             const options = (entity.options as string[]) ?? [];
             cmdInfo.options = options;
             cmdInfo.inputType = options.length > 0 ? 'select' : 'text';
