@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-09T13:24:37.199Z",
+  "generated_at": "2026-06-21T05:39:54.925Z",
   "vendors": [
     {
       "id": "bestin",
@@ -1980,6 +1980,58 @@
               "output": "rooms"
             }
           }
+        }
+      ]
+    },
+    {
+      "id": "humicon",
+      "name": "humicon",
+      "requirements": {
+        "serial": {
+          "baud_rate": 9600,
+          "data_bits": 8,
+          "parity": "none",
+          "stop_bits": 1
+        },
+        "packet_defaults": {
+          "rx_checksum2": "crc16_modbus_no_header",
+          "tx_checksum2": "crc16_modbus_no_header",
+          "rx_header": [],
+          "tx_header": [],
+          "rx_footer": [],
+          "tx_footer": []
+        }
+      },
+      "items": [
+        {
+          "file": "humicon/humicon_ventilation.yaml",
+          "name": "휴미컨 환기 시스템",
+          "name_en": "Humicon Ventilation System",
+          "description": "휴미컨(Humicon) 통합 제어기 환기 시스템 설정입니다. Elfin EW11(RS485 to Wi-Fi)을 통해 연결합니다. 전원, 작동 모드(스마트/제습/환기/바이패스/청정), 목표 습도, 풍량, 실내외 온도/습도, CO2, PM10, PM2.5, RC 잠금을 지원합니다.",
+          "description_en": "Humicon integrated controller ventilation system configuration. Connected via Elfin EW11 (RS485 to Wi-Fi). Supports power, operation modes (Smart/Dehumidify/Ventilation/Bypass/Clean), target humidity, fan speed, indoor/outdoor temperature/humidity, CO2, PM10, PM2.5, and RC lock.",
+          "version": "1.0.0",
+          "author": "wooooooooooook",
+          "tags": [
+            "fan",
+            "ventilation",
+            "humicon",
+            "hrv",
+            "air_quality",
+            "modbus"
+          ],
+          "parameters": [],
+          "content_summary": {
+            "entities": {
+              "sensor": 7,
+              "switch": 1,
+              "fan": 1,
+              "select": 2,
+              "number": 1
+            },
+            "automations": 0,
+            "scripts": 0
+          },
+          "discovery": null
         }
       ]
     },
