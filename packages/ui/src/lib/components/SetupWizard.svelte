@@ -47,6 +47,7 @@
   let testPackets = $state<string[]>([]);
   let hasTested = $state(false);
   let currentStep = $state<WizardStep>('config');
+  let showAdvanced = $state(false);
   let currentLocale = $state('ko');
   let requiresManualUpdate = $state(false);
   let createdFilename = $state('');
@@ -901,244 +902,258 @@
           <h3>{$t('setup_wizard.pdf_title')}</h3>
           <p class="step-desc">{$t('setup_wizard.pdf_desc')}</p>
 
-          <div class="form-grid">
-            <div class="form-group">
-              <label for="rx_timeout">{$t('setup_wizard.pdf_rx_timeout')}</label>
-              <input
-                type="text"
-                id="rx_timeout"
-                bind:value={packetDefaults.rx_timeout}
-                aria-describedby="rx-timeout-hint"
-              />
-              <p id="rx-timeout-hint" class="field-hint">
-                {$t('setup_wizard.pdf_rx_timeout_hint')}
-              </p>
-            </div>
-            <div class="form-group">
-              <label for="tx_delay">{$t('setup_wizard.pdf_tx_delay')}</label>
-              <input
-                type="text"
-                id="tx_delay"
-                bind:value={packetDefaults.tx_delay}
-                aria-describedby="tx-delay-hint"
-              />
-              <p id="tx-delay-hint" class="field-hint">{$t('setup_wizard.pdf_tx_delay_hint')}</p>
-            </div>
+          <div class="advanced-toggle-container">
+            <button
+              type="button"
+              class="advanced-toggle-btn"
+              onclick={() => (showAdvanced = !showAdvanced)}
+            >
+              <span>{$t('setup_wizard.pdf_title')} 설정</span>
+              <span class="arrow-icon" class:expanded={showAdvanced}>▶</span>
+            </button>
           </div>
 
-          <div class="form-grid">
-            <div class="form-group">
-              <label for="tx_timeout">{$t('setup_wizard.pdf_tx_timeout')}</label>
-              <input
-                type="text"
-                id="tx_timeout"
-                bind:value={packetDefaults.tx_timeout}
-                aria-describedby="tx-timeout-hint"
-              />
-              <p id="tx-timeout-hint" class="field-hint">
-                {$t('setup_wizard.pdf_tx_timeout_hint')}
-              </p>
-            </div>
-            <div class="form-group">
-              <label for="tx_retry_cnt">{$t('setup_wizard.pdf_tx_retry_cnt')}</label>
-              <input
-                type="number"
-                id="tx_retry_cnt"
-                bind:value={packetDefaults.tx_retry_cnt}
-                aria-describedby="tx-retry-cnt-hint"
-              />
-              <p id="tx-retry-cnt-hint" class="field-hint">
-                {$t('setup_wizard.pdf_tx_retry_cnt_hint')}
-              </p>
-            </div>
-          </div>
+          {#if showAdvanced}
+            <div class="advanced-settings-content">
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="rx_timeout">{$t('setup_wizard.pdf_rx_timeout')}</label>
+                  <input
+                    type="text"
+                    id="rx_timeout"
+                    bind:value={packetDefaults.rx_timeout}
+                    aria-describedby="rx-timeout-hint"
+                  />
+                  <p id="rx-timeout-hint" class="field-hint">
+                    {$t('setup_wizard.pdf_rx_timeout_hint')}
+                  </p>
+                </div>
+                <div class="form-group">
+                  <label for="tx_delay">{$t('setup_wizard.pdf_tx_delay')}</label>
+                  <input
+                    type="text"
+                    id="tx_delay"
+                    bind:value={packetDefaults.tx_delay}
+                    aria-describedby="tx-delay-hint"
+                  />
+                  <p id="tx-delay-hint" class="field-hint">{$t('setup_wizard.pdf_tx_delay_hint')}</p>
+                </div>
+              </div>
 
-          <hr class="params-divider" />
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="tx_timeout">{$t('setup_wizard.pdf_tx_timeout')}</label>
+                  <input
+                    type="text"
+                    id="tx_timeout"
+                    bind:value={packetDefaults.tx_timeout}
+                    aria-describedby="tx-timeout-hint"
+                  />
+                  <p id="tx-timeout-hint" class="field-hint">
+                    {$t('setup_wizard.pdf_tx_timeout_hint')}
+                  </p>
+                </div>
+                <div class="form-group">
+                  <label for="tx_retry_cnt">{$t('setup_wizard.pdf_tx_retry_cnt')}</label>
+                  <input
+                    type="number"
+                    id="tx_retry_cnt"
+                    bind:value={packetDefaults.tx_retry_cnt}
+                    aria-describedby="tx-retry-cnt-hint"
+                  />
+                  <p id="tx-retry-cnt-hint" class="field-hint">
+                    {$t('setup_wizard.pdf_tx_retry_cnt_hint')}
+                  </p>
+                </div>
+              </div>
 
-          <h4>{$t('setup_wizard.pdf_header_footer_title')}</h4>
-          <p class="step-desc-sm">{$t('setup_wizard.pdf_header_footer_desc')}</p>
+              <hr class="params-divider" />
 
-          <div class="form-grid">
-            <div class="form-group">
-              <label for="rx_header">{$t('setup_wizard.pdf_rx_header')}</label>
-              <input
-                type="text"
-                id="rx_header"
-                value={typeof packetDefaults.rx_header !== 'string'
-                  ? JSON.stringify(packetDefaults.rx_header ?? [])
-                  : packetDefaults.rx_header}
-                oninput={(e) => (packetDefaults.rx_header = e.currentTarget.value)}
-              />
-            </div>
-            <div class="form-group">
-              <label for="rx_footer">{$t('setup_wizard.pdf_rx_footer')}</label>
-              <input
-                type="text"
-                id="rx_footer"
-                value={typeof packetDefaults.rx_footer !== 'string'
-                  ? JSON.stringify(packetDefaults.rx_footer ?? [])
-                  : packetDefaults.rx_footer}
-                oninput={(e) => (packetDefaults.rx_footer = e.currentTarget.value)}
-              />
-            </div>
-          </div>
+              <p class="step-desc-sm">{$t('setup_wizard.pdf_header_footer_desc')}</p>
 
-          <div class="form-grid">
-            <div class="form-group">
-              <label for="tx_header">{$t('setup_wizard.pdf_tx_header')}</label>
-              <input
-                type="text"
-                id="tx_header"
-                value={typeof packetDefaults.tx_header !== 'string'
-                  ? JSON.stringify(packetDefaults.tx_header ?? [])
-                  : packetDefaults.tx_header}
-                oninput={(e) => (packetDefaults.tx_header = e.currentTarget.value)}
-              />
-            </div>
-            <div class="form-group">
-              <label for="tx_footer">{$t('setup_wizard.pdf_tx_footer')}</label>
-              <input
-                type="text"
-                id="tx_footer"
-                value={typeof packetDefaults.tx_footer !== 'string'
-                  ? JSON.stringify(packetDefaults.tx_footer ?? [])
-                  : packetDefaults.tx_footer}
-                oninput={(e) => (packetDefaults.tx_footer = e.currentTarget.value)}
-              />
-            </div>
-          </div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="rx_header">{$t('setup_wizard.pdf_rx_header')}</label>
+                  <input
+                    type="text"
+                    id="rx_header"
+                    value={typeof packetDefaults.rx_header !== 'string'
+                      ? JSON.stringify(packetDefaults.rx_header ?? [])
+                      : packetDefaults.rx_header}
+                    oninput={(e) => (packetDefaults.rx_header = e.currentTarget.value)}
+                  />
+                </div>
+                <div class="form-group">
+                  <label for="rx_footer">{$t('setup_wizard.pdf_rx_footer')}</label>
+                  <input
+                    type="text"
+                    id="rx_footer"
+                    value={typeof packetDefaults.rx_footer !== 'string'
+                      ? JSON.stringify(packetDefaults.rx_footer ?? [])
+                      : packetDefaults.rx_footer}
+                    oninput={(e) => (packetDefaults.rx_footer = e.currentTarget.value)}
+                  />
+                </div>
+              </div>
 
-          <div class="form-grid">
-            <div class="form-group">
-              <label for="rx_checksum">{$t('setup_wizard.pdf_rx_checksum')}</label>
-              <input
-                type="text"
-                id="rx_checksum"
-                value={packetDefaults.rx_checksum ?? ''}
-                oninput={(e) => handleChecksumChange('rx_checksum', e.currentTarget.value)}
-                disabled={Boolean(packetDefaults.rx_checksum2)}
-                aria-describedby="rx-checksum-hint"
-              />
-              <p id="rx-checksum-hint" class="field-hint">
-                {$t('setup_wizard.pdf_checksum_exclusive_hint')}
-              </p>
-            </div>
-            <div class="form-group">
-              <label for="tx_checksum">{$t('setup_wizard.pdf_tx_checksum')}</label>
-              <input
-                type="text"
-                id="tx_checksum"
-                value={packetDefaults.tx_checksum ?? ''}
-                oninput={(e) => handleChecksumChange('tx_checksum', e.currentTarget.value)}
-                disabled={Boolean(packetDefaults.tx_checksum2)}
-                aria-describedby="tx-checksum-hint"
-              />
-              <p id="tx-checksum-hint" class="field-hint">
-                {$t('setup_wizard.pdf_checksum_exclusive_hint')}
-              </p>
-            </div>
-          </div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="tx_header">{$t('setup_wizard.pdf_tx_header')}</label>
+                  <input
+                    type="text"
+                    id="tx_header"
+                    value={typeof packetDefaults.tx_header !== 'string'
+                      ? JSON.stringify(packetDefaults.tx_header ?? [])
+                      : packetDefaults.tx_header}
+                    oninput={(e) => (packetDefaults.tx_header = e.currentTarget.value)}
+                  />
+                </div>
+                <div class="form-group">
+                  <label for="tx_footer">{$t('setup_wizard.pdf_tx_footer')}</label>
+                  <input
+                    type="text"
+                    id="tx_footer"
+                    value={typeof packetDefaults.tx_footer !== 'string'
+                      ? JSON.stringify(packetDefaults.tx_footer ?? [])
+                      : packetDefaults.tx_footer}
+                    oninput={(e) => (packetDefaults.tx_footer = e.currentTarget.value)}
+                  />
+                </div>
+              </div>
 
-          <div class="form-grid">
-            <div class="form-group">
-              <label for="rx_checksum2">{$t('setup_wizard.pdf_rx_checksum2')}</label>
-              <input
-                type="text"
-                id="rx_checksum2"
-                value={packetDefaults.rx_checksum2 ?? ''}
-                oninput={(e) => handleChecksum2Change('rx_checksum2', e.currentTarget.value)}
-                disabled={Boolean(packetDefaults.rx_checksum)}
-                aria-describedby="rx-checksum2-hint"
-              />
-              <p id="rx-checksum2-hint" class="field-hint">
-                {$t('setup_wizard.pdf_checksum2_hint')}
-              </p>
-            </div>
-            <div class="form-group">
-              <label for="tx_checksum2">{$t('setup_wizard.pdf_tx_checksum2')}</label>
-              <input
-                type="text"
-                id="tx_checksum2"
-                value={packetDefaults.tx_checksum2 ?? ''}
-                oninput={(e) => handleChecksum2Change('tx_checksum2', e.currentTarget.value)}
-                disabled={Boolean(packetDefaults.tx_checksum)}
-                aria-describedby="tx-checksum2-hint"
-              />
-              <p id="tx-checksum2-hint" class="field-hint">
-                {$t('setup_wizard.pdf_checksum2_hint')}
-              </p>
-            </div>
-          </div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="rx_checksum">{$t('setup_wizard.pdf_rx_checksum')}</label>
+                  <input
+                    type="text"
+                    id="rx_checksum"
+                    value={packetDefaults.rx_checksum ?? ''}
+                    oninput={(e) => handleChecksumChange('rx_checksum', e.currentTarget.value)}
+                    disabled={Boolean(packetDefaults.rx_checksum2)}
+                    aria-describedby="rx-checksum-hint"
+                  />
+                  <p id="rx-checksum-hint" class="field-hint">
+                    {$t('setup_wizard.pdf_checksum_exclusive_hint')}
+                  </p>
+                </div>
+                <div class="form-group">
+                  <label for="tx_checksum">{$t('setup_wizard.pdf_tx_checksum')}</label>
+                  <input
+                    type="text"
+                    id="tx_checksum"
+                    value={packetDefaults.tx_checksum ?? ''}
+                    oninput={(e) => handleChecksumChange('tx_checksum', e.currentTarget.value)}
+                    disabled={Boolean(packetDefaults.tx_checksum2)}
+                    aria-describedby="tx-checksum-hint"
+                  />
+                  <p id="tx-checksum-hint" class="field-hint">
+                    {$t('setup_wizard.pdf_checksum_exclusive_hint')}
+                  </p>
+                </div>
+              </div>
 
-          <div class="form-grid">
-            <div class="form-group">
-              <label for="rx_valid_headers">{$t('setup_wizard.pdf_rx_valid_headers')}</label>
-              <input
-                type="text"
-                id="rx_valid_headers"
-                value={typeof packetDefaults.rx_valid_headers !== 'string'
-                  ? JSON.stringify(packetDefaults.rx_valid_headers ?? [])
-                  : packetDefaults.rx_valid_headers}
-                oninput={(e) => (packetDefaults.rx_valid_headers = e.currentTarget.value)}
-                aria-describedby="rx-valid-headers-hint"
-              />
-              <p id="rx-valid-headers-hint" class="field-hint">
-                {$t('setup_wizard.pdf_rx_valid_headers_hint')}
-              </p>
-            </div>
-            <div class="form-group">
-              <label for="rx_length">{$t('setup_wizard.pdf_rx_length')}</label>
-              <input
-                type="number"
-                id="rx_length"
-                bind:value={packetDefaults.rx_length}
-                aria-describedby="rx-length-hint"
-              />
-              <p id="rx-length-hint" class="field-hint">
-                {$t('setup_wizard.pdf_rx_length_hint')}
-              </p>
-            </div>
-          </div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="rx_checksum2">{$t('setup_wizard.pdf_rx_checksum2')}</label>
+                  <input
+                    type="text"
+                    id="rx_checksum2"
+                    value={packetDefaults.rx_checksum2 ?? ''}
+                    oninput={(e) => handleChecksum2Change('rx_checksum2', e.currentTarget.value)}
+                    disabled={Boolean(packetDefaults.rx_checksum)}
+                    aria-describedby="rx-checksum2-hint"
+                  />
+                  <p id="rx-checksum2-hint" class="field-hint">
+                    {$t('setup_wizard.pdf_checksum2_hint')}
+                  </p>
+                </div>
+                <div class="form-group">
+                  <label for="tx_checksum2">{$t('setup_wizard.pdf_tx_checksum2')}</label>
+                  <input
+                    type="text"
+                    id="tx_checksum2"
+                    value={packetDefaults.tx_checksum2 ?? ''}
+                    oninput={(e) => handleChecksum2Change('tx_checksum2', e.currentTarget.value)}
+                    disabled={Boolean(packetDefaults.tx_checksum)}
+                    aria-describedby="tx-checksum2-hint"
+                  />
+                  <p id="tx-checksum2-hint" class="field-hint">
+                    {$t('setup_wizard.pdf_checksum2_hint')}
+                  </p>
+                </div>
+              </div>
 
-          <div class="form-grid">
-            <div class="form-group">
-              <label for="rx_min_length">{$t('setup_wizard.pdf_rx_min_length')}</label>
-              <input
-                type="number"
-                id="rx_min_length"
-                bind:value={packetDefaults.rx_min_length}
-                aria-describedby="rx-min-length-hint"
-              />
-              <p id="rx-min-length-hint" class="field-hint">
-                {$t('setup_wizard.pdf_rx_min_length_hint')}
-              </p>
-            </div>
-            <div class="form-group">
-              <label for="rx_max_length">{$t('setup_wizard.pdf_rx_max_length')}</label>
-              <input
-                type="number"
-                id="rx_max_length"
-                bind:value={packetDefaults.rx_max_length}
-                aria-describedby="rx-max-length-hint"
-              />
-              <p id="rx-max-length-hint" class="field-hint">
-                {$t('setup_wizard.pdf_rx_max_length_hint')}
-              </p>
-            </div>
-          </div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="rx_valid_headers">{$t('setup_wizard.pdf_rx_valid_headers')}</label>
+                  <input
+                    type="text"
+                    id="rx_valid_headers"
+                    value={typeof packetDefaults.rx_valid_headers !== 'string'
+                      ? JSON.stringify(packetDefaults.rx_valid_headers ?? [])
+                      : packetDefaults.rx_valid_headers}
+                    oninput={(e) => (packetDefaults.rx_valid_headers = e.currentTarget.value)}
+                    aria-describedby="rx-valid-headers-hint"
+                  />
+                  <p id="rx-valid-headers-hint" class="field-hint">
+                    {$t('setup_wizard.pdf_rx_valid_headers_hint')}
+                  </p>
+                </div>
+                <div class="form-group">
+                  <label for="rx_length">{$t('setup_wizard.pdf_rx_length')}</label>
+                  <input
+                    type="number"
+                    id="rx_length"
+                    bind:value={packetDefaults.rx_length}
+                    aria-describedby="rx-length-hint"
+                  />
+                  <p id="rx-length-hint" class="field-hint">
+                    {$t('setup_wizard.pdf_rx_length_hint')}
+                  </p>
+                </div>
+              </div>
 
-          <div class="form-group">
-            <label for="rx_length_expr">{$t('setup_wizard.pdf_rx_length_expr')}</label>
-            <input
-              type="text"
-              id="rx_length_expr"
-              bind:value={packetDefaults.rx_length_expr}
-              aria-describedby="rx-length-expr-hint"
-            />
-            <p id="rx-length-expr-hint" class="field-hint">
-              {$t('setup_wizard.pdf_rx_length_expr_hint')}
-            </p>
-          </div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="rx_min_length">{$t('setup_wizard.pdf_rx_min_length')}</label>
+                  <input
+                    type="number"
+                    id="rx_min_length"
+                    bind:value={packetDefaults.rx_min_length}
+                    aria-describedby="rx-min-length-hint"
+                  />
+                  <p id="rx-min-length-hint" class="field-hint">
+                    {$t('setup_wizard.pdf_rx_min_length_hint')}
+                  </p>
+                </div>
+                <div class="form-group">
+                  <label for="rx_max_length">{$t('setup_wizard.pdf_rx_max_length')}</label>
+                  <input
+                    type="number"
+                    id="rx_max_length"
+                    bind:value={packetDefaults.rx_max_length}
+                    aria-describedby="rx-max-length-hint"
+                  />
+                  <p id="rx-max-length-hint" class="field-hint">
+                    {$t('setup_wizard.pdf_rx_max_length_hint')}
+                  </p>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="rx_length_expr">{$t('setup_wizard.pdf_rx_length_expr')}</label>
+                <input
+                  type="text"
+                  id="rx_length_expr"
+                  bind:value={packetDefaults.rx_length_expr}
+                  aria-describedby="rx-length-expr-hint"
+                />
+                <p id="rx-length-expr-hint" class="field-hint">
+                  {$t('setup_wizard.pdf_rx_length_expr_hint')}
+                </p>
+              </div>
+            </div>
+          {/if}
 
           <div class="actions">
             <Button
@@ -1351,6 +1366,49 @@
     width: 1.1em;
     height: 1.1em;
     accent-color: #3b82f6;
+  }
+
+  .advanced-toggle-container {
+    margin: 1.5rem 0 1rem 0;
+  }
+
+  .advanced-toggle-btn {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    background: rgba(148, 163, 184, 0.08);
+    border: 1px solid rgba(148, 163, 184, 0.15);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    color: #e2e8f0;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .advanced-toggle-btn:hover {
+    background: rgba(148, 163, 184, 0.15);
+    border-color: rgba(148, 163, 184, 0.25);
+  }
+
+  .arrow-icon {
+    font-size: 0.8rem;
+    color: #94a3b8;
+    transition: transform 0.2s;
+  }
+
+  .arrow-icon.expanded {
+    transform: rotate(90deg);
+  }
+
+  .advanced-settings-content {
+    margin-top: 1rem;
+    border: 1px dashed rgba(148, 163, 184, 0.2);
+    border-radius: 8px;
+    padding: 1.25rem;
+    background: rgba(15, 23, 42, 0.25);
   }
 
   .setup-wizard {
@@ -1732,11 +1790,6 @@
 
   .button-group > :global(*) {
     flex: 1;
-  }
-  h4 {
-    margin: 0 0 0.5rem 0;
-    font-size: 1rem;
-    color: #e2e8f0;
   }
 
   @media (max-width: 600px) {
