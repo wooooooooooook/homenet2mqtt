@@ -137,7 +137,7 @@ automation:
       - type: packet
         match:
           data: [0xAD, 0x5A, 0x00, 0x77]
-          offset: 0
+          index: 0
     then:
       - action: send_packet
         data: [0xB0, 0x5A, 0x00, 0x6A]
@@ -150,7 +150,7 @@ automation:
       - type: packet
         match:
           data: [0xAD, 0x41, 0x00, 0x6C]
-          offset: 0
+          index: 0
     then:
       - action: send_packet
         data: "get_from_states('elevator_call', 'state') == 'on' ? [0xB0, 0x2F, 0x01, 0x1E] : [0xB0, 0x41, 0x00, 0x71]"
@@ -166,7 +166,7 @@ automation:
       - type: packet
         match:
           data: [0xAD, 0x2F, 0x00, 0x02]
-          offset: 0
+          index: 0
     then:
       - action: send_packet
         data: [0xB0, 0x41, 0x00, 0x71]
@@ -241,7 +241,7 @@ automation:
         match:
           data: [0xA4, 0x41]
           mask: [0xFF, 0xFF]
-          offset: 0
+          index: 0
     then:
       - action: if
         condition: "get_from_states('door_state', 'state') == 'D_CALL'"

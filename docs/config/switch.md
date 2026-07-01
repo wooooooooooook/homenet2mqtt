@@ -36,10 +36,10 @@ switch:
     state:
       data: [0x5F, 0x00, 0x00]
     state_on:
-      offset: 0
+      index: 0
       data: [0x5F]
     state_off:
-      offset: 0
+      index: 0
       data: [0x60]
     command_on:
       data: [0x5F, 0x00, 0x00]

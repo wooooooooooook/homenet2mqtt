@@ -27,7 +27,7 @@ discovery:
     mask: [0xFF]
   dimensions:
     - parameter: "room_id"
-      offset: 2
+      index: 2
       # Room 1 -> 0x1F, Room 2 -> 0x2F ... (하위 4비트는 0xF ?)
       transform: "bitShiftRight(x, 4)"
   inference:
@@ -54,11 +54,11 @@ entities:
           # 원본 outlets.yaml: 0x1f, 0x2f, 0x3f, 0x4f, 0x8f
           # 즉 (room_id << 4) | 0x0F 가 맞음.
         state_on:
-          offset: '{{2 + 3 * outlet_num}}' # 5, 8, 11... -> 2 + 3*1=5, 2+3*2=8
+          index: '{{2 + 3 * outlet_num}}' # 5, 8, 11... -> 2 + 3*1=5, 2+3*2=8
           mask: [0x10]
           data: [0x10]
         state_off:
-          offset: '{{2 + 3 * outlet_num}}'
+          index: '{{2 + 3 * outlet_num}}'
           mask: [0x10]
           data: [0x00]
         command_on:
@@ -86,7 +86,7 @@ entities:
         accuracy_decimals: 1
         unit_of_measurement: 'W'
         state_number:
-          offset: '{{2 + 3 * outlet_num}}'
+          index: '{{2 + 3 * outlet_num}}'
           length: 3
           precision: 1
           signed: false

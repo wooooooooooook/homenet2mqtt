@@ -3,7 +3,7 @@
 
 v2.12.3
 - fix: CEL 분석기가 상세오류내용을 표시하도록 수정
-
+- chore: 문서와 예제에 남아있는 offset을 index로 수정
 
 v2.12.2
 - fix: select 엔티티에서 command_select를 해석하지 않는 문제 수정.

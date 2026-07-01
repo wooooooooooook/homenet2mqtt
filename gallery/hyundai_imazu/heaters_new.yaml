@@ -38,24 +38,24 @@ entities:
         data: [0x00, 0x01, 0x18, 0x04, 0x45, '{{0x10 + i - 1}}']
         mask: [0x00, 0xff, 0xff, 0xff, 0xfc, 0xff]
       state_temperature_current:
-        offset: 9
+        index: 9
         length: 1
         precision: 0
       state_temperature_target:
-        offset: 10
+        index: 10
         length: 1
         precision: 0
       state_off:
-        offset: 8
+        index: 8
         data: [0x04]
       state_heat:
-        offset: 8
+        index: 8
         data: [0x01]
       state_preset_away:
-        offset: 8
+        index: 8
         data: [0x07]
       state_preset_none:
-        offset: 8
+        index: 8
         data: [0x07]
         inverted: True
       
@@ -96,17 +96,17 @@ entities:
       # Base = 8 + (i-1)*3
       
       state_heat:
-        offset: '{{8 + (i-1)*3}}'
+        index: '{{8 + (i-1)*3}}'
         data: [0x01]
       state_off:
-        offset: '{{8 + (i-1)*3}}'
+        index: '{{8 + (i-1)*3}}'
         data: [0x04]
       state_temperature_current:
-        offset: '{{9 + (i-1)*3}}'
+        index: '{{9 + (i-1)*3}}'
         length: 1
         precision: 0
       state_temperature_target:
-        offset: '{{10 + (i-1)*3}}'
+        index: '{{10 + (i-1)*3}}'
         length: 1
         precision: 0
 

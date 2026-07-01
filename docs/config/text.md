@@ -39,7 +39,7 @@ text:
     max_length: 16
     command_text:
       data: [0x30, 0xd0, 0x00, 0x44, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
-      value_offset: 4
+      value_index: 4
       length: 6
       value_encode: ascii
 ```

@@ -49,9 +49,11 @@ export class LightDevice extends GenericDevice {
       value !== undefined
     ) {
       const command = [...entityConfig.command_brightness.data];
-      const valueOffset = (entityConfig.command_brightness as any).value_offset;
-      if (valueOffset !== undefined) {
-        command[valueOffset] = Math.round(value);
+      const valueIndex =
+        (entityConfig.command_brightness as any).value_index ??
+        (entityConfig.command_brightness as any).value_offset;
+      if (valueIndex !== undefined) {
+        command[valueIndex] = Math.round(value);
       }
       return this.framePacket(command);
     }
@@ -64,15 +66,17 @@ export class LightDevice extends GenericDevice {
       value !== undefined
     ) {
       const command = [...entityConfig.command_color_temp_kelvin.data];
-      const valueOffset = (entityConfig.command_color_temp_kelvin as any).value_offset;
+      const valueIndex =
+        (entityConfig.command_color_temp_kelvin as any).value_index ??
+        (entityConfig.command_color_temp_kelvin as any).value_offset;
       const length = (entityConfig.command_color_temp_kelvin as any).length || 2;
-      if (valueOffset !== undefined) {
+      if (valueIndex !== undefined) {
         const val = Math.round(value);
         if (length === 2) {
-          command[valueOffset] = (val >> 8) & 0xff;
-          command[valueOffset + 1] = val & 0xff;
+          command[valueIndex] = (val >> 8) & 0xff;
+          command[valueIndex + 1] = val & 0xff;
         } else {
-          command[valueOffset] = val;
+          command[valueIndex] = val;
         }
       }
       return this.framePacket(command);
@@ -85,15 +89,17 @@ export class LightDevice extends GenericDevice {
       value !== undefined
     ) {
       const command = [...entityConfig.command_color_temp.data];
-      const valueOffset = (entityConfig.command_color_temp as any).value_offset;
+      const valueIndex =
+        (entityConfig.command_color_temp as any).value_index ??
+        (entityConfig.command_color_temp as any).value_offset;
       const length = (entityConfig.command_color_temp as any).length || 2;
-      if (valueOffset !== undefined) {
+      if (valueIndex !== undefined) {
         const val = Math.round(value);
         if (length === 2) {
-          command[valueOffset] = (val >> 8) & 0xff;
-          command[valueOffset + 1] = val & 0xff;
+          command[valueIndex] = (val >> 8) & 0xff;
+          command[valueIndex + 1] = val & 0xff;
         } else {
-          command[valueOffset] = val;
+          command[valueIndex] = val;
         }
       }
       return this.framePacket(command);
@@ -106,15 +112,17 @@ export class LightDevice extends GenericDevice {
       value !== undefined
     ) {
       const command = [...entityConfig.command_color_temp.data];
-      const valueOffset = (entityConfig.command_color_temp as any).value_offset;
+      const valueIndex =
+        (entityConfig.command_color_temp as any).value_index ??
+        (entityConfig.command_color_temp as any).value_offset;
       const length = (entityConfig.command_color_temp as any).length || 2;
-      if (valueOffset !== undefined) {
+      if (valueIndex !== undefined) {
         const mired = Math.round(1000000 / Math.max(1, Number(value)));
         if (length === 2) {
-          command[valueOffset] = (mired >> 8) & 0xff;
-          command[valueOffset + 1] = mired & 0xff;
+          command[valueIndex] = (mired >> 8) & 0xff;
+          command[valueIndex + 1] = mired & 0xff;
         } else {
-          command[valueOffset] = mired;
+          command[valueIndex] = mired;
         }
       }
       return this.framePacket(command);
@@ -128,9 +136,11 @@ export class LightDevice extends GenericDevice {
       value !== undefined
     ) {
       const command = [...entityConfig.command_red.data];
-      const valueOffset = (entityConfig.command_red as any).value_offset;
-      if (valueOffset !== undefined) {
-        command[valueOffset] = Math.round(value);
+      const valueIndex =
+        (entityConfig.command_red as any).value_index ??
+        (entityConfig.command_red as any).value_offset;
+      if (valueIndex !== undefined) {
+        command[valueIndex] = Math.round(value);
       }
       return this.framePacket(command);
     }
@@ -141,9 +151,11 @@ export class LightDevice extends GenericDevice {
       value !== undefined
     ) {
       const command = [...entityConfig.command_green.data];
-      const valueOffset = (entityConfig.command_green as any).value_offset;
-      if (valueOffset !== undefined) {
-        command[valueOffset] = Math.round(value);
+      const valueIndex =
+        (entityConfig.command_green as any).value_index ??
+        (entityConfig.command_green as any).value_offset;
+      if (valueIndex !== undefined) {
+        command[valueIndex] = Math.round(value);
       }
       return this.framePacket(command);
     }
@@ -154,9 +166,11 @@ export class LightDevice extends GenericDevice {
       value !== undefined
     ) {
       const command = [...entityConfig.command_blue.data];
-      const valueOffset = (entityConfig.command_blue as any).value_offset;
-      if (valueOffset !== undefined) {
-        command[valueOffset] = Math.round(value);
+      const valueIndex =
+        (entityConfig.command_blue as any).value_index ??
+        (entityConfig.command_blue as any).value_offset;
+      if (valueIndex !== undefined) {
+        command[valueIndex] = Math.round(value);
       }
       return this.framePacket(command);
     }
@@ -169,9 +183,11 @@ export class LightDevice extends GenericDevice {
       value !== undefined
     ) {
       const command = [...entityConfig.command_white.data];
-      const valueOffset = (entityConfig.command_white as any).value_offset;
-      if (valueOffset !== undefined) {
-        command[valueOffset] = Math.round(value);
+      const valueIndex =
+        (entityConfig.command_white as any).value_index ??
+        (entityConfig.command_white as any).value_offset;
+      if (valueIndex !== undefined) {
+        command[valueIndex] = Math.round(value);
       }
       return this.framePacket(command);
     }

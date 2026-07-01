@@ -28,10 +28,10 @@ homenet_bridge:
         data: [0x30, 0xd0, 0x00, 0x0e, 0x00]
         mask: [0xff, 0xf0, 0xff, 0xff, 0xff]
       state_on:
-        offset: 10
+        index: 10
         data: [0xff]
       state_off:
-        offset: 10
+        index: 10
         data: [0x00]
       command_on: >-
         [[0x30, 0xbc, 0x00, 0x0e, 0x00, 0x01, 0x00, 0x00, 0xff, states['room_0_light_2']['state'] == 'ON' ? 0xff : 0x00, 0, 0, 0, 0, 0, 0], [0x30, 0xdc]]
@@ -44,10 +44,10 @@ homenet_bridge:
         data: [0x30, 0xd0, 0x00, 0x0e, 0x00]
         mask: [0xff, 0xf0, 0xff, 0xff, 0xff]
       state_on:
-        offset: 11
+        index: 11
         data: [0xff]
       state_off:
-        offset: 11
+        index: 11
         data: [0x00]
       command_on: >-
         [[0x30, 0xbc, 0x00, 0x0e, 0x00, 0x01, 0x00, 0x00, states['room_0_light_1']['state'] == 'ON' ? 0xff : 0x00, 0xff, 0, 0, 0, 0, 0, 0], [0x30, 0xdc]]
@@ -65,19 +65,19 @@ homenet_bridge:
         data: [0x30, 0xd0, 0x00, 0x36, 0x00]
         mask: [0xff, 0xf0, 0xff, 0xff, 0xff]
       state_temperature_current:
-        offset: 14
+        index: 14
         length: 1
         precision: 0
       state_temperature_target:
-        offset: 12
+        index: 12
         length: 1
         precision: 0
       state_off:
-        offset: 10
+        index: 10
         data: [0x00]
         mask: [0xF0]
       state_heat:
-        offset: 10
+        index: 10
         data: [0x10]
         mask: [0xF0]
       command_off: >-
@@ -97,10 +97,10 @@ homenet_bridge:
         data: [0x30, 0xd0, 0x00, 0x2c, 0x00]
         mask: [0xff, 0xf0, 0xff, 0xff, 0xff]
       state_open:
-        offset: 9
+        index: 9
         data: [0x01]
       state_closed:
-        offset: 9
+        index: 9
         data: [0x02]
       command_close:
         data:
@@ -133,7 +133,7 @@ homenet_bridge:
         data: [0x30, 0xd0, 0x00, 0x01, 0x00, 0x44, 0x00]
         mask: [0xff, 0xf0, 0xff, 0xff, 0xff, 0xff, 0xff]
       state_number:
-        offset: 11
+        index: 11
 
     - name: 'Elevator Direction'
       id: 'elevator_direction'
@@ -142,7 +142,7 @@ homenet_bridge:
         data: [0x30, 0xd0, 0x00, 0x01, 0x00, 0x44, 0x00]
         mask: [0xff, 0xf0, 0xff, 0xff, 0xff, 0xff, 0xff]
       state_number:
-        offset: 10
+        index: 10
         mapping:
           0: '정지'
           1: '하강'

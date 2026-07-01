@@ -136,7 +136,7 @@ entities:
         data: [0xB4, 0x00, 0x00]
         mask: [0x00, 0xFF, 0xFF]
       state_on:
-        offset: 1
+        index: 1
         data: [0xB5]
       state_off: data[1] == 0xB6 || data[1] == 0xB7
       type: binary_sensor
@@ -149,7 +149,7 @@ entities:
         data: [0x58, 0x00, 0x00]
         mask: [0xF0, 0xFF, 0xFF]
       state_on:
-        offset: 1
+        index: 1
         data: [0x5A]
       state_off: data[1] == 0x5C || data[1] == 0x5F
       type: binary_sensor

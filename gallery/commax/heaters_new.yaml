@@ -48,7 +48,7 @@ discovery:
     mask: [0xFE]
   dimensions:
     - parameter: "heater_count"
-      offset: 2
+      index: 2
   inference:
     strategy: max
 
@@ -80,29 +80,29 @@ entities:
         data: [0x80, 0x00, '{{i}}']
         mask: [0xF9, 0x00, 0xFF]
       state_temperature_current:
-        offset: 3
+        index: 3
         signed: False
         decode: bcd
       state_temperature_target:
-        offset: 4
+        index: 4
         signed: False
         decode: bcd
       state_off:
-        offset: 1
+        index: 1
         data: [0x80]
       state_heat:
-        offset: 1
+        index: 1
         data: [0x00]
         mask: [0x0F]
         inverted: True
       state_action_off:
-        offset: 1
+        index: 1
         data: [0x80]
       state_action_idle:
-        offset: 1
+        index: 1
         data: [0x81]
       state_action_heating:
-        offset: 1
+        index: 1
         data: [0x83]
       command_off:
         data: [0x04, '{{i}}', 0x04, 0x00, 0x00, 0x00, 0x00]

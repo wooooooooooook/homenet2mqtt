@@ -48,9 +48,11 @@ export class FanDevice extends GenericDevice {
       value !== undefined
     ) {
       const command = [...entityConfig.command_speed.data];
-      const valueOffset = (entityConfig.command_speed as any).value_offset;
-      if (valueOffset !== undefined) {
-        command[valueOffset] = Math.round(value);
+      const valueIndex =
+        (entityConfig.command_speed as any).value_index ??
+        (entityConfig.command_speed as any).value_offset;
+      if (valueIndex !== undefined) {
+        command[valueIndex] = Math.round(value);
       }
       return this.framePacket(command);
     }
@@ -63,9 +65,11 @@ export class FanDevice extends GenericDevice {
       value !== undefined
     ) {
       const command = [...entityConfig.command_percentage.data];
-      const valueOffset = (entityConfig.command_percentage as any).value_offset;
-      if (valueOffset !== undefined) {
-        command[valueOffset] = Math.round(value);
+      const valueIndex =
+        (entityConfig.command_percentage as any).value_index ??
+        (entityConfig.command_percentage as any).value_offset;
+      if (valueIndex !== undefined) {
+        command[valueIndex] = Math.round(value);
       }
       return this.framePacket(command);
     }
@@ -90,9 +94,11 @@ export class FanDevice extends GenericDevice {
       value !== undefined
     ) {
       const command = [...entityConfig.command_oscillating.data];
-      const valueOffset = (entityConfig.command_oscillating as any).value_offset;
-      if (valueOffset !== undefined) {
-        command[valueOffset] = value ? 1 : 0;
+      const valueIndex =
+        (entityConfig.command_oscillating as any).value_index ??
+        (entityConfig.command_oscillating as any).value_offset;
+      if (valueIndex !== undefined) {
+        command[valueIndex] = value ? 1 : 0;
       }
       return this.framePacket(command);
     }
@@ -105,9 +111,11 @@ export class FanDevice extends GenericDevice {
       value !== undefined
     ) {
       const command = [...entityConfig.command_direction.data];
-      const valueOffset = (entityConfig.command_direction as any).value_offset;
-      if (valueOffset !== undefined) {
-        command[valueOffset] = value === 'forward' ? 0 : 1;
+      const valueIndex =
+        (entityConfig.command_direction as any).value_index ??
+        (entityConfig.command_direction as any).value_offset;
+      if (valueIndex !== undefined) {
+        command[valueIndex] = value === 'forward' ? 0 : 1;
       }
       return this.framePacket(command);
     }

@@ -23,7 +23,7 @@ automation:
       - type: packet
         match:
           data: [0xAD, 0x41, 0x00, 0x6C]
-          offset: 0
+          index: 0
     guard: "get_from_states('elevator_call', 'state', 'off') == 'on'"
     then:
       - action: send_packet
@@ -40,7 +40,7 @@ automation:
       - type: packet
         match:
           data: [0xAD, 0x2F, 0x00, 0x02]
-          offset: 0
+          index: 0
     then:
       - action: send_packet
         data: [0xB0, 0x41, 0x00, 0x71]

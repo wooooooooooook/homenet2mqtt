@@ -50,7 +50,7 @@ entities:
       state:
         data: [0x02, 0xD1, 0x20]
       state_number:
-        offset: 8
+        index: 8
         length: 4
         decode: bcd
         precision: 2
@@ -64,7 +64,7 @@ entities:
       state:
         data: [0x02, 0xD1, 0x20]
       state_number:
-        offset: 13
+        index: 13
         length: 2
         decode: bcd
 
@@ -80,7 +80,7 @@ entities:
       state:
         data: [0x02, 0xD1, 0x20]
       state_number:
-        offset: 17
+        index: 17
         length: 3
         decode: bcd
         precision: 3
@@ -93,7 +93,7 @@ entities:
       state:
         data: [0x02, 0xD1, 0x20]
       state_number:
-        offset: 21
+        index: 21
         length: 2
         decode: bcd
         precision: 3
@@ -110,7 +110,7 @@ entities:
       state:
         data: [0x02, 0xD1, 0x20]
       state_number:
-        offset: 25
+        index: 25
         length: 4
         decode: bcd
         precision: 3
@@ -123,7 +123,7 @@ entities:
       state:
         data: [0x02, 0xD1, 0x20]
       state_number:
-        offset: 29
+        index: 29
         length: 2
         decode: bcd
         precision: 1

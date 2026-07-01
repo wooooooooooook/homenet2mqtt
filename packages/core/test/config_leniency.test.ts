@@ -9,7 +9,7 @@ describe('Config Leniency', () => {
         {
           id: 'test_sensor',
           state: { data: [0x01] },
-          state_text: { offset: 1, length: 1, type: 'byte' }, // Wrong property
+          state_text: { index: 1, length: 1, type: 'byte' }, // Wrong property
         },
       ],
     };
@@ -28,7 +28,7 @@ describe('Config Leniency', () => {
         {
           id: 'test_text',
           state: { data: [0x02] },
-          state_value: { offset: 2, length: 2 }, // Wrong property
+          state_value: { index: 2, length: 2 }, // Wrong property
         },
       ],
     };
@@ -47,7 +47,7 @@ describe('Config Leniency', () => {
         {
           id: 'test_sensor_val',
           state: { data: [0x03] },
-          state_value: { offset: 3, length: 1 }, // Wrong property
+          state_value: { index: 3, length: 1 }, // Wrong property
         },
       ],
     };
@@ -66,7 +66,7 @@ describe('Config Leniency', () => {
         {
           id: 'test_text_num',
           state: { data: [0x04] },
-          state_number: { offset: 4, length: 4 }, // Wrong property
+          state_number: { index: 4, length: 4 }, // Wrong property
         },
       ],
     };
@@ -104,7 +104,7 @@ describe('Config Leniency', () => {
       sensor: [
         {
           id: 'test_sensor_offset_alias',
-          state: { data: [0x06], offset: 1 },
+          state: { data: [0x06], index: 1 },
         },
       ],
     };

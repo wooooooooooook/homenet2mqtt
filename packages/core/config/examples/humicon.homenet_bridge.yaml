@@ -88,7 +88,7 @@ homenet_bridge:
         data: [0x01, 0x04, 0x2C]
         mask: [0xFF, 0xFF, 0xFF]
       state_number:
-        offset: 35
+        index: 35
         length: 2
         precision: 0
 
@@ -100,7 +100,7 @@ homenet_bridge:
         data: [0x01, 0x04, 0x2C]
         mask: [0xFF, 0xFF, 0xFF]
       state_number:
-        offset: 37
+        index: 37
         length: 2
         precision: 0
 
@@ -112,7 +112,7 @@ homenet_bridge:
         data: [0x01, 0x04, 0x2C]
         mask: [0xFF, 0xFF, 0xFF]
       state_number:
-        offset: 39
+        index: 39
         length: 2
         precision: 0
 
@@ -269,7 +269,7 @@ homenet_bridge:
         data: [0x01, 0x04, 0x2C]
         mask: [0xFF, 0xFF, 0xFF]
       state_number:
-        offset: 17
+        index: 17
         length: 2
         precision: 0
       # 목표 습도 설정: Address 4 (0x0004)

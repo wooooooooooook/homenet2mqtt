@@ -107,7 +107,7 @@ describe('DiscoveryManager', () => {
           type: 'light',
           discovery_always: true,
           state: {},
-          state_color_temp: { offset: 3, length: 2 },
+          state_color_temp: { index: 3, length: 2 },
           min_mireds: 153,
           max_mireds: 500,
         },

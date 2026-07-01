@@ -9,7 +9,6 @@ export interface SelectStateSchema extends StateNumSchema {
 
 export interface SelectCommandSchema extends CommandSchema {
   map?: { [key: string]: number };
-  value_offset?: number;
 }
 
 export interface SelectEntity extends EntityConfig {

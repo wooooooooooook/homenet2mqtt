@@ -22,19 +22,19 @@ entities:
       state_temperature_current: >-
         double(bitAnd(data[10], 0x7F)) + (bitAnd(data[10], 0x80) != 0 ? 0.5 : 0.0)
       state_off:
-        offset: 6
+        index: 6
         data: [0x00]
         mask: [0x01]
       state_heat:
-        offset: 6
+        index: 6
         data: [0x01]
         mask: [0x01]
       state_preset_away:
-        offset: 7
+        index: 7
         mask: [0x01]
         data: [0x04]
       state_preset_none:
-        offset: 7
+        index: 7
         mask: [0x01]
         data: [0x00]
       command_off:
@@ -65,19 +65,19 @@ entities:
       state_temperature_current: >-
         double(bitAnd(data[12], 0x7F)) + (bitAnd(data[12], 0x80) != 0 ? 0.5 : 0.0)
       state_off:
-        offset: 6
+        index: 6
         data: [0x00]
         mask: [0x02]
       state_heat:
-        offset: 6
+        index: 6
         data: [0x02]
         mask: [0x02]
       state_preset_away:
-        offset: 7
+        index: 7
         mask: [0x02]
         data: [0x02]
       state_preset_none:
-        offset: 7
+        index: 7
         mask: [0x02]
         data: [0x00]
       command_off:
@@ -108,19 +108,19 @@ entities:
       state_temperature_current: >-
         double(bitAnd(data[14], 0x7F)) + (bitAnd(data[14], 0x80) != 0 ? 0.5 : 0.0)
       state_off:
-        offset: 6
+        index: 6
         data: [0x00]
         mask: [0x04]
       state_heat:
-        offset: 6
+        index: 6
         data: [0x04]
         mask: [0x04]
       state_preset_away:
-        offset: 7
+        index: 7
         mask: [0x04]
         data: [0x04]
       state_preset_none:
-        offset: 7
+        index: 7
         mask: [0x04]
         data: [0x00]
       command_off:
@@ -151,19 +151,19 @@ entities:
       state_temperature_current: >-
         double(bitAnd(data[16], 0x7F)) + (bitAnd(data[16], 0x80) != 0 ? 0.5 : 0.0)
       state_off:
-        offset: 6
+        index: 6
         data: [0x00]
         mask: [0x08]
       state_heat:
-        offset: 6
+        index: 6
         data: [0x08]
         mask: [0x08]
       state_preset_away:
-        offset: 7
+        index: 7
         mask: [0x08]
         data: [0x08]
       state_preset_none:
-        offset: 7
+        index: 7
         mask: [0x08]
         data: [0x00]
       command_off:
@@ -191,19 +191,19 @@ entities:
       state_temperature_target: 'double(bitAnd(data[18], 0x7F)) + (bitAnd(data[18], 0x80) != 0 ? 0.5 : 0.0)'
       state_temperature_current: 'double(bitAnd(data[19], 0x7F)) + (bitAnd(data[19], 0x80) != 0 ? 0.5 : 0.0)'
       state_off:
-        offset: 6
+        index: 6
         data: [0x00]
         mask: [0x10]
       state_heat:
-        offset: 6
+        index: 6
         data: [0x10]
         mask: [0x10]
       state_preset_away:
-        offset: 7
+        index: 7
         mask: [0x10]
         data: [0x10]
       state_preset_none:
-        offset: 7
+        index: 7
         mask: [0x10]
         data: [0x10]
       command_off:

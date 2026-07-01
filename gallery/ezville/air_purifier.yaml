@@ -22,7 +22,7 @@ discovery:
     mask: [0xFF, 0x00, 0xFF]
   dimensions:
     - parameter: "purifier_count"
-      offset: 1
+      index: 1
   inference:
     strategy: count
 

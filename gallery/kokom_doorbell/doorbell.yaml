@@ -26,10 +26,10 @@ entities:
         data: [0x70, 0x90, 0x02, 0x02]
         mask: [0xF0, 0xF0, 0xFF, 0xFF]
       state_on:
-        offset: 15
+        index: 15
         data: [0x01]
       state_off:
-        offset: 15
+        index: 15
         data: [0x02]
 
     # 벨 울림 감지 (공동현관)
@@ -43,10 +43,10 @@ entities:
         data: [0x70, 0x90, 0x02, 0x08]
         mask: [0xF0, 0xF0, 0xFF, 0xFF]
       state_on:
-        offset: 15
+        index: 15
         data: [0x01]
       state_off:
-        offset: 15
+        index: 15
         data: [0x02]
 
   # 문열기 버튼

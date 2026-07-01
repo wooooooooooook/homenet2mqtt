@@ -25,7 +25,7 @@ entities:
       state_on: >-
         data[7] != 0x00
       state_off:  
-        offset: 7 
+        index: 7 
         data: [0x00]  
         
       # 전원 제어  

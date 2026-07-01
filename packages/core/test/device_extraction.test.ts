@@ -19,7 +19,7 @@ describe('Device.extractFromSchema', () => {
 
   it('should extract simple byte', () => {
     const packet = Buffer.from([0x01, 0x02, 0x03]);
-    const schema: StateNumSchema = { offset: 1, length: 1 };
+    const schema: StateNumSchema = { index: 1, length: 1 };
     expect(device.testExtractFromSchema(packet, schema)).toBe(0x02);
   });
 
@@ -29,7 +29,7 @@ describe('Device.extractFromSchema', () => {
     // result 0x0B = 11
     const packet = Buffer.from([0xab]);
     const schema: StateNumSchema = {
-      offset: 0,
+      index: 0,
       mask: 0x0f,
       length: 1,
     };
@@ -38,13 +38,13 @@ describe('Device.extractFromSchema', () => {
 
   it('should support multi-byte extraction (big endian)', () => {
     const packet = Buffer.from([0x01, 0x02]);
-    const schema: StateNumSchema = { offset: 0, length: 2 };
+    const schema: StateNumSchema = { index: 0, length: 2 };
     expect(device.testExtractFromSchema(packet, schema)).toBe(258);
   });
 
   it('should support little endian', () => {
     const packet = Buffer.from([0x01, 0x02]);
-    const schema: StateNumSchema = { offset: 0, length: 2, endian: 'little' };
+    const schema: StateNumSchema = { index: 0, length: 2, endian: 'little' };
     expect(device.testExtractFromSchema(packet, schema)).toBe(513);
   });
 
@@ -52,7 +52,7 @@ describe('Device.extractFromSchema', () => {
     // 0x00 inverted -> 0xFF. mask 0x01 -> 0x01
     const packet = Buffer.from([0x00]);
     const schema: StateNumSchema = {
-      offset: 0,
+      index: 0,
       mask: 0x01,
       inverted: true,
       length: 1,
@@ -67,7 +67,7 @@ describe('Device.extractFromSchema', () => {
   it('should return null if data mismatch', () => {
     const packet = Buffer.from([0x01]);
     const schema: StateNumSchema = {
-      offset: 0,
+      index: 0,
       data: [0x02], // Expect 0x02
       length: 1,
     };
@@ -77,7 +77,7 @@ describe('Device.extractFromSchema', () => {
   it('should extract if data matches', () => {
     const packet = Buffer.from([0x02]);
     const schema: StateNumSchema = {
-      offset: 0,
+      index: 0,
       data: [0x02],
       length: 1,
     };
@@ -88,7 +88,7 @@ describe('Device.extractFromSchema', () => {
     // 0xFF -> -1 (8 bit)
     const packet = Buffer.from([0xff]);
     const schema: StateNumSchema = {
-      offset: 0,
+      index: 0,
       length: 1,
       signed: true,
     };
@@ -99,7 +99,7 @@ describe('Device.extractFromSchema', () => {
     // 123 -> 1.23
     const packet = Buffer.from([123]);
     const schema: StateNumSchema = {
-      offset: 0,
+      index: 0,
       length: 1,
       precision: 2,
     };
@@ -109,7 +109,7 @@ describe('Device.extractFromSchema', () => {
   it('should handle mapping', () => {
     const packet = Buffer.from([0x01]);
     const schema: StateNumSchema = {
-      offset: 0,
+      index: 0,
       length: 1,
       mapping: { 1: 'ON', 0: 'OFF' },
     };
@@ -120,7 +120,7 @@ describe('Device.extractFromSchema', () => {
     // 0x12 -> 12
     const packet = Buffer.from([0x12]);
     const schema: StateNumSchema = {
-      offset: 0,
+      index: 0,
       length: 1,
       decode: 'bcd',
     };
@@ -131,7 +131,7 @@ describe('Device.extractFromSchema', () => {
     // 0x41 -> 'A'
     const packet = Buffer.from([0x41]);
     const schema: StateNumSchema = {
-      offset: 0,
+      index: 0,
       length: 1,
       decode: 'ascii',
     };

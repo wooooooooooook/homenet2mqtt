@@ -48,10 +48,12 @@ export class ValveDevice extends GenericDevice {
       value !== undefined
     ) {
       const command = [...entityConfig.command_position.data];
-      const valueOffset = (entityConfig.command_position as any).value_offset;
-      if (valueOffset !== undefined) {
+      const valueIndex =
+        (entityConfig.command_position as any).value_index ??
+        (entityConfig.command_position as any).value_offset;
+      if (valueIndex !== undefined) {
         const position = Math.min(100, Math.max(0, Math.round(value)));
-        command[valueOffset] = position;
+        command[valueIndex] = position;
       }
       return this.framePacket(command);
     }

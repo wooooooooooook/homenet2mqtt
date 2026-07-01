@@ -1,11 +1,11 @@
 // packages/core/src/domain/entities/text.entity.ts
 
 import { EntityConfig, CommandSchemaOrCEL } from './base.entity.js';
-import { StateSchema } from '../../protocol/types.js';
+import { StateSchema, StateNumSchema } from '../../protocol/types.js';
 
 export interface TextEntity extends EntityConfig {
   state?: StateSchema;
-  state_text?: StateSchema | string; // CEL for extracting text from packet
+  state_text?: StateNumSchema | string; // CEL for extracting text from packet
   min_length?: number;
   max_length?: number;
   pattern?: string; // regex pattern for validation

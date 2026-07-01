@@ -36,10 +36,10 @@ entities:
         data: [0xA0, 0x00, 0x01]
         mask: [0xF0, 0x00, 0xFF]
       state_on:
-        offset: 1
+        index: 1
         data: [0x01]
       state_off:
-        offset: 1
+        index: 1
         data: [0x00]
       command_on:
         data: [0x22, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00]

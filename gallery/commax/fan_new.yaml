@@ -40,7 +40,7 @@ discovery:
     mask: [0xFE]
   dimensions:
     - parameter: "fan_count"
-      offset: 2
+      index: 2
   inference:
     strategy: max
 
@@ -75,11 +75,11 @@ entities:
         data: [0xF0, 0x00, '{{i}}']
         mask: [0xF1, 0x00, 0xFF]
       state_on:
-        offset: 1
+        index: 1
         data: [0x00]
         inverted: True
       state_off:
-        offset: 1
+        index: 1
         data: [0x00]
       command_on:
         data: [0x78, '{{i}}', 0x01, 0x04, 0x00, 0x00, 0x00]
@@ -90,7 +90,7 @@ entities:
       command_speed: >-
         [[0x78, {{i}}, 0x02, x, 0x00, 0x00, 0x00], [0xF8, 0x04]]
       state_speed:
-        offset: 3
+        index: 3
         signed: False
       preset_modes:
         - 'Auto'

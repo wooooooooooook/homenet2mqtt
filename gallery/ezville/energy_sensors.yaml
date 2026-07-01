@@ -22,7 +22,7 @@ entities:
       accuracy_decimals: 2
       unit_of_measurement: 'W'
       state_number:
-        offset: 7
+        index: 7
         length: 3
         precision: 2
         signed: False
@@ -35,7 +35,7 @@ entities:
       accuracy_decimals: 1
       unit_of_measurement: 'kWh'
       state_number:
-        offset: 10
+        index: 10
         length: 3
         precision: 1
         signed: False
@@ -50,7 +50,7 @@ entities:
       command_update:
         data: [0x30, 0x01, 0x01, 0x00]
       state_number:
-        offset: 10
+        index: 10
         length: 3
         precision: 2
         signed: False
@@ -65,7 +65,7 @@ entities:
       command_update:
         data: [0x30, 0x02, 0x01, 0x00]
       state_number:
-        offset: 10
+        index: 10
         length: 3
         precision: 2
         signed: False

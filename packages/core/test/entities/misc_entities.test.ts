@@ -46,9 +46,9 @@ describe('Number Entity', () => {
     id: 'test_number',
     name: 'Test Number',
     type: 'number',
-    state: { offset: 0, data: [0x81] },
-    state_number: { offset: 1, length: 1 },
-    command_number: { data: [0x81, 0x01], value_offset: 2 },
+    state: { index: 0, data: [0x81] },
+    state_number: { index: 1, length: 1 },
+    command_number: { data: [0x81, 0x01], value_index: 2 },
     min_value: 0,
     max_value: 100,
   };
@@ -58,8 +58,17 @@ describe('Number Entity', () => {
     expect(device.parseData(Buffer.from([0x81, 50]))).toMatchObject({ value: 50 });
   });
 
-  it('should construct number command', () => {
+  it('should construct number command using value_index', () => {
     const device = new NumberDevice(numberConfig, protocolConfig);
+    expect(device.constructCommand('set', 42)).toEqual([0x81, 0x01, 42]);
+  });
+
+  it('should construct number command using legacy value_offset fallback', () => {
+    const legacyConfig = {
+      ...numberConfig,
+      command_number: { data: [0x81, 0x01], value_offset: 2 },
+    };
+    const device = new NumberDevice(legacyConfig, protocolConfig);
     expect(device.constructCommand('set', 42)).toEqual([0x81, 0x01, 42]);
   });
 });
@@ -69,9 +78,9 @@ describe('Select Entity', () => {
     id: 'test_select',
     name: 'Test Select',
     type: 'select',
-    state: { offset: 0, data: [0x82] },
-    state_select: { offset: 1, length: 1, map: { 1: 'Option A', 2: 'Option B' } },
-    command_select: { data: [0x82, 0x01], value_offset: 2, map: { 'Option A': 1, 'Option B': 2 } },
+    state: { index: 0, data: [0x82] },
+    state_select: { index: 1, length: 1, map: { 1: 'Option A', 2: 'Option B' } },
+    command_select: { data: [0x82, 0x01], value_index: 2, map: { 'Option A': 1, 'Option B': 2 } },
     options: ['Option A', 'Option B'],
   };
 
@@ -81,10 +90,23 @@ describe('Select Entity', () => {
     expect(device.parseData(Buffer.from([0x82, 2]))).toMatchObject({ option: 'Option B' });
   });
 
-  it('should construct select command', () => {
+  it('should construct select command using value_index', () => {
     const device = new SelectDevice(selectConfig, protocolConfig);
     expect(device.constructCommand('select', 'Option A')).toEqual([0x82, 0x01, 1]);
     expect(device.constructCommand('select', 'Option B')).toEqual([0x82, 0x01, 2]);
+  });
+
+  it('should construct select command using legacy value_offset fallback', () => {
+    const legacyConfig = {
+      ...selectConfig,
+      command_select: {
+        data: [0x82, 0x01],
+        value_offset: 2,
+        map: { 'Option A': 1, 'Option B': 2 },
+      },
+    };
+    const device = new SelectDevice(legacyConfig, protocolConfig);
+    expect(device.constructCommand('select', 'Option A')).toEqual([0x82, 0x01, 1]);
   });
 });
 

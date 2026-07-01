@@ -23,7 +23,7 @@
   - 텍스트 센서는 읽기 전용이라 `command_topic`이 없습니다.
 
 ## 예제 1: 스키마 기반 (ASCII 추출)
-패킷의 특정 오프셋에서 ASCII 문자열을 직접 읽어옵니다.
+패킷의 특정 인덱스에서 ASCII 문자열을 직접 읽어옵니다.
 ```yaml
 text_sensor:
   - id: elevator_status_msg
@@ -31,12 +31,12 @@ text_sensor:
     state:
       data: [0x30, 0xd0]
     state_text:
-      offset: 8
+      index: 8
       length: 4
 ```
 
 ## 예제 2: CEL 표현식 (상태 매핑)
-패킷 오프셋 8 바이트를 확인해 방향을 한글 문자열로 치환하는 예시입니다.
+패킷 인덱스 8 바이트를 확인해 방향을 한글 문자열로 치환하는 예시입니다.
 
 ```yaml
 text_sensor:
@@ -55,6 +55,6 @@ text_sensor:
 
 ## 작성 체크리스트
 1. 문자열 매핑이 필요한 경우 CEL 표현식을 사용하는 것이 가장 유연합니다.
-2. 패킷에서 직접 텍스트를 읽을 때는 `offset`과 `length`가 정확한지 확인하세요.
+2. 패킷에서 직접 텍스트를 읽을 때는 `index`와 `length`가 정확한지 확인하세요.
 3. 디스플레이용 내부 센서는 `internal: true`와 함께 사용해 MQTT 발표를 제한할 수 있습니다.
 4. 길이가 긴 메시지를 다룰 땐 `state_text` 대신 `text` 엔티티를 검토해 입력/출력 모두 지원하도록 합니다.

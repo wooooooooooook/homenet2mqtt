@@ -4,6 +4,14 @@ export interface CommandSchema {
   data?: number[];
   ack?: StateSchema | number[];
 
+  /**
+   * Byte position to insert the value (0-indexed).
+   */
+  value_index?: number;
+  /**
+   * Legacy alias for `value_index`.
+   * @deprecated Use `value_index` instead.
+   */
   value_offset?: number;
   value_encode?: DecodeEncodeType;
   length?: number;

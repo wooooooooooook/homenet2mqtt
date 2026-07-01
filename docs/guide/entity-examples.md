@@ -25,13 +25,13 @@ lock:
   - id: front_door
     name: "현관 도어락"
     state:
-      offset: 0
+      index: 0
       data: [0xA0]
     state_locked:
-      offset: 1
+      index: 1
       data: [0x01]
     state_unlocked:
-      offset: 1
+      index: 1
       data: [0x00]
     command_lock:
       data: [0xA0, 0x01]
@@ -45,22 +45,22 @@ lock:
   - id: entrance_gate
     name: "출입문"
     state:
-      offset: 0
+      index: 0
       data: [0xA1]
     state_locked:
-      offset: 1
+      index: 1
       data: [0x01]
     state_unlocked:
-      offset: 1
+      index: 1
       data: [0x00]
     state_locking:
-      offset: 1
+      index: 1
       data: [0x02]
     state_unlocking:
-      offset: 1
+      index: 1
       data: [0x03]
     state_jammed:
-      offset: 1
+      index: 1
       data: [0xFF]
     command_lock:
       data: [0xA1, 0x01]
@@ -87,17 +87,17 @@ number:
   - id: temp_setpoint
     name: "온도 설정값"
     state:
-      offset: 0
+      index: 0
       data: [0xB0]
     state_number:
-      offset: 1
+      index: 1
       length: 1
     min_value: 15
     max_value: 30
     step: 0.5
     command_number:
       data: [0xB0, 0x00]
-      value_offset: 1
+      value_index: 1
       length: 1
 ```
 
@@ -107,10 +107,10 @@ number:
   - id: humidity_target
     name: "목표 습도"
     state:
-      offset: 0
+      index: 0
       data: [0xB1]
     state_number:
-      offset: 1
+      index: 1
       length: 1
       precision: 0  # 소수점 없음
     min_value: 30
@@ -118,7 +118,7 @@ number:
     step: 5
     command_number:
       data: [0xB1, 0x00]
-      value_offset: 1
+      value_index: 1
 ```
 
 ### Multi-byte 값 예제
@@ -127,10 +127,10 @@ number:
   - id: timer_minutes
     name: "타이머 (분)"
     state:
-      offset: 0
+      index: 0
       data: [0xB2]
     state_number:
-      offset: 1
+      index: 1
       length: 2  # 2바이트 (0-65535)
       endian: big
     min_value: 0
@@ -138,7 +138,7 @@ number:
     step: 1
     command_number:
       data: [0xB2, 0x00, 0x00]
-      value_offset: 1
+      value_index: 1
       length: 2
 ```
 
@@ -154,7 +154,7 @@ select:
   - id: fan_mode
     name: "팬 모드"
     state:
-      offset: 0
+      index: 0
       data: [0xC0]
     options:
       - "자동"
@@ -172,7 +172,7 @@ select:
   - id: operation_mode
     name: "동작 모드"
     state:
-      offset: 0
+      index: 0
       data: [0xC1]
     options:
       - "OFF"
@@ -200,10 +200,10 @@ text_sensor:
   - id: device_status
     name: "기기 상태"
     state:
-      offset: 0
+      index: 0
       data: [0xD0]
     state_text:
-      offset: 1
+      index: 1
       length: 16  # 최대 16바이트 ASCII
 ```
 
@@ -213,10 +213,10 @@ text_sensor:
   - id: error_code
     name: "에러 코드"
     state:
-      offset: 0
+      index: 0
       data: [0xD1]
     state_text:
-      offset: 1
+      index: 1
       length: 4  # 4자 코드
 ```
 
@@ -237,16 +237,16 @@ text:
   - id: device_name
     name: "기기 이름"
     state:
-      offset: 0
+      index: 0
       data: [0xE0]
     state_text:
-      offset: 1
+      index: 1
       length: 16
     min_length: 1
     max_length: 16
     command_text:
       data: [0xE0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
-      value_offset: 1
+      value_index: 1
       length: 16
 ```
 
@@ -256,10 +256,10 @@ text:
   - id: door_pin
     name: "출입 비밀번호"
     state:
-      offset: 0
+      index: 0
       data: [0xE1]
     state_text:
-      offset: 1
+      index: 1
       length: 8
     min_length: 4
     max_length: 8
@@ -267,7 +267,7 @@ text:
     pattern: "^[0-9]+$"  # 숫자만 허용
     command_text:
       data: [0xE1, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
-      value_offset: 1
+      value_index: 1
       length: 8
 ```
 
@@ -288,22 +288,22 @@ climate:
   - id: living_room_ac
     name: "거실 에어컨"
     state:
-      offset: 0
+      index: 0
       data: [0x20]
     state_on:
-      offset: 1
+      index: 1
       data: [0x01]
     state_off:
-      offset: 1
+      index: 1
       data: [0x00]
     state_heat:
-      offset: 2
+      index: 2
       data: [0x01]
     state_cool:
-      offset: 2
+      index: 2
       data: [0x02]
     state_temperature:
-      offset: 3
+      index: 3
       length: 1
     command_on:
       data: [0x20, 0x01]
@@ -315,7 +315,7 @@ climate:
       data: [0x20, 0x01, 0x02]
     command_temperature:
       data: [0x20, 0x01, 0x00, 0x00]
-      value_offset: 3
+      value_index: 3
 ```
 
 ### 고급 기능 (습도, 팬, 스윙, 프리셋)
@@ -324,56 +324,56 @@ climate:
   - id: bedroom_ac
     name: "침실 에어컨"
     state:
-      offset: 0
+      index: 0
       data: [0x21]
     
     # 기본 모드
-    state_off: { offset: 1, data: [0x00] }
-    state_heat: { offset: 1, data: [0x01] }
-    state_cool: { offset: 1, data: [0x02] }
-    state_fan_only: { offset: 1, data: [0x03] }
-    state_dry: { offset: 1, data: [0x04] }
-    state_auto: { offset: 1, data: [0x05] }
+    state_off: { index: 1, data: [0x00] }
+    state_heat: { index: 1, data: [0x01] }
+    state_cool: { index: 1, data: [0x02] }
+    state_fan_only: { index: 1, data: [0x03] }
+    state_dry: { index: 1, data: [0x04] }
+    state_auto: { index: 1, data: [0x05] }
     
     # 온도
-    state_temperature: { offset: 2, length: 1 }
+    state_temperature: { index: 2, length: 1 }
     command_temperature:
       data: [0x21, 0x00, 0x00]
-      value_offset: 2
+      value_index: 2
     
     # 습도
-    state_humidity_current: { offset: 3, length: 1 }
-    state_humidity_target: { offset: 4, length: 1 }
+    state_humidity_current: { index: 3, length: 1 }
+    state_humidity_target: { index: 4, length: 1 }
     command_humidity:
       data: [0x21, 0x00, 0x00, 0x00, 0x00]
-      value_offset: 4
+      value_index: 4
     
     # 스윙 모드
-    state_swing_off: { offset: 5, data: [0x00] }
-    state_swing_vertical: { offset: 5, data: [0x01] }
-    state_swing_horizontal: { offset: 5, data: [0x02] }
-    state_swing_both: { offset: 5, data: [0x03] }
+    state_swing_off: { index: 5, data: [0x00] }
+    state_swing_vertical: { index: 5, data: [0x01] }
+    state_swing_horizontal: { index: 5, data: [0x02] }
+    state_swing_both: { index: 5, data: [0x03] }
     command_swing:
       data: [0x21, 0x00, 0x00, 0x00, 0x00, 0x00]
-      value_offset: 5
+      value_index: 5
     
     # 팬 모드
-    state_fan_auto: { offset: 6, data: [0x00] }
-    state_fan_low: { offset: 6, data: [0x01] }
-    state_fan_medium: { offset: 6, data: [0x02] }
-    state_fan_high: { offset: 6, data: [0x03] }
+    state_fan_auto: { index: 6, data: [0x00] }
+    state_fan_low: { index: 6, data: [0x01] }
+    state_fan_medium: { index: 6, data: [0x02] }
+    state_fan_high: { index: 6, data: [0x03] }
     command_fan:
       data: [0x21, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
-      value_offset: 6
+      value_index: 6
     
     # 프리셋 모드
-    state_preset_none: { offset: 7, data: [0x00] }
-    state_preset_eco: { offset: 7, data: [0x01] }
-    state_preset_sleep: { offset: 7, data: [0x02] }
-    state_preset_boost: { offset: 7, data: [0x03] }
+    state_preset_none: { index: 7, data: [0x00] }
+    state_preset_eco: { index: 7, data: [0x01] }
+    state_preset_sleep: { index: 7, data: [0x02] }
+    state_preset_boost: { index: 7, data: [0x03] }
     command_preset:
       data: [0x21, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
-      value_offset: 7
+      value_index: 7
 ```
 
 **지원하는 기능:**
@@ -395,16 +395,16 @@ light:
   - id: living_room_light
     name: "거실 조명"
     state:
-      offset: 0
+      index: 0
       data: [0x30]
     state_on:
-      offset: 1
+      index: 1
       data: [0x01]
     state_off:
-      offset: 1
+      index: 1
       data: [0x00]
     state_brightness:
-      offset: 2
+      index: 2
       length: 1  # 0-255
     command_on:
       data: [0x30, 0x01]
@@ -412,7 +412,7 @@ light:
       data: [0x30, 0x00]
     command_brightness:
       data: [0x30, 0x01, 0x00]
-      value_offset: 2
+      value_index: 2
 ```
 
 ### RGB 색상 제어
@@ -421,27 +421,27 @@ light:
   - id: rgb_strip
     name: "RGB 조명"
     state:
-      offset: 0
+      index: 0
       data: [0x31]
-    state_on: { offset: 1, data: [0x01] }
-    state_off: { offset: 1, data: [0x00] }
+    state_on: { index: 1, data: [0x01] }
+    state_off: { index: 1, data: [0x00] }
     
     # RGB 색상
-    state_red: { offset: 2, length: 1 }
-    state_green: { offset: 3, length: 1 }
-    state_blue: { offset: 4, length: 1 }
+    state_red: { index: 2, length: 1 }
+    state_green: { index: 3, length: 1 }
+    state_blue: { index: 4, length: 1 }
     
     command_on: { data: [0x31, 0x01] }
     command_off: { data: [0x31, 0x00] }
     command_red:
       data: [0x31, 0x01, 0x00, 0x00, 0x00]
-      value_offset: 2
+      value_index: 2
     command_green:
       data: [0x31, 0x01, 0x00, 0x00, 0x00]
-      value_offset: 3
+      value_index: 3
     command_blue:
       data: [0x31, 0x01, 0x00, 0x00, 0x00]
-      value_offset: 4
+      value_index: 4
 ```
 
 ### 색온도 제어
@@ -450,12 +450,12 @@ light:
   - id: white_light
     name: "백색 조명"
     state:
-      offset: 0
+      index: 0
       data: [0x32]
-    state_on: { offset: 1, data: [0x01] }
-    state_off: { offset: 1, data: [0x00] }
-    state_brightness: { offset: 2, length: 1 }
-    state_color_temp_kelvin: { offset: 3, length: 2 }  # kelvin
+    state_on: { index: 1, data: [0x01] }
+    state_off: { index: 1, data: [0x00] }
+    state_brightness: { index: 2, length: 1 }
+    state_color_temp_kelvin: { index: 3, length: 2 }  # kelvin
     
     min_color_temp_kelvin: 2000  # 따뜻한 백색
     max_color_temp_kelvin: 6500  # 차가운 백색
@@ -464,10 +464,10 @@ light:
     command_off: { data: [0x32, 0x00] }
     command_brightness:
       data: [0x32, 0x01, 0x00]
-      value_offset: 2
+      value_index: 2
     command_color_temp_kelvin:
       data: [0x32, 0x01, 0x00, 0x00, 0x00]
-      value_offset: 3
+      value_index: 3
       length: 2
 ```
 
@@ -490,18 +490,18 @@ fan:
   - id: ceiling_fan
     name: "천장 선풍기"
     state:
-      offset: 0
+      index: 0
       data: [0x40]
-    state_on: { offset: 1, data: [0x01] }
-    state_off: { offset: 1, data: [0x00] }
+    state_on: { index: 1, data: [0x01] }
+    state_off: { index: 1, data: [0x00] }
     state_speed:
-      offset: 2
+      index: 2
       length: 1  # 0-100%
     command_on: { data: [0x40, 0x01] }
     command_off: { data: [0x40, 0x00] }
     command_speed:
       data: [0x40, 0x01, 0x00]
-      value_offset: 2
+      value_index: 2
 ```
 
 ### 고급 기능 (프리셋, 회전, 방향)
@@ -510,16 +510,16 @@ fan:
   - id: air_purifier
     name: "공기청정기"
     state:
-      offset: 0
+      index: 0
       data: [0x41]
-    state_on: { offset: 1, data: [0x01] }
-    state_off: { offset: 1, data: [0x00] }
+    state_on: { index: 1, data: [0x01] }
+    state_off: { index: 1, data: [0x00] }
     
     # 속도
-    state_percentage: { offset: 2, length: 1 }
+    state_percentage: { index: 2, length: 1 }
     command_percentage:
       data: [0x41, 0x01, 0x00]
-      value_offset: 2
+      value_index: 2
     
     # 프리셋 모드
     preset_modes:
@@ -527,22 +527,22 @@ fan:
       - "절전"
       - "터보"
       - "취침"
-    state_preset_mode: { offset: 3, data: [0x00] }  # CEL로 파싱
+    state_preset_mode: { index: 3, data: [0x00] }  # CEL로 파싱
     command_preset_mode:
       data: [0x41, 0x01, 0x00, 0x00]
-      value_offset: 3
+      value_index: 3
     
     # 회전 (좌우)
-    state_oscillating: { offset: 4, data: [0x01] }
+    state_oscillating: { index: 4, data: [0x01] }
     command_oscillating:
       data: [0x41, 0x01, 0x00, 0x00, 0x00]
-      value_offset: 4
+      value_index: 4
     
     # 방향
-    state_direction: { offset: 5, data: [0x00] }  # 0=forward, 1=reverse
+    state_direction: { index: 5, data: [0x00] }  # 0=forward, 1=reverse
     command_direction:
       data: [0x41, 0x01, 0x00, 0x00, 0x00, 0x00]
-      value_offset: 5
+      value_index: 5
 ```
 
 **지원하는 기능:**
@@ -563,10 +563,10 @@ valve:
   - id: water_valve
     name: "급수 밸브"
     state:
-      offset: 0
+      index: 0
       data: [0x50]
-    state_open: { offset: 1, data: [0x01] }
-    state_closed: { offset: 1, data: [0x00] }
+    state_open: { index: 1, data: [0x01] }
+    state_closed: { index: 1, data: [0x00] }
     command_open: { data: [0x50, 0x01] }
     command_close: { data: [0x50, 0x00] }
 ```
@@ -577,20 +577,20 @@ valve:
   - id: living_blind
     name: "거실 블라인드"
     state:
-      offset: 0
+      index: 0
       data: [0x51]
-    state_open: { offset: 1, data: [0x64] }  # 100%
-    state_closed: { offset: 1, data: [0x00] }  # 0%
-    state_opening: { offset: 2, data: [0x01] }
-    state_closing: { offset: 2, data: [0x02] }
+    state_open: { index: 1, data: [0x64] }  # 100%
+    state_closed: { index: 1, data: [0x00] }  # 0%
+    state_opening: { index: 2, data: [0x01] }
+    state_closing: { index: 2, data: [0x02] }
     
     # 위치 0-100%
     state_position:
-      offset: 1
+      index: 1
       length: 1
     command_position:
       data: [0x51, 0x00]
-      value_offset: 1
+      value_index: 1
     
     # 정지
     command_stop: { data: [0x51, 0xFF] }
@@ -625,7 +625,7 @@ multi-byte 값을 사용할 때 엔디안을 지정할 수 있습니다:
 
 ```yaml
 state_number:
-  offset: 1
+  index: 1
   length: 2
   endian: big  # 또는 little
 ```
@@ -635,7 +635,7 @@ state_number:
 
 ```yaml
 state_number:
-  offset: 1
+  index: 1
   length: 1
   precision: 1  # 값 / 10 (예: 235 -> 23.5)
 ```

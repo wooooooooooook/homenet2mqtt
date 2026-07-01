@@ -14,14 +14,14 @@ entities:
     state:
       data: [0x0E, 0x14, 0x81]
     state_on:
-      offset: 6
+      index: 6
       data: [0x43]
       mask: [0x0F]
     state_off:
-      offset: 6
+      index: 6
       data: [0x02]
     state_brightness:
-      offset: 6
+      index: 6
       length: 1
       mapping:
         '19': 63

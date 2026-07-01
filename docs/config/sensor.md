@@ -30,7 +30,7 @@ sensor:
     state:
       data: [0x23]
     state_number:
-      offset: 2
+      index: 2
       length: 1
       precision: 0
 ```

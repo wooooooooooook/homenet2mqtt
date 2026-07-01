@@ -65,10 +65,10 @@ entities:
       # 가스밸브 상태: packet[5] (0=닫힘/OFF, 1=열림/ON)
       state_open: 
         data: [0x01]
-        offset: 5
+        index: 5
       state_closed: 
         data: [0x00]
-        offset: 5
+        index: 5
       # 가스밸브는 안전상 원격으로 열 수 없음 (닫기만 가능)
       command_close:
         script: "make_gas_packet"

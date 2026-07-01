@@ -8,14 +8,14 @@
 ## 옵션 필드 (상태)
 - `state`: 상태 패킷 서명.
 - `state_select`: 패킷 바이트를 옵션 문자열로 변환. 다음 방식 중 선택:
-  - **스키마 기반**: `offset`, `length`, `map` 속성으로 숫자→문자열 매핑 ([`StateNumSchema`](./schemas.md#statenumschema) 참고)
+  - **스키마 기반**: `index`, `length`, `map` 속성으로 숫자→문자열 매핑 ([`StateNumSchema`](./schemas.md#statenumschema) 참고)
   - **CEL 표현식**: 문자열을 반환하는 CEL 표현식
 - `initial_option`: 장치 초기화 시 기본 선택값.
 - `restore_value`: 재시작 시 마지막 값을 복원할지 여부(Boolean).
 
 ## 옵션 필드 (명령)
 - `command_select`: 선택된 옵션을 장치에 반영하는 명령. 다음 방식 중 선택:
-  - **스키마 기반**: `data`, `value_offset`, `map` 으로 문자열→숫자 매핑
+  - **스키마 기반**: `data`, `value_index`, `map` 으로 문자열→숫자 매핑
   - **CEL 표현식**: `xstr` 변수로 선택된 옵션을 받아 바이트 배열 반환
 
 ## MQTT 디스커버리 메시지 구성
@@ -40,7 +40,7 @@ select:
     state:
       data: [0x20, 0x01, 0x71]
     state_select:
-      offset: 8
+      index: 8
       length: 1
       map:
         0: "auto"
@@ -48,7 +48,7 @@ select:
         2: "turbo"
     command_select:
       data: [0x20, 0x71, 0x01, 0x11, 0x00]
-      value_offset: 4
+      value_index: 4
       map:
         "auto": 0
         "sleep": 1

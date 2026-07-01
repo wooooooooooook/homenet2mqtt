@@ -43,12 +43,12 @@ export class SelectDevice extends GenericDevice {
 
       if (commandSchema.map && commandSchema.map[value] !== undefined) {
         const mappedValue = commandSchema.map[value];
-        const valueOffset = commandSchema.value_offset;
+        const valueIndex = commandSchema.value_index ?? commandSchema.value_offset;
 
-        if (valueOffset !== undefined) {
+        if (valueIndex !== undefined) {
           // Insert mapped value
           // Assuming 1 byte for now unless length specified
-          command[valueOffset] = mappedValue;
+          command[valueIndex] = mappedValue;
         }
       }
 

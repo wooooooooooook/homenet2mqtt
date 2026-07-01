@@ -21,10 +21,10 @@ entities:
       state:
         data: [0x50, 0x11, 0x81]
       state_on:
-        offset: 7 # Header 6 + Byte 2 (index 1)
+        index: 7 # Header 6 + Byte 2 (index 1)
         data: [0x01] # >0
       state_off:
-        offset: 7
+        index: 7
         data: [0x00]
       command_on:
         data: [0x50, 0x11, 0x43, 0x02, 0x01, 0x01, 0x00, 0x00]
@@ -36,10 +36,10 @@ entities:
       state:
         data: [0x50, 0x11, 0x81]
       state_on:
-        offset: 13 # Header 6 + Stride 6 + Byte 2 (index 1)
+        index: 13 # Header 6 + Stride 6 + Byte 2 (index 1)
         data: [0x01]
       state_off:
-        offset: 13
+        index: 13
         data: [0x00]
       command_on:
         data: [0x50, 0x11, 0x43, 0x02, 0x02, 0x01, 0x00, 0x00]
@@ -52,10 +52,10 @@ entities:
     #   state:
     #     data: [0x50, 0x11, 0x81]
     #   state_on:
-    #     offset: 19 # Header 6 + Stride 6*2 + Byte 2 (index 1)
+    #     index: 19 # Header 6 + Stride 6*2 + Byte 2 (index 1)
     #     data: [0x01]
     #   state_off:
-    #     offset: 20
+    #     index: 20
     #     data: [0x00]
     #   command_on:
     #     data: [0x50, 0x11, 0x43, 0x02, 0x03, 0x01, 0x00, 0x00]
@@ -68,10 +68,10 @@ entities:
       state:
         data: [0x50, 0x12, 0x81]
       state_on:
-        offset: 8
+        index: 8
         data: [0x01]
       state_off:
-        offset: 7
+        index: 7
         data: [0x00]
       command_on:
         data: [0x50, 0x12, 0x43, 0x02, 0x01, 0x01, 0x00, 0x00]
@@ -83,10 +83,10 @@ entities:
       state:
         data: [0x50, 0x12, 0x81]
       state_on:
-        offset: 13
+        index: 13
         data: [0x01]
       state_off:
-        offset: 13
+        index: 13
         data: [0x00]
       command_on:
         data: [0x50, 0x12, 0x43, 0x02, 0x02, 0x01, 0x00, 0x00]
@@ -99,10 +99,10 @@ entities:
       state:
         data: [0x50, 0x13, 0x81]
       state_on:
-        offset: 7
+        index: 7
         data: [0x01]
       state_off:
-        offset: 7
+        index: 7
         data: [0x00]
       command_on:
         data: [0x50, 0x13, 0x43, 0x02, 0x01, 0x01, 0x00, 0x00]
@@ -114,10 +114,10 @@ entities:
       state:
         data: [0x50, 0x13, 0x81]
       state_on:
-        offset: 13
+        index: 13
         data: [0x01]
       state_off:
-        offset: 13
+        index: 13
         data: [0x00]
       command_on:
         data: [0x50, 0x13, 0x43, 0x02, 0x02, 0x01, 0x00, 0x00]
@@ -130,10 +130,10 @@ entities:
       state:
         data: [0x50, 0x14, 0x81]
       state_on:
-        offset: 7
+        index: 7
         data: [0x01]
       state_off:
-        offset: 7
+        index: 7
         data: [0x00]
       command_on:
         data: [0x50, 0x14, 0x43, 0x02, 0x01, 0x01, 0x00, 0x00]
@@ -145,10 +145,10 @@ entities:
       state:
         data: [0x50, 0x14, 0x81]
       state_on:
-        offset: 13
+        index: 13
         data: [0x01]
       state_off:
-        offset: 13
+        index: 13
         data: [0x00]
       command_on:
         data: [0x50, 0x14, 0x43, 0x02, 0x02, 0x01, 0x00, 0x00]
@@ -161,10 +161,10 @@ entities:
       state:
         data: [0x50, 0x15, 0x81]
       state_on:
-        offset: 7
+        index: 7
         data: [0x01]
       state_off:
-        offset: 7
+        index: 7
         data: [0x00]
       command_on:
         data: [0x50, 0x15, 0x43, 0x02, 0x01, 0x01, 0x00, 0x00]
@@ -176,10 +176,10 @@ entities:
       state:
         data: [0x50, 0x15, 0x81]
       state_on:
-        offset: 13
+        index: 13
         data: [0x01]
       state_off:
-        offset: 13
+        index: 13
         data: [0x00]
       command_on:
         data: [0x50, 0x15, 0x43, 0x02, 0x02, 0x01, 0x00, 0x00]
@@ -195,7 +195,7 @@ entities:
       unit_of_measurement: 'W'
       state_number:
         # Header 6 + Byte 3,4 (index 2,3)
-        offset: 8
+        index: 8
         length: 2
         precision: 2
 
@@ -206,7 +206,7 @@ entities:
       unit_of_measurement: 'W'
       state_number:
         # Header 6 + Stride 6 + Byte 3,4
-        offset: 14
+        index: 14
         length: 2
         precision: 2
 
@@ -217,7 +217,7 @@ entities:
         data: [0x50, 0x12, 0x81]
       unit_of_measurement: 'W'
       state_number:
-        offset: 8
+        index: 8
         length: 2
         precision: 2
 
@@ -227,7 +227,7 @@ entities:
         data: [0x50, 0x12, 0x81]
       unit_of_measurement: 'W'
       state_number:
-        offset: 14
+        index: 14
         length: 2
         precision: 2
 
@@ -238,7 +238,7 @@ entities:
         data: [0x50, 0x13, 0x81]
       unit_of_measurement: 'W'
       state_number:
-        offset: 8
+        index: 8
         length: 2
         precision: 2
 
@@ -248,7 +248,7 @@ entities:
         data: [0x50, 0x13, 0x81]
       unit_of_measurement: 'W'
       state_number:
-        offset: 14
+        index: 14
         length: 2
         precision: 2
 
@@ -259,7 +259,7 @@ entities:
         data: [0x50, 0x14, 0x81]
       unit_of_measurement: 'W'
       state_number:
-        offset: 8
+        index: 8
         length: 2
         precision: 2
 
@@ -269,7 +269,7 @@ entities:
         data: [0x50, 0x14, 0x81]
       unit_of_measurement: 'W'
       state_number:
-        offset: 14
+        index: 14
         length: 2
         precision: 2
 
@@ -280,7 +280,7 @@ entities:
         data: [0x50, 0x15, 0x81]
       unit_of_measurement: 'W'
       state_number:
-        offset: 8
+        index: 8
         length: 2
         precision: 2
 
@@ -290,7 +290,7 @@ entities:
         data: [0x50, 0x15, 0x81]
       unit_of_measurement: 'W'
       state_number:
-        offset: 14
+        index: 14
         length: 2
         precision: 2
 
@@ -301,10 +301,10 @@ entities:
       state:
         data: [0x50, 0x11, 0x81]
       state_on:
-        offset: 6
+        index: 6
         data: [0x01]
       state_off:
-        offset: 6
+        index: 6
         data: [0x00]
 
     - id: 'auto_1_2'
@@ -312,10 +312,10 @@ entities:
       state:
         data: [0x50, 0x11, 0x81]
       state_on:
-        offset: 12
+        index: 12
         data: [0x01]
       state_off:
-        offset: 12
+        index: 12
         data: [0x00]
 
     # Room 2 Auto Check
@@ -324,10 +324,10 @@ entities:
       state:
         data: [0x50, 0x12, 0x81]
       state_on:
-        offset: 6
+        index: 6
         data: [0x01]
       state_off:
-        offset: 6
+        index: 6
         data: [0x00]
 
     - id: 'auto_2_2'
@@ -335,10 +335,10 @@ entities:
       state:
         data: [0x50, 0x12, 0x81]
       state_on:
-        offset: 12
+        index: 12
         data: [0x01]
       state_off:
-        offset: 12
+        index: 12
         data: [0x00]
 
     # Room 3 Auto Check
@@ -347,10 +347,10 @@ entities:
       state:
         data: [0x50, 0x13, 0x81]
       state_on:
-        offset: 6
+        index: 6
         data: [0x01]
       state_off:
-        offset: 6
+        index: 6
         data: [0x00]
 
     - id: 'auto_3_2'
@@ -358,10 +358,10 @@ entities:
       state:
         data: [0x50, 0x13, 0x81]
       state_on:
-        offset: 12
+        index: 12
         data: [0x01]
       state_off:
-        offset: 12
+        index: 12
         data: [0x00]
 
     # Room 4 Auto Check
@@ -370,10 +370,10 @@ entities:
       state:
         data: [0x50, 0x14, 0x81]
       state_on:
-        offset: 6
+        index: 6
         data: [0x01]
       state_off:
-        offset: 6
+        index: 6
         data: [0x00]
 
     - id: 'auto_4_2'
@@ -381,10 +381,10 @@ entities:
       state:
         data: [0x50, 0x14, 0x81]
       state_on:
-        offset: 12
+        index: 12
         data: [0x01]
       state_off:
-        offset: 12
+        index: 12
         data: [0x00]
 
     # Room 5 Auto Check
@@ -393,10 +393,10 @@ entities:
       state:
         data: [0x50, 0x15, 0x81]
       state_on:
-        offset: 6
+        index: 6
         data: [0x01]
       state_off:
-        offset: 6
+        index: 6
         data: [0x00]
 
     - id: 'auto_5_2'
@@ -404,8 +404,8 @@ entities:
       state:
         data: [0x50, 0x15, 0x81]
       state_on:
-        offset: 12
+        index: 12
         data: [0x01]
       state_off:
-        offset: 12
+        index: 12
         data: [0x00]

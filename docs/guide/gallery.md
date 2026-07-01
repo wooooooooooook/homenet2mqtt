@@ -22,7 +22,7 @@
 
 ## 기존 엔티티 매칭
 
-스니펫을 적용할 때, **엔티티 ID가 다르더라도 패킷 패턴(예: `state.data`, `state.mask`, `state.offset`, `command_*` 설정)이 동일하면 기존 엔티티와 매칭**됩니다. 이 경우 UI에서 다음 중 하나를 선택해 적용할 수 있습니다.
+스니펫을 적용할 때, **엔티티 ID가 다르더라도 패킷 패턴(예: `state.data`, `state.mask`, `state.index`, `command_*` 설정)이 동일하면 기존 엔티티와 매칭**됩니다. 이 경우 UI에서 다음 중 하나를 선택해 적용할 수 있습니다.
 
 - **기존 항목 덮어쓰기**: 매칭된 기존 엔티티를 스니펫 내용으로 교체합니다.
 - **새 항목으로 추가**: 스니펫 ID 그대로 새 엔티티를 추가합니다.
@@ -270,12 +270,12 @@ discovery:
   match:
     data: [0xB0]              # 매칭할 바이트 패턴
     mask: [0xF0]              # 비교 마스크 (선택)
-    offset: 0                 # 시작 오프셋 (기본값: 0)
+    index: 0                  # 시작 인덱스 (기본값: 0)
 
   # 디바이스 식별 차원 정의
   dimensions:
     - parameter: "light_count"
-      offset: 2               # data[2]에서 디바이스 ID 추출
+      index: 2                # data[2]에서 디바이스 ID 추출
 
   # 추론 전략
   inference:
@@ -291,7 +291,8 @@ discovery:
 | --- | --- | --- | --- |
 | `data` | ✓ | 매칭할 바이트 패턴 | `[0xB0]`, `[0x0E, 0x00, 0x81]` |
 | `mask` |  | 비교 시 적용할 마스크 | `[0xF0]` (상위 4비트만 비교) |
-| `offset` |  | 패킷 내 비교 시작 위치 (기본: 0) | `0` |
+| `index` |  | 패킷 내 비교 시작 위치 (기본: 0) | `0` |
+| `offset` |  | `index`의 레거시 alias. 기존 설정 호환용으로만 유지됩니다. | `0` |
 
 #### 고급 매칭 (Regex, Condition, AnyOf)
 
@@ -328,7 +329,8 @@ match:
 | 속성 | 필수 | 설명 |
 | --- | --- | --- |
 | `parameter` | ✓ | 연결할 파라미터 이름 |
-| `offset` | ✓ | 값을 추출할 바이트 오프셋 |
+| `index` | ✓ | 값을 추출할 바이트 인덱스 |
+| `offset` |  | `index`의 레거시 alias. 기존 설정 호환용으로만 유지됩니다. |
 | `mask` |  | 추출 시 적용할 비트 마스크 |
 | `transform` |  | CEL 표현식으로 값 변환 (Context: `x`) |
 
@@ -337,7 +339,7 @@ match:
 ```yaml
 dimensions:
   - parameter: "room_id"
-    offset: 1
+    index: 1
     transform: "bitShiftRight(x, 4)" # 상위 4비트 추출
 ```
 

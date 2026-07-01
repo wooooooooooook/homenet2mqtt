@@ -23,7 +23,7 @@ discovery:
     mask: [0xFF, 0xFF, 0xFF]
   dimensions:
     - parameter: "room_count"
-      offset: 5
+      index: 5
   inference:
     strategy: max
 
@@ -109,10 +109,10 @@ entities:
       state_heat:
         data: [0x11]
         mask: [0x01]
-        offset: 6
+        index: 6
       state_off: 
         data: [0x02]
-        offset: 6
+        index: 6
       command_heat:
         script: "make_heating_packet"
         args:

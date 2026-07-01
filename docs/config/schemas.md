@@ -122,7 +122,8 @@ state_value:
 | `data` | `number[]` | - | 전송할 기본 패킷 데이터. |
 | `ack` | `StateSchema` \| `number[]` | - | ACK 패킷 매칭 패턴. 정의된 경우 이 패턴에 매칭되는 패킷 **또는** `state:change` 이벤트가 발생하면 명령이 성공한 것으로 간주합니다. 배열로 지정하면 `{ data: [...] }` 형태의 `StateSchema`로 자동 변환됩니다. **`index`를 생략하면 헤더 다음 바이트부터 매칭하고, `index`를 명시(0 포함)하면 헤더 포함 전체 패킷 기준으로 매칭**합니다. |
 
-| `value_offset` | `number` | - | 입력값을 삽입할 인덱스. |
+| `value_index` | `number` | - | 입력값을 삽입할 인덱스. |
+| `value_offset` | `number` | - | `value_index`의 레거시 alias 입니다. 기존 설정 호환용으로만 유지됩니다. |
 | `length` | `number` | `1` | 입력값이 차지할 바이트 길이. |
 | `precision` | `number` | `0` | 소수점 자릿수. 예: `precision: 1`이면 `23.5` → `235`로 인코딩. |
 | `endian` | `'big'` \| `'little'` | `'big'` | 다바이트 값의 바이트 순서. |
@@ -143,7 +144,7 @@ state_value:
 
 | 구분 | 스키마 기반 | CEL 표현식 |
 |------|-----------|-----------|
-| **형식** | `{ data: [...], value_offset: N }` | 문자열 `"[0x01, int(x)]"` |
+| **형식** | `{ data: [...], value_index: N }` | 문자열 `"[0x01, int(x)]"` |
 | **성능** | 빠름 (직접 연산) | 약간 느림 (파서 오버헤드) |
 | **가독성** | 높음 | 복잡한 로직에 적합 |
 | **유연성** | 단순 값 삽입 | 조건부/복잡한 로직 가능 |
@@ -163,7 +164,7 @@ command_on:
 ```yaml
 command_temperature:
   data: [0x21, 0x00]
-  value_offset: 1
+  value_index: 1
 ```
 
 **3. 소수점 처리 (0.5도 단위)**
@@ -171,7 +172,7 @@ command_temperature:
 ```yaml
 command_temperature:
   data: [0x21, 0x00]
-  value_offset: 1
+  value_index: 1
   precision: 1
 ```
 
@@ -180,7 +181,7 @@ command_temperature:
 ```yaml
 command_temperature:
   data: [0x21, 0x00]
-  value_offset: 1
+  value_index: 1
   value_encode: signed_byte_half_degree
 ```
 
@@ -189,7 +190,7 @@ command_temperature:
 ```yaml
 command_number:
   data: [0xD1, 0x00, 0x00]
-  value_offset: 1
+  value_index: 1
   length: 2
   value_encode: bcd
 ```
@@ -199,7 +200,7 @@ command_number:
 ```yaml
 command_text:
   data: [0xD1, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
-  value_offset: 1
+  value_index: 1
   length: 8
   value_encode: ascii
 ```

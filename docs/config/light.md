@@ -69,10 +69,10 @@ light:
       data: [0x30, 0xd0, 0x00, 0x0e, 0x00]
       mask: [0xff, 0xf0, 0xff, 0xff, 0xff]
     state_on:
-      offset: 8
+      index: 8
       data: [0xff]
     state_off:
-      offset: 8
+      index: 8
       data: [0x00]
     command_on: >-
       [0x30, 0xbc, 0x00, 0x0e, 0x00, 0x01, 0x00, 0x00, 0xff, get_from_states('room_0_light_2', 'state') == 'ON' ? 0xff : 0x00, 0, 0, 0, 0, 0, 0]
@@ -95,10 +95,10 @@ light:
     state:
       data: [0x40, 0x01]
     state_on:
-      offset: 2
+      index: 2
       data: [0x01]
     state_off:
-      offset: 2
+      index: 2
       data: [0x00]
     command_on:
       data: [0x40, 0x11, 0x01]

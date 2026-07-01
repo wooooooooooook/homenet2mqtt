@@ -19,10 +19,10 @@ entities:
       state:
         data: [0xB0,0x4E]
       state_on:
-        offset: 4
+        index: 4
         data: [0x00]
       state_off:
-        offset: 4
+        index: 4
         data: [0x01]
       state_speed: >-
         data[2] == 0x03 ? 1 : (data[2] == 0x02 ? 2 : (data[2] == 0x01 ? 3 : 0))

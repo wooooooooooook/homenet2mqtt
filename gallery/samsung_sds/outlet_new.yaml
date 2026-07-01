@@ -22,7 +22,7 @@ discovery:
     mask: [0xFF, 0xFF]
   dimensions:
     - parameter: "outlet_count"
-      offset: 2
+      index: 2
   inference:
     strategy: max
 
@@ -39,11 +39,11 @@ entities:
       state:
         data: [0xB0, 0x4A, '{{i}}']
       state_on:
-        offset: 3
+        index: 3
         data: [0x01]
         mask: [0x0F]
       state_off:
-        offset: 3
+        index: 3
         data: [0x00]
         mask: [0x0F]
       command_on:
@@ -64,11 +64,11 @@ entities:
       state:
         data: [0xB0, 0x4A, '{{i}}']
       state_on:
-        offset: 3
+        index: 3
         data: [0x10]
         mask: [0xF0]
       state_off:
-        offset: 3
+        index: 3
         data: [0x00]
         mask: [0xF0]
       command_on:
@@ -92,5 +92,5 @@ entities:
       state:
         data: [0xB0, 0x4A, '{{i}}']
       state_number:
-        offset: 4
+        index: 4
         length: 2

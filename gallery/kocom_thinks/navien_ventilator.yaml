@@ -20,10 +20,10 @@ entities:
         data: [0x30, 0xd0, 0x00, 0x48, 0x00]
         mask: [0xff, 0xf0, 0xff, 0xff, 0xff]
       state_on:
-        offset: 10
+        index: 10
         data: [0x11]
       state_off:
-        offset: 10
+        index: 10
         data: [0x00]
       state_speed: >-
         if (data[10] === 0x40) 1

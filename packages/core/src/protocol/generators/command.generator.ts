@@ -206,9 +206,16 @@ export class CommandGenerator {
     }
     let commandData = [...commandSchema.data];
 
-    if (value !== undefined && commandSchema.value_offset !== undefined) {
+    if (
+      value !== undefined &&
+      (commandSchema.value_index ?? commandSchema.value_offset) !== undefined
+    ) {
       const encodedValue = this.encodeValue(value, commandSchema);
-      commandData.splice(commandSchema.value_offset, encodedValue.length, ...encodedValue);
+      commandData.splice(
+        commandSchema.value_index ?? commandSchema.value_offset!,
+        encodedValue.length,
+        ...encodedValue,
+      );
     }
 
     const txHeader = packetDefaults.tx_header || [];

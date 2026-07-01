@@ -22,7 +22,7 @@ discovery:
     mask: [0xFF, 0xFF]
   dimensions:
     - parameter: "heater_count"
-      offset: 2
+      index: 2
   inference:
     strategy: max
     
@@ -41,17 +41,17 @@ entities:
       state:
         data: [0xB0, 0x7C, '{{i}}']
       state_temperature_current:
-        offset: 5
+        index: 5
         length: 1
       state_temperature_target:
-        offset: 4
+        index: 4
         length: 1
       state_off:
-        offset: 3
+        index: 3
         data: [0x00]
         mask: [0x01]
       state_heat:
-        offset: 3
+        index: 3
         data: [0x01]
         mask: [0x01]
       command_off:

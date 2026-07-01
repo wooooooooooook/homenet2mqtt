@@ -36,68 +36,68 @@ automation:
           target_id: heater_1
           state:
             state_heat:
-              offset: 9
+              index: 9
               data: [0x01]
             state_off:
-              offset: 9
+              index: 9
               data: [0x04]
             state_temperature_current:
-              offset: 10
+              index: 10
               length: 1
               precision: 0
             state_temperature_target:
-              offset: 11
+              index: 11
               length: 1
               precision: 0
         - action: update_state
           target_id: heater_2
           state:
             state_heat:
-              offset: 12
+              index: 12
               data: [0x01]
             state_off:
-              offset: 12
+              index: 12
               data: [0x04]
             state_temperature_current:
-              offset: 13
+              index: 13
               length: 1
               precision: 0
             state_temperature_target:
-              offset: 14
+              index: 14
               length: 1
               precision: 0
         - action: update_state
           target_id: heater_3
           state:
             state_heat:
-              offset: 15
+              index: 15
               data: [0x01]
             state_off:
-              offset: 15
+              index: 15
               data: [0x04]
             state_temperature_current:
-              offset: 16
+              index: 16
               length: 1
               precision: 0
             state_temperature_target:
-              offset: 17
+              index: 17
               length: 1
               precision: 0
         - action: update_state
           target_id: heater_4
           state:
             state_heat:
-              offset: 18
+              index: 18
               data: [0x01]
             state_off:
-              offset: 18
+              index: 18
               data: [0x04]
             state_temperature_current:
-              offset: 19
+              index: 19
               length: 1
               precision: 0
             state_temperature_target:
-              offset: 20
+              index: 20
               length: 1
               precision: 0
             

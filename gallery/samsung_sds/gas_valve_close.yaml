@@ -18,10 +18,10 @@ entities:
       state:
         data: [0xFF, 0xFF]
       state_open:
-        offset: 2
+        index: 2
         data: [0x00]
       state_closed:
-        offset: 2
+        index: 2
         data: [0x01]
       command_close:
         data: [0xAB, 0x78, 0x00]
@@ -41,8 +41,8 @@ automation:
         target_id: gas_valve
         state:
           state_open:
-            offset: 2
+            index: 2
             data: [0x00]
           state_closed:
-            offset: 2
+            index: 2
             data: [0x01]

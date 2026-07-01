@@ -20,15 +20,15 @@ entities:
         data: [0x30, 0xDC, 0x00, 0x48, 0x00]
         mask: [0xFF, 0xF0, 0xFF, 0xFF, 0xFF]
       state_on:
-        offset: 10
+        index: 10
         data: [0x11]
         mask: [0xFF]
       state_off:
-        offset: 10
+        index: 10
         data: [0x00]
         mask: [0xFF]
       state_speed:
-        offset: 12
+        index: 12
         mask: 0xF0
         mapping:
           0x40: 33

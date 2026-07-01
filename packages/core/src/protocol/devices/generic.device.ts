@@ -462,12 +462,13 @@ export class GenericDevice extends Device {
   /**
    * Constructs a command packet by inserting a numeric value at the specified offset.
    *
-   * This is a shared helper for entities that use CommandSchema with value_offset,
+   * This is a shared helper for entities that use CommandSchema with value_index,
    * such as `number.command_number`, `climate.command_temperature`, etc.
    *
    * Supported options in commandSchema:
    * - `data`: Base command packet byte array
-   * - `value_offset`: Byte position to insert the value (0-indexed)
+   * - `value_index`: Byte position to insert the value (0-indexed)
+   * - `value_offset`: Legacy alias for `value_index`. Use `value_index` instead.
    * - `length`: Number of bytes for the value (default: 1)
    * - `precision`: Decimal places to scale (e.g., 1 means multiply by 10, default: 0)
    * - `endian`: Byte order ('big' or 'little', default: 'big')
@@ -484,9 +485,9 @@ export class GenericDevice extends Device {
     }
 
     const command = [...commandSchema.data];
-    const valueOffset = commandSchema.value_offset;
+    const valueIndex = commandSchema.value_index ?? commandSchema.value_offset;
 
-    if (valueOffset !== undefined) {
+    if (valueIndex !== undefined) {
       const length = commandSchema.length || 1;
       const precision = commandSchema.precision || 0;
       const endian = commandSchema.endian || 'big';
@@ -522,14 +523,14 @@ export class GenericDevice extends Device {
       }
 
       // Extend command array if needed to fit the encoded bytes
-      const requiredLength = valueOffset + encodedBytes.length;
+      const requiredLength = valueIndex + encodedBytes.length;
       while (command.length < requiredLength) {
         command.push(0);
       }
 
       // Insert encoded bytes into command
       for (let i = 0; i < encodedBytes.length; i++) {
-        command[valueOffset + i] = encodedBytes[i];
+        command[valueIndex + i] = encodedBytes[i];
       }
     }
 

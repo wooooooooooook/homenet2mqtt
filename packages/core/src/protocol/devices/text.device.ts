@@ -83,21 +83,23 @@ export class TextDevice extends GenericDevice {
       if (typeof entityConfig.command_text !== 'string' && entityConfig.command_text?.data) {
         const command = [...entityConfig.command_text.data];
 
-        // If there's a value offset, insert the text as ASCII bytes
-        const valueOffset = (entityConfig.command_text as any).value_offset;
-        if (valueOffset !== undefined) {
+        // If there's a value index, insert the text as ASCII bytes
+        const valueIndex =
+          (entityConfig.command_text as any).value_index ??
+          (entityConfig.command_text as any).value_offset;
+        if (valueIndex !== undefined) {
           const maxLength =
             (entityConfig.command_text as any).length || entityConfig.max_length || 16;
           const textStr = String(value);
 
           // Insert text bytes into command
           for (let i = 0; i < Math.min(textStr.length, maxLength); i++) {
-            command[valueOffset + i] = textStr.charCodeAt(i);
+            command[valueIndex + i] = textStr.charCodeAt(i);
           }
 
           // Pad with null bytes if needed
           for (let i = textStr.length; i < maxLength; i++) {
-            command[valueOffset + i] = 0x00;
+            command[valueIndex + i] = 0x00;
           }
         }
 

@@ -33,10 +33,10 @@ discovery:
     mask: [0xF0, 0x00, 0xFF]
   dimensions:
     - parameter: "room_id"
-      offset: 1
+      index: 1
       transform: "bitAnd(x, 0x0F)"
     - parameter: "light_count"
-      offset: 6
+      index: 6
       detect: "active_bits"
   inference:
     strategy: "unique_tuples"

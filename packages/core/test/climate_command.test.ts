@@ -81,20 +81,20 @@ describe('Climate Command Packet Generation', () => {
             data: [0x7c, 0x01],
           },
           state_temperature_current: {
-            offset: 4,
+            index: 4,
             length: 1,
           },
           state_temperature_target: {
-            offset: 3,
+            index: 3,
             length: 1,
           },
           state_off: {
-            offset: 2,
+            index: 2,
             data: [0x00],
             mask: [0x01],
           },
           state_heat: {
-            offset: 2,
+            index: 2,
             data: [0x01],
             mask: [0x01],
           },

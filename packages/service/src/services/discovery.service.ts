@@ -11,6 +11,12 @@ import { CelExecutor } from '@rs485-homenet/core';
 export interface DiscoveryMatch {
   data?: number[];
   mask?: number[];
+  /** 패킷 내 비교 시작 위치 (기본값: 0). */
+  index?: number;
+  /**
+   * Legacy alias for `index`.
+   * @deprecated Use `index` instead.
+   */
   offset?: number;
   any_of?: DiscoveryMatch[];
   regex?: string; // Regex on Hex String (e.g. "B0 41 .* 02")
@@ -19,7 +25,13 @@ export interface DiscoveryMatch {
 
 export interface DiscoveryDimension {
   parameter: string;
-  offset: number;
+  /** 값을 추출할 바이트 인덱스. */
+  index?: number;
+  /**
+   * Legacy alias for `index`.
+   * @deprecated Use `index` instead.
+   */
+  offset?: number;
   mask?: number;
   transform?: string; // CEL Expression (x is the value)
   detect?: 'active_bits';
@@ -136,7 +148,7 @@ function matchesCondition(
   // Ensure we don't skip this if regex/condition matched but data is also provided.
   // All non-undefined constraints must match efficiently.
   if (match.data) {
-    const offset = match.offset ?? defaultOffset ?? 0;
+    const offset = match.index ?? match.offset ?? defaultOffset ?? 0;
     const data = match.data;
     const mask = match.mask ?? data.map(() => 0xff);
     const bytes = packet.bytes;
@@ -209,13 +221,14 @@ function evaluateTransform(value: number, transform: string, packet?: number[]):
  * Extract value from a packet for a dimension
  */
 function extractDimensionValue(packet: number[], dimension: DiscoveryDimension): number | null {
-  const { offset, mask, transform, detect } = dimension;
+  const { index, offset, mask, transform, detect } = dimension;
+  const byteIndex = index ?? offset ?? 0;
 
-  if (packet.length <= offset) {
+  if (packet.length <= byteIndex) {
     return null;
   }
 
-  let value = packet[offset];
+  let value = packet[byteIndex];
 
   // Apply mask if specified
   if (typeof mask === 'number') {

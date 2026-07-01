@@ -23,11 +23,11 @@ homenet_bridge:
       state:
         data: [0xB0, 0x79, 0x21]
       state_on:
-        offset: 3
+        index: 3
         data: [0x01]
         mask: [0x01]
       state_off:
-        offset: 3
+        index: 3
         data: [0x00]
         mask: [0x01]
       command_on:
@@ -42,11 +42,11 @@ homenet_bridge:
       state:
         data: [0xB0, 0x79, 0x13]
       state_on:
-        offset: 3
+        index: 3
         data: [0x02]
         mask: [0x02]
       state_off:
-        offset: 3
+        index: 3
         data: [0x00]
         mask: [0x02]
       command_on:
@@ -68,17 +68,17 @@ homenet_bridge:
       state:
         data: [0xB0, 0x7C, 0x01]
       state_temperature_current:
-        offset: 5
+        index: 5
         length: 1
       state_temperature_target:
-        offset: 4
+        index: 4
         length: 1
       state_off:
-        offset: 3
+        index: 3
         data: [0x00]
         mask: [0x01]
       state_heat:
-        offset: 3
+        index: 3
         data: [0x01]
         mask: [0x01]
       command_off:
@@ -101,17 +101,17 @@ homenet_bridge:
       state:
         data: [0xB0, 0x7C, 0x02]
       state_temperature_current:
-        offset: 5
+        index: 5
         length: 1
       state_temperature_target:
-        offset: 4
+        index: 4
         length: 1
       state_off:
-        offset: 3
+        index: 3
         data: [0x00]
         mask: [0x01]
       state_heat:
-        offset: 3
+        index: 3
         data: [0x01]
         mask: [0x01]
       command_off:
@@ -131,10 +131,10 @@ homenet_bridge:
       state:
         data: [0xB0, 0x4E]
       state_on:
-        offset: 4
+        index: 4
         data: [0x00]
       state_off:
-        offset: 4
+        index: 4
         data: [0x01]
       state_speed: >-
         data[2] == 0x03 ? 1 : (data[2] == 0x02 ? 2 : (data[2] == 0x01 ? 3 : 0))
@@ -155,11 +155,11 @@ homenet_bridge:
       state:
         data: [0xB0, 0x4A, 0x01]
       state_on:
-        offset: 3
+        index: 3
         data: [0x01]
         mask: [0x0F]
       state_off:
-        offset: 3
+        index: 3
         data: [0x00]
         mask: [0x0F]
       command_on:
@@ -175,11 +175,11 @@ homenet_bridge:
       state:
         data: [0xB0, 0x4A, 0x01]
       state_on:
-        offset: 3
+        index: 3
         data: [0x10]
         mask: [0xF0]
       state_off:
-        offset: 3
+        index: 3
         data: [0x00]
         mask: [0xF0]
       command_on:
@@ -199,5 +199,5 @@ homenet_bridge:
       state:
         data: [0xB0, 0x4A, 0x01]
       state_number:
-        offset: 4
+        index: 4
         length: 2

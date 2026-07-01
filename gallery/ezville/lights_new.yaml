@@ -33,7 +33,7 @@ discovery:
     mask: [0xFF]
   dimensions:
     - parameter: "room_id"
-      offset: 2
+      index: 2
       # Room ID 0x11 -> 1, 0x12 -> 2
       transform: "bitAnd(x, 0x0F)"
   inference:
@@ -52,12 +52,12 @@ entities:
           state:
             data: [0x0E, '{{0x10 + room.room_id}}', 0x81]
           state_on:
-            offset: 6
+            index: 6
             data: [0x00]
             mask: [0xFF]
             inverted: true
           state_off:
-            offset: 6
+            index: 6
             data: [0x00]
             mask: [0xFF]
           command_on:
@@ -77,10 +77,10 @@ entities:
           state:
             data: [0x0E, '{{0x10 + room.room_id}}', 0x81]
           state_on:
-            offset: '{{4 + light_num}}'
+            index: '{{4 + light_num}}'
             data: [0x01]
           state_off:
-            offset: '{{4 + light_num}}'
+            index: '{{4 + light_num}}'
             data: [0x00]
           command_on:
             data: [0x0E, '{{0x10 + room.room_id}}', 0x41, 0x03, '{{light_num}}', 0x01, 0x00]

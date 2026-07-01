@@ -40,10 +40,10 @@ binary_sensor:
       data: [0xB4, 0x00, 0x00]
       mask: [0xB4, 0xFF, 0xFF]
     state_on:
-      offset: 5
+      index: 5
       data: [0xB5]
     state_off:
-      offset: 5
+      index: 5
       data: [0xB6]
 ```
 
@@ -57,7 +57,7 @@ binary_sensor:
     name: 'Door Bell CEL'
     state:
       data: [0xB4]
-      offset: 0
+      index: 0
     # data[1]이 0xB5면 ON, 아니면 OFF 반환
     state_state: "data[1] == 0xB5 ? 'ON' : 'OFF'"
 ```
@@ -66,4 +66,4 @@ binary_sensor:
 
 1. `mask`를 활용해 공통 헤더를 고정하고 이벤트 바이트만 비교하면 노이즈 패킷을 줄일 수 있습니다.
 2. 엣지 케이스가 있을 경우 `state`를 포괄적으로 지정하고 `state_on/off`로 세부 상태를 나눕니다.
-3. 입력이 래치형이거나 다중 비트를 사용한다면 `offset`과 `mask`를 주석으로 남겨 향후 유지보수를 돕습니다.
+3. 입력이 래치형이거나 다중 비트를 사용한다면 `index`와 `mask`를 주석으로 남겨 향후 유지보수를 돕습니다.

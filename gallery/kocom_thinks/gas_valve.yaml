@@ -20,10 +20,10 @@ entities:
         data: [0x30, 0xd0, 0x00, 0x2c, 0x00]
         mask: [0xff, 0xf0, 0xff, 0xff, 0xff]
       state_open:
-        offset: 9
+        index: 9
         data: [0x01]
       state_closed:
-        offset: 9
+        index: 9
         data: [0x01]
         inverted: true
       command_close:

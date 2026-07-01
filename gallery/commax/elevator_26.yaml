@@ -38,7 +38,7 @@ entities:
       state:
         data: [0x26]
       state_number:
-        offset: 5
+        index: 5
         length: 1
         precision: 0
         decode: bcd

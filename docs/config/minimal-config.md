@@ -34,10 +34,10 @@ homenet_bridge:
       state:
         data: [0x01, 0x00]
       state_on:
-        offset: 0
+        index: 0
         data: [0x01]
       state_off:
-        offset: 0
+        index: 0
         data: [0x00]
       command_on:
         data: [0x01, 0x01]

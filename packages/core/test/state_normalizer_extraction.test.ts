@@ -7,7 +7,7 @@ describe('normalizeDeviceState extraction', () => {
     const config = {
       type: 'sensor',
       state_number: {
-        offset: 0,
+        index: 0,
         length: 2,
         endian: 'big',
       },
@@ -21,7 +21,7 @@ describe('normalizeDeviceState extraction', () => {
     const config = {
       type: 'sensor',
       state_number: {
-        offset: 0,
+        index: 0,
         length: 2,
         endian: 'little',
       },
@@ -35,7 +35,7 @@ describe('normalizeDeviceState extraction', () => {
     const config = {
       type: 'sensor',
       state_number: {
-        offset: 0,
+        index: 0,
         length: 1,
         decode: 'bcd',
       },
@@ -49,7 +49,7 @@ describe('normalizeDeviceState extraction', () => {
     const config = {
       type: 'climate',
       state_temperature_current: {
-        offset: 0,
+        index: 0,
         length: 1,
         decode: 'signed_byte_half_degree',
         signed: true,
@@ -80,7 +80,7 @@ describe('normalizeDeviceState extraction', () => {
     const config = {
       type: 'sensor',
       state_number: {
-        offset: 0,
+        index: 0,
         length: 1,
         signed: true,
       },

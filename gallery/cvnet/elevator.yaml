@@ -33,7 +33,7 @@ entities:
       state:
         data: [0x20, 0x01, 0x22, 0x81]
       state_number:
-        offset: 5
+        index: 5
 
   button:
     - id: 'elevator_call'

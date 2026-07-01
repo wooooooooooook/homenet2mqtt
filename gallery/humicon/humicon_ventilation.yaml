@@ -63,7 +63,7 @@ entities:
         data: [0x01, 0x04, 0x2C]
         mask: [0xFF, 0xFF, 0xFF]
       state_number:
-        offset: 35
+        index: 35
         length: 2
         precision: 0
 
@@ -76,7 +76,7 @@ entities:
         data: [0x01, 0x04, 0x2C]
         mask: [0xFF, 0xFF, 0xFF]
       state_number:
-        offset: 37
+        index: 37
         length: 2
         precision: 0
 
@@ -89,7 +89,7 @@ entities:
         data: [0x01, 0x04, 0x2C]
         mask: [0xFF, 0xFF, 0xFF]
       state_number:
-        offset: 39
+        index: 39
         length: 2
         precision: 0
 
@@ -128,11 +128,11 @@ entities:
         data: [0x01, 0x03, 0x0C]
         mask: [0xFF, 0xFF, 0xFF]
       state_on:
-        offset: 3
+        index: 3
         data: [0x00, 0x01]
         length: 2
       state_off:
-        offset: 3
+        index: 3
         data: [0x00, 0x00]
         length: 2
       # Write: 01 06 00 0E 00 01 [CRC] (Address 14, RC Lock ON)
@@ -152,11 +152,11 @@ entities:
         data: [0x01, 0x04, 0x2C]
         mask: [0xFF, 0xFF, 0xFF]
       state_on:
-        offset: 9
+        index: 9
         data: [0x00, 0x01]
         length: 2
       state_off:
-        offset: 9
+        index: 9
         data: [0x00, 0x00]
         length: 2
       # 풍량 Address 8 (0:꺼짐 1:약 2:중 3:강 4:자동) → offset 3 + 8*2 = 19
@@ -253,7 +253,7 @@ entities:
         data: [0x01, 0x04, 0x2C]
         mask: [0xFF, 0xFF, 0xFF]
       state_number:
-        offset: 17
+        index: 17
         length: 2
         precision: 0
       # 목표 습도 설정: 01 06 00 04 00 [value] [CRC]

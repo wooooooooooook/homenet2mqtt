@@ -113,7 +113,7 @@ entities:
         data: [0x61, 0x80]
         mask: [0xFF, 0xFF]
       state_number:
-        offset: 7
+        index: 7
         length: 1
       command_number:
         script: "make_fan_timer_packet"
@@ -129,11 +129,11 @@ entities:
       state_on: 
         data: [0x10]
         mask: [0x10]
-        offset: 5
+        index: 5
       state_off: 
         data: [0x00]
         mask: [0x10]
-        offset: 5
+        index: 5
       command_on:
         script: "make_fan_packet"
         args:
@@ -156,11 +156,11 @@ entities:
       state_on: 
         data: [0x01]
         mask: [0x01]
-        offset: 5
+        index: 5
       state_off: 
         data: [0x00]
         mask: [0x01]
-        offset: 5
+        index: 5
       # 풍속 상태: 바이트6 (0=OFF, 1=약, 2=중, 3=강) -> 0-100% 변환
       # 0->0%, 1->33%, 2->67%, 3->100%
       state_speed: "int(data[6] * 100 / 3)"

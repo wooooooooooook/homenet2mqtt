@@ -41,7 +41,7 @@ export class ClimateDevice extends GenericDevice {
     if (value !== undefined) {
       if (
         commandName === 'temperature' &&
-        commandConfig?.value_offset !== undefined &&
+        (commandConfig?.value_index ?? commandConfig?.value_offset) !== undefined &&
         commandConfig?.data
       ) {
         const data = this.insertValueIntoCommand(commandConfig, value);
@@ -49,7 +49,7 @@ export class ClimateDevice extends GenericDevice {
       }
       if (
         commandName === 'humidity' &&
-        commandConfig?.value_offset !== undefined &&
+        (commandConfig?.value_index ?? commandConfig?.value_offset) !== undefined &&
         commandConfig?.data
       ) {
         const data = this.insertValueIntoCommand(commandConfig, value);

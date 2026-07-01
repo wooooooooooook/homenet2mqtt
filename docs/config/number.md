@@ -13,7 +13,8 @@
 ## 옵션 필드 (명령)
 - 값 설정: `command_number` — 입력값을 패킷에 삽입하거나 CEL 표현식으로 조합.
   - `data`: 기본 명령 패킷 바이트 배열
-  - `value_offset`: 값을 삽입할 바이트 위치 (0부터 시작)
+  - `value_index`: 값을 삽입할 바이트 위치 (0부터 시작)
+  - `value_offset`: `value_index`의 레거시 alias (동일하게 동작)
   - `length`: 값이 차지하는 바이트 수 (기본값: 1)
   - `precision`: 소수점 자릿수 (예: 1이면 값에 10을 곱함, 기본값: 0)
   - `endian`: 바이트 순서 (`big` 또는 `little`, 기본값: `big`)
@@ -46,12 +47,12 @@ number:
     state:
       data: [0x30, 0xd0, 0x00, 0x36, 0x00]
     state_number:
-      offset: 10
+      index: 10
       length: 1
       precision: 0
     command_number:
       data: [0x30, 0xb8, 0x00, 0x36, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00]
-      value_offset: 9
+      value_index: 9
 ```
 
 ## 작성 체크리스트

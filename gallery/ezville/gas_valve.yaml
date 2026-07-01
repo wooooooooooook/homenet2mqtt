@@ -20,10 +20,10 @@ entities:
       state:
         data: [0x12, 0x01, 0x81]
       state_closed:
-        offset: 6
+        index: 6
         data: [0x02]
       state_open:
-        offset: 6
+        index: 6
         data: [0x01]
       command_close:
         data: [0x33, 0x01, 0x81, 0x03, 0x00, 0x05, 0x00]

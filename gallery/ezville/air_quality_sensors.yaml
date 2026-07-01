@@ -23,7 +23,7 @@ discovery:
     mask: [0xFF]
   dimensions:
     - parameter: "room_count"
-      offset: 1
+      index: 1
   inference:
     strategy: "count"
 
@@ -66,7 +66,7 @@ entities:
       unit_of_measurement: 'ppm'
       accuracy_decimals: 0
       state_number:
-        offset: 12
+        index: 12
         length: 2
         signed: false
       

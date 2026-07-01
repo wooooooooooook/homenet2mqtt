@@ -27,7 +27,7 @@ discovery:
     mask: [0xFF]
   dimensions:
     - parameter: "room_id"
-      offset: 2
+      index: 2
       # Room 1 -> 0x11, Room 2 -> 0x12 ... (0x10 + ID)
       transform: "bitAnd(x, 0x0F)"
   inference:
@@ -50,12 +50,12 @@ entities:
         state:
           data: [0x50, '{{0x10 + room.room_id}}', 0x81]
         state_on:
-          # Offset: 7 + (outlet_num - 1) * 6
-          offset: '{{7 + (outlet_num - 1) * 6}}'
+          # index: 7 + (outlet_num - 1) * 6
+          index: '{{7 + (outlet_num - 1) * 6}}'
           mask: [0x01]
           data: [0x01]
         state_off:
-          offset: '{{7 + (outlet_num - 1) * 6}}'
+          index: '{{7 + (outlet_num - 1) * 6}}'
           mask: [0x01]
           data: [0x00]
         command_on:
@@ -82,7 +82,7 @@ entities:
           data: [0x50, '{{0x10 + room.room_id}}', 0x81]
         unit_of_measurement: 'W'
         state_number:
-          # Offset: 8 + (outlet_num - 1) * 6
-          offset: '{{8 + (outlet_num - 1) * 6}}'
+          # index: 8 + (outlet_num - 1) * 6
+          index: '{{8 + (outlet_num - 1) * 6}}'
           length: 2
           precision: 2
