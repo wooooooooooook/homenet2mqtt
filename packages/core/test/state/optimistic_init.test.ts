@@ -63,4 +63,62 @@ describe('StateManager Optimistic Initialization', () => {
       expect.objectContaining({ retain: true }),
     );
   });
+
+  it('should defer initial state for optimistic entities with restore_state enabled', () => {
+    config.switch = [
+      {
+        id: 'restorable_switch',
+        name: 'Restorable Switch',
+        type: 'switch',
+        optimistic: true,
+        restore_state: true,
+      } as any,
+    ];
+
+    stateManager = new StateManager(
+      PORT_ID,
+      config,
+      mockPacketProcessor,
+      mockMqttPublisher,
+      TOPIC_PREFIX,
+    );
+
+    expect(stateManager.getEntityState('restorable_switch')).toBeUndefined();
+    expect(mockMqttPublisher.publish).not.toHaveBeenCalled();
+
+    stateManager.initializeRestorableOptimisticDefaults(config);
+
+    expect(stateManager.getEntityState('restorable_switch')).toEqual({ state: 'OFF' });
+    expect(mockMqttPublisher.publish).toHaveBeenCalledWith(
+      `${TOPIC_PREFIX}/restorable_switch/state`,
+      JSON.stringify({ state: 'OFF' }),
+      expect.objectContaining({ retain: true }),
+    );
+  });
+
+  it('should keep restored state instead of publishing default state', () => {
+    config.switch = [
+      {
+        id: 'restorable_switch',
+        name: 'Restorable Switch',
+        type: 'switch',
+        optimistic: true,
+        restore_state: true,
+      } as any,
+    ];
+
+    stateManager = new StateManager(
+      PORT_ID,
+      config,
+      mockPacketProcessor,
+      mockMqttPublisher,
+      TOPIC_PREFIX,
+    );
+
+    stateManager.restoreEntityState('restorable_switch', { state: 'ON' });
+    stateManager.initializeRestorableOptimisticDefaults(config);
+
+    expect(stateManager.getEntityState('restorable_switch')).toEqual({ state: 'ON' });
+    expect(mockMqttPublisher.publish).not.toHaveBeenCalled();
+  });
 });

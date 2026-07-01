@@ -597,6 +597,9 @@
         "optimistic": {
           "type": "boolean"
         },
+        "restore_state": {
+          "type": "boolean"
+        },
         "internal": {
           "type": "boolean"
         },
@@ -765,7 +768,12 @@
             }
           ]
         },
+        "value_index": {
+          "description": "Byte position to insert the value (0-indexed).",
+          "type": "number"
+        },
         "value_offset": {
+          "description": "Legacy alias for `value_index`.",
           "type": "number"
         },
         "value_encode": {
@@ -1433,6 +1441,9 @@
         "optimistic": {
           "type": "boolean"
         },
+        "restore_state": {
+          "type": "boolean"
+        },
         "internal": {
           "type": "boolean"
         },
@@ -1451,13 +1462,13 @@
       "type": "object",
       "properties": {
         "min_temperature": {
-          "type": ["string", "number"]
+          "type": "number"
         },
         "max_temperature": {
-          "type": ["string", "number"]
+          "type": "number"
         },
         "temperature_step": {
-          "type": ["string", "number"]
+          "type": "number"
         }
       }
     },
@@ -1598,6 +1609,9 @@
         "optimistic": {
           "type": "boolean"
         },
+        "restore_state": {
+          "type": "boolean"
+        },
         "internal": {
           "type": "boolean"
         },
@@ -1662,6 +1676,9 @@
           "type": "boolean"
         },
         "optimistic": {
+          "type": "boolean"
+        },
+        "restore_state": {
           "type": "boolean"
         },
         "internal": {
@@ -1750,6 +1767,9 @@
           "type": "boolean"
         },
         "optimistic": {
+          "type": "boolean"
+        },
+        "restore_state": {
           "type": "boolean"
         },
         "internal": {
@@ -1977,6 +1997,9 @@
         "optimistic": {
           "type": "boolean"
         },
+        "restore_state": {
+          "type": "boolean"
+        },
         "internal": {
           "type": "boolean"
         },
@@ -2074,6 +2097,9 @@
         "optimistic": {
           "type": "boolean"
         },
+        "restore_state": {
+          "type": "boolean"
+        },
         "internal": {
           "type": "boolean"
         },
@@ -2168,6 +2194,9 @@
           "type": "boolean"
         },
         "optimistic": {
+          "type": "boolean"
+        },
+        "restore_state": {
           "type": "boolean"
         },
         "internal": {
@@ -2295,6 +2324,9 @@
         "optimistic": {
           "type": "boolean"
         },
+        "restore_state": {
+          "type": "boolean"
+        },
         "internal": {
           "type": "boolean"
         },
@@ -2397,6 +2429,9 @@
         "optimistic": {
           "type": "boolean"
         },
+        "restore_state": {
+          "type": "boolean"
+        },
         "internal": {
           "type": "boolean"
         },
@@ -2420,9 +2455,6 @@
             "type": "number"
           }
         },
-        "value_offset": {
-          "type": "number"
-        },
         "data": {
           "type": "array",
           "items": {
@@ -2441,6 +2473,14 @@
               "$ref": "#/definitions/StateSchema"
             }
           ]
+        },
+        "value_index": {
+          "description": "Byte position to insert the value (0-indexed).",
+          "type": "number"
+        },
+        "value_offset": {
+          "description": "Legacy alias for `value_index`.",
+          "type": "number"
         },
         "value_encode": {
           "description": "Value encoding/decoding strategies for numeric states.",
@@ -2568,7 +2608,7 @@
         "state_text": {
           "anyOf": [
             {
-              "$ref": "#/definitions/StateSchema"
+              "$ref": "#/definitions/StateNumSchema"
             },
             {
               "type": "string"
@@ -2624,6 +2664,9 @@
         "optimistic": {
           "type": "boolean"
         },
+        "restore_state": {
+          "type": "boolean"
+        },
         "internal": {
           "type": "boolean"
         },
@@ -2648,7 +2691,7 @@
         "state_text": {
           "anyOf": [
             {
-              "$ref": "#/definitions/StateSchema"
+              "$ref": "#/definitions/StateNumSchema"
             },
             {
               "type": "string"
@@ -2739,6 +2782,9 @@
         "optimistic": {
           "type": "boolean"
         },
+        "restore_state": {
+          "type": "boolean"
+        },
         "internal": {
           "type": "boolean"
         },
@@ -2825,6 +2871,9 @@
           "type": "boolean"
         },
         "optimistic": {
+          "type": "boolean"
+        },
+        "restore_state": {
           "type": "boolean"
         },
         "internal": {

@@ -668,6 +668,72 @@ export class HomeNetBridge extends EventEmitter {
     return `${this.commonMqttTopicPrefix}/${effectivePortPrefix}`;
   }
 
+  private getRestoreStateEntities(config: HomenetBridgeConfig): EntityConfig[] {
+    const entities: EntityConfig[] = [];
+
+    for (const type of ENTITY_TYPE_KEYS) {
+      const typedEntities = config[type] as EntityConfig[] | undefined;
+      if (!typedEntities) continue;
+
+      for (const entity of typedEntities) {
+        if (entity.id && entity.restore_state === true) {
+          entities.push(entity);
+        }
+      }
+    }
+
+    return entities;
+  }
+
+  private async restoreRetainedStatesForPort(
+    config: HomenetBridgeConfig,
+    mqttTopicPrefix: string,
+    stateManager: StateManager,
+  ) {
+    const entities = this.getRestoreStateEntities(config);
+    if (entities.length === 0 || !this._mqttClient) return;
+
+    const topicToEntityId = new Map(
+      entities.map((entity) => [`${mqttTopicPrefix}/${entity.id}/state`, entity.id]),
+    );
+    const restoredEntityIds = new Set<string>();
+
+    try {
+      const retainedMessages = await this._mqttClient.readRetainedMessages([
+        ...topicToEntityId.keys(),
+      ]);
+
+      for (const [topic, message] of retainedMessages.entries()) {
+        const entityId = topicToEntityId.get(topic);
+        if (!entityId) continue;
+
+        try {
+          const state = JSON.parse(message.toString()) as unknown;
+          if (!state || typeof state !== 'object' || Array.isArray(state)) {
+            logger.warn({ entityId, topic }, '[core] Ignoring invalid retained state payload');
+            continue;
+          }
+
+          stateManager.restoreEntityState(entityId, state as Record<string, any>);
+          restoredEntityIds.add(entityId);
+        } catch (error) {
+          logger.warn(
+            { err: error, entityId, topic },
+            '[core] Failed to parse retained state payload',
+          );
+        }
+      }
+    } catch (error) {
+      logger.warn({ err: error }, '[core] Failed to restore retained MQTT states');
+    } finally {
+      stateManager.initializeRestorableOptimisticDefaults(config);
+      logger.info(
+        { restored: restoredEntityIds.size, configured: entities.length },
+        '[core] Retained MQTT state restore completed',
+      );
+    }
+  }
+
   private async initialize() {
     this.resolvedPortTopicPrefixes.clear();
 
@@ -816,6 +882,7 @@ export class HomeNetBridge extends EventEmitter {
         mqttTopicPrefix,
         states, // Pass the shared states map to StateManager
       );
+      void this.restoreRetainedStatesForPort(this.config, mqttTopicPrefix, stateManager);
       const commandManager = new CommandManager(
         port,
         this.config,

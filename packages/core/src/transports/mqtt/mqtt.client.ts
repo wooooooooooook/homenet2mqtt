@@ -55,6 +55,81 @@ export class MqttClient {
   public end(): void {
     this.client.end();
   }
+
+  private async waitForConnection(timeoutMs: number): Promise<boolean> {
+    if (this.client.connected) return true;
+
+    return new Promise((resolve) => {
+      const timer = setTimeout(() => {
+        this.client.off('connect', connectHandler);
+        resolve(false);
+      }, timeoutMs);
+      timer.unref?.();
+
+      const connectHandler = () => {
+        clearTimeout(timer);
+        resolve(true);
+      };
+
+      this.client.once('connect', connectHandler);
+    });
+  }
+
+  public async readRetainedMessages(
+    topics: string[],
+    timeoutMs = 1000,
+  ): Promise<Map<string, Buffer>> {
+    const uniqueTopics = [...new Set(topics)].filter(Boolean);
+    const retainedMessages = new Map<string, Buffer>();
+
+    if (uniqueTopics.length === 0) {
+      return retainedMessages;
+    }
+
+    const connected = await this.waitForConnection(timeoutMs);
+    if (!connected) {
+      logger.warn(
+        { topics: uniqueTopics.length, timeoutMs },
+        '[mqtt-client] Skipping retained message restore because MQTT is not connected',
+      );
+      return retainedMessages;
+    }
+
+    return new Promise((resolve) => {
+      const topicSet = new Set(uniqueTopics);
+      let settled = false;
+
+      const cleanup = () => {
+        this.client.off('message', messageHandler);
+        this.client.unsubscribe(uniqueTopics);
+      };
+
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        cleanup();
+        resolve(retainedMessages);
+      };
+
+      const messageHandler = (topic: string, message: Buffer, packet: mqtt.Packet) => {
+        if (!topicSet.has(topic) || !(packet as any).retain || message.length === 0) return;
+        retainedMessages.set(topic, Buffer.from(message));
+      };
+
+      const timer = setTimeout(finish, timeoutMs);
+      timer.unref?.();
+
+      this.client.on('message', messageHandler);
+      this.client.subscribe(uniqueTopics, (err) => {
+        if (err) {
+          logger.warn({ err, topics: uniqueTopics }, '[mqtt-client] Failed to subscribe retained');
+          finish();
+        }
+      });
+    });
+  }
+
   public async clearRetainedMessages(topicPrefix: string): Promise<number> {
     if (!this.client.connected) {
       throw new Error('MQTT client is not connected');

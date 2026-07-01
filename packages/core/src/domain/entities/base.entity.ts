@@ -45,6 +45,7 @@ export interface EntityConfig {
   discovery_linked_id?: string;
   discovery_skip?: boolean;
   optimistic?: boolean;
+  restore_state?: boolean;
   internal?: boolean;
 
   /**

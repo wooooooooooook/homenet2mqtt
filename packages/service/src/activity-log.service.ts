@@ -4,6 +4,7 @@ import type {
   MqttMessageEvent,
   AutomationGuardEvent,
   AutomationActionEvent,
+  AutomationActionFailedEvent,
   ScriptActionEvent,
 } from '@rs485-homenet/core';
 
@@ -128,6 +129,19 @@ export class ActivityLogService {
           automationId: event.automationId,
           trigger: event.triggerType,
           action: event.action,
+        },
+        event.portId,
+      );
+    });
+
+    eventBus.on('automation:action_failed', (event: AutomationActionFailedEvent) => {
+      this.addLog(
+        'log.automation_run_action_failed',
+        {
+          automationId: event.automationId,
+          trigger: event.triggerType,
+          action: event.action,
+          error: event.error,
         },
         event.portId,
       );

@@ -33,9 +33,12 @@ describe('MqttClient', () => {
     mockClient = {
       on: vi.fn(),
       off: vi.fn(),
+      once: vi.fn(),
       end: vi.fn(),
       connected: false,
       publish: vi.fn(),
+      subscribe: vi.fn(),
+      unsubscribe: vi.fn(),
       options: { host: 'localhost' },
     };
 
@@ -95,6 +98,49 @@ describe('MqttClient', () => {
       if (connectCallback!) connectCallback();
 
       await expect(promise).resolves.toBeUndefined();
+    });
+  });
+
+  describe('readRetainedMessages', () => {
+    beforeEach(() => {
+      mockClient.connected = true;
+      mqttClient = new MqttClient('mqtt://localhost:1883');
+    });
+
+    it('should subscribe exact topics and collect retained messages only', async () => {
+      let messageHandler: (topic: string, message: Buffer, packet: any) => void;
+
+      mockClient.on.mockImplementation((event: string, cb: any) => {
+        if (event === 'message') {
+          messageHandler = cb;
+        }
+      });
+      mockClient.subscribe.mockImplementation((_topics: string[], cb: any) => cb?.(null));
+
+      const promise = mqttClient.readRetainedMessages(['test/light/state']);
+      await vi.runAllTicks();
+
+      if (messageHandler!) {
+        messageHandler('test/light/state', Buffer.from('{"state":"ON"}'), {
+          retain: true,
+        });
+        messageHandler('test/light/state', Buffer.from('{"state":"OFF"}'), {
+          retain: false,
+        });
+        messageHandler('test/other/state', Buffer.from('{"state":"ON"}'), {
+          retain: true,
+        });
+      }
+
+      await vi.advanceTimersByTimeAsync(1000);
+
+      const messages = await promise;
+
+      expect(messages.get('test/light/state')?.toString()).toBe('{"state":"ON"}');
+      expect(messages.has('test/other/state')).toBe(false);
+      expect(mockClient.subscribe).toHaveBeenCalledWith(['test/light/state'], expect.any(Function));
+      expect(mockClient.unsubscribe).toHaveBeenCalledWith(['test/light/state']);
+      expect(mockClient.off).toHaveBeenCalledWith('message', expect.any(Function));
     });
   });
 

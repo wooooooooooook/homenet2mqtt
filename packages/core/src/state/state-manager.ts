@@ -80,7 +80,7 @@ export class StateManager {
    * Initialize optimistic entities with default states.
    * This ensures they exist in deviceStates/sharedStates before any automation guard evaluates them.
    */
-  private initializeOptimisticEntities(config: HomenetBridgeConfig): void {
+  private getOptimisticDefaultState(entityType: string): Record<string, any> | null {
     const defaultStateByType: Record<string, Record<string, any>> = {
       binary_sensor: { state: 'OFF' },
       switch: { state: 'OFF' },
@@ -95,16 +95,40 @@ export class StateManager {
       text: {}, // Text needs initial_value, handled by TextDevice
     };
 
+    const defaultState = defaultStateByType[entityType];
+    if (!defaultState || Object.keys(defaultState).length === 0) {
+      return null;
+    }
+
+    return { ...defaultState };
+  }
+
+  /**
+   * Initialize optimistic entities with default states.
+   * This ensures they exist in deviceStates/sharedStates before any automation guard evaluates them.
+   */
+  private initializeOptimisticEntities(config: HomenetBridgeConfig): void {
+    this.initializeOptimisticDefaults(config, false);
+  }
+
+  public initializeRestorableOptimisticDefaults(config: HomenetBridgeConfig): void {
+    this.initializeOptimisticDefaults(config, true);
+  }
+
+  private initializeOptimisticDefaults(config: HomenetBridgeConfig, onlyRestorable: boolean): void {
     for (const type of ENTITY_TYPE_KEYS) {
       const entities = config[type] as EntityConfig[] | undefined;
-      const defaultState = defaultStateByType[type];
+      const defaultState = this.getOptimisticDefaultState(type);
 
-      if (!entities || !defaultState || Object.keys(defaultState).length === 0) {
+      if (!entities || !defaultState) {
         continue;
       }
 
       for (const entity of entities) {
         if (entity.optimistic && entity.id) {
+          if (onlyRestorable !== (entity.restore_state === true)) {
+            continue;
+          }
           // Only initialize if not already in deviceStates
           if (!this.deviceStates.has(entity.id)) {
             // Use applyStateUpdate to ensure publishing and event emission
@@ -120,6 +144,20 @@ export class StateManager {
   }
 
   private deviceStates = new Map<string, any>();
+
+  public restoreEntityState(entityId: string, state: Record<string, any>): void {
+    this.deviceStates.set(entityId, { ...state });
+    this.cachedStates = null;
+
+    if (this.sharedStates) {
+      this.sharedStates.set(entityId, { ...state });
+    }
+
+    const topic = `${this.mqttTopicPrefix}/${entityId}/state`;
+    stateCache.set(topic, JSON.stringify(state));
+
+    logger.info({ entityId, topic }, '[StateManager] Restored entity state from MQTT retained');
+  }
 
   public getLightState(entityId: string): { isOn: boolean } | undefined {
     const state = this.deviceStates.get(entityId);

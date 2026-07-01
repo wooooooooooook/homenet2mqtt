@@ -95,4 +95,36 @@ describe('ActivityLogService', () => {
       undefined,
     );
   });
+
+  it('should log automation action failures with the failure reason', () => {
+    service.addLog = vi.fn();
+    const mockEventBus = mocks.eventBus;
+
+    const handler = mockEventBus.on.mock.calls.find(
+      (call: any) => call[0] === 'automation:action_failed',
+    )?.[1];
+    expect(handler).toBeDefined();
+
+    handler({
+      automationId: 'auto1',
+      triggerType: 'packet',
+      action: 'update_state:light_2',
+      error: '정의되지 않은 속성입니다: light_2.state_on',
+      portId: 'main',
+      timestamp: Date.now(),
+      actionIndex: 0,
+      totalActions: 1,
+    });
+
+    expect(service.addLog).toHaveBeenCalledWith(
+      'log.automation_run_action_failed',
+      {
+        automationId: 'auto1',
+        trigger: 'packet',
+        action: 'update_state:light_2',
+        error: '정의되지 않은 속성입니다: light_2.state_on',
+      },
+      'main',
+    );
+  });
 });
