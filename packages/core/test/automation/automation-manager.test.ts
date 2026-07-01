@@ -426,13 +426,24 @@ describe('AutomationManager', () => {
     );
     automationManager.start();
 
+    const emitSpy = vi.spyOn(eventBus, 'emit');
     packetProcessor.emit('packet', Buffer.from([0xf7, 0x10, 0x01, 0x01, 0x00, 0x00]));
     await vi.runAllTimersAsync();
 
     const errorCall = errorSpy.mock.calls.find((call) => call[1] === '[automation] Action failed');
     expect((errorCall?.[0] as any)?.error).toContain('update_state');
+    expect(emitSpy).toHaveBeenCalledWith(
+      'automation:action_failed',
+      expect.objectContaining({
+        automationId: 'update_state_invalid_key',
+        triggerType: 'packet',
+        action: 'update_state:light_1',
+        error: expect.stringContaining('update_state'),
+      }),
+    );
     expect(stateManager.getEntityState('light_1')).toBeUndefined();
 
+    emitSpy.mockRestore();
     errorSpy.mockRestore();
   });
 

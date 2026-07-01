@@ -176,6 +176,29 @@ export class AutomationManager {
     return actionType;
   }
 
+  private emitAutomationActionFailed(
+    automationId: string | undefined,
+    triggerType: string,
+    action: AutomationAction,
+    error: unknown,
+    portId: string | undefined,
+    actionIndex: number,
+    totalActions: number,
+  ) {
+    if (!automationId) return;
+
+    eventBus.emit('automation:action_failed', {
+      automationId,
+      triggerType,
+      action: this.summarizeAction(action),
+      error: error instanceof Error ? error.message : String(error),
+      portId,
+      timestamp: Date.now(),
+      actionIndex,
+      totalActions,
+    });
+  }
+
   /**
    * Evaluate a CEL expression with optional 'x' value injected into context.
    * This is useful for evaluating command args with value substitution.
@@ -323,7 +346,20 @@ export class AutomationManager {
           totalActions: actions.length,
         });
       }
-      await this.executeAction(action, context, automationPortId, []);
+      try {
+        await this.executeAction(action, context, automationPortId, []);
+      } catch (error) {
+        this.emitAutomationActionFailed(
+          automationId,
+          context.type,
+          action,
+          error,
+          automationPortId ?? this.contextPortId,
+          i,
+          actions.length,
+        );
+        throw error;
+      }
     }
   }
 
@@ -659,6 +695,15 @@ export class AutomationManager {
               action: action.action,
             },
             '[automation] Action failed',
+          );
+          this.emitAutomationActionFailed(
+            automationId,
+            trigger.type,
+            action,
+            error,
+            this.contextPortId,
+            i,
+            actions.length,
           );
         }
       }

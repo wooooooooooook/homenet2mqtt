@@ -42,6 +42,10 @@ export interface AutomationActionEvent {
   totalActions?: number;
 }
 
+export interface AutomationActionFailedEvent extends AutomationActionEvent {
+  error: string;
+}
+
 export interface ScriptActionEvent {
   scriptId: string;
   action: string;
