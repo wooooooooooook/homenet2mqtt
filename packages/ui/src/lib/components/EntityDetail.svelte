@@ -277,6 +277,7 @@
       if (
         (log.code === 'log.automation_triggered' ||
           log.code === 'log.automation_run_action_executed' ||
+          log.code === 'log.automation_run_action_failed' ||
           log.code === 'log.automation_run_guard_failed') &&
         log.params?.automationId === entity.id
       ) {

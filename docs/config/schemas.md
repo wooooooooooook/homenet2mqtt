@@ -288,7 +288,9 @@ button:
 - `automation` 트리거/액션에서 패킷 매칭은 `StateSchema` 규칙을, 명령 실행은 `CommandSchema` 규칙을 그대로 따릅니다. 자세한 예제는 [AUTOMATION.md](../guide/automation.md)를 참고하세요.
 - `automation` 액션에 `update_state`를 사용할 수 있습니다. 패킷 트리거와 조합해 엔티티 상태를 직접 갱신하며, 값은 `StateSchema/StateNumSchema`로 정의합니다. `index`는 수신된 원본 패킷 전체(rx_header 포함)를 기준으로 계산합니다. 모든 엔티티 타입에서 `parseData`와 동일한 해석을 적용합니다. (`offset`도 alias로 동작)
 - 설정 파일에서는 `automation` 대신 `automations`를 최상위 키로 선언해도 동일하게 동작합니다.
-- `update_state`는 대상 엔티티에 정의된 `state_*` 및 해당 속성명만 허용하며, 정의되지 않은 속성은 오류로 처리됩니다.
+- `update_state`는 대상 엔티티에 **이미 정의된** `state_*` 및 해당 속성명만 허용하며, 정의되지 않은 속성은 오류로 처리됩니다.
+  예를 들어 대상 light 엔티티에 `state_on`/`state_off`가 없다면 자동화 액션에서 `state_on`/`state_off`를 사용할 수 없습니다.
+  패킷 트리거로 ON/OFF를 갱신하려면 대상 엔티티 설정에도 동일한 상태 스키마를 먼저 선언하세요.
 
 ## Scripts 블록
 자동화 액션 배열을 재사용하기 위한 `scripts` 블록을 설정 파일에 추가할 수 있습니다. 정의 방법과 활용 예시는

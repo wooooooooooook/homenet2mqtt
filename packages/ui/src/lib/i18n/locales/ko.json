@@ -757,6 +757,7 @@
     "automation_action_executed": "자동화 {automationId} 액션 실행: ({action})",
     "automation_run_action_executed": "자동화 {automationId} 트리거됨({trigger}) - 가드 통과 - 액션 실행: ({action})",
     "automation_consecutive_action_executed": "자동화 {automationId} 연속 액션 실행: ({action})",
+    "automation_run_action_failed": "자동화 {automationId} 액션 실패({trigger}): ({action}) - {error}",
     "automation_run_guard_failed": "자동화 {automationId} 트리거됨({trigger}) - 가드 실패",
     "script_action_executed": "스크립트 {scriptId} 액션 실행: ({action})",
     "core_started": "코어 서비스가 시작되었습니다.",

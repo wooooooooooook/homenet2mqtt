@@ -11,6 +11,7 @@ import type {
   AutomationTriggeredEvent,
   AutomationGuardEvent,
   AutomationActionEvent,
+  AutomationActionFailedEvent,
   ScriptActionEvent,
   EntityErrorEvent,
 } from './service/event-bus.js';
@@ -43,6 +44,7 @@ export type {
   AutomationTriggeredEvent,
   AutomationGuardEvent,
   AutomationActionEvent,
+  AutomationActionFailedEvent,
   ScriptActionEvent,
   EntityErrorEvent,
 };

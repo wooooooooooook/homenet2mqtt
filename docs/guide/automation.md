@@ -241,7 +241,9 @@ state:
 - `state` 값이 `StateSchema/StateNumSchema`인 경우, 패킷에서 값을 추출하여 상태로 기록합니다.
 - `index`를 생략하면 헤더 다음 바이트부터 추출하고, `index`를 명시하면 헤더 포함 전체 패킷 기준 인덱스로 추출합니다.
 - 패킷 트리거인 경우에만 사용하세요.
-- `update_state`는 대상 엔티티에 정의된 `state_*` 항목과 해당 속성명(예: `brightness`, `target_temperature`)만 허용하며, 정의되지 않은 속성은 오류로 처리됩니다.
+- `update_state`는 대상 엔티티에 **이미 정의된** `state_*` 항목과 해당 속성명(예: `brightness`, `target_temperature`)만 허용하며, 정의되지 않은 속성은 오류로 처리됩니다.
+  - 예를 들어 `light_1` 엔티티에 `state_on`/`state_off`가 정의되어 있지 않으면 자동화에서 `state_on`/`state_off`를 갱신할 수 없습니다.
+  - 패킷 트리거에서 ON/OFF 상태를 갱신하려면 대상 엔티티 설정에도 동일한 `state_on`/`state_off` 스키마를 선언하거나, 엔티티에 정의된 다른 상태 속성명만 사용해야 합니다.
 - `update_state`는 모든 엔티티 타입에서 `parseData`와 동일한 해석(모드/상태 플래그 변환 등)을 수행하며, 해석에 사용된 원본 키는 정리됩니다.
 
 ### 지연 (Delay) {#delay}
