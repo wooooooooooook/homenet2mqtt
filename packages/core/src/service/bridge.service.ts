@@ -676,7 +676,7 @@ export class HomeNetBridge extends EventEmitter {
       if (!typedEntities) continue;
 
       for (const entity of typedEntities) {
-        if (entity.id && entity.restore_state === true) {
+        if (entity.id && (entity.restore_state === true || (entity.restore_mode && entity.restore_mode.startsWith("RESTORE_")))) {
           entities.push(entity);
         }
       }

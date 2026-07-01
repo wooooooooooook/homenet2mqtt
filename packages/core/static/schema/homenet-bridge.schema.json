@@ -597,6 +597,18 @@
         "optimistic": {
           "type": "boolean"
         },
+"restore_mode": {
+          "type": "string",
+          "enum": [
+            "RESTORE_DEFAULT_OFF",
+            "RESTORE_DEFAULT_ON",
+            "RESTORE_INVERTED_DEFAULT_OFF",
+            "RESTORE_INVERTED_DEFAULT_ON",
+            "ALWAYS_OFF",
+            "ALWAYS_ON",
+            "DISABLED"
+          ]
+        },
         "restore_state": {
           "type": "boolean"
         },
@@ -1441,6 +1453,18 @@
         "optimistic": {
           "type": "boolean"
         },
+"restore_mode": {
+          "type": "string",
+          "enum": [
+            "RESTORE_DEFAULT_OFF",
+            "RESTORE_DEFAULT_ON",
+            "RESTORE_INVERTED_DEFAULT_OFF",
+            "RESTORE_INVERTED_DEFAULT_ON",
+            "ALWAYS_OFF",
+            "ALWAYS_ON",
+            "DISABLED"
+          ]
+        },
         "restore_state": {
           "type": "boolean"
         },
@@ -1609,6 +1633,18 @@
         "optimistic": {
           "type": "boolean"
         },
+"restore_mode": {
+          "type": "string",
+          "enum": [
+            "RESTORE_DEFAULT_OFF",
+            "RESTORE_DEFAULT_ON",
+            "RESTORE_INVERTED_DEFAULT_OFF",
+            "RESTORE_INVERTED_DEFAULT_ON",
+            "ALWAYS_OFF",
+            "ALWAYS_ON",
+            "DISABLED"
+          ]
+        },
         "restore_state": {
           "type": "boolean"
         },
@@ -1677,6 +1713,18 @@
         },
         "optimistic": {
           "type": "boolean"
+        },
+"restore_mode": {
+          "type": "string",
+          "enum": [
+            "RESTORE_DEFAULT_OFF",
+            "RESTORE_DEFAULT_ON",
+            "RESTORE_INVERTED_DEFAULT_OFF",
+            "RESTORE_INVERTED_DEFAULT_ON",
+            "ALWAYS_OFF",
+            "ALWAYS_ON",
+            "DISABLED"
+          ]
         },
         "restore_state": {
           "type": "boolean"
@@ -1768,6 +1816,18 @@
         },
         "optimistic": {
           "type": "boolean"
+        },
+"restore_mode": {
+          "type": "string",
+          "enum": [
+            "RESTORE_DEFAULT_OFF",
+            "RESTORE_DEFAULT_ON",
+            "RESTORE_INVERTED_DEFAULT_OFF",
+            "RESTORE_INVERTED_DEFAULT_ON",
+            "ALWAYS_OFF",
+            "ALWAYS_ON",
+            "DISABLED"
+          ]
         },
         "restore_state": {
           "type": "boolean"
@@ -1997,6 +2057,18 @@
         "optimistic": {
           "type": "boolean"
         },
+"restore_mode": {
+          "type": "string",
+          "enum": [
+            "RESTORE_DEFAULT_OFF",
+            "RESTORE_DEFAULT_ON",
+            "RESTORE_INVERTED_DEFAULT_OFF",
+            "RESTORE_INVERTED_DEFAULT_ON",
+            "ALWAYS_OFF",
+            "ALWAYS_ON",
+            "DISABLED"
+          ]
+        },
         "restore_state": {
           "type": "boolean"
         },
@@ -2097,6 +2169,18 @@
         "optimistic": {
           "type": "boolean"
         },
+"restore_mode": {
+          "type": "string",
+          "enum": [
+            "RESTORE_DEFAULT_OFF",
+            "RESTORE_DEFAULT_ON",
+            "RESTORE_INVERTED_DEFAULT_OFF",
+            "RESTORE_INVERTED_DEFAULT_ON",
+            "ALWAYS_OFF",
+            "ALWAYS_ON",
+            "DISABLED"
+          ]
+        },
         "restore_state": {
           "type": "boolean"
         },
@@ -2195,6 +2279,18 @@
         },
         "optimistic": {
           "type": "boolean"
+        },
+"restore_mode": {
+          "type": "string",
+          "enum": [
+            "RESTORE_DEFAULT_OFF",
+            "RESTORE_DEFAULT_ON",
+            "RESTORE_INVERTED_DEFAULT_OFF",
+            "RESTORE_INVERTED_DEFAULT_ON",
+            "ALWAYS_OFF",
+            "ALWAYS_ON",
+            "DISABLED"
+          ]
         },
         "restore_state": {
           "type": "boolean"
@@ -2324,6 +2420,18 @@
         "optimistic": {
           "type": "boolean"
         },
+"restore_mode": {
+          "type": "string",
+          "enum": [
+            "RESTORE_DEFAULT_OFF",
+            "RESTORE_DEFAULT_ON",
+            "RESTORE_INVERTED_DEFAULT_OFF",
+            "RESTORE_INVERTED_DEFAULT_ON",
+            "ALWAYS_OFF",
+            "ALWAYS_ON",
+            "DISABLED"
+          ]
+        },
         "restore_state": {
           "type": "boolean"
         },
@@ -2428,6 +2536,18 @@
         },
         "optimistic": {
           "type": "boolean"
+        },
+"restore_mode": {
+          "type": "string",
+          "enum": [
+            "RESTORE_DEFAULT_OFF",
+            "RESTORE_DEFAULT_ON",
+            "RESTORE_INVERTED_DEFAULT_OFF",
+            "RESTORE_INVERTED_DEFAULT_ON",
+            "ALWAYS_OFF",
+            "ALWAYS_ON",
+            "DISABLED"
+          ]
         },
         "restore_state": {
           "type": "boolean"
@@ -2664,6 +2784,18 @@
         "optimistic": {
           "type": "boolean"
         },
+"restore_mode": {
+          "type": "string",
+          "enum": [
+            "RESTORE_DEFAULT_OFF",
+            "RESTORE_DEFAULT_ON",
+            "RESTORE_INVERTED_DEFAULT_OFF",
+            "RESTORE_INVERTED_DEFAULT_ON",
+            "ALWAYS_OFF",
+            "ALWAYS_ON",
+            "DISABLED"
+          ]
+        },
         "restore_state": {
           "type": "boolean"
         },
@@ -2782,6 +2914,18 @@
         "optimistic": {
           "type": "boolean"
         },
+"restore_mode": {
+          "type": "string",
+          "enum": [
+            "RESTORE_DEFAULT_OFF",
+            "RESTORE_DEFAULT_ON",
+            "RESTORE_INVERTED_DEFAULT_OFF",
+            "RESTORE_INVERTED_DEFAULT_ON",
+            "ALWAYS_OFF",
+            "ALWAYS_ON",
+            "DISABLED"
+          ]
+        },
         "restore_state": {
           "type": "boolean"
         },
@@ -2872,6 +3016,18 @@
         },
         "optimistic": {
           "type": "boolean"
+        },
+"restore_mode": {
+          "type": "string",
+          "enum": [
+            "RESTORE_DEFAULT_OFF",
+            "RESTORE_DEFAULT_ON",
+            "RESTORE_INVERTED_DEFAULT_OFF",
+            "RESTORE_INVERTED_DEFAULT_ON",
+            "ALWAYS_OFF",
+            "ALWAYS_ON",
+            "DISABLED"
+          ]
         },
         "restore_state": {
           "type": "boolean"

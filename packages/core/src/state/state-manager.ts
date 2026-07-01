@@ -9,6 +9,7 @@ import { eventBus } from '../service/event-bus.js';
 import { stateCache } from './store.js';
 import { ENTITY_TYPE_KEYS } from '../utils/entities.js';
 import { EntityConfig } from '../domain/entities/base.entity.js';
+import { RestoreMode } from '../protocol/types.js';
 
 export class StateManager {
   private packetProcessor: PacketProcessor;
@@ -18,6 +19,7 @@ export class StateManager {
   private ignoredEntityId: string | null = null;
   private sharedStates?: Map<string, Record<string, any>>;
   private internalEntityIds: Set<string>;
+  private entities = new Map<string, EntityConfig>();
 
   constructor(
     portId: string,
@@ -33,13 +35,17 @@ export class StateManager {
     this.mqttTopicPrefix = mqttTopicPrefix;
     this.sharedStates = sharedStates;
 
-    // Extract internal entity IDs from config
+    // Extract internal entity IDs and store entities from config
     this.internalEntityIds = new Set<string>();
     for (const type of ENTITY_TYPE_KEYS) {
       const entities = config[type] as EntityConfig[] | undefined;
       if (entities) {
         for (const entity of entities) {
-          if (entity.internal === true && entity.id) {
+          if (!entity.id) continue;
+          // Store type if missing in a copy to avoid mutating original config significantly
+          const entityCopy = { ...entity, type: entity.type || type };
+          this.entities.set(entity.id, entityCopy);
+          if (entity.internal === true) {
             this.internalEntityIds.add(entity.id);
           }
         }
@@ -76,12 +82,38 @@ export class StateManager {
     this.packetProcessor.processChunk(chunk);
   }
 
+  private getRestoreMode(entity: EntityConfig): RestoreMode {
+    if (entity.restore_mode) return entity.restore_mode;
+    if (entity.restore_state === true) return 'RESTORE_DEFAULT_OFF';
+    return 'DISABLED';
+  }
+
+  private invertState(state: Record<string, any>): Record<string, any> {
+    const newState = { ...state };
+    if (typeof newState.state !== 'string') return newState;
+
+    const inversions: Record<string, string> = {
+      ON: 'OFF',
+      OFF: 'ON',
+      OPEN: 'CLOSED',
+      CLOSED: 'OPEN',
+      LOCKED: 'UNLOCKED',
+      UNLOCKED: 'LOCKED',
+    };
+
+    if (inversions[newState.state]) {
+      newState.state = inversions[newState.state];
+    }
+
+    return newState;
+  }
+
   /**
    * Initialize optimistic entities with default states.
    * This ensures they exist in deviceStates/sharedStates before any automation guard evaluates them.
    */
-  private getOptimisticDefaultState(entityType: string): Record<string, any> | null {
-    const defaultStateByType: Record<string, Record<string, any>> = {
+  private getOptimisticState(entityType: string, on: boolean): Record<string, any> | null {
+    const offStateByType: Record<string, Record<string, any>> = {
       binary_sensor: { state: 'OFF' },
       switch: { state: 'OFF' },
       light: { state: 'OFF' },
@@ -95,7 +127,17 @@ export class StateManager {
       text: {}, // Text needs initial_value, handled by TextDevice
     };
 
-    const defaultState = defaultStateByType[entityType];
+    const onStateByType: Record<string, Record<string, any>> = {
+      binary_sensor: { state: 'ON' },
+      switch: { state: 'ON' },
+      light: { state: 'ON' },
+      valve: { state: 'OPEN' },
+      cover: { state: 'OPEN' },
+      fan: { state: 'ON' },
+      lock: { state: 'UNLOCKED' },
+    };
+
+    const defaultState = on ? onStateByType[entityType] : offStateByType[entityType];
     if (!defaultState || Object.keys(defaultState).length === 0) {
       return null;
     }
@@ -118,24 +160,43 @@ export class StateManager {
   private initializeOptimisticDefaults(config: HomenetBridgeConfig, onlyRestorable: boolean): void {
     for (const type of ENTITY_TYPE_KEYS) {
       const entities = config[type] as EntityConfig[] | undefined;
-      const defaultState = this.getOptimisticDefaultState(type);
-
-      if (!entities || !defaultState) {
+      if (!entities) {
         continue;
       }
 
       for (const entity of entities) {
-        if (entity.optimistic && entity.id) {
-          if (onlyRestorable !== (entity.restore_state === true)) {
-            continue;
+        if (!entity.optimistic || !entity.id) continue;
+
+        const mode = this.getRestoreMode(entity);
+        if (mode === 'DISABLED') continue;
+
+        const isRestoreType = mode.startsWith('RESTORE_');
+        if (onlyRestorable !== isRestoreType) continue;
+
+        const entityType = entity.type || type;
+
+        // Phase 1: ALWAYS_OFF, ALWAYS_ON
+        if (!onlyRestorable) {
+          if (mode === 'ALWAYS_OFF' || mode === 'ALWAYS_ON') {
+            const state = this.getOptimisticState(entityType, mode === 'ALWAYS_ON');
+            if (state && !this.deviceStates.has(entity.id)) {
+              this.applyStateUpdate(entity.id, state);
+              logger.debug(
+                `[StateManager] Initialized entity ${entity.id} with ALWAYS mode state: ${JSON.stringify(state)}`,
+              );
+            }
           }
-          // Only initialize if not already in deviceStates
-          if (!this.deviceStates.has(entity.id)) {
-            // Use applyStateUpdate to ensure publishing and event emission
-            // This ensures state is retained in MQTT and visible to UI/HA immediately
-            this.applyStateUpdate(entity.id, { ...defaultState });
+          continue;
+        }
+
+        // Phase 2: RESTORE_* defaults (if not already restored from MQTT)
+        if (!this.deviceStates.has(entity.id)) {
+          const useOnDefault = mode.endsWith('_ON');
+          const state = this.getOptimisticState(entityType, useOnDefault);
+          if (state) {
+            this.applyStateUpdate(entity.id, state);
             logger.debug(
-              `[StateManager] Initialized optimistic entity ${entity.id} with default state: ${JSON.stringify(defaultState)}`,
+              `[StateManager] Initialized restorable entity ${entity.id} with default state: ${JSON.stringify(state)}`,
             );
           }
         }
@@ -146,15 +207,26 @@ export class StateManager {
   private deviceStates = new Map<string, any>();
 
   public restoreEntityState(entityId: string, state: Record<string, any>): void {
-    this.deviceStates.set(entityId, { ...state });
+    const entity = this.entities.get(entityId);
+    let finalState = state;
+
+    if (entity) {
+      const mode = this.getRestoreMode(entity);
+      if (mode.startsWith('RESTORE_INVERTED_')) {
+        finalState = this.invertState(state);
+        logger.info({ entityId }, '[StateManager] Inverting restored state per restore_mode');
+      }
+    }
+
+    this.deviceStates.set(entityId, { ...finalState });
     this.cachedStates = null;
 
     if (this.sharedStates) {
-      this.sharedStates.set(entityId, { ...state });
+      this.sharedStates.set(entityId, { ...finalState });
     }
 
     const topic = `${this.mqttTopicPrefix}/${entityId}/state`;
-    stateCache.set(topic, JSON.stringify(state));
+    stateCache.set(topic, JSON.stringify(finalState));
 
     logger.info({ entityId, topic }, '[StateManager] Restored entity state from MQTT retained');
   }

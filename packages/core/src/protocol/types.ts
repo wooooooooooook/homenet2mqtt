@@ -67,6 +67,14 @@ export type DecodeEncodeType =
   | 'add_0x80'; // Add 0x80 to value
 
 export type EndianType = 'big' | 'little';
+export type RestoreMode =
+  | "RESTORE_DEFAULT_OFF"
+  | "RESTORE_DEFAULT_ON"
+  | "RESTORE_INVERTED_DEFAULT_OFF"
+  | "RESTORE_INVERTED_DEFAULT_ON"
+  | "ALWAYS_OFF"
+  | "ALWAYS_ON"
+  | "DISABLED";
 
 /**
  * Default packet structure and timing configuration.
@@ -263,6 +271,7 @@ export interface DeviceConfig {
   state?: StateSchema;
   optimistic?: boolean;
   restore_state?: boolean;
+  restore_mode?: RestoreMode;
   state_proxy?: boolean;
   target_id?: string;
 }

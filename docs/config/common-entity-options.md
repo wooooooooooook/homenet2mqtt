@@ -111,24 +111,33 @@ switch:
     optimistic: true # 가상 스위치로 동작 (패킷 전송 없음)
 ```
 
-## 재시작 상태 복원 (`restore_state`)
+## 상태 복원 설정 (`restore_mode`)
 
-브리지 재시작 시 MQTT broker에 남아 있는 retained state 메시지를 읽어 엔티티 상태를 복원합니다.
+브리지 재시작 시 엔티티의 초기 상태를 어떻게 결정할지 제어합니다. 주로 `optimistic: true`인 가상 엔티티나 상태 피드백이 없는 장치에 사용됩니다.
 
-- **타입**: `boolean`
-- **기본값**: `false`
-- **설명**: `true`로 설정하면 시작 시 `${MQTT_TOPIC_PREFIX}/${id}/state` retained 메시지를 읽고, 유효한 JSON 객체이면 현재 상태로 사용합니다.
-  - `optimistic: true`와 함께 사용하는 가상 스위치/라이트/팬 상태 유지에 유용합니다.
-  - retained 메시지가 없거나 유효하지 않으면 기존 optimistic 기본값(`light`/`switch`/`fan`: `OFF` 등)으로 초기화됩니다.
-  - 실제 장치 상태와 MQTT retained 상태가 다를 수 있으므로, 실제 장치 상태를 패킷으로 확인할 수 있는 엔티티에는 신중히 사용하세요.
+- **타입**: `string`
+- **기본값**: `DISABLED` (복원 안 함)
+- **설명**: 다음 중 하나를 선택할 수 있습니다.
+  - `RESTORE_DEFAULT_OFF`: 이전 상태(MQTT retained)를 복원하고, 실패 시 `OFF`로 설정합니다.
+  - `RESTORE_DEFAULT_ON`: 이전 상태를 복원하고, 실패 시 `ON`으로 설정합니다.
+  - `RESTORE_INVERTED_DEFAULT_OFF`: 이전 상태를 **반전**하여 복원하고, 실패 시 `OFF`로 설정합니다.
+  - `RESTORE_INVERTED_DEFAULT_ON`: 이전 상태를 **반전**하여 복원하고, 실패 시 `ON`으로 설정합니다.
+  - `ALWAYS_OFF`: 항상 `OFF`로 초기화합니다.
+  - `ALWAYS_ON`: 항상 `ON`으로 초기화합니다.
+  - `DISABLED`: 아무 작업도 하지 않습니다. (기본값)
+
+> **참고**: 상태 복원은 MQTT Broker의 retained 메시지를 사용합니다. 따라서 MQTT 연결이 필요합니다.
 
 ```yaml
-light:
-  - name: '거실 가상 조명'
-    id: 'living_room_virtual_light'
+switch:
+  - name: '가상 스위치'
     optimistic: true
-    restore_state: true
+    restore_mode: RESTORE_DEFAULT_ON
 ```
+
+### 레거시 옵션 (`restore_state`)
+
+기존에 사용되던 `restore_state: true` 설정은 `restore_mode: RESTORE_DEFAULT_OFF`와 동일하게 동작합니다. 새로운 설정에서는 `restore_mode`를 권장합니다.
 
 ## 내부 엔티티 (`internal`)
 
