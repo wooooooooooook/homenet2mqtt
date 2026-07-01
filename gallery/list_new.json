@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-21T05:39:54.925Z",
+  "generated_at": "2026-07-01T06:15:18.918Z",
   "vendors": [
     {
       "id": "bestin",
@@ -72,7 +72,7 @@
             "dimensions": [
               {
                 "parameter": "room_count",
-                "offset": 5
+                "index": 5
               }
             ],
             "inference": {
@@ -232,12 +232,12 @@
             "dimensions": [
               {
                 "parameter": "room_id",
-                "offset": 1,
+                "index": 1,
                 "transform": "bitAnd(x, 0x0F)"
               },
               {
                 "parameter": "light_count",
-                "offset": 6,
+                "index": 6,
                 "detect": "active_bits"
               }
             ],
@@ -329,17 +329,17 @@
             "dimensions": [
               {
                 "parameter": "room_id",
-                "offset": 5,
+                "index": 5,
                 "transform": "bitAnd(x, 0x0F)"
               },
               {
                 "parameter": "light_count",
-                "offset": 6,
+                "index": 6,
                 "detect": "active_bits"
               },
               {
                 "parameter": "outlet_count",
-                "offset": 7,
+                "index": 7,
                 "detect": "active_bits"
               }
             ],
@@ -599,12 +599,12 @@
             "dimensions": [
               {
                 "parameter": "room_id",
-                "offset": 1,
+                "index": 1,
                 "transform": "bitAnd(x, 0x0F)"
               },
               {
                 "parameter": "light_count",
-                "offset": 10
+                "index": 10
               }
             ],
             "inference": {
@@ -743,7 +743,7 @@
             "dimensions": [
               {
                 "parameter": "fan_count",
-                "offset": 2
+                "index": 2
               }
             ],
             "inference": {
@@ -825,7 +825,7 @@
             "dimensions": [
               {
                 "parameter": "heater_count",
-                "offset": 2
+                "index": 2
               }
             ],
             "inference": {
@@ -911,7 +911,7 @@
             "dimensions": [
               {
                 "parameter": "light_count",
-                "offset": 2
+                "index": 2
               }
             ],
             "inference": {
@@ -966,7 +966,7 @@
             "dimensions": [
               {
                 "parameter": "plug_count",
-                "offset": 2
+                "index": 2
               }
             ],
             "inference": {
@@ -1187,7 +1187,7 @@
             "dimensions": [
               {
                 "parameter": "heater_count",
-                "offset": 0,
+                "index": 0,
                 "transform": "int((len(data) - 7) / 2)"
               }
             ]
@@ -1260,12 +1260,12 @@
             "dimensions": [
               {
                 "parameter": "room_id",
-                "offset": 3,
+                "index": 3,
                 "transform": "bitAnd(x, 0x0F)"
               },
               {
                 "parameter": "light_count",
-                "offset": 4
+                "index": 4
               }
             ],
             "inference": {
@@ -1347,7 +1347,7 @@
             "dimensions": [
               {
                 "parameter": "purifier_count",
-                "offset": 1
+                "index": 1
               }
             ],
             "inference": {
@@ -1387,7 +1387,7 @@
                 255,
                 255
               ],
-              "offset": 0
+              "index": 0
             }
           }
         },
@@ -1764,7 +1764,7 @@
             "dimensions": [
               {
                 "parameter": "room_id",
-                "offset": 2,
+                "index": 2,
                 "transform": "bitAnd(x, 0x0F)"
               }
             ],
@@ -1867,7 +1867,7 @@
             "dimensions": [
               {
                 "parameter": "room_id",
-                "offset": 2,
+                "index": 2,
                 "transform": "bitShiftRight(x, 4)"
               }
             ],
@@ -1971,7 +1971,7 @@
             "dimensions": [
               {
                 "parameter": "room_id",
-                "offset": 2,
+                "index": 2,
                 "transform": "bitAnd(x, 0x0F)"
               }
             ],
@@ -2486,7 +2486,7 @@
             "dimensions": [
               {
                 "parameter": "room_id",
-                "offset": 6,
+                "index": 6,
                 "transform": "bitShiftRight(x, 4)"
               }
             ],
@@ -2614,7 +2614,7 @@
             "dimensions": [
               {
                 "parameter": "room_id",
-                "offset": 6,
+                "index": 6,
                 "transform": "bitShiftRight(x, 4)"
               }
             ],
@@ -2701,7 +2701,7 @@
             "dimensions": [
               {
                 "parameter": "room_id",
-                "offset": 6,
+                "index": 6,
                 "transform": "bitShiftRight(x, 4)"
               }
             ],
@@ -3213,7 +3213,7 @@
             "dimensions": [
               {
                 "parameter": "room_idx",
-                "offset": 8
+                "index": 8
               }
             ],
             "inference": {
@@ -3303,7 +3303,7 @@
             "dimensions": [
               {
                 "parameter": "room_idx",
-                "offset": 8
+                "index": 8
               }
             ],
             "inference": {
@@ -4071,7 +4071,7 @@
             "dimensions": [
               {
                 "parameter": "heater_count",
-                "offset": 2
+                "index": 2
               }
             ],
             "inference": {
@@ -4152,7 +4152,7 @@
             "dimensions": [
               {
                 "parameter": "outlet_count",
-                "offset": 2
+                "index": 2
               }
             ],
             "inference": {
