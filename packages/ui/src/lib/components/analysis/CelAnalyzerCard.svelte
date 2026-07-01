@@ -346,7 +346,7 @@
     </div>
 
     {#if error}
-      <div class="message error">{error}</div>
+      <div class="message error"><pre class="error-pre">{error}</pre></div>
     {/if}
 
     {#if result !== null}
@@ -493,6 +493,15 @@
     background: rgba(248, 113, 113, 0.15);
     border: 1px solid rgba(248, 113, 113, 0.4);
     color: #fecaca;
+  }
+
+  .error-pre {
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-all;
+    font-family: 'Fira Code', 'Consolas', monospace;
+    font-size: 0.85rem;
+    line-height: 1.5;
   }
 
   .result {

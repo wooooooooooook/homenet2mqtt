@@ -99,7 +99,8 @@ export function createUtilsRoutes(ctx: UtilsRoutesContext): Router {
       res.json({ result });
     } catch (err) {
       logger.error({ err }, '[service] CEL evaluation failed');
-      res.status(500).json({ error: 'CEL 평가 중 오류가 발생했습니다.' });
+      const message = err instanceof Error ? err.message : String(err);
+      res.status(500).json({ error: message });
     }
   });
 
