@@ -868,18 +868,40 @@ export class AutomationManager {
       return;
     }
 
-    const entity = findEntityById(this.config, action.target_id);
+    let targetId = action.target_id;
+    if (
+      typeof targetId === 'string' &&
+      (targetId.includes('args.') ||
+        targetId.includes('state.') ||
+        targetId.includes('trigger.') ||
+        targetId.includes('packet') ||
+        targetId.includes('device_state') ||
+        targetId.includes('+') ||
+        targetId.includes('('))
+    ) {
+      try {
+        const result = this.celExecutor.execute(targetId, this.buildContext(context));
+        if (typeof result === 'string') {
+          targetId = result;
+        }
+      } catch (err) {
+        logger.debug(
+          { error: err, expression: targetId },
+          '[automation] Failed to evaluate target_id as CEL',
+        );
+      }
+    }
+
+    const entity = findEntityById(this.config, targetId);
     if (!entity) {
-      throw new Error(
-        `[automation] update_state 대상 엔티티를 찾을 수 없습니다: ${action.target_id}`,
-      );
+      throw new Error(`[automation] update_state 대상 엔티티를 찾을 수 없습니다: ${targetId}`);
     }
 
     const allowedKeys = this.getAllowedUpdateStateKeys(entity as Record<string, any>);
     for (const key of Object.keys(action.state)) {
       if (!allowedKeys.has(key)) {
         throw new Error(
-          `[automation] update_state 대상 엔티티에 정의되지 않은 속성입니다: ${action.target_id}.${key}`,
+          `[automation] update_state 대상 엔티티에 정의되지 않은 속성입니다: ${targetId}.${key}`,
         );
       }
     }
@@ -932,7 +954,7 @@ export class AutomationManager {
       updates,
       {
         headerLen,
-        state: this.stateManager.getEntityState(action.target_id) ?? {},
+        state: this.stateManager.getEntityState(targetId) ?? {},
       },
     );
 
@@ -944,7 +966,7 @@ export class AutomationManager {
       return;
     }
 
-    this.stateManager.updateEntityState(action.target_id, normalizedUpdates);
+    this.stateManager.updateEntityState(targetId, normalizedUpdates);
   }
 
   private async executeSendPacketAction(

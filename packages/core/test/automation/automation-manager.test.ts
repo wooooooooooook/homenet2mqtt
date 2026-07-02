@@ -315,6 +315,72 @@ describe('AutomationManager', () => {
     });
   });
 
+  it('update_state가 target_id의 CEL 표현식을 동적으로 해석해 엔티티 상태를 갱신해야 한다', async () => {
+    const config: HomenetBridgeConfig = {
+      ...baseConfig,
+      light: [
+        {
+          id: 'light_1',
+          name: 'Light 1',
+          type: 'light',
+          state: { data: [0x01] },
+          state_on: { offset: 3, data: [0x01] },
+          state_off: { offset: 3, data: [0x00] },
+          state_brightness: { offset: 5, length: 1, decode: 'bcd' },
+        },
+      ],
+      automation: [
+        {
+          id: 'update_state_cel_target_test',
+          trigger: [
+            {
+              type: 'packet',
+              match: { data: [0xf7, 0x10, 0x01], offset: 0 },
+            },
+          ],
+          then: [
+            {
+              action: 'update_state',
+              target_id: "'light_' + string(trigger.packet[2])",
+              state: {
+                state_on: { offset: 3, data: [0x01] },
+                state_off: { offset: 3, data: [0x00] },
+                brightness: { offset: 5, length: 1, decode: 'bcd' },
+              },
+            },
+          ],
+        },
+      ],
+    };
+    const mqttPublisherStub = { publish: vi.fn() };
+    const stateManager = new StateManager(
+      'main',
+      config,
+      packetProcessor as any,
+      mqttPublisherStub as any,
+      'homenet2mqtt',
+    );
+
+    automationManager = new AutomationManager(
+      config,
+      packetProcessor as any,
+      commandManager as any,
+      mqttPublisher as any,
+      undefined,
+      undefined,
+      stateManager as any,
+    );
+    automationManager.start();
+
+    packetProcessor.emit('packet', Buffer.from([0xf7, 0x10, 0x01, 0x01, 0x00, 0x89]));
+    await vi.runAllTimersAsync();
+
+    expect(stateManager.getEntityState('light_1')).toEqual({
+      state: 'ON',
+      brightness: 89,
+    });
+  });
+
   it('update_state가 rx_header를 포함한 전체 패킷 기준으로 offset을 계산해야 한다', async () => {
     const config: HomenetBridgeConfig = {
       ...baseConfig,

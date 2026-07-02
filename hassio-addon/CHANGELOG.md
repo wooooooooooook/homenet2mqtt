@@ -1,6 +1,11 @@
 ** ⚠️ 업데이트 전 백업 권장 **
 - 오류가 있으면 homeasssutant [카페](https://cafe.naver.com/koreassistant), [깃헙](https://github.com/wooooooooooook/homenet2mqtt), [디스코드](https://discord.gg/kGwhUBMe5z) 등으로 알려주세요.
 
+v2.14.0
+- feat: 자동화 trigger에 id를 추가하여 이를 통해 자동화내에서 분기처리가 가능하도록 했습니다. [문서보기](https://homenet2mqtt-docs.vercel.app/guide/automation.html#%E1%84%90%E1%85%B3%E1%84%85%E1%85%B5%E1%84%80%E1%85%A5-triggers)
+- feat: 자동화 action - update_state의 target_id가 CEL도 받을 수 있도록 개선. [문서보기](https://homenet2mqtt-docs.vercel.app/guide/automation.html#update-state)
+
+
 v2.13.1
 - ui: 설정, 분석화면의 네비게이션 개선
 - ui: 모바일 환경에서 editor에 붙여넣기 권한이 없는 경우 우회하여 붙여넣기 가능한 모달창 제공
