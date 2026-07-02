@@ -11,7 +11,7 @@ import {
   ScriptConfig,
 } from '../config/types.js';
 import { loadConfig } from '../config/index.js';
-import { EntityConfig, CommandSchema } from '../domain/entities/base.entity.js';
+import { EntityConfig, CommandSchema, RestoreMode } from '../domain/entities/base.entity.js';
 import { PacketProcessor, EntityStateProvider } from '../protocol/packet-processor.js';
 import {
   calculateChecksumFromBuffer,
@@ -676,7 +676,8 @@ export class HomeNetBridge extends EventEmitter {
       if (!typedEntities) continue;
 
       for (const entity of typedEntities) {
-        if (entity.id && entity.restore_state === true) {
+        const mode: RestoreMode = entity.restore_mode ?? 'ALWAYS_OFF';
+        if (entity.id && (mode === 'RESTORE_DEFAULT_ON' || mode === 'RESTORE_DEFAULT_OFF')) {
           entities.push(entity);
         }
       }
