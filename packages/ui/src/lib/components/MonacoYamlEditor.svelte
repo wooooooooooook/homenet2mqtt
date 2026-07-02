@@ -8,6 +8,8 @@
   // Touch device detection
   let isTouchDevice = $state(false);
   let isToolbarExpanded = $state(false);
+  let showPasteModal = $state(false);
+  let pasteInputText = $state('');
 
   // Global singleton state for Monaco initialization
   let globalMonaco: MonacoInstance | null = null;
@@ -114,6 +116,7 @@
 
   let editor: MonacoEditor.IStandaloneCodeEditor | null = null;
   let modelChangeDisposable: IDisposable | null = null;
+  let cursorChangeDisposable: IDisposable | null = null;
   let monaco: MonacoInstance | null = null;
   let isApplyingExternalChange = false;
   // Derived state to check if we should actually load Monaco
@@ -234,6 +237,7 @@
       insertSpaces: true,
       automaticLayout: true,
       hover: { enabled: true },
+      fixedOverflowWidgets: true,
       // Force suggestion settings
       quickSuggestions: {
         other: true,
@@ -260,6 +264,30 @@
       const nextValue = editor?.getValue() ?? '';
       value = nextValue;
       onChange?.(nextValue);
+    });
+
+    cursorChangeDisposable = editor.onDidChangeCursorPosition((e) => {
+      if (!isTouchDevice) return;
+      const currentEditor = editor;
+      if (!currentEditor || !monaco) return;
+
+      const position = e.position;
+      const model = currentEditor.getModel();
+      if (!model) return;
+
+      const markers = monaco.editor.getModelMarkers({ resource: model.uri });
+      const hasMarkerAtPosition = markers.some((marker) => {
+        return (
+          position.lineNumber >= marker.startLineNumber &&
+          position.lineNumber <= marker.endLineNumber &&
+          position.column >= marker.startColumn &&
+          position.column <= marker.endColumn
+        );
+      });
+
+      if (hasMarkerAtPosition) {
+        currentEditor.trigger('keyboard', 'editor.action.showHover', {});
+      }
     });
 
     isReady = true;
@@ -399,17 +427,40 @@
   const pasteToEditor = async () => {
     if (!editor) return;
     try {
+      if (!navigator.clipboard || typeof navigator.clipboard.readText !== 'function') {
+        throw new Error('Clipboard API not supported');
+      }
       const text = await navigator.clipboard.readText();
       if (text) {
         editor.focus();
         editor.trigger('keyboard', 'type', { text });
+        isToolbarExpanded = false;
+      } else {
+        showPasteModal = true;
       }
     } catch (err) {
-      console.warn('Failed to paste from clipboard:', err);
-      // Fallback: trigger standard paste action which might be blocked or handled by browser
-      editor.focus();
-      editor.trigger('source', 'editor.action.clipboardPasteAction', {});
+      console.warn('Failed to paste from clipboard, using fallback modal:', err);
+      showPasteModal = true;
     }
+  };
+
+  const handlePasteModalConfirm = () => {
+    if (editor && pasteInputText) {
+      editor.focus();
+      const selection = editor.getSelection();
+      const range = selection ? selection : editor.getPosition();
+      if (range) {
+        editor.executeEdits('paste-modal', [
+          {
+            range: range as any,
+            text: pasteInputText,
+            forceMoveMarkers: true,
+          },
+        ]);
+      }
+    }
+    showPasteModal = false;
+    pasteInputText = '';
     isToolbarExpanded = false;
   };
 
@@ -429,6 +480,7 @@
 
   onDestroy(() => {
     modelChangeDisposable?.dispose();
+    cursorChangeDisposable?.dispose();
     const model = editor?.getModel();
     editor?.dispose();
     if (model) model.dispose(); // Always dispose model to clean up file:///config.yaml
@@ -457,6 +509,7 @@
     // If mode switches to textarea, we should dispose Monaco if it exists
     if (!shouldLoadMonaco && editor) {
       modelChangeDisposable?.dispose();
+      cursorChangeDisposable?.dispose();
       const model = editor?.getModel();
       if (model) model.dispose();
       editor?.dispose();
@@ -722,6 +775,40 @@
   {/if}
 </div>
 
+{#if showPasteModal}
+  <div class="paste-modal-backdrop" role="dialog" aria-modal="true">
+    <div class="paste-modal">
+      <h3>{$t('editor.paste_modal.title')}</h3>
+      <p class="paste-desc">{$t('editor.paste_modal.desc')}</p>
+      <textarea
+        bind:value={pasteInputText}
+        placeholder={$t('editor.paste_modal.placeholder')}
+        class="paste-textarea"
+      ></textarea>
+      <div class="paste-modal-actions">
+        <button
+          type="button"
+          class="modal-btn cancel"
+          onclick={() => {
+            showPasteModal = false;
+            pasteInputText = '';
+          }}
+        >
+          {$t('common.cancel') || 'Cancel'}
+        </button>
+        <button
+          type="button"
+          class="modal-btn confirm"
+          onclick={handlePasteModalConfirm}
+          disabled={!pasteInputText}
+        >
+          {$t('common.confirm') || 'Confirm'}
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
+
 <style>
   .monaco-yaml-editor {
     position: relative;
@@ -917,5 +1004,107 @@
     :global(.editor-scrollable) {
       left: 50px !important;
     }
+  }
+
+  /* Paste Modal Styles */
+  .paste-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.75);
+    backdrop-filter: blur(4px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    padding: 1rem;
+  }
+
+  .paste-modal {
+    background: #1e293b;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 12px;
+    width: 100%;
+    max-width: 450px;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    box-shadow:
+      0 20px 25px -5px rgba(0, 0, 0, 0.3),
+      0 10px 10px -5px rgba(0, 0, 0, 0.3);
+  }
+
+  .paste-modal h3 {
+    margin: 0;
+    color: #f8fafc;
+    font-size: 1.2rem;
+    font-weight: 600;
+  }
+
+  .paste-desc {
+    margin: 0;
+    color: #94a3b8;
+    font-size: 0.85rem;
+    line-height: 1.4;
+  }
+
+  .paste-textarea {
+    width: 100%;
+    min-height: 120px;
+    background: #0f172a;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 8px;
+    color: #e2e8f0;
+    padding: 0.75rem;
+    font-family: monospace;
+    font-size: 0.85rem;
+    resize: vertical;
+    outline: none;
+    box-sizing: border-box;
+  }
+
+  .paste-textarea:focus {
+    border-color: #38bdf8;
+  }
+
+  .paste-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+  }
+
+  .modal-btn {
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: background-color 0.15s ease;
+  }
+
+  .modal-btn.cancel {
+    background: rgba(148, 163, 184, 0.1);
+    color: #cbd5e1;
+  }
+
+  .modal-btn.cancel:hover {
+    background: rgba(148, 163, 184, 0.2);
+  }
+
+  .modal-btn.confirm {
+    background: #38bdf8;
+    color: #0f172a;
+  }
+
+  .modal-btn.confirm:hover {
+    background: #0ea5e9;
+  }
+
+  .modal-btn.confirm:disabled {
+    background: rgba(56, 189, 248, 0.3);
+    color: rgba(15, 23, 42, 0.5);
+    cursor: not-allowed;
   }
 </style>

@@ -1,6 +1,10 @@
 ** ⚠️ 업데이트 전 백업 권장 **
 - 오류가 있으면 homeasssutant [카페](https://cafe.naver.com/koreassistant), [깃헙](https://github.com/wooooooooooook/homenet2mqtt), [디스코드](https://discord.gg/kGwhUBMe5z) 등으로 알려주세요.
 
+v2.13.1
+- ui: 설정, 분석화면의 네비게이션 개선
+- ui: 모바일 환경에서 editor에 붙여넣기 권한이 없는 경우 우회하여 붙여넣기 가능한 모달창 제공
+
 v2.13.0
 - feat: `optimistic: true`인 엔티티에 사용할 수 있는 `restore_mode`옵션 추가 (`ALWAYS_ON`, `ALWAYS_OFF`, `RESTORE_DEFAULT_ON`, `RESTORE_DEFAULT_OFF` 지원, 기본값 `ALWAYS_OFF`)
 - fix: CEL 분석기가 상세오류내용을 표시하도록 수정

@@ -396,6 +396,11 @@
       "copy": "Copy",
       "cut": "Cut",
       "paste": "Paste"
+    },
+    "paste_modal": {
+      "title": "Clipboard Paste",
+      "desc": "Due to security policies, direct clipboard access is unavailable. Please paste your text into the box below.",
+      "placeholder": "Tap and hold here to paste..."
     }
   },
   "header": {

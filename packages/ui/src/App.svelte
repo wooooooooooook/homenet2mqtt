@@ -2062,6 +2062,13 @@
     }
   }
 
+  @media (min-width: 769px) and (max-width: 1060px) {
+    .main-content {
+      margin-left: 180px;
+      max-width: calc(100% - 180px);
+    }
+  }
+
   @media (max-width: 768px) {
     .main-content {
       margin-left: 0;

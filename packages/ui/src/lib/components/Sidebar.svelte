@@ -258,6 +258,12 @@
     opacity: 0.6;
   }
 
+  @media (min-width: 769px) and (max-width: 1060px) {
+    .sidebar {
+      width: 180px;
+    }
+  }
+
   @media (max-width: 768px) {
     .sidebar {
       transform: translateX(-100%);

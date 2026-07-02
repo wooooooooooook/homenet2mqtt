@@ -106,6 +106,72 @@
     { id: 'packet-analyzer', label: $t('analysis.packet_analyzer.title') },
     { id: 'cel-analyzer', label: $t('analysis.cel_analyzer.title') },
   ]);
+
+  let activeSection = $state<string>('packet-log');
+
+  $effect(() => {
+    // Watch visibility to trigger re-observe when DOM elements are toggled
+    const _trigger = Object.values(visibility);
+    const rootEl = document.querySelector('.main-content');
+    if (!rootEl) return;
+
+    const handleIntersect = (entries: IntersectionObserverEntry[]) => {
+      const intersecting = entries.filter((e) => e.isIntersecting);
+      if (intersecting.length > 0) {
+        // Sort visible items by their distance from the top of viewport to activate the topmost one
+        intersecting.sort(
+          (a, b) => Math.abs(a.boundingClientRect.top) - Math.abs(b.boundingClientRect.top),
+        );
+        activeSection = intersecting[0].target.id;
+      }
+    };
+
+    const observer = new IntersectionObserver(handleIntersect, {
+      root: rootEl,
+      rootMargin: '-80px 0px -60% 0px', // Target active viewport zone below mobile sticky bar
+      threshold: 0,
+    });
+
+    const timer = setTimeout(() => {
+      menuItems.forEach((item) => {
+        const el = document.getElementById(item.id);
+        if (el) observer.observe(el);
+      });
+    }, 150);
+
+    return () => {
+      clearTimeout(timer);
+      observer.disconnect();
+    };
+  });
+
+  const handleAnchorClick = (event: MouseEvent, targetId: string) => {
+    event.preventDefault();
+    const element = document.getElementById(targetId);
+    const container = document.querySelector('.main-content');
+    const sidebar = document.querySelector('.analysis-sidebar');
+
+    if (element && container) {
+      const containerScrollTop = container.scrollTop;
+      const elementTop = element.getBoundingClientRect().top;
+      const containerTop = container.getBoundingClientRect().top;
+
+      const targetScrollTop = containerScrollTop + elementTop - containerTop;
+      const isMobile = window.innerWidth <= 768;
+      const offset = isMobile && sidebar ? (sidebar as HTMLElement).offsetHeight : 0;
+      const margin = 16;
+
+      container.scrollTo({
+        top: targetScrollTop - offset - margin,
+        behavior: 'smooth',
+      });
+
+      history.pushState(null, '', `#${targetId}`);
+      activeSection = targetId;
+    }
+  };
+
+  let isSidebarCollapsed = $state(false);
 </script>
 
 <div class="analysis-view">
@@ -115,13 +181,54 @@
     </div>
   </div>
 
-  <div class="analysis-layout">
-    <aside class="analysis-sidebar" aria-label={$t('sidebar.analysis')}>
+  <div class="analysis-layout" class:sidebar-collapsed={isSidebarCollapsed}>
+    <aside
+      class="analysis-sidebar"
+      class:collapsed={isSidebarCollapsed}
+      aria-label={$t('sidebar.analysis')}
+    >
+      <button
+        type="button"
+        class="sidebar-toggle-btn"
+        onclick={() => (isSidebarCollapsed = !isSidebarCollapsed)}
+        aria-label={isSidebarCollapsed ? 'Open analysis sidebar' : 'Close analysis sidebar'}
+        title={isSidebarCollapsed ? 'Open analysis sidebar' : 'Close analysis sidebar'}
+      >
+        {#if isSidebarCollapsed}
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg
+          >
+        {:else}
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg
+          >
+        {/if}
+      </button>
       <nav>
         {#each menuItems as item (item.id)}
-          <div class="sidebar-item" class:hidden={!visibility[item.id as keyof VisibilityState]}>
+          <div
+            class="sidebar-item"
+            class:hidden={!visibility[item.id as keyof VisibilityState]}
+            class:active={activeSection === item.id}
+          >
             {#if visibility[item.id as keyof VisibilityState]}
-              <a href="#{item.id}">{item.label}</a>
+              <a href="#{item.id}" onclick={(e) => handleAnchorClick(e, item.id)}>{item.label}</a>
             {:else}
               <span class="disabled-label">{item.label}</span>
             {/if}
@@ -258,21 +365,89 @@
     grid-template-columns: 240px minmax(0, 1fr);
     gap: 1.5rem;
     align-items: start;
+    transition: grid-template-columns 0.3s ease;
+  }
+
+  .analysis-layout.sidebar-collapsed {
+    grid-template-columns: 16px minmax(0, 1fr);
+  }
+
+  .sidebar-toggle-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    right: -8px;
+    width: 14px;
+    height: 64px;
+    border-radius: 4px;
+    background: #1e293b;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 10;
+    transition: all 0.2s ease;
+    padding: 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  }
+
+  .sidebar-toggle-btn:hover {
+    background: #334155;
+    color: #f8fafc;
+    border-color: rgba(148, 163, 184, 0.4);
+  }
+
+  .sidebar-toggle-btn svg {
+    width: 10px;
+    height: 10px;
   }
 
   .analysis-sidebar {
     position: sticky;
     top: 1rem;
-    background: rgba(15, 23, 42, 0.5);
+    height: calc(100vh - 230px);
+    background: rgba(15, 23, 42, 0.4);
     border: 1px solid rgba(148, 163, 184, 0.12);
     border-radius: 12px;
     padding: 0.75rem;
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+  }
+
+  .analysis-sidebar.collapsed {
+    padding: 0;
+    width: 16px;
+    min-width: 16px;
+    box-sizing: border-box;
+    background: transparent;
+    border: 1px solid transparent;
+    border-right: 1px solid rgba(148, 163, 184, 0.12);
+    border-radius: 0;
+  }
+
+  .analysis-sidebar.collapsed nav {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition:
+      opacity 0.1s ease,
+      visibility 0.1s ease;
   }
 
   .analysis-sidebar nav {
     display: flex;
     flex-direction: column;
     gap: 0.35rem;
+    white-space: nowrap;
+    opacity: 1;
+    visibility: visible;
+    transition:
+      opacity 0.2s ease 0.15s,
+      visibility 0.2s ease 0.15s;
+    overflow: hidden;
+    width: 100%;
   }
 
   .sidebar-item {
@@ -281,11 +456,23 @@
     align-items: center;
     border-radius: 8px;
     padding: 0.1rem 0.2rem;
-    transition: background-color 0.15s ease;
+    transition: all 0.15s ease;
+    border-left: 3px solid transparent;
   }
 
   .sidebar-item:hover {
     background: rgba(148, 163, 184, 0.08);
+  }
+
+  .sidebar-item.active {
+    background: rgba(56, 189, 248, 0.12);
+    border-left-color: #38bdf8;
+    border-radius: 0 8px 8px 0;
+  }
+
+  .sidebar-item.active a {
+    color: #38bdf8;
+    font-weight: 500;
   }
 
   .sidebar-item a,
@@ -354,14 +541,38 @@
     scroll-margin-top: 1rem;
   }
 
+  @media (min-width: 769px) and (max-width: 1060px) {
+    .analysis-layout {
+      grid-template-columns: 180px minmax(0, 1fr);
+    }
+    .analysis-layout.sidebar-collapsed {
+      grid-template-columns: 16px minmax(0, 1fr);
+    }
+  }
+
   @media (max-width: 768px) {
+    .sidebar-toggle-btn {
+      display: none;
+    }
+
     .analysis-layout {
       grid-template-columns: 1fr;
     }
 
     .analysis-sidebar {
-      position: static;
-      padding: 0.5rem;
+      position: sticky;
+      top: -0.75rem;
+      height: auto;
+      z-index: 10;
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(8px);
+      margin: -0.75rem -0.75rem 1rem -0.75rem;
+      padding: 0.75rem;
+      border-radius: 0;
+      border-left: none;
+      border-right: none;
+      border-top: none;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.12);
     }
 
     .analysis-sidebar nav {
@@ -374,12 +585,20 @@
       padding: 0.1rem 0.3rem;
       background: rgba(30, 41, 59, 0.4);
       border: 1px solid rgba(148, 163, 184, 0.1);
+      border-radius: 8px;
     }
 
     .sidebar-item a,
     .sidebar-item .disabled-label {
       font-size: 0.8rem;
       padding: 0.3rem 0.4rem;
+    }
+
+    .sidebar-item.active {
+      background: rgba(56, 189, 248, 0.15);
+      border-color: rgba(56, 189, 248, 0.4);
+      border-left-color: transparent;
+      border-radius: 8px;
     }
 
     .visibility-toggle .icon {
@@ -389,6 +608,15 @@
 
     .view-header {
       margin-bottom: 0;
+    }
+
+    .analysis-section {
+      scroll-margin-top: 10rem;
+    }
+
+    :global(#packet-sender),
+    :global(#raw-packet-log) {
+      scroll-margin-top: 10rem;
     }
   }
 </style>

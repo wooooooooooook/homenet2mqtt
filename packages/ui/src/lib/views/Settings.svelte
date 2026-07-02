@@ -763,6 +763,77 @@
       },
     });
   };
+
+  let activeSection = $state<string>('bridge-config');
+  const settingSections = [
+    'bridge-config',
+    'dashboard-settings',
+    'log-settings',
+    'backup-management',
+    'gallery-config',
+    'app-control',
+  ];
+
+  $effect(() => {
+    const rootEl = document.querySelector('.main-content');
+    if (!rootEl) return;
+
+    const handleIntersect = (entries: IntersectionObserverEntry[]) => {
+      const intersecting = entries.filter((e) => e.isIntersecting);
+      if (intersecting.length > 0) {
+        intersecting.sort(
+          (a, b) => Math.abs(a.boundingClientRect.top) - Math.abs(b.boundingClientRect.top),
+        );
+        activeSection = intersecting[0].target.id;
+      }
+    };
+
+    const observer = new IntersectionObserver(handleIntersect, {
+      root: rootEl,
+      rootMargin: '-80px 0px -60% 0px', // Target active viewport zone below mobile sticky bar
+      threshold: 0,
+    });
+
+    const timer = setTimeout(() => {
+      settingSections.forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) observer.observe(el);
+      });
+    }, 150);
+
+    return () => {
+      clearTimeout(timer);
+      observer.disconnect();
+    };
+  });
+
+  const handleAnchorClick = (event: MouseEvent, targetId: string) => {
+    event.preventDefault();
+    const element = document.getElementById(targetId);
+    const container = document.querySelector('.main-content');
+    const sidebar = document.querySelector('.settings-sidebar');
+
+    if (element && container) {
+      const containerScrollTop = container.scrollTop;
+      const elementTop = element.getBoundingClientRect().top;
+      const containerTop = container.getBoundingClientRect().top;
+
+      const targetScrollTop = containerScrollTop + elementTop - containerTop;
+      const isMobile = window.innerWidth <= 480;
+      const offset = isMobile && sidebar ? (sidebar as HTMLElement).offsetHeight : 0;
+      const margin = 16;
+
+      container.scrollTo({
+        top: targetScrollTop - offset - margin,
+        behavior: 'smooth',
+      });
+
+      history.pushState(null, '', `#${targetId}`);
+      activeSection = targetId;
+    }
+  };
+
+  let isSidebarCollapsed = $state(false);
 </script>
 
 {#if showConsentModal}
@@ -833,15 +904,79 @@
     <div class="error-banner">{error}</div>
   {/if}
 
-  <div class="settings-layout">
-    <aside class="settings-sidebar" aria-label={$t('settings.title')}>
+  <div class="settings-layout" class:sidebar-collapsed={isSidebarCollapsed}>
+    <aside
+      class="settings-sidebar"
+      class:collapsed={isSidebarCollapsed}
+      aria-label={$t('settings.title')}
+    >
+      <button
+        type="button"
+        class="sidebar-toggle-btn"
+        onclick={() => (isSidebarCollapsed = !isSidebarCollapsed)}
+        aria-label={isSidebarCollapsed ? 'Open settings sidebar' : 'Close settings sidebar'}
+        title={isSidebarCollapsed ? 'Open settings sidebar' : 'Close settings sidebar'}
+      >
+        {#if isSidebarCollapsed}
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg
+          >
+        {:else}
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg
+          >
+        {/if}
+      </button>
       <nav>
-        <a href="#bridge-config">{$t('settings.bridge_config.title')}</a>
-        <a href="#dashboard-settings">{$t('settings.dashboard.title')}</a>
-        <a href="#log-settings">{$t('settings.log.title')}</a>
-        <a href="#backup-management">{$t('settings.backup_management.title')}</a>
-        <a href="#gallery-config">{$t('settings.gallery.title')}</a>
-        <a href="#app-control">{$t('settings.app_control.title')}</a>
+        <a
+          href="#bridge-config"
+          class:active={activeSection === 'bridge-config'}
+          onclick={(e) => handleAnchorClick(e, 'bridge-config')}
+          >{$t('settings.bridge_config.title')}</a
+        >
+        <a
+          href="#dashboard-settings"
+          class:active={activeSection === 'dashboard-settings'}
+          onclick={(e) => handleAnchorClick(e, 'dashboard-settings')}
+          >{$t('settings.dashboard.title')}</a
+        >
+        <a
+          href="#log-settings"
+          class:active={activeSection === 'log-settings'}
+          onclick={(e) => handleAnchorClick(e, 'log-settings')}>{$t('settings.log.title')}</a
+        >
+        <a
+          href="#backup-management"
+          class:active={activeSection === 'backup-management'}
+          onclick={(e) => handleAnchorClick(e, 'backup-management')}
+          >{$t('settings.backup_management.title')}</a
+        >
+        <a
+          href="#gallery-config"
+          class:active={activeSection === 'gallery-config'}
+          onclick={(e) => handleAnchorClick(e, 'gallery-config')}>{$t('settings.gallery.title')}</a
+        >
+        <a
+          href="#app-control"
+          class:active={activeSection === 'app-control'}
+          onclick={(e) => handleAnchorClick(e, 'app-control')}>{$t('settings.app_control.title')}</a
+        >
       </nav>
     </aside>
 
@@ -1774,21 +1909,89 @@
     grid-template-columns: 240px minmax(0, 1fr);
     gap: 1rem;
     align-items: start;
+    transition: grid-template-columns 0.3s ease;
+  }
+
+  .settings-layout.sidebar-collapsed {
+    grid-template-columns: 16px minmax(0, 1fr);
+  }
+
+  .sidebar-toggle-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    right: -8px;
+    width: 14px;
+    height: 64px;
+    border-radius: 4px;
+    background: #1e293b;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 10;
+    transition: all 0.2s ease;
+    padding: 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  }
+
+  .sidebar-toggle-btn:hover {
+    background: #334155;
+    color: #f8fafc;
+    border-color: rgba(148, 163, 184, 0.4);
+  }
+
+  .sidebar-toggle-btn svg {
+    width: 10px;
+    height: 10px;
   }
 
   .settings-sidebar {
     position: sticky;
     top: 1rem;
-    background: rgba(15, 23, 42, 0.5);
+    height: calc(100vh - 230px);
+    background: rgba(15, 23, 42, 0.4);
     border: 1px solid rgba(148, 163, 184, 0.12);
     border-radius: 12px;
     padding: 0.75rem;
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+  }
+
+  .settings-sidebar.collapsed {
+    padding: 0;
+    width: 16px;
+    min-width: 16px;
+    box-sizing: border-box;
+    background: transparent;
+    border: 1px solid transparent;
+    border-right: 1px solid rgba(148, 163, 184, 0.12);
+    border-radius: 0;
+  }
+
+  .settings-sidebar.collapsed nav {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition:
+      opacity 0.1s ease,
+      visibility 0.1s ease;
   }
 
   .settings-sidebar nav {
     display: flex;
     flex-direction: column;
     gap: 0.35rem;
+    white-space: nowrap;
+    opacity: 1;
+    visibility: visible;
+    transition:
+      opacity 0.2s ease 0.15s,
+      visibility 0.2s ease 0.15s;
+    overflow: hidden;
+    width: 100%;
   }
 
   .settings-sidebar a {
@@ -1797,11 +2000,20 @@
     font-size: 0.9rem;
     border-radius: 8px;
     padding: 0.45rem 0.6rem;
-    transition: background-color 0.15s ease;
+    transition: all 0.15s ease;
+    border-left: 3px solid transparent;
   }
 
   .settings-sidebar a:hover {
-    background: rgba(148, 163, 184, 0.15);
+    background: rgba(148, 163, 184, 0.08);
+  }
+
+  .settings-sidebar a.active {
+    background: rgba(56, 189, 248, 0.12);
+    color: #38bdf8;
+    font-weight: 500;
+    border-left-color: #38bdf8;
+    border-radius: 0 8px 8px 0;
   }
 
   .settings-content {
@@ -2138,25 +2350,61 @@
     font-size: 1rem;
   }
 
+  @media (min-width: 769px) and (max-width: 1060px) {
+    .settings-layout {
+      grid-template-columns: 180px minmax(0, 1fr);
+    }
+    .settings-layout.sidebar-collapsed {
+      grid-template-columns: 16px minmax(0, 1fr);
+    }
+  }
+
   @media (max-width: 480px) {
+    .sidebar-toggle-btn {
+      display: none;
+    }
+
     .settings-layout {
       grid-template-columns: 1fr;
     }
 
     .settings-sidebar {
-      position: static;
-      padding: 0.5rem;
+      position: sticky;
+      top: -0.75rem;
+      height: auto;
+      z-index: 10;
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(8px);
+      margin: -0.75rem -0.75rem 1rem -0.75rem;
+      padding: 0.75rem;
+      border-radius: 0;
+      border-left: none;
+      border-right: none;
+      border-top: none;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.12);
     }
 
     .settings-sidebar nav {
       flex-direction: row;
       flex-wrap: wrap;
-      gap: 0.25rem;
+      gap: 0.5rem;
     }
 
     .settings-sidebar a {
       font-size: 0.8rem;
-      padding: 0.35rem 0.5rem;
+      padding: 0.3rem 0.4rem;
+      background: rgba(30, 41, 59, 0.4);
+      border: 1px solid rgba(148, 163, 184, 0.1);
+      border-radius: 8px;
+      transition: all 0.15s ease;
+      border-left: 3px solid transparent;
+    }
+
+    .settings-sidebar a.active {
+      background: rgba(56, 189, 248, 0.15);
+      border-color: rgba(56, 189, 248, 0.4);
+      border-left-color: transparent;
+      border-radius: 8px;
     }
 
     .view-header {
@@ -2174,6 +2422,7 @@
 
     .card {
       padding: 1rem;
+      scroll-margin-top: 10rem;
     }
 
     .setting {
