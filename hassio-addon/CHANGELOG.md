@@ -1,7 +1,8 @@
 ** ⚠️ 업데이트 전 백업 권장 **
 - 오류가 있으면 homeasssutant [카페](https://cafe.naver.com/koreassistant), [깃헙](https://github.com/wooooooooooook/homenet2mqtt), [디스코드](https://discord.gg/kGwhUBMe5z) 등으로 알려주세요.
 
-v2.12.3
+v2.13.0
+- feat: `optimistic: true`인 엔티티에 사용할 수 있는 `restore_mode`옵션 추가 (`ALWAYS_ON`, `ALWAYS_OFF`, `RESTORE_DEFAULT_ON`, `RESTORE_DEFAULT_OFF` 지원, 기본값 `ALWAYS_OFF`)
 - fix: CEL 분석기가 상세오류내용을 표시하도록 수정
 - fix: 자동화의 action이 실패하더라도 활동로그에 남지 않는 문제 수정
 - chore: 문서와 예제에 남아있는 offset을 index로 수정

@@ -1,4 +1,13 @@
 /**
+ * Controls how an optimistic entity's state is initialized on restart.
+ * - ALWAYS_ON: Always initialize to ON/OPEN/UNLOCKED (no restore).
+ * - ALWAYS_OFF: Always initialize to OFF/CLOSED/LOCKED (no restore). **Default**.
+ * - RESTORE_DEFAULT_ON: Attempt MQTT retained restore; fallback to ON.
+ * - RESTORE_DEFAULT_OFF: Attempt MQTT retained restore; fallback to OFF.
+ */
+export type RestoreMode = 'ALWAYS_ON' | 'ALWAYS_OFF' | 'RESTORE_DEFAULT_ON' | 'RESTORE_DEFAULT_OFF';
+
+/**
  * Supported 1-byte checksum algorithms.
  *
  * - `add`: Sum of all bytes (header + data) & 0xFF.
@@ -262,6 +271,7 @@ export interface DeviceConfig {
   // Add other common device properties here
   state?: StateSchema;
   optimistic?: boolean;
+  restore_mode?: RestoreMode;
   state_proxy?: boolean;
   target_id?: string;
 }

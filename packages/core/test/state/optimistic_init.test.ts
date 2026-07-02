@@ -33,13 +33,13 @@ describe('StateManager Optimistic Initialization', () => {
           name: 'Virtual Switch',
           type: 'switch',
           optimistic: true,
-          // No command or data, purely virtual
+          // No restore_mode → defaults to ALWAYS_OFF
         } as any,
       ],
     };
   });
 
-  it('should publish initial state for optimistic entities on startup', () => {
+  it('should publish initial OFF state for ALWAYS_OFF (default) optimistic entities', () => {
     stateManager = new StateManager(
       PORT_ID,
       config,
@@ -48,12 +48,9 @@ describe('StateManager Optimistic Initialization', () => {
       TOPIC_PREFIX,
     );
 
-    // Check if state is stored internally
     const state = stateManager.getEntityState('virtual_switch');
     expect(state).toEqual({ state: 'OFF' });
 
-    // Check if state was published to MQTT
-    // The topic should be prefix/entityId/state
     const expectedTopic = `${TOPIC_PREFIX}/virtual_switch/state`;
     const expectedPayload = JSON.stringify({ state: 'OFF' });
 
@@ -62,5 +59,124 @@ describe('StateManager Optimistic Initialization', () => {
       expectedPayload,
       expect.objectContaining({ retain: true }),
     );
+  });
+
+  it('should publish initial ON state for ALWAYS_ON optimistic entities', () => {
+    config.switch = [
+      {
+        id: 'always_on_switch',
+        name: 'Always On Switch',
+        type: 'switch',
+        optimistic: true,
+        restore_mode: 'ALWAYS_ON',
+      } as any,
+    ];
+
+    stateManager = new StateManager(
+      PORT_ID,
+      config,
+      mockPacketProcessor,
+      mockMqttPublisher,
+      TOPIC_PREFIX,
+    );
+
+    const state = stateManager.getEntityState('always_on_switch');
+    expect(state).toEqual({ state: 'ON' });
+
+    expect(mockMqttPublisher.publish).toHaveBeenCalledWith(
+      `${TOPIC_PREFIX}/always_on_switch/state`,
+      JSON.stringify({ state: 'ON' }),
+      expect.objectContaining({ retain: true }),
+    );
+  });
+
+  it('should defer initial state for RESTORE_DEFAULT_OFF optimistic entities', () => {
+    config.switch = [
+      {
+        id: 'restorable_switch',
+        name: 'Restorable Switch',
+        type: 'switch',
+        optimistic: true,
+        restore_mode: 'RESTORE_DEFAULT_OFF',
+      } as any,
+    ];
+
+    stateManager = new StateManager(
+      PORT_ID,
+      config,
+      mockPacketProcessor,
+      mockMqttPublisher,
+      TOPIC_PREFIX,
+    );
+
+    expect(stateManager.getEntityState('restorable_switch')).toBeUndefined();
+    expect(mockMqttPublisher.publish).not.toHaveBeenCalled();
+
+    stateManager.initializeRestorableOptimisticDefaults(config);
+
+    expect(stateManager.getEntityState('restorable_switch')).toEqual({ state: 'OFF' });
+    expect(mockMqttPublisher.publish).toHaveBeenCalledWith(
+      `${TOPIC_PREFIX}/restorable_switch/state`,
+      JSON.stringify({ state: 'OFF' }),
+      expect.objectContaining({ retain: true }),
+    );
+  });
+
+  it('should defer initial state for RESTORE_DEFAULT_ON and fallback to ON', () => {
+    config.switch = [
+      {
+        id: 'restorable_on_switch',
+        name: 'Restorable ON Switch',
+        type: 'switch',
+        optimistic: true,
+        restore_mode: 'RESTORE_DEFAULT_ON',
+      } as any,
+    ];
+
+    stateManager = new StateManager(
+      PORT_ID,
+      config,
+      mockPacketProcessor,
+      mockMqttPublisher,
+      TOPIC_PREFIX,
+    );
+
+    expect(stateManager.getEntityState('restorable_on_switch')).toBeUndefined();
+    expect(mockMqttPublisher.publish).not.toHaveBeenCalled();
+
+    stateManager.initializeRestorableOptimisticDefaults(config);
+
+    expect(stateManager.getEntityState('restorable_on_switch')).toEqual({ state: 'ON' });
+    expect(mockMqttPublisher.publish).toHaveBeenCalledWith(
+      `${TOPIC_PREFIX}/restorable_on_switch/state`,
+      JSON.stringify({ state: 'ON' }),
+      expect.objectContaining({ retain: true }),
+    );
+  });
+
+  it('should keep restored state instead of publishing default state', () => {
+    config.switch = [
+      {
+        id: 'restorable_switch',
+        name: 'Restorable Switch',
+        type: 'switch',
+        optimistic: true,
+        restore_mode: 'RESTORE_DEFAULT_OFF',
+      } as any,
+    ];
+
+    stateManager = new StateManager(
+      PORT_ID,
+      config,
+      mockPacketProcessor,
+      mockMqttPublisher,
+      TOPIC_PREFIX,
+    );
+
+    stateManager.restoreEntityState('restorable_switch', { state: 'ON' });
+    stateManager.initializeRestorableOptimisticDefaults(config);
+
+    expect(stateManager.getEntityState('restorable_switch')).toEqual({ state: 'ON' });
+    expect(mockMqttPublisher.publish).not.toHaveBeenCalled();
   });
 });

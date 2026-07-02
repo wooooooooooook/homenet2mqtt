@@ -291,6 +291,7 @@ button:
 - `update_state`는 대상 엔티티에 **이미 정의된** `state_*` 및 해당 속성명만 허용하며, 정의되지 않은 속성은 오류로 처리됩니다.
   예를 들어 대상 light 엔티티에 `state_on`/`state_off`가 없다면 자동화 액션에서 `state_on`/`state_off`를 사용할 수 없습니다.
   패킷 트리거로 ON/OFF를 갱신하려면 대상 엔티티 설정에도 동일한 상태 스키마를 먼저 선언하세요.
+- 엔티티 공통 옵션 `restore_mode`를 사용하면 `optimistic: true` 엔티티의 재시작 시 상태 초기화 방식을 제어합니다. `RESTORE_DEFAULT_ON` 또는 `RESTORE_DEFAULT_OFF`로 설정하면 시작 시 MQTT retained state 메시지를 읽어 상태를 복원합니다.
 
 ## Scripts 블록
 자동화 액션 배열을 재사용하기 위한 `scripts` 블록을 설정 파일에 추가할 수 있습니다. 정의 방법과 활용 예시는

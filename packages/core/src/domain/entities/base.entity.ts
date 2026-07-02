@@ -1,4 +1,12 @@
-import { DecodeEncodeType, EndianType, PacketDefaults, StateSchema } from '../../protocol/types.js';
+import {
+  DecodeEncodeType,
+  EndianType,
+  PacketDefaults,
+  StateSchema,
+  RestoreMode,
+} from '../../protocol/types.js';
+
+export type { RestoreMode };
 
 export interface CommandSchema {
   data?: number[];
@@ -45,6 +53,7 @@ export interface EntityConfig {
   discovery_linked_id?: string;
   discovery_skip?: boolean;
   optimistic?: boolean;
+  restore_mode?: RestoreMode;
   internal?: boolean;
 
   /**

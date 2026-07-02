@@ -8,7 +8,26 @@ import { MqttPublisher } from '../transports/mqtt/publisher.js';
 import { eventBus } from '../service/event-bus.js';
 import { stateCache } from './store.js';
 import { ENTITY_TYPE_KEYS } from '../utils/entities.js';
-import { EntityConfig } from '../domain/entities/base.entity.js';
+import { EntityConfig, RestoreMode } from '../domain/entities/base.entity.js';
+
+/** Check whether a restore_mode value requires MQTT retained restore. */
+function isRestorableMode(mode?: RestoreMode): boolean {
+  return mode === 'RESTORE_DEFAULT_ON' || mode === 'RESTORE_DEFAULT_OFF';
+}
+
+/** Get the ON-equivalent default state for the given entity type. */
+function getOnState(entityType: string): Record<string, any> | null {
+  const onStateByType: Record<string, Record<string, any>> = {
+    binary_sensor: { state: 'ON' },
+    switch: { state: 'ON' },
+    light: { state: 'ON' },
+    valve: { state: 'OPEN' },
+    cover: { state: 'OPEN' },
+    fan: { state: 'ON' },
+    lock: { state: 'UNLOCKED' },
+  };
+  return onStateByType[entityType] ? { ...onStateByType[entityType] } : null;
+}
 
 export class StateManager {
   private packetProcessor: PacketProcessor;
@@ -80,7 +99,7 @@ export class StateManager {
    * Initialize optimistic entities with default states.
    * This ensures they exist in deviceStates/sharedStates before any automation guard evaluates them.
    */
-  private initializeOptimisticEntities(config: HomenetBridgeConfig): void {
+  private getOptimisticDefaultState(entityType: string): Record<string, any> | null {
     const defaultStateByType: Record<string, Record<string, any>> = {
       binary_sensor: { state: 'OFF' },
       switch: { state: 'OFF' },
@@ -95,31 +114,95 @@ export class StateManager {
       text: {}, // Text needs initial_value, handled by TextDevice
     };
 
+    const defaultState = defaultStateByType[entityType];
+    if (!defaultState || Object.keys(defaultState).length === 0) {
+      return null;
+    }
+
+    return { ...defaultState };
+  }
+
+  /**
+   * Initialize non-restorable optimistic entities with default states.
+   * ALWAYS_OFF / ALWAYS_ON entities are initialized here immediately.
+   * RESTORE_DEFAULT_* entities are deferred until after MQTT retained restore.
+   */
+  private initializeOptimisticEntities(config: HomenetBridgeConfig): void {
+    this.initializeOptimisticDefaults(config, false);
+  }
+
+  /**
+   * Initialize restorable optimistic entities that were NOT restored from MQTT retained.
+   * Called after MQTT retained restore attempt completes.
+   */
+  public initializeRestorableOptimisticDefaults(config: HomenetBridgeConfig): void {
+    this.initializeOptimisticDefaults(config, true);
+  }
+
+  private initializeOptimisticDefaults(config: HomenetBridgeConfig, onlyRestorable: boolean): void {
     for (const type of ENTITY_TYPE_KEYS) {
       const entities = config[type] as EntityConfig[] | undefined;
-      const defaultState = defaultStateByType[type];
 
-      if (!entities || !defaultState || Object.keys(defaultState).length === 0) {
+      if (!entities) {
         continue;
       }
 
       for (const entity of entities) {
-        if (entity.optimistic && entity.id) {
-          // Only initialize if not already in deviceStates
-          if (!this.deviceStates.has(entity.id)) {
-            // Use applyStateUpdate to ensure publishing and event emission
-            // This ensures state is retained in MQTT and visible to UI/HA immediately
-            this.applyStateUpdate(entity.id, { ...defaultState });
-            logger.debug(
-              `[StateManager] Initialized optimistic entity ${entity.id} with default state: ${JSON.stringify(defaultState)}`,
-            );
-          }
-        }
+        if (!entity.optimistic || !entity.id) continue;
+
+        const mode: RestoreMode = entity.restore_mode ?? 'ALWAYS_OFF';
+        const restorable = isRestorableMode(mode);
+
+        // Phase filtering: non-restorable first, restorable second
+        if (onlyRestorable !== restorable) continue;
+
+        // Only initialize if not already in deviceStates (e.g. already restored)
+        if (this.deviceStates.has(entity.id)) continue;
+
+        const defaultState = this.getDefaultStateForMode(type, mode);
+        if (!defaultState) continue;
+
+        this.applyStateUpdate(entity.id, defaultState);
+        logger.debug(
+          `[StateManager] Initialized optimistic entity ${entity.id} with mode=${mode}, state: ${JSON.stringify(defaultState)}`,
+        );
       }
     }
   }
 
+  /**
+   * Determine the default state for an entity based on its restore_mode.
+   */
+  private getDefaultStateForMode(
+    entityType: string,
+    mode: RestoreMode,
+  ): Record<string, any> | null {
+    switch (mode) {
+      case 'ALWAYS_ON':
+      case 'RESTORE_DEFAULT_ON':
+        return getOnState(entityType) ?? this.getOptimisticDefaultState(entityType);
+      case 'ALWAYS_OFF':
+      case 'RESTORE_DEFAULT_OFF':
+      default:
+        return this.getOptimisticDefaultState(entityType);
+    }
+  }
+
   private deviceStates = new Map<string, any>();
+
+  public restoreEntityState(entityId: string, state: Record<string, any>): void {
+    this.deviceStates.set(entityId, { ...state });
+    this.cachedStates = null;
+
+    if (this.sharedStates) {
+      this.sharedStates.set(entityId, { ...state });
+    }
+
+    const topic = `${this.mqttTopicPrefix}/${entityId}/state`;
+    stateCache.set(topic, JSON.stringify(state));
+
+    logger.info({ entityId, topic }, '[StateManager] Restored entity state from MQTT retained');
+  }
 
   public getLightState(entityId: string): { isOn: boolean } | undefined {
     const state = this.deviceStates.get(entityId);
