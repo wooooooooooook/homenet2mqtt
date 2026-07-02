@@ -287,6 +287,9 @@ state:
     length: 1
 ```
 
+- `target_id`는 상태를 갱신할 대상 엔티티 ID를 지정합니다.
+  - 일반 엔티티 ID(예: `light_1`) 외에 **CEL 표현식**도 사용할 수 있습니다. (예: `"'light_' + string(trigger.packet[2])"`)
+  - CEL 식 내부에서 `trigger.packet`, `states` 등의 컨텍스트를 참조하여 동적으로 갱신 대상을 결정할 수 있습니다.
 - `state` 값이 `StateSchema/StateNumSchema`인 경우, 패킷에서 값을 추출하여 상태로 기록합니다.
 - `index`를 생략하면 헤더 다음 바이트부터 추출하고, `index`를 명시하면 헤더 포함 전체 패킷 기준 인덱스로 추출합니다.
 - 패킷 트리거인 경우에만 사용하세요.

@@ -177,6 +177,7 @@ export type AutomationActionUpdateStateValue = StateSchema | StateNumSchema | an
  */
 export interface AutomationActionUpdateState {
   action: 'update_state';
+  /** Target entity ID (e.g. 'light_1') or CEL expression evaluating to it (e.g. "'light_' + string(trigger.packet[2])"). */
   target_id: string;
   state: Record<string, AutomationActionUpdateStateValue>;
 }

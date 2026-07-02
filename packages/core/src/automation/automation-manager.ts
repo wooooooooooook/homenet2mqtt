@@ -109,6 +109,10 @@ export class AutomationManager {
   private readonly runningAutomations = new Map<string, AbortController>();
   private readonly automationQueues = new Map<string, Array<() => Promise<void>>>();
   private readonly regexCache = new Map<string, RegExp>();
+  private readonly celTargetIdCache = new WeakMap<
+    AutomationActionUpdateState,
+    { isCel: boolean; targetId: string }
+  >();
   private isStarted = false;
   private lastPacket: Buffer | undefined;
 
@@ -128,6 +132,7 @@ export class AutomationManager {
     this.commandManager = commandManager;
     this.mqttPublisher = mqttPublisher;
     (config.scripts || []).forEach((script) => this.scripts.set(script.id, script));
+    this.preAnalyzeUpdateStateActions();
   }
 
   private normalizeCommandName(commandName: string) {
@@ -868,17 +873,26 @@ export class AutomationManager {
       return;
     }
 
+    const cached = this.celTargetIdCache.get(action);
     let targetId = action.target_id;
-    if (
-      typeof targetId === 'string' &&
-      (targetId.includes('args.') ||
-        targetId.includes('state.') ||
-        targetId.includes('trigger.') ||
-        targetId.includes('packet') ||
-        targetId.includes('device_state') ||
-        targetId.includes('+') ||
-        targetId.includes('('))
-    ) {
+    let isCel = false;
+
+    if (cached) {
+      targetId = cached.targetId;
+      isCel = cached.isCel;
+    } else {
+      isCel =
+        typeof targetId === 'string' &&
+        (targetId.includes('args.') ||
+          targetId.includes('state.') ||
+          targetId.includes('trigger.') ||
+          targetId.includes('packet') ||
+          targetId.includes('device_state') ||
+          targetId.includes('+') ||
+          targetId.includes('('));
+    }
+
+    if (isCel) {
       try {
         const result = this.celExecutor.execute(targetId, this.buildContext(context));
         if (typeof result === 'string') {
@@ -1545,5 +1559,48 @@ export class AutomationManager {
       args: context.args || {},
       // 'id' and 'command' helpers removed as they are functions
     };
+  }
+
+  private preAnalyzeUpdateStateActions() {
+    const analyzeAction = (action: AutomationAction) => {
+      if (!action) return;
+      if (action.action === 'update_state') {
+        const updateAction = action as AutomationActionUpdateState;
+        const targetId = updateAction.target_id;
+        const isCel =
+          typeof targetId === 'string' &&
+          (targetId.includes('args.') ||
+            targetId.includes('state.') ||
+            targetId.includes('trigger.') ||
+            targetId.includes('packet') ||
+            targetId.includes('device_state') ||
+            targetId.includes('+') ||
+            targetId.includes('('));
+        this.celTargetIdCache.set(updateAction, { isCel, targetId });
+      } else if (action.action === 'if') {
+        const ifAction = action as AutomationActionIf;
+        ifAction.then?.forEach(analyzeAction);
+        ifAction.else?.forEach(analyzeAction);
+      } else if (action.action === 'repeat') {
+        const repeatAction = action as AutomationActionRepeat;
+        repeatAction.actions?.forEach(analyzeAction);
+      } else if (action.action === 'choose') {
+        const chooseAction = action as AutomationActionChoose;
+        chooseAction.choices?.forEach((choice) => choice.then?.forEach(analyzeAction));
+        chooseAction.default?.forEach(analyzeAction);
+      }
+    };
+
+    this.automationList.forEach((automation) => {
+      automation.then?.forEach(analyzeAction);
+      automation.else?.forEach(analyzeAction);
+      if ('actions' in automation && Array.isArray((automation as any).actions)) {
+        ((automation as any).actions as AutomationAction[]).forEach(analyzeAction);
+      }
+    });
+
+    this.scripts.forEach((script) => {
+      script.actions?.forEach(analyzeAction);
+    });
   }
 }
