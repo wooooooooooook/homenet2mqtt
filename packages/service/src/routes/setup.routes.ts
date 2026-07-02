@@ -414,7 +414,7 @@ export function createSetupRoutes(ctx: SetupRoutesContext): Router {
           }
         }
 
-        updatedYaml = dumpConfigToYaml(parsedConfig, { lineWidth: 120 });
+        updatedYaml = dumpConfigToYaml(parsedConfig as Record<string, any>, { lineWidth: 120 });
       }
 
       await fs.mkdir(configDir, { recursive: true });
