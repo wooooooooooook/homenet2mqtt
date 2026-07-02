@@ -598,10 +598,9 @@
           "type": "boolean"
         },
         "restore_mode": {
-          "type": "string",
-          "enum": ["ALWAYS_ON", "ALWAYS_OFF", "RESTORE_DEFAULT_ON", "RESTORE_DEFAULT_OFF"],
-          "default": "ALWAYS_OFF",
-          "description": "Controls how an optimistic entity's state is initialized on restart. ALWAYS_ON/OFF: fixed initial state. RESTORE_DEFAULT_ON/OFF: attempt MQTT retained restore with fallback."
+          "description": "Controls how an optimistic entity's state is initialized on restart.\n- ALWAYS_ON: Always initialize to ON/OPEN/UNLOCKED (no restore).\n- ALWAYS_OFF: Always initialize to OFF/CLOSED/LOCKED (no restore). **Default**.\n- RESTORE_DEFAULT_ON: Attempt MQTT retained restore; fallback to ON.\n- RESTORE_DEFAULT_OFF: Attempt MQTT retained restore; fallback to OFF.",
+          "enum": ["ALWAYS_OFF", "ALWAYS_ON", "RESTORE_DEFAULT_OFF", "RESTORE_DEFAULT_ON"],
+          "type": "string"
         },
         "internal": {
           "type": "boolean"
@@ -1445,10 +1444,9 @@
           "type": "boolean"
         },
         "restore_mode": {
-          "type": "string",
-          "enum": ["ALWAYS_ON", "ALWAYS_OFF", "RESTORE_DEFAULT_ON", "RESTORE_DEFAULT_OFF"],
-          "default": "ALWAYS_OFF",
-          "description": "Controls how an optimistic entity's state is initialized on restart. ALWAYS_ON/OFF: fixed initial state. RESTORE_DEFAULT_ON/OFF: attempt MQTT retained restore with fallback."
+          "description": "Controls how an optimistic entity's state is initialized on restart.\n- ALWAYS_ON: Always initialize to ON/OPEN/UNLOCKED (no restore).\n- ALWAYS_OFF: Always initialize to OFF/CLOSED/LOCKED (no restore). **Default**.\n- RESTORE_DEFAULT_ON: Attempt MQTT retained restore; fallback to ON.\n- RESTORE_DEFAULT_OFF: Attempt MQTT retained restore; fallback to OFF.",
+          "enum": ["ALWAYS_OFF", "ALWAYS_ON", "RESTORE_DEFAULT_OFF", "RESTORE_DEFAULT_ON"],
+          "type": "string"
         },
         "internal": {
           "type": "boolean"
@@ -1616,10 +1614,9 @@
           "type": "boolean"
         },
         "restore_mode": {
-          "type": "string",
-          "enum": ["ALWAYS_ON", "ALWAYS_OFF", "RESTORE_DEFAULT_ON", "RESTORE_DEFAULT_OFF"],
-          "default": "ALWAYS_OFF",
-          "description": "Controls how an optimistic entity's state is initialized on restart. ALWAYS_ON/OFF: fixed initial state. RESTORE_DEFAULT_ON/OFF: attempt MQTT retained restore with fallback."
+          "description": "Controls how an optimistic entity's state is initialized on restart.\n- ALWAYS_ON: Always initialize to ON/OPEN/UNLOCKED (no restore).\n- ALWAYS_OFF: Always initialize to OFF/CLOSED/LOCKED (no restore). **Default**.\n- RESTORE_DEFAULT_ON: Attempt MQTT retained restore; fallback to ON.\n- RESTORE_DEFAULT_OFF: Attempt MQTT retained restore; fallback to OFF.",
+          "enum": ["ALWAYS_OFF", "ALWAYS_ON", "RESTORE_DEFAULT_OFF", "RESTORE_DEFAULT_ON"],
+          "type": "string"
         },
         "internal": {
           "type": "boolean"
@@ -1688,10 +1685,9 @@
           "type": "boolean"
         },
         "restore_mode": {
-          "type": "string",
-          "enum": ["ALWAYS_ON", "ALWAYS_OFF", "RESTORE_DEFAULT_ON", "RESTORE_DEFAULT_OFF"],
-          "default": "ALWAYS_OFF",
-          "description": "Controls how an optimistic entity's state is initialized on restart. ALWAYS_ON/OFF: fixed initial state. RESTORE_DEFAULT_ON/OFF: attempt MQTT retained restore with fallback."
+          "description": "Controls how an optimistic entity's state is initialized on restart.\n- ALWAYS_ON: Always initialize to ON/OPEN/UNLOCKED (no restore).\n- ALWAYS_OFF: Always initialize to OFF/CLOSED/LOCKED (no restore). **Default**.\n- RESTORE_DEFAULT_ON: Attempt MQTT retained restore; fallback to ON.\n- RESTORE_DEFAULT_OFF: Attempt MQTT retained restore; fallback to OFF.",
+          "enum": ["ALWAYS_OFF", "ALWAYS_ON", "RESTORE_DEFAULT_OFF", "RESTORE_DEFAULT_ON"],
+          "type": "string"
         },
         "internal": {
           "type": "boolean"
@@ -1782,10 +1778,9 @@
           "type": "boolean"
         },
         "restore_mode": {
-          "type": "string",
-          "enum": ["ALWAYS_ON", "ALWAYS_OFF", "RESTORE_DEFAULT_ON", "RESTORE_DEFAULT_OFF"],
-          "default": "ALWAYS_OFF",
-          "description": "Controls how an optimistic entity's state is initialized on restart. ALWAYS_ON/OFF: fixed initial state. RESTORE_DEFAULT_ON/OFF: attempt MQTT retained restore with fallback."
+          "description": "Controls how an optimistic entity's state is initialized on restart.\n- ALWAYS_ON: Always initialize to ON/OPEN/UNLOCKED (no restore).\n- ALWAYS_OFF: Always initialize to OFF/CLOSED/LOCKED (no restore). **Default**.\n- RESTORE_DEFAULT_ON: Attempt MQTT retained restore; fallback to ON.\n- RESTORE_DEFAULT_OFF: Attempt MQTT retained restore; fallback to OFF.",
+          "enum": ["ALWAYS_OFF", "ALWAYS_ON", "RESTORE_DEFAULT_OFF", "RESTORE_DEFAULT_ON"],
+          "type": "string"
         },
         "internal": {
           "type": "boolean"
@@ -2013,10 +2008,9 @@
           "type": "boolean"
         },
         "restore_mode": {
-          "type": "string",
-          "enum": ["ALWAYS_ON", "ALWAYS_OFF", "RESTORE_DEFAULT_ON", "RESTORE_DEFAULT_OFF"],
-          "default": "ALWAYS_OFF",
-          "description": "Controls how an optimistic entity's state is initialized on restart. ALWAYS_ON/OFF: fixed initial state. RESTORE_DEFAULT_ON/OFF: attempt MQTT retained restore with fallback."
+          "description": "Controls how an optimistic entity's state is initialized on restart.\n- ALWAYS_ON: Always initialize to ON/OPEN/UNLOCKED (no restore).\n- ALWAYS_OFF: Always initialize to OFF/CLOSED/LOCKED (no restore). **Default**.\n- RESTORE_DEFAULT_ON: Attempt MQTT retained restore; fallback to ON.\n- RESTORE_DEFAULT_OFF: Attempt MQTT retained restore; fallback to OFF.",
+          "enum": ["ALWAYS_OFF", "ALWAYS_ON", "RESTORE_DEFAULT_OFF", "RESTORE_DEFAULT_ON"],
+          "type": "string"
         },
         "internal": {
           "type": "boolean"
@@ -2116,10 +2110,9 @@
           "type": "boolean"
         },
         "restore_mode": {
-          "type": "string",
-          "enum": ["ALWAYS_ON", "ALWAYS_OFF", "RESTORE_DEFAULT_ON", "RESTORE_DEFAULT_OFF"],
-          "default": "ALWAYS_OFF",
-          "description": "Controls how an optimistic entity's state is initialized on restart. ALWAYS_ON/OFF: fixed initial state. RESTORE_DEFAULT_ON/OFF: attempt MQTT retained restore with fallback."
+          "description": "Controls how an optimistic entity's state is initialized on restart.\n- ALWAYS_ON: Always initialize to ON/OPEN/UNLOCKED (no restore).\n- ALWAYS_OFF: Always initialize to OFF/CLOSED/LOCKED (no restore). **Default**.\n- RESTORE_DEFAULT_ON: Attempt MQTT retained restore; fallback to ON.\n- RESTORE_DEFAULT_OFF: Attempt MQTT retained restore; fallback to OFF.",
+          "enum": ["ALWAYS_OFF", "ALWAYS_ON", "RESTORE_DEFAULT_OFF", "RESTORE_DEFAULT_ON"],
+          "type": "string"
         },
         "internal": {
           "type": "boolean"
@@ -2218,10 +2211,9 @@
           "type": "boolean"
         },
         "restore_mode": {
-          "type": "string",
-          "enum": ["ALWAYS_ON", "ALWAYS_OFF", "RESTORE_DEFAULT_ON", "RESTORE_DEFAULT_OFF"],
-          "default": "ALWAYS_OFF",
-          "description": "Controls how an optimistic entity's state is initialized on restart. ALWAYS_ON/OFF: fixed initial state. RESTORE_DEFAULT_ON/OFF: attempt MQTT retained restore with fallback."
+          "description": "Controls how an optimistic entity's state is initialized on restart.\n- ALWAYS_ON: Always initialize to ON/OPEN/UNLOCKED (no restore).\n- ALWAYS_OFF: Always initialize to OFF/CLOSED/LOCKED (no restore). **Default**.\n- RESTORE_DEFAULT_ON: Attempt MQTT retained restore; fallback to ON.\n- RESTORE_DEFAULT_OFF: Attempt MQTT retained restore; fallback to OFF.",
+          "enum": ["ALWAYS_OFF", "ALWAYS_ON", "RESTORE_DEFAULT_OFF", "RESTORE_DEFAULT_ON"],
+          "type": "string"
         },
         "internal": {
           "type": "boolean"
@@ -2349,10 +2341,9 @@
           "type": "boolean"
         },
         "restore_mode": {
-          "type": "string",
-          "enum": ["ALWAYS_ON", "ALWAYS_OFF", "RESTORE_DEFAULT_ON", "RESTORE_DEFAULT_OFF"],
-          "default": "ALWAYS_OFF",
-          "description": "Controls how an optimistic entity's state is initialized on restart. ALWAYS_ON/OFF: fixed initial state. RESTORE_DEFAULT_ON/OFF: attempt MQTT retained restore with fallback."
+          "description": "Controls how an optimistic entity's state is initialized on restart.\n- ALWAYS_ON: Always initialize to ON/OPEN/UNLOCKED (no restore).\n- ALWAYS_OFF: Always initialize to OFF/CLOSED/LOCKED (no restore). **Default**.\n- RESTORE_DEFAULT_ON: Attempt MQTT retained restore; fallback to ON.\n- RESTORE_DEFAULT_OFF: Attempt MQTT retained restore; fallback to OFF.",
+          "enum": ["ALWAYS_OFF", "ALWAYS_ON", "RESTORE_DEFAULT_OFF", "RESTORE_DEFAULT_ON"],
+          "type": "string"
         },
         "internal": {
           "type": "boolean"
@@ -2457,10 +2448,9 @@
           "type": "boolean"
         },
         "restore_mode": {
-          "type": "string",
-          "enum": ["ALWAYS_ON", "ALWAYS_OFF", "RESTORE_DEFAULT_ON", "RESTORE_DEFAULT_OFF"],
-          "default": "ALWAYS_OFF",
-          "description": "Controls how an optimistic entity's state is initialized on restart. ALWAYS_ON/OFF: fixed initial state. RESTORE_DEFAULT_ON/OFF: attempt MQTT retained restore with fallback."
+          "description": "Controls how an optimistic entity's state is initialized on restart.\n- ALWAYS_ON: Always initialize to ON/OPEN/UNLOCKED (no restore).\n- ALWAYS_OFF: Always initialize to OFF/CLOSED/LOCKED (no restore). **Default**.\n- RESTORE_DEFAULT_ON: Attempt MQTT retained restore; fallback to ON.\n- RESTORE_DEFAULT_OFF: Attempt MQTT retained restore; fallback to OFF.",
+          "enum": ["ALWAYS_OFF", "ALWAYS_ON", "RESTORE_DEFAULT_OFF", "RESTORE_DEFAULT_ON"],
+          "type": "string"
         },
         "internal": {
           "type": "boolean"
@@ -2695,10 +2685,9 @@
           "type": "boolean"
         },
         "restore_mode": {
-          "type": "string",
-          "enum": ["ALWAYS_ON", "ALWAYS_OFF", "RESTORE_DEFAULT_ON", "RESTORE_DEFAULT_OFF"],
-          "default": "ALWAYS_OFF",
-          "description": "Controls how an optimistic entity's state is initialized on restart. ALWAYS_ON/OFF: fixed initial state. RESTORE_DEFAULT_ON/OFF: attempt MQTT retained restore with fallback."
+          "description": "Controls how an optimistic entity's state is initialized on restart.\n- ALWAYS_ON: Always initialize to ON/OPEN/UNLOCKED (no restore).\n- ALWAYS_OFF: Always initialize to OFF/CLOSED/LOCKED (no restore). **Default**.\n- RESTORE_DEFAULT_ON: Attempt MQTT retained restore; fallback to ON.\n- RESTORE_DEFAULT_OFF: Attempt MQTT retained restore; fallback to OFF.",
+          "enum": ["ALWAYS_OFF", "ALWAYS_ON", "RESTORE_DEFAULT_OFF", "RESTORE_DEFAULT_ON"],
+          "type": "string"
         },
         "internal": {
           "type": "boolean"
@@ -2816,10 +2805,9 @@
           "type": "boolean"
         },
         "restore_mode": {
-          "type": "string",
-          "enum": ["ALWAYS_ON", "ALWAYS_OFF", "RESTORE_DEFAULT_ON", "RESTORE_DEFAULT_OFF"],
-          "default": "ALWAYS_OFF",
-          "description": "Controls how an optimistic entity's state is initialized on restart. ALWAYS_ON/OFF: fixed initial state. RESTORE_DEFAULT_ON/OFF: attempt MQTT retained restore with fallback."
+          "description": "Controls how an optimistic entity's state is initialized on restart.\n- ALWAYS_ON: Always initialize to ON/OPEN/UNLOCKED (no restore).\n- ALWAYS_OFF: Always initialize to OFF/CLOSED/LOCKED (no restore). **Default**.\n- RESTORE_DEFAULT_ON: Attempt MQTT retained restore; fallback to ON.\n- RESTORE_DEFAULT_OFF: Attempt MQTT retained restore; fallback to OFF.",
+          "enum": ["ALWAYS_OFF", "ALWAYS_ON", "RESTORE_DEFAULT_OFF", "RESTORE_DEFAULT_ON"],
+          "type": "string"
         },
         "internal": {
           "type": "boolean"
@@ -2910,10 +2898,9 @@
           "type": "boolean"
         },
         "restore_mode": {
-          "type": "string",
-          "enum": ["ALWAYS_ON", "ALWAYS_OFF", "RESTORE_DEFAULT_ON", "RESTORE_DEFAULT_OFF"],
-          "default": "ALWAYS_OFF",
-          "description": "Controls how an optimistic entity's state is initialized on restart. ALWAYS_ON/OFF: fixed initial state. RESTORE_DEFAULT_ON/OFF: attempt MQTT retained restore with fallback."
+          "description": "Controls how an optimistic entity's state is initialized on restart.\n- ALWAYS_ON: Always initialize to ON/OPEN/UNLOCKED (no restore).\n- ALWAYS_OFF: Always initialize to OFF/CLOSED/LOCKED (no restore). **Default**.\n- RESTORE_DEFAULT_ON: Attempt MQTT retained restore; fallback to ON.\n- RESTORE_DEFAULT_OFF: Attempt MQTT retained restore; fallback to OFF.",
+          "enum": ["ALWAYS_OFF", "ALWAYS_ON", "RESTORE_DEFAULT_OFF", "RESTORE_DEFAULT_ON"],
+          "type": "string"
         },
         "internal": {
           "type": "boolean"
@@ -3011,6 +2998,10 @@
           "type": "string",
           "const": "state"
         },
+        "id": {
+          "description": "Optional identifier for this trigger, accessible as `trigger.id` in CEL expressions.",
+          "type": "string"
+        },
         "entity_id": {
           "description": "Entity ID to monitor.",
           "type": "string"
@@ -3045,6 +3036,10 @@
           "type": "string",
           "const": "packet"
         },
+        "id": {
+          "description": "Optional identifier for this trigger, accessible as `trigger.id` in CEL expressions.",
+          "type": "string"
+        },
         "match": {
           "$ref": "#/definitions/StateSchema",
           "description": "Schema to match the received packet.\n`data` field is required. `index` can be used to skip header."
@@ -3063,6 +3058,10 @@
         "type": {
           "type": "string",
           "const": "schedule"
+        },
+        "id": {
+          "description": "Optional identifier for this trigger, accessible as `trigger.id` in CEL expressions.",
+          "type": "string"
         },
         "every": {
           "description": "Interval string (e.g. '5m', '1h').",
@@ -3086,6 +3085,10 @@
         "type": {
           "type": "string",
           "const": "startup"
+        },
+        "id": {
+          "description": "Optional identifier for this trigger, accessible as `trigger.id` in CEL expressions.",
+          "type": "string"
         },
         "guard": {
           "description": "Additional CEL condition.",
