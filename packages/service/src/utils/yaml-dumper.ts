@@ -2,7 +2,7 @@ import yaml from 'js-yaml';
 import { ENTITY_TYPE_KEYS } from './constants.js';
 
 class HexSeqWrapper {
-  constructor(public items: any[]) {}
+  constructor(public items: unknown[]) {}
 }
 
 const HexSeqType = new yaml.Type('!hexSeq', {
@@ -10,7 +10,7 @@ const HexSeqType = new yaml.Type('!hexSeq', {
   instanceOf: HexSeqWrapper,
   represent: (obj: any) => {
     // Format each item as 0xXX and join with comma
-    const hexItems = obj.items.map((v: any) => {
+    const hexItems = obj.items.map((v: unknown) => {
       if (typeof v === 'number') {
         const h = v.toString(16).toUpperCase();
         return '0x' + (h.length < 2 ? '0' + h : h);
