@@ -23,14 +23,16 @@ HomenetBridge는 상태 변경, 패킷 수신, 스케줄 또는 시스템 시작
 
 ## 트리거 (Triggers)
 
-자동화를 실행하는 조건입니다.
+자동화를 실행하는 조건입니다. 모든 트리거는 다음 공통 옵션을 가질 수 있습니다.
 
+* `id` (선택): 트리거를 구분하기 위한 식별자입니다. 하나의 자동화에 여러 트리거를 지정하고 `choose`나 `if` 액션의 CEL 표현식에서 `trigger.id`를 통해 어떤 트리거가 실행되었는지 확인할 때 유용합니다.
+* `guard` (선택): 트리거별 추가 CEL 조건식입니다. 이 식을 만족해야만 해당 트리거로 자동화가 시작됩니다.
+
+트리거 종류:
 - [상태 트리거 (State Trigger)](#state-trigger)
 - [패킷 트리거 (Packet Trigger)](#packet-trigger)
 - [스케줄 트리거 (Schedule Trigger)](#schedule-trigger)
 - [시작 트리거 (Startup Trigger)](#startup-trigger)
-
-
 
 ### 상태 트리거 (State Trigger) {#state-trigger}
 
@@ -38,7 +40,8 @@ HomenetBridge는 상태 변경, 패킷 수신, 스케줄 또는 시스템 시작
 
 ```yaml
 trigger:
-  - type: state
+  - id: light_on_event
+    type: state
     entity_id: light_1
     property: state_on # 선택사항. 생략 시 전체 상태 객체 비교
     match: true # 값 또는 조건 객체 { gt: 10, lt: 20 }
@@ -49,6 +52,7 @@ trigger:
 
 | 필드명 | 필수 여부 | 설명 |
 | :--- | :--- | :--- |
+| `id` | 선택 | 트리거 식별자 (CEL 내에서 `trigger.id`로 참조). |
 | `entity_id` | 필수 | 상태 변경을 감지할 엔티티 ID. |
 | `property` | 선택 | 상태 객체의 특정 키만 비교합니다. 생략 시 상태 객체 전체를 비교합니다. (예: `state`, `value`, `state_on`, `state_brightness` 등) |
 | `match` | 선택 | 비교할 값 또는 조건 객체. 생략하면 어떤 값이든 상태 변경 시 트리거됩니다. |
@@ -79,7 +83,8 @@ trigger:
 # rx_header: [0xAA]인 경우
 # index 생략 → 헤더 다음부터 매칭 (AA 55 ... 패킷 매칭)
 trigger:
-  - type: packet
+  - id: packet_response
+    type: packet
     match:
       data: [0x55]
 ```
@@ -87,7 +92,8 @@ trigger:
 ```yaml
 # index 명시 → 헤더 포함 전체 패킷 기준 (packet[1] = 0x55 매칭)
 trigger:
-  - type: packet
+  - id: packet_custom
+    type: packet
     match:
       data: [0x55]
       index: 1
@@ -104,6 +110,49 @@ trigger:
     match:
       data: [0xB0, 0x41]
 guard: "has(trigger.prev_packet) && trigger.prev_packet == [0xAB, 0x41, 0x00]"
+```
+
+**트리거 ID 참조 및 다중 트리거 분기 (Trigger ID Context)**
+
+여러 트리거가 동일한 자동화 액션 목록을 실행할 때, 각 트리거에 부여된 `id`를 활용하여 분기 동작을 정의할 수 있습니다.
+
+```yaml
+- id: lights_control_automation
+  trigger:
+    - id: light_1_command
+      type: packet
+      match:
+        data: [0x31, 0x01]
+        index: 0
+    - id: light_2_command
+      type: packet
+      match:
+        data: [0x31, 0x02]
+        index: 0
+  then:
+    - action: choose
+      choices:
+        - condition: "trigger.id == 'light_1_command'"
+          then:
+            - action: update_state
+              target_id: light_1
+              state:
+                state_on:
+                  data: [0x01]
+                  index: 2
+                state_off:
+                  data: [0x00]
+                  index: 2
+        - condition: "trigger.id == 'light_2_command'"
+          then:
+            - action: update_state
+              target_id: light_2
+              state:
+                state_on:
+                  data: [0x01]
+                  index: 2
+                state_off:
+                  data: [0x00]
 ```
 
 

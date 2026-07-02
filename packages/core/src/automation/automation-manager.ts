@@ -50,6 +50,8 @@ type TriggerContextType = AutomationTrigger['type'] | 'command' | 'script';
 
 interface TriggerContext {
   type: TriggerContextType;
+  /** Trigger ID set via the `id` field on the trigger config, accessible as `trigger.id` in CEL. */
+  id?: string;
   state?: Record<string, any>;
   packet?: number[];
   prev_packet?: number[];
@@ -410,7 +412,12 @@ export class AutomationManager {
       }
       if (trigger.type === 'startup') {
         const timeout = setTimeout(
-          () => this.runAutomation(automation, trigger, { type: 'startup', timestamp: Date.now() }),
+          () =>
+            this.runAutomation(automation, trigger, {
+              type: 'startup',
+              id: trigger.id,
+              timestamp: Date.now(),
+            }),
           0,
         );
         this.trackAutomationTimer(automation.id, timeout);
@@ -431,7 +438,11 @@ export class AutomationManager {
 
     if (every !== undefined) {
       const interval = setInterval(() => {
-        this.runAutomation(automation, trigger, { type: 'schedule', timestamp: Date.now() });
+        this.runAutomation(automation, trigger, {
+          type: 'schedule',
+          id: trigger.id,
+          timestamp: Date.now(),
+        });
       }, every);
       this.trackAutomationTimer(automation.id, interval);
     }
@@ -445,7 +456,11 @@ export class AutomationManager {
           const delay = Math.max(0, next.getTime() - Date.now());
           const timeout = setTimeout(() => {
             if (!this.isAutomationActive(automation.id)) return;
-            this.runAutomation(automation, trigger, { type: 'schedule', timestamp: Date.now() });
+            this.runAutomation(automation, trigger, {
+              type: 'schedule',
+              id: trigger.id,
+              timestamp: Date.now(),
+            });
             scheduleNext();
           }, delay);
           this.trackAutomationTimer(automation.id, timeout);
@@ -492,7 +507,12 @@ export class AutomationManager {
       for (const trigger of automation.trigger) {
         if (trigger.type !== 'state') continue;
         if (trigger.entity_id !== entityId) continue;
-        const context: TriggerContext = { type: 'state', state, timestamp: Date.now() };
+        const context: TriggerContext = {
+          type: 'state',
+          id: trigger.id,
+          state,
+          timestamp: Date.now(),
+        };
         if (!this.matchesStateTrigger(trigger, state)) continue;
         this.runAutomation(automation, trigger, context);
       }
@@ -506,6 +526,7 @@ export class AutomationManager {
         if (!this.matchesPacket(trigger, packet)) continue;
         const context: TriggerContext = {
           type: 'packet',
+          id: trigger.id,
           packet: Array.from(packet),
           prev_packet: this.lastPacket ? Array.from(this.lastPacket) : undefined,
           timestamp: Date.now(),
@@ -1187,7 +1208,10 @@ export class AutomationManager {
     let payload = action.payload;
     // Simple CEL evaluation for payload if string
     // (Optional extension, but good for consistency)
-    if (typeof payload === 'string' && (payload.includes('args.') || payload.includes('state.'))) {
+    if (
+      typeof payload === 'string' &&
+      (payload.includes('args.') || payload.includes('state.') || payload.includes('trigger.'))
+    ) {
       try {
         const res = this.celExecutor.execute(payload, this.buildContext(context));
         if (res !== undefined) payload = res;

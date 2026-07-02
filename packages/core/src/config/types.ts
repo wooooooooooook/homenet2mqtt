@@ -33,6 +33,8 @@ export type AutomationGuard = string;
  */
 export interface AutomationTriggerState {
   type: 'state';
+  /** Optional identifier for this trigger, accessible as `trigger.id` in CEL expressions. */
+  id?: string;
   /** Entity ID to monitor. */
   entity_id: string;
   /**
@@ -59,6 +61,8 @@ export interface AutomationTriggerState {
  */
 export interface AutomationTriggerPacket {
   type: 'packet';
+  /** Optional identifier for this trigger, accessible as `trigger.id` in CEL expressions. */
+  id?: string;
   /**
    * Schema to match the received packet.
    * `data` field is required. `index` can be used to skip header.
@@ -73,6 +77,8 @@ export interface AutomationTriggerPacket {
  */
 export interface AutomationTriggerSchedule {
   type: 'schedule';
+  /** Optional identifier for this trigger, accessible as `trigger.id` in CEL expressions. */
+  id?: string;
   /** Interval string (e.g. '5m', '1h'). */
   every?: number | string;
   /** Cron expression (e.g. '0 0 * * *'). */
@@ -86,6 +92,8 @@ export interface AutomationTriggerSchedule {
  */
 export interface AutomationTriggerStartup {
   type: 'startup';
+  /** Optional identifier for this trigger, accessible as `trigger.id` in CEL expressions. */
+  id?: string;
   /** Additional CEL condition. */
   guard?: AutomationGuard;
 }
