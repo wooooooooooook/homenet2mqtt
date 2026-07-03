@@ -199,7 +199,12 @@ export class StateManager {
     }
 
     const topic = `${this.mqttTopicPrefix}/${entityId}/state`;
-    stateCache.set(topic, JSON.stringify(state));
+    const payload = JSON.stringify(state);
+    stateCache.set(topic, payload);
+
+    if (!this.internalEntityIds.has(entityId)) {
+      this.mqttPublisher.publish(topic, payload, { retain: true });
+    }
 
     logger.info({ entityId, topic }, '[StateManager] Restored entity state from MQTT retained');
   }

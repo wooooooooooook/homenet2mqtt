@@ -26,7 +26,7 @@ describe('StateManager Optimistic Initialization', () => {
       serial: {
         portId: PORT_ID,
         path: '/dev/mock',
-      },
+      } as any,
       switch: [
         {
           id: 'virtual_switch',
@@ -177,6 +177,10 @@ describe('StateManager Optimistic Initialization', () => {
     stateManager.initializeRestorableOptimisticDefaults(config);
 
     expect(stateManager.getEntityState('restorable_switch')).toEqual({ state: 'ON' });
-    expect(mockMqttPublisher.publish).not.toHaveBeenCalled();
+    expect(mockMqttPublisher.publish).toHaveBeenCalledWith(
+      `${TOPIC_PREFIX}/restorable_switch/state`,
+      JSON.stringify({ state: 'ON' }),
+      expect.objectContaining({ retain: true }),
+    );
   });
 });
