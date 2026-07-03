@@ -996,19 +996,40 @@ export class AutomationManager {
       packetData = [...action.data];
     } else if (typeof action.data === 'string') {
       // Evaluate CEL
-      const result = this.celExecutor.execute(action.data, this.buildContext(context));
+      let result: any;
+      try {
+        const diag = this.celExecutor.executeWithDiagnostics(
+          action.data,
+          this.buildContext(context),
+        );
+        result = diag.result;
+        if (diag.error) {
+          logger.error(
+            { action, celError: diag.error },
+            '[automation] send_packet CEL evaluation failed with diagnostics',
+          );
+          throw new Error(diag.error);
+        }
+      } catch (err) {
+        logger.error(
+          { action, error: err },
+          '[automation] send_packet CEL expression execution failed',
+        );
+        throw err;
+      }
+
       if (Array.isArray(result)) {
         packetData = result.map((n) => Number(n));
       } else {
-        logger.warn(
+        logger.error(
           { action, result },
           '[automation] send_packet CEL expression must return number array',
         );
-        return;
+        throw new Error('[automation] send_packet CEL expression must return number array');
       }
     } else {
-      logger.warn({ action }, '[automation] send_packet data invalid type');
-      return;
+      logger.error({ action }, '[automation] send_packet data invalid type');
+      throw new Error('[automation] send_packet data invalid type');
     }
 
     const defaults = this.config.packet_defaults || {};

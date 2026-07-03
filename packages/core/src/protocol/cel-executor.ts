@@ -237,6 +237,15 @@ export class CelExecutor {
     this.env.registerFunction('bitXor(int, double): int', (a: bigint, b: number) =>
       BigInt(Number(a) ^ Math.floor(b)),
     );
+    this.env.registerFunction('bitAnd(double, int): int', (a: number, b: bigint) =>
+      BigInt(Math.floor(a) & Number(b)),
+    );
+    this.env.registerFunction('bitOr(double, int): int', (a: number, b: bigint) =>
+      BigInt(Math.floor(a) | Number(b)),
+    );
+    this.env.registerFunction('bitXor(double, int): int', (a: number, b: bigint) =>
+      BigInt(Math.floor(a) ^ Number(b)),
+    );
     this.env.registerFunction('bitNot(int): int', (a: bigint) => ~a);
     this.env.registerFunction('bitShiftLeft(int, int): int', (a: bigint, b: bigint) => a << b);
     this.env.registerFunction('bitShiftRight(int, int): int', (a: bigint, b: bigint) => a >> b);
