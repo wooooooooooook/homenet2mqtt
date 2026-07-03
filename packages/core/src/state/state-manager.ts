@@ -191,19 +191,33 @@ export class StateManager {
   private deviceStates = new Map<string, any>();
 
   public restoreEntityState(entityId: string, state: Record<string, any>): void {
-    this.deviceStates.set(entityId, { ...state });
+    const newState = { ...state };
+    this.deviceStates.set(entityId, newState);
     this.cachedStates = null;
 
     if (this.sharedStates) {
-      this.sharedStates.set(entityId, { ...state });
+      this.sharedStates.set(entityId, newState);
     }
 
     const topic = `${this.mqttTopicPrefix}/${entityId}/state`;
-    const payload = JSON.stringify(state);
+    const payload = JSON.stringify(newState);
     stateCache.set(topic, payload);
 
     if (!this.internalEntityIds.has(entityId)) {
       this.mqttPublisher.publish(topic, payload, { retain: true });
+
+      const timestamp = new Date().toISOString();
+      eventBus.emit('state:changed', {
+        portId: this.portId,
+        entityId,
+        topic,
+        payload,
+        state: newState,
+        oldState: {},
+        changes: newState,
+        timestamp,
+      });
+      eventBus.emit(`device:${entityId}:state:changed`, newState);
     }
 
     logger.info({ entityId, topic }, '[StateManager] Restored entity state from MQTT retained');
