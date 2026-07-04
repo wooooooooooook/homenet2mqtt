@@ -125,13 +125,15 @@ COPY --from=builder /app /app
 # Environment setup
 ENV NODE_ENV=production
 
-# Inject Log Collector API Key
-ARG LOG_COLLECTOR_API_KEY
-ENV LOG_COLLECTOR_API_KEY=$LOG_COLLECTOR_API_KEY
-
-# Inject Comment Secret (for anonymous discussion comment signing)
-ARG COMMENT_SECRET
-ENV COMMENT_SECRET=$COMMENT_SECRET
+# Inject Log Collector API Key & Comment Secret using build-time secrets
+RUN --mount=type=secret,id=LOG_COLLECTOR_API_KEY \
+    --mount=type=secret,id=COMMENT_SECRET \
+    if [ -f /run/secrets/LOG_COLLECTOR_API_KEY ]; then \
+      echo "LOG_COLLECTOR_API_KEY=$(cat /run/secrets/LOG_COLLECTOR_API_KEY)" >> /app/.env; \
+    fi && \
+    if [ -f /run/secrets/COMMENT_SECRET ]; then \
+      echo "COMMENT_SECRET=$(cat /run/secrets/COMMENT_SECRET)" >> /app/.env; \
+    fi
 
 # Setup run script
 COPY hassio-addon-dev/run.sh /run.sh

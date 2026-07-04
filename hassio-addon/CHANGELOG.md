@@ -4,6 +4,7 @@
 v2.14.1
 - fix: `restore_mode`로 복원된 optimistic 엔티티의 상태가 UI 대시보드에 반영되지 않는 문제 수정
 - fix: 자동화 처리로 송신된 패킷 로그가 수신 패킷 로그보다 먼저 기록되는 로깅 타이밍 문제 수정
+- chore: nodejs 버전업 22 -> 24
 
 v2.14.0
 - feat: 자동화 trigger에 id를 추가하여 이를 통해 자동화내에서 분기처리가 가능하도록 했습니다. [문서보기](https://homenet2mqtt-docs.vercel.app/guide/automation.html#%E1%84%90%E1%85%B3%E1%84%85%E1%85%B5%E1%84%80%E1%85%A5-triggers)
