@@ -18,8 +18,8 @@
 - [Packet Defaults](./packet-defaults.md)
 - [유효 패킷 탐지 전략](./packet-validation-strategies.md)
 - [State/Command 스키마 정의](./schemas.md)
-- [CEL 가이드](../guide/cel-guide.md)
-- [Automation](../guide/automation.md)
+- [CEL 가이드](./cel-guide.md)
+- [Automation](./automation.md)
 
 ## 엔티티 타입 레퍼런스
 

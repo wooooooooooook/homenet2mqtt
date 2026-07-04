@@ -47,10 +47,7 @@ export default defineConfig({
             { text: "UI 설명", link: "/guide/getting-started" },
             { text: "Docker 환경변수 레퍼런스", link: "/guide/environment-variables" },
             { text: "멀티브릿지 설정", link: "/guide/advanced-setup" },
-            { text: "자동화", link: "/guide/automation" },
             { text: "엔티티 예제", link: "/guide/entity-examples" },
-            { text: "CEL 가이드", link: "/guide/cel-guide" },
-            { text: "스크립트", link: "/guide/scripts" },
             { text: "갤러리", link: "/guide/gallery" },
             { text: "성능 최적화", link: "/guide/optimization" },
             { text: "트러블슈팅", link: "/guide/troubleshooting" }
@@ -72,7 +69,10 @@ export default defineConfig({
             { text: "Packet Defaults", link: "/config/packet-defaults" },
             { text: "유효 패킷 탐지 전략", link: "/config/packet-validation-strategies" },
             { text: "State/Command 스키마", link: "/config/schemas" },
-            { text: "공통 엔티티 옵션", link: "/config/common-entity-options" }
+            { text: "공통 엔티티 옵션", link: "/config/common-entity-options" },
+            { text: "자동화", link: "/config/automation" },
+            { text: "CEL 가이드", link: "/config/cel-guide" },
+            { text: "스크립트", link: "/config/scripts" }
           ]
         },
         {

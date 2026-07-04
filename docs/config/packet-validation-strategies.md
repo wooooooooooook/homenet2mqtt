@@ -125,5 +125,5 @@ homenet_bridge:
 ## 관련 문서
 
 - [Packet Defaults](./packet-defaults.md)
-- [CEL 가이드 - 동적 패킷 길이](../guide/cel-guide.md#7-동적-패킷-길이-rx_length_expr)
+- [CEL 가이드 - 동적 패킷 길이](./cel-guide.md#7-동적-패킷-길이-rx_length_expr)
 - [트러블슈팅](../guide/troubleshooting.md)

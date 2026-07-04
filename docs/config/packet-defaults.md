@@ -84,7 +84,7 @@
 > * `data`: 패킷 데이터 (List of int, 헤더 포함)
 > * `len`: 패킷 데이터 전체 길이 (int)
 > * `header_len`: 수신된 패킷의 헤더 길이 (int)
-> * 커스텀 파라미터 함수(`crc8`, `crc16` 등) 및 상세 내용은 [CEL 가이드](../guide/cel-guide.md#6-체크섬-계산-rx_checksum-tx_checksum)를 참고하세요.
+> * 커스텀 파라미터 함수(`crc8`, `crc16` 등) 및 상세 내용은 [CEL 가이드](./cel-guide.md#6-체크섬-계산-rx_checksum-tx_checksum)를 참고하세요.
 
 ### 체크섬 문제 해결 (Troubleshooting)
 
@@ -94,7 +94,7 @@
 2.  **알고리즘 검증**: 위 표의 로직을 사용하여 수동으로 체크섬을 계산해 봅니다.
 
 > [!TIP]
-> 체크섬 계산 결과로 리스트(예: 2바이트 체크섬)를 반환하는 경우, 리스트 내 모든 요소의 타입이 일치해야 합니다. 동적 값(`dyn`)이 포함된다면 `int()`로 캐스팅하세요. (참고: [CEL 가이드](../guide/cel-guide.md#자주-발생하는-문제와-팁-troubleshooting))
+> 체크섬 계산 결과로 리스트(예: 2바이트 체크섬)를 반환하는 경우, 리스트 내 모든 요소의 타입이 일치해야 합니다. 동적 값(`dyn`)이 포함된다면 `int()`로 캐스팅하세요. (참고: [CEL 가이드](./cel-guide.md#자주-발생하는-문제와-팁-troubleshooting))
 
 ## 기본 예제 (양방향 동일 헤더/푸터)
 `kocom.homenet_bridge.yaml`은 동일한 헤더·푸터와 단순 합산 체크섬을 사용합니다.
