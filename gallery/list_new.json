@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-04T00:32:07.469Z",
+  "generated_at": "2026-07-04T00:34:22.680Z",
   "vendors": [
     {
       "id": "bestin",
@@ -1347,6 +1347,60 @@
             "dimensions": [
               {
                 "parameter": "purifier_count",
+                "index": 1
+              }
+            ],
+            "inference": {
+              "strategy": "count"
+            }
+          }
+        },
+        {
+          "file": "ezville/air_quality_sensors.yaml",
+          "name": "공기질 센서 (CO2/PM)",
+          "name_en": "Air Quality Sensors (CO2/PM)",
+          "description": "Ezville 공기질 센서 설정입니다. 방 개수를 선택하여 CO2 농도 및 미세먼지(PM) 측정값을 제공합니다.",
+          "description_en": "Ezville air quality sensors for CO2 concentration and PM (particulate matter) readings. Configurable by room count.",
+          "version": "2.1.1",
+          "author": "loveangelsa",
+          "tags": [
+            "sensor",
+            "air_quality",
+            "co2",
+            "pm",
+            "ezville"
+          ],
+          "parameters": [
+            {
+              "name": "room_count",
+              "type": "integer",
+              "default": 2,
+              "min": 1,
+              "max": 8,
+              "label": "방 개수",
+              "label_en": "Room Count",
+              "description": "설치된 공기질 센서(방)의 개수를 입력하세요."
+            }
+          ],
+          "content_summary": {
+            "entities": {
+              "sensor": 1
+            },
+            "automations": 1,
+            "scripts": 0
+          },
+          "discovery": {
+            "match": {
+              "data": [
+                97
+              ],
+              "mask": [
+                255
+              ]
+            },
+            "dimensions": [
+              {
+                "parameter": "room_count",
                 "index": 1
               }
             ],
