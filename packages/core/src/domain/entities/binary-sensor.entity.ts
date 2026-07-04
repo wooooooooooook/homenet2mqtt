@@ -4,7 +4,7 @@ import { EntityConfig } from './base.entity.js';
 import { StateSchema, StateSchemaOrCEL } from '../../protocol/types.js';
 
 export interface BinarySensorEntity extends EntityConfig {
-  state: StateSchema;
+  state?: StateSchema;
   state_on?: StateSchemaOrCEL;
   state_off?: StateSchemaOrCEL;
 }

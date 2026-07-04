@@ -105,6 +105,16 @@ export function normalizeConfig(config: HomenetBridgeConfig) {
       if (entity && typeof entity === 'object') {
         (entity as any).type = type;
 
+        // Convert null state/command schemas to empty objects {} to satisfy TypeScript types
+        // while preserving their presence in the entity config object.
+        Object.keys(entity).forEach((key) => {
+          if (key === 'state' || key.startsWith('state_') || key.startsWith('command_')) {
+            if (entity[key] === null) {
+              entity[key] = {};
+            }
+          }
+        });
+
         if (type === 'button') {
           if (
             !(entity as any).discovery_linked_id &&
@@ -512,6 +522,46 @@ export function validateConfig(
 
       if (!('id' in entity) || typeof entity.id !== 'string' || !entity.id.trim()) {
         errors.push(`${String(type)}[${index}]에 유효한 id(문자열)가 필요합니다.`);
+      }
+
+      const hasEmptySchema = (val: any) => {
+        return (
+          val && typeof val === 'object' && !Array.isArray(val) && Object.keys(val).length === 0
+        );
+      };
+
+      const stateRequiredTypes = [
+        'climate',
+        'valve',
+        'light',
+        'fan',
+        'switch',
+        'binary_sensor',
+        'sensor',
+      ];
+
+      if (entity.optimistic !== true) {
+        if (stateRequiredTypes.includes(type)) {
+          if (entity.state === undefined || hasEmptySchema(entity.state)) {
+            errors.push(
+              `${String(type)}[${index}] (${
+                (entity as any).id
+              }): optimistic이 true가 아닌 경우 state 스키마 정의는 필수입니다.`,
+            );
+          }
+        }
+
+        Object.keys(entity).forEach((key) => {
+          if (key.startsWith('state_') || key.startsWith('command_')) {
+            if (hasEmptySchema(entity[key])) {
+              errors.push(
+                `${String(type)}[${index}] (${
+                  (entity as any).id
+                }): optimistic이 true가 아닌 경우 빈 스키마(${key})를 정의할 수 없습니다.`,
+              );
+            }
+          }
+        });
       }
 
       if ((entity as any).state_proxy === true) {

@@ -4,7 +4,7 @@ import { EntityConfig, CommandSchemaOrCEL } from './base.entity.js';
 import { StateSchema, StateNumSchemaOrCEL } from '../../protocol/types.js';
 
 export interface ValveEntity extends EntityConfig {
-  state: StateSchema;
+  state?: StateSchema;
   state_open?: StateSchema;
   state_closed?: StateSchema;
   state_opening?: StateSchema;

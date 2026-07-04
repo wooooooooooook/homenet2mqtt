@@ -4,7 +4,7 @@ import { EntityConfig, CommandSchemaOrCEL } from './base.entity.js';
 import { StateSchema, StateNumSchemaOrCEL, StateSchemaOrCEL } from '../../protocol/types.js';
 
 export interface FanEntity extends EntityConfig {
-  state: StateSchema;
+  state?: StateSchema;
   state_on?: StateSchemaOrCEL;
   state_off?: StateSchemaOrCEL;
 

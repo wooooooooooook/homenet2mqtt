@@ -12,7 +12,7 @@ export interface ClimateVisualOptions {
 export interface ClimateEntity extends EntityConfig {
   temperature_unit?: 'C' | 'F';
   visual?: ClimateVisualOptions;
-  state: StateSchema;
+  state?: StateSchema;
 
   // Temperature modes
   state_off?: StateSchemaOrCEL;

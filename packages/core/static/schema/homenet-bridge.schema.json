@@ -300,6 +300,7 @@
       "type": "object",
       "properties": {
         "state": {
+          "description": "Schema for matching and extracting state from a packet.",
           "$ref": "#/definitions/StateSchema"
         },
         "state_on": {
@@ -614,7 +615,7 @@
           "type": "string"
         }
       },
-      "required": ["id", "name", "state"]
+      "required": ["id", "name"]
     },
     "StateSchema": {
       "description": "Schema for matching and extracting state from a packet.",
@@ -815,6 +816,7 @@
           "$ref": "#/definitions/ClimateVisualOptions"
         },
         "state": {
+          "description": "Schema for matching and extracting state from a packet.",
           "$ref": "#/definitions/StateSchema"
         },
         "state_off": {
@@ -1460,7 +1462,7 @@
           "type": "string"
         }
       },
-      "required": ["id", "name", "state"]
+      "required": ["id", "name"]
     },
     "ClimateVisualOptions": {
       "type": "object",
@@ -1480,6 +1482,7 @@
       "type": "object",
       "properties": {
         "state": {
+          "description": "Schema for matching and extracting state from a packet.",
           "$ref": "#/definitions/StateSchema"
         },
         "state_open": {
@@ -1630,7 +1633,7 @@
           "type": "string"
         }
       },
-      "required": ["id", "name", "state"]
+      "required": ["id", "name"]
     },
     "ButtonEntity": {
       "type": "object",
@@ -1707,6 +1710,7 @@
       "type": "object",
       "properties": {
         "state": {
+          "description": "Schema for matching and extracting state from a packet.",
           "$ref": "#/definitions/StateSchema"
         },
         "state_number": {
@@ -1794,12 +1798,13 @@
           "type": "string"
         }
       },
-      "required": ["id", "name", "state"]
+      "required": ["id", "name"]
     },
     "FanEntity": {
       "type": "object",
       "properties": {
         "state": {
+          "description": "Schema for matching and extracting state from a packet.",
           "$ref": "#/definitions/StateSchema"
         },
         "state_on": {
@@ -2024,12 +2029,13 @@
           "type": "string"
         }
       },
-      "required": ["id", "name", "state"]
+      "required": ["id", "name"]
     },
     "SwitchEntity": {
       "type": "object",
       "properties": {
         "state": {
+          "description": "Schema for matching and extracting state from a packet.",
           "$ref": "#/definitions/StateSchema"
         },
         "state_on": {
@@ -2126,7 +2132,7 @@
           "type": "string"
         }
       },
-      "required": ["id", "name", "state"]
+      "required": ["id", "name"]
     },
     "LockEntity": {
       "type": "object",
@@ -2827,6 +2833,7 @@
       "type": "object",
       "properties": {
         "state": {
+          "description": "Schema for matching and extracting state from a packet.",
           "$ref": "#/definitions/StateSchema"
         },
         "state_on": {
@@ -2914,7 +2921,7 @@
           "type": "string"
         }
       },
-      "required": ["id", "name", "state"]
+      "required": ["id", "name"]
     },
     "AutomationConfig": {
       "description": "Configuration for an Automation rule.",

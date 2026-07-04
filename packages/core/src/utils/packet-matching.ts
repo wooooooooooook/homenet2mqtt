@@ -18,9 +18,19 @@ export function matchesPacket(
   if (!match) {
     return false;
   }
+
+  const hasData = Array.isArray(match.data) && match.data.length > 0;
+  const hasGuard = typeof match.guard === 'string' && match.guard.trim().length > 0;
+
+
+  // data와 guard가 모두 없는 빈 스키마({})인 경우 매칭 대상에서 제외
+  const isEmptySchema = !hasData && !hasGuard;
+  if (isEmptySchema) {
+    return false;
+  }
+
   const baseOffset = options.baseOffset ?? 0;
   const offset = (getSchemaIndex(match) ?? 0) + baseOffset;
-  const hasData = Array.isArray(match.data) && match.data.length > 0;
   let matched = true;
 
   if (hasData) {
