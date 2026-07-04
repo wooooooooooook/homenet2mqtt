@@ -883,7 +883,7 @@ export class HomeNetBridge extends EventEmitter {
         mqttTopicPrefix,
         states, // Pass the shared states map to StateManager
       );
-      void this.restoreRetainedStatesForPort(this.config, mqttTopicPrefix, stateManager);
+      await this.restoreRetainedStatesForPort(this.config, mqttTopicPrefix, stateManager);
       const commandManager = new CommandManager(
         port,
         this.config,

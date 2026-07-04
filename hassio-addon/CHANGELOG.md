@@ -6,7 +6,7 @@ v2.15.0
 - fix: `restore_mode`로 복원된 optimistic 엔티티의 상태가 UI 대시보드에 반영되지 않는 문제 수정
 - fix: 자동화 처리로 송신된 패킷 로그가 수신 패킷 로그보다 먼저 기록되는 로깅 타이밍 문제 수정
 - fix: `update_state`액션에서 허용되는 키 검증이 제대로 이루어지지 않는 문제 수정 및 검증 강화
-<!-- - fix: 자동화의 시작 시점을 앱 시작 후 초기화가 완료된 시점으로 변경. (startup trigger도 포함) -->
+- fix: 자동화의 시작 시점을 앱 시작 후 초기화가 완료된 시점으로 변경.
 - chore: nodejs 버전업 22 -> 24
 <!-- - chore: [CommandManager] Trying to send command 로그 레벨을 INFO에서 DEBUG로 하향 -->
 

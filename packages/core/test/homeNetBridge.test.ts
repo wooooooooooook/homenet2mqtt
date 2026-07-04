@@ -41,7 +41,9 @@ const mqttConnectMock = vi.fn(() => ({
   publish: publishMock,
   subscribe: vi.fn(),
   on: onMock,
+  once: vi.fn(),
   end: vi.fn(),
+  connected: true,
 }));
 const accessMock = vi.fn().mockResolvedValue(undefined);
 const readFileMock = vi.fn().mockResolvedValue(`
