@@ -210,12 +210,21 @@ export class CommandManager {
 
         this.setupListener(job, onAck);
 
-        logger.info(
+        logger.debug(
           { entity: job.entity?.name ?? 'raw' },
           `[CommandManager] Trying to send command (${attemptNumber}/${totalAttempts})`,
         );
         const packetBuffer = Buffer.from(job.packet);
         this.serialPort.write(packetBuffer);
+        if (logger.isLevelEnabled?.('trace')) {
+          const packetHex = job.packet
+            .map((b) => b.toString(16).padStart(2, '0').toUpperCase())
+            .join(' ');
+          logger.trace?.(
+            { entity: job.entity?.name ?? 'raw' },
+            `[CommandManager] packet sended: ${packetHex}`,
+          );
+        }
 
         // Emit raw-tx-packet event for logging
         setImmediate(() => {

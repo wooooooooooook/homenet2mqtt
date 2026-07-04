@@ -8,7 +8,7 @@ v2.15.0
 - fix: `update_state`액션에서 허용되는 키 검증이 제대로 이루어지지 않는 문제 수정 및 검증 강화
 - fix: 자동화의 시작 시점을 앱 시작 후 초기화가 완료된 시점으로 변경.
 - chore: nodejs 버전업 22 -> 24
-<!-- - chore: [CommandManager] Trying to send command 로그 레벨을 INFO에서 DEBUG로 하향 -->
+- chore: [CommandManager] Trying to send command 로그 레벨을 INFO에서 DEBUG로 하향하고 TRACE레벨에서 송신패킷값 로그 출력 추가.
 
 v2.14.0
 - feat: 자동화 trigger에 id를 추가하여 이를 통해 자동화내에서 분기처리가 가능하도록 했습니다. [문서보기](https://homenet2mqtt-docs.vercel.app/guide/automation.html#%E1%84%90%E1%85%B3%E1%84%85%E1%85%B5%E1%84%80%E1%85%A5-triggers)
