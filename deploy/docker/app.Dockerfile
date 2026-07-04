@@ -1,4 +1,4 @@
-ARG BUILD_FROM=ghcr.io/home-assistant/amd64-base:3.22
+ARG BUILD_FROM=ghcr.io/home-assistant/amd64-base:3.24
 
 # Stage 1: Builder
 FROM node:22-slim AS builder

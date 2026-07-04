@@ -1,6 +1,6 @@
 # Stage 1: Common Builder (Host Architecture)
 # Builds UI and Service packages which are architecture independent
-FROM --platform=$BUILDPLATFORM node:22-slim AS common-builder
+FROM --platform=$BUILDPLATFORM node:24-slim AS common-builder
 
 ENV CI=true
 WORKDIR /app
@@ -31,7 +31,7 @@ RUN --mount=type=cache,target=/app/.turbo \
 
 # Stage 2: Builder (Target Architecture)
 # Rebuilds Core with native dependencies for the target architecture
-FROM node:22-slim AS builder
+FROM node:24-slim AS builder
 
 ENV CI=true
 WORKDIR /app
@@ -109,8 +109,8 @@ RUN find node_modules -type f \( \
 
 # Define base images for supported architectures
 # We map Docker's TARGETARCH to Home Assistant's architecture naming
-FROM ghcr.io/home-assistant/amd64-base:3.22 AS base-amd64
-FROM ghcr.io/home-assistant/aarch64-base:3.22 AS base-arm64
+FROM ghcr.io/home-assistant/amd64-base:3.24 AS base-amd64
+FROM ghcr.io/home-assistant/aarch64-base:3.24 AS base-arm64
 
 # Select the correct base image based on TARGETARCH provided by Buildx
 ARG TARGETARCH
