@@ -11,6 +11,8 @@ export interface FanEntity extends EntityConfig {
   // Speed support (percentage 0-100)
   state_speed?: StateNumSchemaOrCEL;
   command_speed?: CommandSchemaOrCEL;
+  speed_range_min?: number;
+  speed_range_max?: number;
 
   // Preset modes (supports both schema-based and CEL expressions)
   preset_modes?: string[];

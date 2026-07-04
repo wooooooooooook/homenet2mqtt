@@ -531,8 +531,8 @@ export class DiscoveryManager {
           payload.percentage_command_topic = `${this.mqttTopicPrefix}/${id}/percentage/set`;
           payload.percentage_value_template =
             '{{ value_json.percentage | default(value_json.speed) }}';
-          payload.speed_range_min = 1;
-          payload.speed_range_max = 100;
+          payload.speed_range_min = (entity as any).speed_range_min ?? 1;
+          payload.speed_range_max = (entity as any).speed_range_max ?? 100;
         }
 
         // Preset modes support (schema-based or CEL)

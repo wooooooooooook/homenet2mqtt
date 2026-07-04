@@ -1840,6 +1840,14 @@
             }
           ]
         },
+        "speed_range_min": {
+          "description": "The minimum speed value supported by the fan.",
+          "type": "integer"
+        },
+        "speed_range_max": {
+          "description": "The maximum speed value supported by the fan.",
+          "type": "integer"
+        },
         "command_speed": {
           "description": "Command schema that can be either a structured schema object or a CEL expression string.\nCEL expressions are evaluated at runtime to construct the command packet.\nFor commands, the CEL expression often constructs the raw bytes directly.",
           "anyOf": [

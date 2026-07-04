@@ -421,4 +421,72 @@ describe('DiscoveryManager', () => {
     expect(payload.min_mireds).toBeUndefined();
     expect(payload.max_mireds).toBeUndefined();
   });
+
+  it('fan speed_range_min과 speed_range_max 설정을 반영한다', () => {
+    mockConfig.fan = [
+      {
+        id: 'test_fan',
+        name: 'Test Fan',
+        type: 'fan',
+        state: {},
+        state_speed: { index: 2, length: 1 },
+        speed_range_min: 1,
+        speed_range_max: 3,
+      },
+    ] as any;
+    mockPublisher.publish.mockClear();
+
+    const mqttTopicPrefix = 'homenet2mqtt/homedevice1';
+    discoveryManager = new DiscoveryManager(
+      'main',
+      normalizeConfig(mockConfig),
+      mockPublisher,
+      mockSubscriber,
+      mqttTopicPrefix,
+    );
+    discoveryManager.setup();
+    discoveryManager.discover();
+    eventBus.emit('state:changed', { entityId: 'test_fan', state: {}, portId: 'main' });
+
+    const topic = 'homeassistant/fan/homenet_main_test_fan/config';
+    const call = mockPublisher.publish.mock.calls.find((args: any[]) => args[0] === topic);
+    expect(call).toBeDefined();
+
+    const payload = JSON.parse(call[1]);
+    expect(payload.speed_range_min).toBe(1);
+    expect(payload.speed_range_max).toBe(3);
+  });
+
+  it('fan speed_range_min과 speed_range_max 설정이 없으면 기본값 1, 100을 사용한다', () => {
+    mockConfig.fan = [
+      {
+        id: 'test_fan_default',
+        name: 'Test Fan Default',
+        type: 'fan',
+        state: {},
+        state_speed: { index: 2, length: 1 },
+      },
+    ] as any;
+    mockPublisher.publish.mockClear();
+
+    const mqttTopicPrefix = 'homenet2mqtt/homedevice1';
+    discoveryManager = new DiscoveryManager(
+      'main',
+      normalizeConfig(mockConfig),
+      mockPublisher,
+      mockSubscriber,
+      mqttTopicPrefix,
+    );
+    discoveryManager.setup();
+    discoveryManager.discover();
+    eventBus.emit('state:changed', { entityId: 'test_fan_default', state: {}, portId: 'main' });
+
+    const topic = 'homeassistant/fan/homenet_main_test_fan_default/config';
+    const call = mockPublisher.publish.mock.calls.find((args: any[]) => args[0] === topic);
+    expect(call).toBeDefined();
+
+    const payload = JSON.parse(call[1]);
+    expect(payload.speed_range_min).toBe(1);
+    expect(payload.speed_range_max).toBe(100);
+  });
 });

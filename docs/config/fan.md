@@ -10,6 +10,9 @@
 ## 옵션 필드 (상태)
 - 속도(백분율): `state_speed` 또는 `state_percentage` — [`StateNumSchema`](./schemas.md#statenumschema).
   - 가능하면 `state_speed`를 사용하세요. HA 명령 입력이 내부에서 `speed`로 매핑되므로 상태/명령 키를 `speed`로 맞추면 혼동이 줄어듭니다.
+- 속도 범위/단계 제어: `speed_range_min` (기본값 `1`), `speed_range_max` (기본값 `100`) — 정수.
+  - 환기팬의 제어 방식이 퍼센트가 아니라 단계형(예: 1~3단)일 때 사용합니다.
+  - 예: `speed_range_min: 1`, `speed_range_max: 3`으로 설정하면 Home Assistant UI에서 0%, 1%가 아닌 3단계의 직관적인 속도 설정으로 표시되며, HA에서는 1, 2, 3 값을 전송하고 수신합니다.
 - 프리셋: `preset_modes`(문자열 배열), `state_preset_mode` — StateSchema 또는 CEL 표현식.
 - 회전: `state_oscillating`(좌우 회전 여부), `state_direction`(정/역회전).
 
@@ -65,7 +68,8 @@ fan:
   - `percentage_state_topic`: `${MQTT_TOPIC_PREFIX}/${id}/state`
   - `percentage_command_topic`: `${MQTT_TOPIC_PREFIX}/${id}/percentage/set`
   - `percentage_value_template`: <code v-pre>{{ value_json.percentage | default(value_json.speed) }}</code>
-  - `speed_range_min`: `1`, `speed_range_max`: `100`
+  - `speed_range_min`: 기본값 `1` (설정된 경우 해당 값 전달)
+  - `speed_range_max`: 기본값 `100` (설정된 경우 해당 값 전달)
 - 프리셋 모드 지원 시
   - `preset_modes`
   - `preset_mode_command_topic`: `${MQTT_TOPIC_PREFIX}/${id}/preset_mode/set`
@@ -102,6 +106,8 @@ fan:
       [[0x20, 0x71, 0x01, 0x11, 0x01, 0x01, x, 0x00, 0x00, 0x00, 0x00, 0x00], [0x20, 0x01, 0x71, 0x91]]
     state_speed:
       index: 6
+    speed_range_min: 1
+    speed_range_max: 3
 ```
 
 ## 예제: 프리셋 모드 (CEL)
