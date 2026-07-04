@@ -3,7 +3,7 @@ meta:
   name_en: "Air Quality Sensors (CO2/PM)"
   description: "Ezville 공기질 센서 설정입니다. 방 개수를 선택하여 CO2 농도 및 미세먼지(PM) 측정값을 제공합니다."
   description_en: "Ezville air quality sensors for CO2 concentration and PM (particulate matter) readings. Configurable by room count."
-  version: "2.1.0"
+  version: "2.1.1"
   author: "loveangelsa"
   tags: ["sensor", "air_quality", "co2", "pm", "ezville"]
 
@@ -57,42 +57,43 @@ entities:
     - $repeat:
         count: '{{room_count}}'
         as: i
-      # CO2
-      id: 'co2_room{{i}}'
-      name: 'Co2(Room {{i}})'
-      device_class: carbon_dioxide
-      state:
-        data: [0x61, '{{i}}', 0x81]
-      unit_of_measurement: 'ppm'
-      accuracy_decimals: 0
-      state_number:
-        index: 12
-        length: 2
-        signed: false
-      
-      # PM1
-      id: 'pm1_room{{i}}'
-      name: 'PM1(Room {{i}})'
-      device_class: pm1
-      state:
-        data: [0x61, '{{i}}', 0x81]
-      unit_of_measurement: ㎍/㎥
-      state_number: 'data[10] == 0x00 ? int(data[11]) : get_from_state("value")'
-        
-      # PM2.5
-      id: 'pm25_room{{i}}'
-      name: 'PM2.5(Room {{i}})'
-      device_class: pm25
-      state:
-        data: [0x61, '{{i}}', 0x81]
-      unit_of_measurement: ㎍/㎥
-      state_number: 'data[10] == 0x40 ? int(data[11]) : get_from_state("value")'
-        
-      # PM10
-      id: 'pm10_room{{i}}'
-      name: 'PM10(Room {{i}})'
-      device_class: pm10
-      state:
-        data: [0x61, '{{i}}', 0x81]
-      unit_of_measurement: ㎍/㎥
-      state_number: 'data[10] == 0x80 ? int(data[11]) : get_from_state("value")'
+      $nested:
+        # CO2
+        - id: 'co2_room{{i}}'
+          name: 'Co2(Room {{i}})'
+          device_class: carbon_dioxide
+          state:
+            data: [0x61, '{{i}}', 0x81]
+          unit_of_measurement: 'ppm'
+          accuracy_decimals: 0
+          state_number:
+            index: 12
+            length: 2
+            signed: false
+          
+        # PM1
+        - id: 'pm1_room{{i}}'
+          name: 'PM1(Room {{i}})'
+          device_class: pm1
+          state:
+            data: [0x61, '{{i}}', 0x81]
+          unit_of_measurement: '㎍/㎥'
+          state_number: 'data[10] == 0x00 ? int(data[11]) : get_from_state("value")'
+            
+        # PM2.5
+        - id: 'pm25_room{{i}}'
+          name: 'PM2.5(Room {{i}})'
+          device_class: pm25
+          state:
+            data: [0x61, '{{i}}', 0x81]
+          unit_of_measurement: '㎍/㎥'
+          state_number: 'data[10] == 0x40 ? int(data[11]) : get_from_state("value")'
+            
+        # PM10
+        - id: 'pm10_room{{i}}'
+          name: 'PM10(Room {{i}})'
+          device_class: pm10
+          state:
+            data: [0x61, '{{i}}', 0x81]
+          unit_of_measurement: '㎍/㎥'
+          state_number: 'data[10] == 0x80 ? int(data[11]) : get_from_state("value")'
