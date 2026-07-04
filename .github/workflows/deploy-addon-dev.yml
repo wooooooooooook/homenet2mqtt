@@ -23,7 +23,7 @@ jobs:
       VERSION: ${{ steps.version.outputs.VERSION }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Generate Timestamp Version
         id: version
@@ -80,7 +80,7 @@ jobs:
     if: success()
     steps:
       - name: Checkout Source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           path: source
 
@@ -91,7 +91,7 @@ jobs:
           sed -i "s/^version: .*/version: \"$VERSION\"/" source/hassio-addon-dev/config.yaml
 
       - name: Checkout Target Repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: wooooooooooook/HAaddons
           token: ${{ secrets.ADDONS_REPO_TOKEN }}
