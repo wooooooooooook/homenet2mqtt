@@ -14,6 +14,7 @@ import {
 import { logger } from '../../utils/logger.js';
 import { Buffer } from 'buffer';
 import { getSchemaIndex, hasExplicitSchemaIndex } from '../schema-index.js';
+import { mapStateKey } from './state-normalizer.js';
 
 interface StateScript {
   key: string;
@@ -55,22 +56,13 @@ export class GenericDevice extends Device {
     const entityConfig = this.config as any;
     const executor = CelExecutor.shared();
 
-    // Key mapping for CEL results to match HA discovery expectations
-    const keyMapping: Record<string, string> = {
-      temperature_target: 'target_temperature',
-      temperature_current: 'current_temperature',
-      humidity_target: 'target_humidity',
-      humidity_current: 'current_humidity',
-    };
-
     for (const key in entityConfig) {
       const value = entityConfig[key];
       if (typeof value !== 'string') continue;
 
       if (key.startsWith('state_')) {
         // Prepare State Parsing Scripts
-        const rawKey = key.replace('state_', '');
-        const mappedKey = keyMapping[rawKey] || rawKey;
+        const mappedKey = mapStateKey(key);
         try {
           this.stateScripts.push({
             key: mappedKey,

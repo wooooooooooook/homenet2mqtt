@@ -37,7 +37,12 @@ import { parseDuration } from '../utils/duration.js';
 import { findEntityById } from '../utils/entities.js';
 import { logger } from '../utils/logger.js';
 import { matchesPacket } from '../utils/packet-matching.js';
-import { normalizeDeviceState } from '../protocol/devices/state-normalizer.js';
+import {
+  normalizeDeviceState,
+  mapStateKey,
+  CORE_ALLOWED_KEYS,
+  normalizeStateKey,
+} from '../protocol/devices/state-normalizer.js';
 import { hasExplicitSchemaIndex } from '../protocol/schema-index.js';
 import {
   calculateChecksumFromBuffer,
@@ -820,33 +825,23 @@ export class AutomationManager {
     return SCHEMA_KEYS.some((key) => key in (value as Record<string, unknown>));
   }
 
-  private mapStateKey(key: string): string {
-    const mapping: Record<string, string> = {
-      temperature_target: 'target_temperature',
-      temperature_current: 'current_temperature',
-      humidity_target: 'target_humidity',
-      humidity_current: 'current_humidity',
-    };
-    const normalized = key.startsWith('state_') ? key.replace('state_', '') : key;
-    return mapping[normalized] ?? normalized;
-  }
-
   private getAllowedUpdateStateKeys(entity: Record<string, any>) {
     const allowedKeys = new Set<string>();
-
-    if (entity.state) {
-      allowedKeys.add('state');
-    }
+    const coreKeys = CORE_ALLOWED_KEYS[entity.type] ?? [];
 
     for (const key of Object.keys(entity)) {
       if (!key.startsWith('state_')) continue;
-      allowedKeys.add(key);
-      allowedKeys.add(this.mapStateKey(key));
+
+      const rawKey = mapStateKey(key);
+      const normalizedKey = normalizeStateKey(rawKey, entity.type);
+
+      if (coreKeys.includes(normalizedKey)) {
+        allowedKeys.add(key);
+        allowedKeys.add(normalizedKey);
+      }
     }
 
-    if (entity.state_on || entity.state_off) {
-      allowedKeys.add('on');
-      allowedKeys.add('off');
+    if (entity.state && coreKeys.includes('state')) {
       allowedKeys.add('state');
     }
 
@@ -930,7 +925,7 @@ export class AutomationManager {
     const updates: Record<string, any> = {};
 
     for (const [key, rawValue] of Object.entries(action.state)) {
-      const mappedKey = this.mapStateKey(key);
+      const mappedKey = mapStateKey(key);
       if (this.isSchemaValue(rawValue)) {
         if (!packetBuffer) continue;
         if (this.isDataMatchSchema(rawValue)) {

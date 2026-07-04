@@ -1,10 +1,14 @@
 ** ⚠️ 업데이트 전 백업 권장 **
 - 오류가 있으면 homeasssutant [카페](https://cafe.naver.com/koreassistant), [깃헙](https://github.com/wooooooooooook/homenet2mqtt), [디스코드](https://discord.gg/kGwhUBMe5z) 등으로 알려주세요.
 
-v2.14.1
+v2.15.0
+<!-- - feat: `optimistic: true`인 엔티티에서 StateSchema/StateNumSchema대신 빈값 입력을 허용합니다. 빈값인경우 아무 패킷에도 매칭되지 않습니다. 가상엔티티를 만들때 유용하게 쓰입니다. -->
 - fix: `restore_mode`로 복원된 optimistic 엔티티의 상태가 UI 대시보드에 반영되지 않는 문제 수정
 - fix: 자동화 처리로 송신된 패킷 로그가 수신 패킷 로그보다 먼저 기록되는 로깅 타이밍 문제 수정
+- fix: `update_state`액션에서 허용되는 키 검증이 제대로 이루어지지 않는 문제 수정 및 검증 강화
+<!-- - fix: 자동화의 시작 시점을 앱 시작 후 초기화가 완료된 시점으로 변경. (startup trigger도 포함) -->
 - chore: nodejs 버전업 22 -> 24
+<!-- - chore: [CommandManager] Trying to send command 로그 레벨을 INFO에서 DEBUG로 하향 -->
 
 v2.14.0
 - feat: 자동화 trigger에 id를 추가하여 이를 통해 자동화내에서 분기처리가 가능하도록 했습니다. [문서보기](https://homenet2mqtt-docs.vercel.app/guide/automation.html#%E1%84%90%E1%85%B3%E1%84%85%E1%85%B5%E1%84%80%E1%85%A5-triggers)

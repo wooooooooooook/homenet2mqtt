@@ -4,6 +4,11 @@ import { MqttSubscriber } from '../transports/mqtt/subscriber.js';
 import { logger } from '../utils/logger.js';
 import { toEntityId } from '../utils/romanize.js';
 import { eventBus } from '../service/event-bus.js';
+import {
+  CLIMATE_MODES,
+  FAN_MODE_MAPPINGS,
+  PRESET_MODE_MAPPINGS,
+} from '../protocol/devices/state-normalizer.js';
 import { EntityConfig } from '../domain/entities/base.entity.js';
 
 interface DiscoveryPayload {
@@ -627,24 +632,10 @@ export class DiscoveryManager {
 
         // Dynamically determine available modes
         const availableModes: string[] = [];
-        if (entity.state_off) {
-          availableModes.push('off');
-        }
-        if (entity.state_heat) {
-          availableModes.push('heat');
-        }
-        if (entity.state_cool) {
-          availableModes.push('cool');
-        }
-        if (entity.state_fan_only) {
-          availableModes.push('fan_only');
-        }
-        if (entity.state_dry) {
-          availableModes.push('dry');
-        }
-        if (entity.state_auto) {
-          // Assuming 'state_auto' property for auto mode
-          availableModes.push('auto');
+        for (const mode of CLIMATE_MODES) {
+          if (entity[`state_${mode}`]) {
+            availableModes.push(mode);
+          }
         }
 
         // Only set mode topics/templates when modes are available
@@ -656,20 +647,7 @@ export class DiscoveryManager {
         }
 
         const fanModes = new Set<string>();
-        const fanModeMappings: Array<[string, string]> = [
-          ['fan_on', 'on'],
-          ['fan_off', 'off'],
-          ['fan_auto', 'auto'],
-          ['fan_low', 'low'],
-          ['fan_medium', 'medium'],
-          ['fan_high', 'high'],
-          ['fan_middle', 'middle'],
-          ['fan_focus', 'focus'],
-          ['fan_diffuse', 'diffuse'],
-          ['fan_quiet', 'quiet'],
-        ];
-
-        for (const [suffix, mode] of fanModeMappings) {
+        for (const [suffix, mode] of FAN_MODE_MAPPINGS) {
           if ((entity as any)[`state_${suffix}`] || (entity as any)[`command_${suffix}`]) {
             fanModes.add(mode);
           }
@@ -689,17 +667,7 @@ export class DiscoveryManager {
         }
 
         const presetModes = new Set<string>();
-        const presetModeMappings: Array<[string, string]> = [
-          ['preset_home', 'home'],
-          ['preset_away', 'away'],
-          ['preset_boost', 'boost'],
-          ['preset_comfort', 'comfort'],
-          ['preset_eco', 'eco'],
-          ['preset_sleep', 'sleep'],
-          ['preset_activity', 'activity'],
-        ];
-
-        for (const [suffix, mode] of presetModeMappings) {
+        for (const [suffix, mode] of PRESET_MODE_MAPPINGS) {
           if ((entity as any)[`state_${suffix}`] || (entity as any)[`command_${suffix}`]) {
             presetModes.add(mode);
           }

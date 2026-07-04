@@ -2,6 +2,140 @@ import { matchesPacket } from '../../utils/packet-matching.js';
 import { StateSchema, StateNumSchema } from '../types.js';
 import { getSchemaIndex, hasExplicitSchemaIndex } from '../schema-index.js';
 
+export const CLIMATE_MODES = ['off', 'heat', 'cool', 'fan_only', 'dry', 'auto'];
+
+export const FAN_MODE_MAPPINGS: Array<[string, string]> = [
+  ['fan_on', 'on'],
+  ['fan_off', 'off'],
+  ['fan_auto', 'auto'],
+  ['fan_low', 'low'],
+  ['fan_medium', 'medium'],
+  ['fan_high', 'high'],
+  ['fan_middle', 'middle'],
+  ['fan_focus', 'focus'],
+  ['fan_diffuse', 'diffuse'],
+  ['fan_quiet', 'quiet'],
+];
+
+export const PRESET_MODE_MAPPINGS: Array<[string, string]> = [
+  ['preset_home', 'home'],
+  ['preset_away', 'away'],
+  ['preset_boost', 'boost'],
+  ['preset_comfort', 'comfort'],
+  ['preset_eco', 'eco'],
+  ['preset_sleep', 'sleep'],
+  ['preset_activity', 'activity'],
+];
+
+export const ACTION_MAPPINGS: Array<[string, string]> = [
+  ['action_heating', 'heating'],
+  ['action_cooling', 'cooling'],
+  ['action_drying', 'drying'],
+  ['action_fan', 'fan'],
+  ['action_idle', 'idle'],
+];
+
+export const STATE_KEY_1TO1_MAPPINGS: Record<string, string> = {
+  temperature_target: 'target_temperature',
+  temperature_current: 'current_temperature',
+  humidity_target: 'target_humidity',
+  humidity_current: 'current_humidity',
+};
+
+export const mapStateKey = (key: string): string => {
+  const normalized = key.startsWith('state_') ? key.replace('state_', '') : key;
+  return STATE_KEY_1TO1_MAPPINGS[normalized] ?? normalized;
+};
+
+export const ENTITY_STATE_MAPPINGS: Record<string, string[]> = {
+  binary_sensor: ['on', 'off'],
+  switch: ['on', 'off'],
+  light: ['on', 'off'],
+  fan: ['on', 'off'],
+  valve: ['open', 'closed', 'opening', 'closing'],
+  cover: ['open', 'closed', 'opening', 'closing'],
+  lock: ['locked', 'unlocked', 'locking', 'unlocking', 'jammed'],
+};
+
+export const CORE_ALLOWED_KEYS: Record<string, string[]> = {
+  climate: [
+    'mode',
+    'fan_mode',
+    'preset_mode',
+    'action',
+    'target_temperature',
+    'target_temperature_low',
+    'target_temperature_high',
+    'current_temperature',
+    'current_humidity',
+  ],
+  fan: ['state', 'fan_mode', 'percentage', 'preset_mode', 'speed', 'oscillating', 'direction'],
+  cover: ['state', 'position'],
+  valve: ['state'],
+  lock: ['state'],
+  switch: ['state'],
+  light: [
+    'state',
+    'brightness',
+    'color_temp',
+    'color_temp_kelvin',
+    'red',
+    'green',
+    'blue',
+    'white',
+  ],
+  binary_sensor: ['state'],
+  sensor: ['value'],
+  number: ['value'],
+  button: [],
+  select: ['option'],
+  text_sensor: ['text'],
+  text: ['text'],
+};
+
+export const normalizeStateKey = (rawKey: string, entityType?: string): string => {
+  // 1. climate-specific modes mapping
+  if (entityType === 'climate') {
+    if (CLIMATE_MODES.includes(rawKey)) {
+      return 'mode';
+    }
+    if (FAN_MODE_MAPPINGS.some(([key]) => key === rawKey)) {
+      return 'fan_mode';
+    }
+    if (PRESET_MODE_MAPPINGS.some(([key]) => key === rawKey)) {
+      return 'preset_mode';
+    }
+    if (ACTION_MAPPINGS.some(([key]) => key === rawKey)) {
+      return 'action';
+    }
+  }
+
+  // 2. number/sensor raw 'number' property to final 'value' mapping
+  if (entityType === 'number' || entityType === 'sensor') {
+    if (rawKey === 'number') {
+      return 'value';
+    }
+  }
+
+  // 3. select raw 'select' property to final 'option' mapping
+  if (entityType === 'select') {
+    if (rawKey === 'select') {
+      return 'option';
+    }
+  }
+
+  // 4. Generic state mappings using ENTITY_STATE_MAPPINGS
+  const allowedStateKeys = entityType
+    ? ENTITY_STATE_MAPPINGS[entityType]
+    : Object.values(ENTITY_STATE_MAPPINGS).flat();
+
+  if (allowedStateKeys?.includes(rawKey)) {
+    return 'state';
+  }
+
+  return rawKey;
+};
+
 export interface NormalizeStateOptions {
   headerLen?: number;
   state?: Record<string, any>;
@@ -334,14 +468,8 @@ export const normalizeDeviceState = (
     }
 
     if (!normalized.action) {
-      const actionMappings: Array<[string, string, StateSchema | undefined]> = [
-        ['action_heating', 'heating', entityConfig.state_action_heating],
-        ['action_cooling', 'cooling', entityConfig.state_action_cooling],
-        ['action_drying', 'drying', entityConfig.state_action_drying],
-        ['action_fan', 'fan', entityConfig.state_action_fan],
-        ['action_idle', 'idle', entityConfig.state_action_idle],
-      ];
-      for (const [key, value, schema] of actionMappings) {
+      for (const [key, value] of ACTION_MAPPINGS) {
+        const schema = entityConfig[`state_${key}`];
         const matched = resolveFlag(normalized, cleanupKeys, key, schema, payload, options);
         if (matched) {
           normalized.action = value;
@@ -354,20 +482,8 @@ export const normalizeDeviceState = (
     }
 
     if (!normalized.fan_mode) {
-      const fanModeMappings: Array<[string, string, StateSchema | undefined]> = [
-        ['fan_on', 'on', entityConfig.state_fan_on],
-        ['fan_off', 'off', entityConfig.state_fan_off],
-        ['fan_auto', 'auto', entityConfig.state_fan_auto],
-        ['fan_low', 'low', entityConfig.state_fan_low],
-        ['fan_medium', 'medium', entityConfig.state_fan_medium],
-        ['fan_high', 'high', entityConfig.state_fan_high],
-        ['fan_middle', 'middle', entityConfig.state_fan_middle],
-        ['fan_focus', 'focus', entityConfig.state_fan_focus],
-        ['fan_diffuse', 'diffuse', entityConfig.state_fan_diffuse],
-        ['fan_quiet', 'quiet', entityConfig.state_fan_quiet],
-      ];
-
-      for (const [key, mode, schema] of fanModeMappings) {
+      for (const [key, mode] of FAN_MODE_MAPPINGS) {
+        const schema = entityConfig[`state_${key}`];
         const matched = resolveFlag(normalized, cleanupKeys, key, schema, payload, options);
         if (matched) {
           normalized.fan_mode = mode;
@@ -377,18 +493,8 @@ export const normalizeDeviceState = (
     }
 
     if (!normalized.preset_mode) {
-      const presetModeMappings: Array<[string, string, StateSchema | undefined]> = [
-        ['preset_none', 'none', entityConfig.state_preset_none],
-        ['preset_home', 'home', entityConfig.state_preset_home],
-        ['preset_away', 'away', entityConfig.state_preset_away],
-        ['preset_boost', 'boost', entityConfig.state_preset_boost],
-        ['preset_comfort', 'comfort', entityConfig.state_preset_comfort],
-        ['preset_eco', 'eco', entityConfig.state_preset_eco],
-        ['preset_sleep', 'sleep', entityConfig.state_preset_sleep],
-        ['preset_activity', 'activity', entityConfig.state_preset_activity],
-      ];
-
-      for (const [key, mode, schema] of presetModeMappings) {
+      for (const [key, mode] of PRESET_MODE_MAPPINGS) {
+        const schema = entityConfig[`state_${key}`];
         const matched = resolveFlag(normalized, cleanupKeys, key, schema, payload, options);
         if (matched) {
           normalized.preset_mode = mode;

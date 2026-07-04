@@ -1664,4 +1664,70 @@ describe('AutomationManager', () => {
     await vi.runAllTimersAsync();
     expect(mqttPublisher.publish).toHaveBeenCalledTimes(2);
   });
+
+  describe('getAllowedUpdateStateKeys', () => {
+    it('climate 엔티티의 경우 state가 명시적으로 정의되어 있더라도 허용 키에 state가 포함되지 않아야 한다', () => {
+      const entity = {
+        id: 'climate_test',
+        type: 'climate',
+        state: { data: [0x01] },
+        state_temperature_target: { offset: 1, length: 1 },
+      };
+
+      const allowedKeys = (automationManager as any).getAllowedUpdateStateKeys(entity);
+      expect(allowedKeys.has('state')).toBe(false);
+      expect(allowedKeys.has('state_temperature_target')).toBe(true);
+      expect(allowedKeys.has('target_temperature')).toBe(true);
+    });
+
+    it('button 엔티티의 경우 state 속성이 기기 사양에 존재하더라도 허용 키 세트는 완전히 비어있어야 한다', () => {
+      const entity = {
+        id: 'button_test',
+        type: 'button',
+        state: { data: [0x01] },
+        state_on: { offset: 1, data: [0x01] },
+      };
+
+      const allowedKeys = (automationManager as any).getAllowedUpdateStateKeys(entity);
+      expect(allowedKeys.size).toBe(0);
+    });
+
+    it('number 엔티티의 경우 state_number 정의 시 state_number와 value만 허용되어야 하고 number는 허용되지 않아야 한다', () => {
+      const entity = {
+        id: 'number_test',
+        type: 'number',
+        state_number: { offset: 1, length: 1 },
+      };
+
+      const allowedKeys = (automationManager as any).getAllowedUpdateStateKeys(entity);
+      expect(allowedKeys.has('state_number')).toBe(true);
+      expect(allowedKeys.has('number')).toBe(false);
+      expect(allowedKeys.has('value')).toBe(true);
+    });
+
+    it('select 엔티티의 경우 state_select 정의 시 state_select와 option만 허용되어야 하고 select는 허용되지 않아야 한다', () => {
+      const entity = {
+        id: 'select_test',
+        type: 'select',
+        state_select: { offset: 1, length: 1 },
+      };
+
+      const allowedKeys = (automationManager as any).getAllowedUpdateStateKeys(entity);
+      expect(allowedKeys.has('state_select')).toBe(true);
+      expect(allowedKeys.has('select')).toBe(false);
+      expect(allowedKeys.has('option')).toBe(true);
+    });
+
+    it('text 엔티티의 경우 state_text 정의 시 text 키가 허용되어야 한다', () => {
+      const entity = {
+        id: 'text_test',
+        type: 'text',
+        state_text: { offset: 1, length: 1 },
+      };
+
+      const allowedKeys = (automationManager as any).getAllowedUpdateStateKeys(entity);
+      expect(allowedKeys.has('state_text')).toBe(true);
+      expect(allowedKeys.has('text')).toBe(true);
+    });
+  });
 });

@@ -270,33 +270,33 @@ ack: [0x06]
 
 ### 상태 갱신 (Update State) {#update-state}
 
-수신된 패킷(패킷 트리거)에서 값을 추출해 엔티티 상태를 직접 갱신합니다. `state` 항목은 `StateSchema/StateNumSchema`로 정의합니다.
+수신된 패킷에서 값을 추출하거나, 특정 상수 값을 강제로 대입하여 엔티티 상태를 직접 갱신합니다.
 
 ```yaml
+# 1. 패킷 매칭을 통한 갱신 예시 (패킷 트리거에서 사용)
 action: update_state
 target_id: light_1
 state:
-  state_on:
-    index: 5
-    data: [0x10, 0x01]
-  state_off:
-    index: 5
-    data: [0x10, 0x00]
-  state_brightness:
-    index: 4
-    length: 1
+  state_on: { index: 5, data: [0x10, 0x01] }
+  state_off: { index: 5, data: [0x10, 0x00] }
+  state_brightness: { index: 4, length: 1 }
+
+# 2. 상수 값을 통한 강제 갱신 예시
+action: update_state
+target_id: climate_1
+state:
+  state: "ON"             # 'state'를 "ON"으로 직접 강제 설정
+  target_temperature: 24  # 정규화 속성명 사용 (또는 state_temperature_target: 24)
 ```
 
-- `target_id`는 상태를 갱신할 대상 엔티티 ID를 지정합니다.
-  - 일반 엔티티 ID(예: `light_1`) 외에 **CEL 표현식**도 사용할 수 있습니다. (예: `"'light_' + string(trigger.packet[2])"`)
-  - CEL 식 내부에서 `trigger.packet`, `states` 등의 컨텍스트를 참조하여 동적으로 갱신 대상을 결정할 수 있습니다.
-- `state` 값이 `StateSchema/StateNumSchema`인 경우, 패킷에서 값을 추출하여 상태로 기록합니다.
-- `index`를 생략하면 헤더 다음 바이트부터 추출하고, `index`를 명시하면 헤더 포함 전체 패킷 기준 인덱스로 추출합니다.
-- 패킷 트리거인 경우에만 사용하세요.
-- `update_state`는 대상 엔티티에 **이미 정의된** `state_*` 항목과 해당 속성명(예: `brightness`, `target_temperature`)만 허용하며, 정의되지 않은 속성은 오류로 처리됩니다.
-  - 예를 들어 `light_1` 엔티티에 `state_on`/`state_off`가 정의되어 있지 않으면 자동화에서 `state_on`/`state_off`를 갱신할 수 없습니다.
-  - 패킷 트리거에서 ON/OFF 상태를 갱신하려면 대상 엔티티 설정에도 동일한 `state_on`/`state_off` 스키마를 선언하거나, 엔티티에 정의된 다른 상태 속성명만 사용해야 합니다.
-- `update_state`는 모든 엔티티 타입에서 `parseData`와 동일한 해석(모드/상태 플래그 변환 등)을 수행하며, 해석에 사용된 원본 키는 정리됩니다.
+- **`target_id`**: 상태를 갱신할 대상 엔티티 ID를 지정합니다. 일반 엔티티 ID 외에 **CEL 표현식**도 사용할 수 있습니다. (예: `"'light_' + string(trigger.packet[2])"`)
+- **`state`**: 대상 엔티티에 **이미 정의된 스키마**에 대응하는 속성명만 업데이트할 수 있습니다. 
+  - 원래의 패킷 스키마 키(`state_*`) 또는 이에 대응되는 **정규화 속성명**을 모두 사용할 수 있습니다.
+  - 패킷 스펙(`state_*`)과 정규화 속성명 간의 자세한 명칭 대조는 [패킷 스펙과 정규화 상태 매핑 가이드](./state-mapping.md)를 참고하세요.
+- **값의 유형별 처리**:
+  - `StateSchema/StateNumSchema` (객체) $\rightarrow$ 수신 패킷에서 값을 추출하여 상태로 기록합니다. (이때 `index` 생략 시 헤더 다음 바이트부터, 명시 시 헤더 포함 패킷 기준으로 추출)
+  - 상수 값 (문자열, 숫자, 불리언) $\rightarrow$ 패킷 정보와 무관하게 지정한 값으로 강제 갱신합니다.
+- **오류 처리**: 엔티티에 정의되어 있지 않은 상태 속성(예: `state_on`이 정의되지 않은 조명에 `state_on`을 갱신하려는 경우)을 업데이트하려 하면 오류로 처리됩니다.
 
 ### 지연 (Delay) {#delay}
 
