@@ -3,6 +3,7 @@ import { StateManager } from '../../src/state/state-manager.js';
 import { PacketProcessor } from '../../src/protocol/packet-processor.js';
 import { MqttPublisher } from '../../src/transports/mqtt/publisher.js';
 import { HomenetBridgeConfig } from '../../src/config/types.js';
+import { eventBus } from '../../src/service/event-bus.js';
 
 describe('StateManager Optimistic Initialization', () => {
   let stateManager: StateManager;
@@ -182,5 +183,33 @@ describe('StateManager Optimistic Initialization', () => {
       JSON.stringify({ state: 'ON' }),
       expect.objectContaining({ retain: true }),
     );
+  });
+
+  it('should emit state:changed and device specific events when state is restored', () => {
+    stateManager = new StateManager(
+      PORT_ID,
+      config,
+      mockPacketProcessor,
+      mockMqttPublisher,
+      TOPIC_PREFIX,
+    );
+
+    const emitSpy = vi.spyOn(eventBus, 'emit');
+
+    stateManager.restoreEntityState('virtual_switch', { state: 'ON' });
+
+    expect(emitSpy).toHaveBeenCalledWith(
+      'state:changed',
+      expect.objectContaining({
+        portId: PORT_ID,
+        entityId: 'virtual_switch',
+        state: { state: 'ON' },
+        changes: { state: 'ON' },
+      }),
+    );
+
+    expect(emitSpy).toHaveBeenCalledWith('device:virtual_switch:state:changed', { state: 'ON' });
+
+    emitSpy.mockRestore();
   });
 });

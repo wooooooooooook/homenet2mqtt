@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { HomeNetBridge } from '../src/service/bridge.service';
 import { EventEmitter } from 'node:events';
 import { Duplex } from 'stream';
+import { eventBus } from '../src/service/event-bus.js';
+import { CommandManager } from '../src/service/command.manager.js';
 
 // Mock dependencies
 vi.mock('mqtt', () => ({
@@ -101,5 +103,43 @@ describe('Automation Timing Verification', () => {
 
     // Validating that the background task was indeed called
     expect(mockRunAutomationThen).toHaveBeenCalled();
+  });
+
+  it('should defer raw-tx-packet event emission to the next tick', async () => {
+    const emitSpy = vi.spyOn(eventBus, 'emit');
+    const mockConfig = {
+      packet_defaults: {
+        tx_retry_cnt: 0,
+        tx_timeout: 10,
+        tx_delay: 50,
+      },
+    } as any;
+
+    const commandManager = new CommandManager(
+      fakeSerialPort as unknown as Duplex,
+      mockConfig,
+      'main',
+    );
+
+    // Execute sendRaw without waiting for completion (since there is no ackMatch, it will resolve when sent)
+    await commandManager.sendRaw([0x02, 0x01, 0x03]);
+
+    // Right after sendRaw resolved, the event should NOT be emitted yet because it's wrapped in setImmediate
+    const hasTxEmitDirectly = emitSpy.mock.calls.some((call) => call[0] === 'raw-tx-packet');
+    expect(hasTxEmitDirectly).toBe(false);
+
+    // Wait for the next tick (setImmediate)
+    await new Promise((resolve) => setImmediate(resolve));
+
+    // After next tick, the event must be emitted
+    expect(emitSpy).toHaveBeenCalledWith(
+      'raw-tx-packet',
+      expect.objectContaining({
+        portId: 'main',
+        payload: '020103',
+      }),
+    );
+
+    emitSpy.mockRestore();
   });
 });

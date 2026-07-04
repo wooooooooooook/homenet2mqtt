@@ -164,4 +164,43 @@ describe('HomeNetBridge Packet Interval Analysis', () => {
       expect(stats.packetAvg).toBeLessThan(stats.idleAvg);
     }
   });
+
+  it('should start automation after restoring retained states', async () => {
+    // Stop the default bridge started in beforeEach
+    bridge.stop();
+
+    const mockSerialPort = new MockSerialPort();
+    const mockSerialFactory = vi.fn().mockResolvedValue(mockSerialPort as unknown as Duplex);
+
+    const testBridge = new HomeNetBridge({
+      configPath: 'test.yaml',
+      mqttUrl: 'mqtt://fake',
+      serialFactory: mockSerialFactory,
+    });
+
+    const startOrder: string[] = [];
+
+    const restoreSpy = vi
+      .spyOn(testBridge as any, 'restoreRetainedStatesForPort')
+      .mockImplementation(async () => {
+        startOrder.push('restore');
+        return Promise.resolve();
+      });
+
+    const { AutomationManager } = await import('../src/automation/automation-manager.js');
+    const autoStartSpy = vi
+      .spyOn(AutomationManager.prototype, 'start')
+      .mockImplementation(function (this: any) {
+        startOrder.push('automation-start');
+        return this;
+      });
+
+    await testBridge.start();
+
+    expect(startOrder).toEqual(['restore', 'automation-start']);
+
+    testBridge.stop();
+    restoreSpy.mockRestore();
+    autoStartSpy.mockRestore();
+  });
 });
