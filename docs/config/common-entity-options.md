@@ -109,6 +109,34 @@ switch:
   - name: '외출 모드 플래그'
     id: 'away_mode_flag'
     optimistic: true # 가상 스위치로 동작 (패킷 전송 없음)
+    state:
+    state_on:
+    state_off:
+```
+
+### 매칭 스키마 생략 (빈값 입력)
+
+`optimistic: true` 모드에서는 패킷으로부터 상태를 추출하지 않으므로, `state`, `state_on`, `state_off` 등의 패킷 매칭 스키마 필드들을 비워둘 수 있습니다. 
+
+비워둔 필드(`null` 또는 빈 객체 `{}`)는 어떠한 패킷에도 매칭되지 않는 가상 엔티티(Virtual Entity)로 동작하게 됩니다. 단, `optimistic: false`인 일반 기기는 빈 스키마를 정의할 수 없으며 유효성 검사 에러가 발생합니다.
+
+> [!IMPORTANT]
+> **빈값 선언이 필요한 이유:**
+> 1. **자동화 `update_state` 액션 적용**: 자동화 규칙 내에서 `update_state` 액션을 통해 가상 기기의 특정 상태를 업데이트(예: `{ state_on: true }` 반영)하려면, 해당 상태 필드(`state_on:`, `state_off:` 등)가 빈값으로나마 설정 파일에 **명시적으로 정의(선언)되어 있어야 합니다.** 정의되지 않은 상태 속성을 업데이트하려고 시도하면 유효하지 않은 속성 에러가 발생합니다.
+> 2. **대시보드 UI 제어 활성화**: Home Assistant 및 H2M 웹 대시보드 UI에서 ON/OFF 전원 스위치 버튼을 활성화하여 클릭 제어를 하고자 할 경우, `command_on:` 및 `command_off:` 명령 스키마 필드가 빈값으로나마 **선언되어 있어야 합니다.** 완전히 생략하는 경우 대시보드에 기기 제어 UI가 비활성화되거나 올바르게 표시되지 않을 수 있습니다.
+
+```yaml
+light:
+  - id: virtual_light_1
+    name: '거실 가상 조명 1'
+    optimistic: true
+    discovery_always: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    state: 
+    state_on:
+    state_off:
+    command_on:
+    command_off:
 ```
 
 ## 재시작 상태 복원 모드 (`restore_mode`)
