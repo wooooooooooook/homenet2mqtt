@@ -101,7 +101,7 @@ jobs:
 
       - name: Build and push
         if: steps.check_image.outputs.exists != 'true'
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: hassio-addon/Dockerfile
