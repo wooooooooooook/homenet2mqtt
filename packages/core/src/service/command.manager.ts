@@ -218,10 +218,12 @@ export class CommandManager {
         this.serialPort.write(packetBuffer);
 
         // Emit raw-tx-packet event for logging
-        eventBus.emit('raw-tx-packet', {
-          portId: this.portId,
-          payload: packetBuffer.toString('hex'),
-          timestamp: new Date().toISOString(),
+        setImmediate(() => {
+          eventBus.emit('raw-tx-packet', {
+            portId: this.portId,
+            payload: packetBuffer.toString('hex'),
+            timestamp: new Date().toISOString(),
+          });
         });
 
         // If no ACK required (raw command without match, or entity without retry), resolve immediately?
