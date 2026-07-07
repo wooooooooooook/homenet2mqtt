@@ -1,7 +1,6 @@
 // packages/core/src/service/bridge.service.ts
 
 import { Duplex } from 'stream';
-import mqtt from 'mqtt';
 
 import { logger } from '../utils/logger.js';
 import {
@@ -22,13 +21,10 @@ import {
 import { StateSchema } from '../protocol/types.js';
 import { createSerialPortConnection } from '../transports/serial/serial.factory.js';
 import { ReconnectingTcpSocket } from '../transports/serial/tcp-socket.js';
-import { MqttSubscriber } from '../transports/mqtt/subscriber.js';
-import { MqttPublisher } from '../transports/mqtt/publisher.js';
 import { StateManager } from '../state/state-manager.js';
 import { eventBus } from './event-bus.js';
 import { CommandManager } from './command.manager.js';
 import { clearStateCache } from '../state/store.js';
-import { DiscoveryManager } from '../mqtt/discovery-manager.js';
 import { MqttConnector } from '../transports/mqtt/mqtt.connector.js';
 import { LogConnector } from '../transports/log/log.connector.js';
 import { IntegrationConnector, ConnectorContext } from './connector.interface.js';
@@ -43,11 +39,8 @@ interface PortContext {
   serialPath: string;
   port: Duplex;
   packetProcessor: PacketProcessor;
-  mqttSubscriber?: MqttSubscriber;
-  mqttPublisher?: MqttPublisher;
   stateManager: StateManager;
   commandManager: CommandManager;
-  discoveryManager?: DiscoveryManager | null;
   automationManager: AutomationManager;
   rawPacketListener: ((data: Buffer) => void) | null;
   lastPacketTimestamp: number | null;
@@ -460,7 +453,12 @@ export class HomeNetBridge extends EventEmitter {
 
     // Try to revoke on all active ports/contexts to ensure cleanup
     for (const context of this.portContexts.values()) {
-      context.discoveryManager?.revokeDiscovery(entityId);
+      const conn = context.integrationConnector;
+      if (conn && typeof conn.revokeDevice === 'function') {
+        Promise.resolve(conn.revokeDevice(entityId)).catch((err) => {
+          logger.error({ err, entityId }, '[core] Failed to revoke device via integration');
+        });
+      }
     }
 
     return { success: true };

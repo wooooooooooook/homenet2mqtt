@@ -196,6 +196,10 @@ export class MqttConnector implements IntegrationConnector {
     return this._mqttClient.clearRetainedMessages(`${this.mqttTopicPrefix}/${entityId}`);
   }
 
+  async revokeDevice(entityId: string): Promise<void> {
+    this.discoveryManager?.revokeDiscovery(entityId);
+  }
+
   private handleStateChanged = (event: StateChangedEvent) => {
     this.onStateChanged(event);
   };

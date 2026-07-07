@@ -29,4 +29,5 @@ export interface IntegrationConnector {
   isConnected?(): boolean;
   clearRetainedMessages?(): Promise<number>;
   clearRetainedMessagesForEntity?(entityId: string): Promise<number>;
+  revokeDevice?(entityId: string): void | Promise<void>;
 }

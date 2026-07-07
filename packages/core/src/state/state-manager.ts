@@ -30,6 +30,10 @@ function getOnState(entityType: string): Record<string, any> | null {
   return onStateByType[entityType] ? { ...onStateByType[entityType] } : null;
 }
 
+export interface StatePublisher {
+  publish(topic: string, payload: string, options?: { retain?: boolean }): void | Promise<void>;
+}
+
 export class StateManager {
   private packetProcessor: PacketProcessor;
   private portId: string;
@@ -37,7 +41,7 @@ export class StateManager {
   private ignoredEntityId: string | null = null;
   private sharedStates?: Map<string, Record<string, any>>;
   private internalEntityIds: Set<string>;
-  private mqttPublisher?: any;
+  private statePublisher?: StatePublisher;
   private statesCachePath: string | null = null;
   private saveTimer: NodeJS.Timeout | null = null;
 
@@ -60,7 +64,9 @@ export class StateManager {
       topicPrefix = mqttPublisherOrTopicPrefix;
       sharedStates = mqttTopicPrefixOrSharedStates;
     } else {
-      this.mqttPublisher = mqttPublisherOrTopicPrefix;
+      if (mqttPublisherOrTopicPrefix && typeof mqttPublisherOrTopicPrefix.publish === 'function') {
+        this.statePublisher = mqttPublisherOrTopicPrefix;
+      }
       if (typeof mqttTopicPrefixOrSharedStates === 'string') {
         topicPrefix = mqttTopicPrefixOrSharedStates;
       }
@@ -227,8 +233,8 @@ export class StateManager {
     stateCache.set(topic, payload);
 
     if (!this.internalEntityIds.has(entityId)) {
-      if (this.mqttPublisher) {
-        this.mqttPublisher.publish(topic, payload, { retain: true });
+      if (this.statePublisher) {
+        this.statePublisher.publish(topic, payload, { retain: true });
       }
 
       const timestamp = new Date().toISOString();
@@ -343,8 +349,8 @@ export class StateManager {
         const stateStr = payload.replace(/["{}]/g, '').replace(/,/g, ', ');
         logger.info(`[StateManager] ${deviceId}: {${stateStr}} → ${topic} [published]`);
       }
-      if (this.mqttPublisher) {
-        this.mqttPublisher.publish(topic, payload, { retain: true });
+      if (this.statePublisher) {
+        this.statePublisher.publish(topic, payload, { retain: true });
       }
       const timestamp = new Date().toISOString();
       eventBus.emit('state:changed', {
