@@ -168,6 +168,9 @@ export class PacketProcessor extends EventEmitter {
       ? commandNameInput.slice('command_'.length)
       : commandNameInput;
 
+    const normalizedCommandName = `command_${commandName}`;
+    const commandConfig = (entity as any)[normalizedCommandName];
+
     // Try to find the registered device
     let device = this.protocolManager.getDevice(entity.id);
 
@@ -179,20 +182,35 @@ export class PacketProcessor extends EventEmitter {
       });
     }
 
+    const isCommandEmpty = (val: any): boolean => {
+      if (typeof val === 'string') {
+        return val.trim() === '';
+      }
+      if (val && typeof val === 'object' && !Array.isArray(val)) {
+        return Object.keys(val).length === 0;
+      }
+      return false;
+    };
+
     let cmd: number[] | CommandResult | null = null;
-    try {
-      cmd = device.constructCommand(commandName, value, this.states);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      this.emit('entity-error', {
-        entityId: entity.id,
-        portId: this.portId,
-        type: 'command',
-        message,
-        timestamp: new Date().toISOString(),
-        context: { command: commandNameInput },
-      });
-      return null;
+
+    if (entity.optimistic && isCommandEmpty(commandConfig)) {
+      // Skip packet generation for empty command configuration
+    } else {
+      try {
+        cmd = device.constructCommand(commandName, value, this.states);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        this.emit('entity-error', {
+          entityId: entity.id,
+          portId: this.portId,
+          type: 'command',
+          message,
+          timestamp: new Date().toISOString(),
+          context: { command: commandNameInput },
+        });
+        return null;
+      }
     }
 
     // Handle Optimistic Updates

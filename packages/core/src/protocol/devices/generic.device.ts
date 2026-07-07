@@ -74,6 +74,9 @@ export class GenericDevice extends Device {
       } else if (key.startsWith('command_')) {
         // Prepare Command Generation Scripts
         try {
+          if (typeof value === 'string' && value.trim() === '') {
+            continue;
+          }
           this.commandScripts.set(key, executor.prepare(value));
         } catch (err) {
           logger.warn({ err, key, value }, '[GenericDevice] Failed to compile command script');

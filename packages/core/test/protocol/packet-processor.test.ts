@@ -262,6 +262,64 @@ describe('PacketProcessor', () => {
       expect(stateHandler).toHaveBeenCalledWith({ deviceId: 'virtual_sw', state: { isOn: true } });
     });
 
+    it('should skip command construction and update state when command config is empty string', () => {
+      const entity: EntityConfig = {
+        id: 'opt_empty_cmd',
+        name: 'Empty Command Device',
+        optimistic: true,
+        command_on: '',
+      } as any;
+
+      const mockDevice = {
+        constructCommand: vi.fn(),
+        getOptimisticState: vi.fn().mockReturnValue({ isOn: true }),
+        setErrorReporter: vi.fn(),
+      };
+      mockProtocolManager.getDevice.mockReturnValue(mockDevice);
+
+      const stateHandler = vi.fn();
+      processor.on('state', stateHandler);
+
+      const result = processor.constructCommandPacket(entity, 'on');
+
+      expect(result).toEqual([]);
+      expect(mockDevice.getOptimisticState).toHaveBeenCalledWith('on', undefined);
+      expect(mockDevice.constructCommand).not.toHaveBeenCalled();
+      expect(stateHandler).toHaveBeenCalledWith({
+        deviceId: 'opt_empty_cmd',
+        state: { isOn: true },
+      });
+    });
+
+    it('should skip command construction and update state when command config is empty object {}', () => {
+      const entity: EntityConfig = {
+        id: 'opt_empty_obj_cmd',
+        name: 'Empty Object Command Device',
+        optimistic: true,
+        command_on: {},
+      } as any;
+
+      const mockDevice = {
+        constructCommand: vi.fn(),
+        getOptimisticState: vi.fn().mockReturnValue({ isOn: true }),
+        setErrorReporter: vi.fn(),
+      };
+      mockProtocolManager.getDevice.mockReturnValue(mockDevice);
+
+      const stateHandler = vi.fn();
+      processor.on('state', stateHandler);
+
+      const result = processor.constructCommandPacket(entity, 'on');
+
+      expect(result).toEqual([]);
+      expect(mockDevice.getOptimisticState).toHaveBeenCalledWith('on', undefined);
+      expect(mockDevice.constructCommand).not.toHaveBeenCalled();
+      expect(stateHandler).toHaveBeenCalledWith({
+        deviceId: 'opt_empty_obj_cmd',
+        state: { isOn: true },
+      });
+    });
+
     it('should normalize command name (remove command_ prefix)', () => {
       const entity: EntityConfig = { id: 'light_1', name: 'Light' };
       const mockDevice = {
