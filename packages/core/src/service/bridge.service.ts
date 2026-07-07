@@ -698,6 +698,7 @@ export class HomeNetBridge extends EventEmitter {
     // Determine integration connector based on config or fallback to options
     let connector: IntegrationConnector | undefined;
     const integrationConfig = this.config.integration;
+    logger.info({ integrationConfig }, '[core] Loaded integration config');
 
     if (integrationConfig) {
       if (integrationConfig.type === 'mqtt') {
