@@ -414,4 +414,31 @@ export class StateManager {
       }
     }, 1000);
   }
+
+  public publishRestoredLocalStates(): void {
+    if (this.deviceStates.size === 0) return;
+    logger.info(
+      { count: this.deviceStates.size },
+      '[StateManager] Publishing restored local states to connectors',
+    );
+    for (const [entityId, state] of this.deviceStates.entries()) {
+      if (this.internalEntityIds.has(entityId)) continue;
+
+      const topic = `${this.topicPrefix}/${this.portId}/${entityId.replace('.', '/')}/state`;
+      const payload = typeof state === 'string' ? state : JSON.stringify(state);
+      const timestamp = new Date().toISOString();
+
+      eventBus.emit('state:changed', {
+        portId: this.portId,
+        entityId,
+        topic,
+        payload,
+        state,
+        oldState: {},
+        changes: state,
+        timestamp,
+      });
+      eventBus.emit(`device:${entityId}:state:changed`, state);
+    }
+  }
 }
