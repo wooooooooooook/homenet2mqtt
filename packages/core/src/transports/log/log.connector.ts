@@ -14,7 +14,7 @@ export class LogConnector implements IntegrationConnector {
     logger.info({ portId: context.portId }, '[LogConnector] Initialized integration log adapter');
     eventBus.emit('integration:status', {
       type: 'log',
-      state: 'connecting',
+      state: 'connected',
       portId: context.portId,
     });
   }

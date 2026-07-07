@@ -239,8 +239,10 @@ eventBus.on('integration:status', (event: { type: string; state: string; portId?
   const portId = event.portId ?? 'default';
   const faultKey = `integration:${portId}`;
 
-  if (event.state === 'connected') {
-    autoRestartService.clear(faultKey);
+  if (event.state === 'connected' || event.state === 'connecting') {
+    if (event.state === 'connected') {
+      autoRestartService.clear(faultKey);
+    }
     return;
   }
 
