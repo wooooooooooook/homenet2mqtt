@@ -1,6 +1,8 @@
 // packages/core/src/state/state-manager.ts
 
 import { Buffer } from 'buffer';
+import fs from 'node:fs';
+import path from 'node:path';
 import { HomenetBridgeConfig } from '../config/types.js';
 import { PacketProcessor } from '../protocol/packet-processor.js';
 import { logger } from '../utils/logger.js';
@@ -36,6 +38,8 @@ export class StateManager {
   private sharedStates?: Map<string, Record<string, any>>;
   private internalEntityIds: Set<string>;
   private mqttPublisher?: any;
+  private statesCachePath: string | null = null;
+  private saveTimer: NodeJS.Timeout | null = null;
 
   constructor(
     portId: string,
@@ -44,6 +48,7 @@ export class StateManager {
     mqttPublisherOrTopicPrefix: any,
     mqttTopicPrefixOrSharedStates?: any,
     legacySharedStates?: Map<string, Record<string, any>>,
+    configPath?: string,
   ) {
     this.portId = portId;
     this.packetProcessor = packetProcessor;
@@ -64,6 +69,11 @@ export class StateManager {
 
     this.topicPrefix = topicPrefix;
     this.sharedStates = sharedStates;
+
+    if (configPath) {
+      this.statesCachePath = path.join(path.dirname(configPath), 'states_cache.json');
+      this.loadLocalCache();
+    }
 
     // Extract internal entity IDs from config
     this.internalEntityIds = new Set<string>();
@@ -235,6 +245,7 @@ export class StateManager {
       eventBus.emit(`device:${entityId}:state:changed`, newState);
     }
 
+    this.saveStatesDebounced();
     logger.info({ entityId, topic }, '[StateManager] Restored entity state from MQTT retained');
   }
 
@@ -347,11 +358,60 @@ export class StateManager {
         timestamp,
       });
       eventBus.emit(`device:${deviceId}:state:changed`, newState);
+      this.saveStatesDebounced();
     } else {
       if (logger.isLevelEnabled('trace')) {
         const stateStr = payload.replace(/["{}]/g, '').replace(/,/g, ', ');
         logger.trace(`[StateManager] ${deviceId}: {${stateStr}} [unchanged]`);
       }
     }
+  }
+
+  private loadLocalCache() {
+    if (!this.statesCachePath) return;
+    try {
+      if (!fs.existsSync(this.statesCachePath)) {
+        return;
+      }
+      const dataStr = fs.readFileSync(this.statesCachePath, 'utf8');
+      const cached = JSON.parse(dataStr) as Record<string, any>;
+      if (cached && typeof cached === 'object') {
+        for (const [entityId, state] of Object.entries(cached)) {
+          this.deviceStates.set(entityId, state);
+          if (this.sharedStates) {
+            this.sharedStates.set(entityId, state);
+          }
+        }
+        logger.info(
+          { count: Object.keys(cached).length, path: this.statesCachePath },
+          '[StateManager] Loaded states cache from disk',
+        );
+      }
+    } catch (err) {
+      logger.error(
+        { err, path: this.statesCachePath },
+        '[StateManager] Failed to load states cache from disk',
+      );
+    }
+  }
+
+  private saveStatesDebounced() {
+    if (!this.statesCachePath) return;
+    if (this.saveTimer) {
+      clearTimeout(this.saveTimer);
+    }
+    this.saveTimer = setTimeout(() => {
+      this.saveTimer = null;
+      try {
+        const cacheData = Object.fromEntries(this.deviceStates);
+        fs.writeFileSync(this.statesCachePath!, JSON.stringify(cacheData, null, 2), 'utf8');
+        logger.debug({ path: this.statesCachePath }, '[StateManager] Saved states cache to disk');
+      } catch (err) {
+        logger.error(
+          { err, path: this.statesCachePath },
+          '[StateManager] Failed to save states cache to disk',
+        );
+      }
+    }, 1000);
   }
 }

@@ -817,6 +817,8 @@ export class HomeNetBridge extends EventEmitter {
         packetProcessor,
         mqttTopicPrefix,
         states, // Pass the shared states map to StateManager
+        undefined,
+        this.options.configPath,
       );
 
       // For test suite spy check compatibility
