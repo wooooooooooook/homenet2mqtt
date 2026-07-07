@@ -881,6 +881,17 @@ export class HomeNetBridge extends EventEmitter {
 
         await connector.initialize(connectorCtx);
         await connector.start();
+
+        if (connector.name !== 'mqtt') {
+          stateManager.initializeRestorableOptimisticDefaults(this.config);
+        }
+      } else {
+        stateManager.initializeRestorableOptimisticDefaults(this.config);
+      }
+
+      // Publish restored states from local disk cache to connectors (Safe call for mock compatibility)
+      if (typeof stateManager.publishRestoredLocalStates === 'function') {
+        stateManager.publishRestoredLocalStates();
       }
 
       packetProcessor.on('packet', (packet) => {
