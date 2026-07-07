@@ -17,6 +17,12 @@ export interface StateChangedEvent {
   timestamp: string;
 }
 
+export interface MqttPublishEvent {
+  topic: string;
+  payload: string;
+  retain?: boolean;
+}
+
 export interface AutomationTriggeredEvent {
   automationId: string;
   triggerType: string;
