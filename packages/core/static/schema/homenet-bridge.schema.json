@@ -8,6 +8,10 @@
       "description": "Root configuration structure for HomeNet Bridge (`homenet_bridge` key).",
       "type": "object",
       "properties": {
+        "integration": {
+          "description": "Integration settings (MQTT, Matter)",
+          "$ref": "#/definitions/IntegrationConfig"
+        },
         "packet_defaults": {
           "description": "Global packet defaults (headers, checksums, timings).",
           "$ref": "#/definitions/PacketDefaults"
@@ -142,6 +146,50 @@
   "required": ["homenet_bridge"],
   "additionalProperties": false,
   "definitions": {
+    "IntegrationConfig": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "enum": ["log", "matter", "mqtt"],
+          "type": "string"
+        },
+        "mqtt": {
+          "type": "object",
+          "properties": {
+            "url": {
+              "type": "string"
+            },
+            "username": {
+              "type": "string"
+            },
+            "password": {
+              "type": "string"
+            },
+            "topic_prefix": {
+              "type": "string"
+            },
+            "enable_discovery": {
+              "type": "boolean"
+            }
+          }
+        },
+        "matter": {
+          "type": "object",
+          "properties": {
+            "port": {
+              "type": "number"
+            },
+            "passcode": {
+              "type": "number"
+            },
+            "discriminator": {
+              "type": "number"
+            }
+          }
+        }
+      },
+      "required": ["type"]
+    },
     "PacketDefaults": {
       "description": "Default packet structure and timing configuration.\nCan be defined globally or overridden per entity.",
       "type": "object",
@@ -1840,14 +1888,6 @@
             }
           ]
         },
-        "speed_range_min": {
-          "description": "The minimum speed value supported by the fan.",
-          "type": "integer"
-        },
-        "speed_range_max": {
-          "description": "The maximum speed value supported by the fan.",
-          "type": "integer"
-        },
         "command_speed": {
           "description": "Command schema that can be either a structured schema object or a CEL expression string.\nCEL expressions are evaluated at runtime to construct the command packet.\nFor commands, the CEL expression often constructs the raw bytes directly.",
           "anyOf": [
@@ -1858,6 +1898,12 @@
               "type": "string"
             }
           ]
+        },
+        "speed_range_min": {
+          "type": "number"
+        },
+        "speed_range_max": {
+          "type": "number"
         },
         "preset_modes": {
           "type": "array",

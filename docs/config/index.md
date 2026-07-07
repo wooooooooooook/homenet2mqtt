@@ -20,6 +20,7 @@
 - [State/Command 스키마 정의](./schemas.md)
 - [CEL 가이드](./cel-guide.md)
 - [Automation](./automation.md)
+- [Integration (외부 연동 설정)](./integration.md)
 
 ## 엔티티 타입 레퍼런스
 
