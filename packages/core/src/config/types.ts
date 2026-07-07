@@ -356,10 +356,28 @@ export interface SerialConfig {
   serial_idle?: number | string;
 }
 
+export interface IntegrationConfig {
+  type: 'mqtt' | 'matter' | 'log';
+  mqtt?: {
+    url?: string;
+    username?: string;
+    password?: string;
+    topic_prefix?: string;
+    enable_discovery?: boolean;
+  };
+  matter?: {
+    port?: number;
+    passcode?: number;
+    discriminator?: number;
+  };
+}
+
 /**
  * Root configuration structure for HomeNet Bridge (`homenet_bridge` key).
  */
 export interface HomenetBridgeConfig {
+  /** Integration settings (MQTT, Matter) */
+  integration?: IntegrationConfig;
   /** Global packet defaults (headers, checksums, timings). */
   packet_defaults?: PacketDefaults;
   /** Serial port settings. */

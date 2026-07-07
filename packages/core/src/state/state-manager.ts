@@ -4,7 +4,6 @@ import { Buffer } from 'buffer';
 import { HomenetBridgeConfig } from '../config/types.js';
 import { PacketProcessor } from '../protocol/packet-processor.js';
 import { logger } from '../utils/logger.js';
-import { MqttPublisher } from '../transports/mqtt/publisher.js';
 import { eventBus } from '../service/event-bus.js';
 import { stateCache } from './store.js';
 import { ENTITY_TYPE_KEYS } from '../utils/entities.js';
@@ -31,25 +30,39 @@ function getOnState(entityType: string): Record<string, any> | null {
 
 export class StateManager {
   private packetProcessor: PacketProcessor;
-  private mqttPublisher: MqttPublisher;
   private portId: string;
-  private mqttTopicPrefix: string;
+  private topicPrefix: string;
   private ignoredEntityId: string | null = null;
   private sharedStates?: Map<string, Record<string, any>>;
   private internalEntityIds: Set<string>;
+  private mqttPublisher?: any;
 
   constructor(
     portId: string,
     config: HomenetBridgeConfig,
     packetProcessor: PacketProcessor,
-    mqttPublisher: MqttPublisher,
-    mqttTopicPrefix: string,
-    sharedStates?: Map<string, Record<string, any>>,
+    mqttPublisherOrTopicPrefix: any,
+    mqttTopicPrefixOrSharedStates?: any,
+    legacySharedStates?: Map<string, Record<string, any>>,
   ) {
     this.portId = portId;
     this.packetProcessor = packetProcessor;
-    this.mqttPublisher = mqttPublisher;
-    this.mqttTopicPrefix = mqttTopicPrefix;
+
+    let topicPrefix = 'homenet';
+    let sharedStates: Map<string, Record<string, any>> | undefined;
+
+    if (typeof mqttPublisherOrTopicPrefix === 'string') {
+      topicPrefix = mqttPublisherOrTopicPrefix;
+      sharedStates = mqttTopicPrefixOrSharedStates;
+    } else {
+      this.mqttPublisher = mqttPublisherOrTopicPrefix;
+      if (typeof mqttTopicPrefixOrSharedStates === 'string') {
+        topicPrefix = mqttTopicPrefixOrSharedStates;
+      }
+      sharedStates = legacySharedStates;
+    }
+
+    this.topicPrefix = topicPrefix;
     this.sharedStates = sharedStates;
 
     // Extract internal entity IDs from config
@@ -199,12 +212,14 @@ export class StateManager {
       this.sharedStates.set(entityId, newState);
     }
 
-    const topic = `${this.mqttTopicPrefix}/${entityId}/state`;
+    const topic = `${this.topicPrefix}/${entityId}/state`;
     const payload = JSON.stringify(newState);
     stateCache.set(topic, payload);
 
     if (!this.internalEntityIds.has(entityId)) {
-      this.mqttPublisher.publish(topic, payload, { retain: true });
+      if (this.mqttPublisher) {
+        this.mqttPublisher.publish(topic, payload, { retain: true });
+      }
 
       const timestamp = new Date().toISOString();
       eventBus.emit('state:changed', {
@@ -297,7 +312,7 @@ export class StateManager {
       this.sharedStates.set(deviceId, newState);
     }
 
-    const topic = `${this.mqttTopicPrefix}/${deviceId}/state`;
+    const topic = `${this.topicPrefix}/${deviceId}/state`;
     const payload = JSON.stringify(newState);
 
     // Double check with cache (handles reference types like arrays that always fail strict equality)
@@ -317,7 +332,9 @@ export class StateManager {
         const stateStr = payload.replace(/["{}]/g, '').replace(/,/g, ', ');
         logger.info(`[StateManager] ${deviceId}: {${stateStr}} → ${topic} [published]`);
       }
-      this.mqttPublisher.publish(topic, payload, { retain: true });
+      if (this.mqttPublisher) {
+        this.mqttPublisher.publish(topic, payload, { retain: true });
+      }
       const timestamp = new Date().toISOString();
       eventBus.emit('state:changed', {
         portId: this.portId,
