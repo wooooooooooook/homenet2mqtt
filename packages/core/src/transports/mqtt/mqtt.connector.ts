@@ -72,6 +72,7 @@ export class MqttConnector implements IntegrationConnector {
 
     const emitMqttStatus = (state: 'connected' | 'connecting' | 'disconnected') => {
       eventBus.emit('mqtt:status', { state, portId });
+      eventBus.emit('integration:status', { type: 'mqtt', state, portId });
     };
 
     this.client.on('connect', () => {
@@ -92,10 +93,17 @@ export class MqttConnector implements IntegrationConnector {
       emitMqttStatus('disconnected');
     });
     this.client.on('error', (error) => {
-      eventBus.emit('mqtt:error', {
+      const errPayload = {
         message: error.message,
         code: (error as { code?: string }).code,
         portId,
+        error,
+      };
+      eventBus.emit('mqtt:error', errPayload);
+      eventBus.emit('integration:error', {
+        type: 'mqtt',
+        portId,
+        message: error.message,
         error,
       });
     });

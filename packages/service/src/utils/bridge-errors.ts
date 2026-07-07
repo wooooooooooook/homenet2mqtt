@@ -87,33 +87,33 @@ export const mapConfigLoadError = (error: unknown, portId?: string): BridgeError
   });
 };
 
-export const mapMqttError = (error: unknown, portId?: string): BridgeErrorPayload => {
+export const mapIntegrationError = (error: unknown, portId?: string): BridgeErrorPayload => {
   const message = normalizeMessage(error);
   const code = (error as { code?: string })?.code;
-  let errorCode = 'MQTT_CONNECT_FAILED';
+  let errorCode = 'INTEGRATION_CONNECT_FAILED';
 
   if (message.toLowerCase().includes('not authorized')) {
-    errorCode = 'MQTT_AUTH_FAILED';
+    errorCode = 'INTEGRATION_AUTH_FAILED';
   } else if (code && ['ECONNREFUSED', 'ENOTFOUND', 'ETIMEDOUT', 'EAI_AGAIN'].includes(code)) {
-    errorCode = 'MQTT_CONNECT_FAILED';
+    errorCode = 'INTEGRATION_CONNECT_FAILED';
   }
 
   return createBridgeErrorPayload({
     code: errorCode,
     message,
     detail: code,
-    source: 'mqtt',
+    source: 'integration',
     portId,
     severity: 'error',
     retryable: true,
   });
 };
 
-export const mapMqttDisconnect = (portId?: string): BridgeErrorPayload => {
+export const mapIntegrationDisconnect = (portId?: string): BridgeErrorPayload => {
   return createBridgeErrorPayload({
-    code: 'MQTT_DISCONNECTED',
-    message: 'MQTT connection lost',
-    source: 'mqtt',
+    code: 'INTEGRATION_DISCONNECTED',
+    message: 'Integration connection lost',
+    source: 'integration',
     portId,
     severity: 'warning',
     retryable: true,
@@ -142,8 +142,12 @@ export const mapBridgeStartError = (error: unknown, portId?: string): BridgeErro
     return mapSerialError(error, portId);
   }
 
-  if (message.toLowerCase().includes('mqtt')) {
-    return mapMqttError(error, portId);
+  if (
+    message.toLowerCase().includes('mqtt') ||
+    message.toLowerCase().includes('integration') ||
+    message.toLowerCase().includes('matter')
+  ) {
+    return mapIntegrationError(error, portId);
   }
 
   return createBridgeErrorPayload({

@@ -2,7 +2,7 @@
 
 import { IntegrationConnector, ConnectorContext } from '../../service/connector.interface.js';
 import { logger } from '../../utils/logger.js';
-import { StateChangedEvent } from '../../service/event-bus.js';
+import { eventBus, StateChangedEvent } from '../../service/event-bus.js';
 
 export interface MatterConnectorOptions {
   port?: number;
@@ -25,6 +25,11 @@ export class MatterConnector implements IntegrationConnector {
       { portId: context.portId, options: this.options },
       '[MatterConnector] Initializing Matter integration stub...',
     );
+    eventBus.emit('integration:status', {
+      type: 'matter',
+      state: 'connecting',
+      portId: context.portId,
+    });
   }
 
   async start(): Promise<void> {
@@ -32,6 +37,11 @@ export class MatterConnector implements IntegrationConnector {
       { portId: this.context.portId },
       '[MatterConnector] Starting Matter integration stub...',
     );
+    eventBus.emit('integration:status', {
+      type: 'matter',
+      state: 'connected',
+      portId: this.context.portId,
+    });
   }
 
   async stop(): Promise<void> {
@@ -39,6 +49,11 @@ export class MatterConnector implements IntegrationConnector {
       { portId: this.context.portId },
       '[MatterConnector] Stopping Matter integration stub...',
     );
+    eventBus.emit('integration:status', {
+      type: 'matter',
+      state: 'disconnected',
+      portId: this.context.portId,
+    });
   }
 
   onStateChanged(event: StateChangedEvent): void {

@@ -21,7 +21,7 @@ import {
   normalizeRawPacket,
   BASE_PREFIX_PARTS,
 } from '../utils/helpers.js';
-import { mapMqttDisconnect, mapMqttError } from '../utils/bridge-errors.js';
+import { mapIntegrationError } from '../utils/bridge-errors.js';
 import type {
   StreamEvent,
   StreamMessage,
@@ -201,8 +201,12 @@ export function createStreamManager(ctx: StreamManagerContext) {
     });
 
     eventBus.on(
-      'mqtt:status',
-      (data: { state: 'connected' | 'connecting' | 'disconnected'; portId?: string }) => {
+      'integration:status',
+      (data: {
+        type: string;
+        state: 'connected' | 'connecting' | 'disconnected';
+        portId?: string;
+      }) => {
         broadcastStreamEvent('status', {
           state: data.state,
         });
@@ -210,9 +214,15 @@ export function createStreamManager(ctx: StreamManagerContext) {
     );
 
     eventBus.on(
-      'mqtt:error',
-      (data: { message?: string; code?: string; portId?: string; error?: unknown }) => {
-        const payload = mapMqttError(
+      'integration:error',
+      (data: {
+        type: string;
+        message?: string;
+        code?: string;
+        portId?: string;
+        error?: unknown;
+      }) => {
+        const payload = mapIntegrationError(
           data.error ?? { message: data.message, code: data.code },
           data.portId,
         );
@@ -222,14 +232,6 @@ export function createStreamManager(ctx: StreamManagerContext) {
         });
       },
     );
-
-    eventBus.on('mqtt:disconnected', (data: { portId?: string }) => {
-      const payload = mapMqttDisconnect(data.portId);
-      broadcastStreamEvent('status', {
-        state: 'disconnected',
-        error: payload,
-      });
-    });
   };
 
   const registerWebSocketHandlers = () => {

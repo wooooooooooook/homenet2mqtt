@@ -885,6 +885,7 @@
       mqttStatus={mqttConnectionStatus}
       portMetadata={activePortMetadata}
       bridgeStatus={bridgeInfo?.status || 'unknown'}
+      integrationType={bridgeInfo?.bridges?.[0]?.integrationType || 'mqtt'}
       globalError={infoError
         ? {
             code: 'API_ERROR',

@@ -158,6 +158,8 @@ export function createSystemRoutes(ctx: SystemRoutesContext): Router {
       const bridgeInstance = ctx.getBridges().find((b) => b.configFile === configFile);
       const mqttConnected = bridgeInstance?.bridge.isMqttConnected ?? false;
 
+      const integrationType = config?.integration?.type || 'mqtt';
+
       // Handle case where config completely failed to load (empty object or null, no serial)
       if (!config || !config.serial) {
         return {
@@ -169,6 +171,7 @@ export function createSystemRoutes(ctx: SystemRoutesContext): Router {
           errorInfo: configError ?? null,
           status: configStatus,
           mqttConnected,
+          integrationType,
         };
       }
 
@@ -190,6 +193,7 @@ export function createSystemRoutes(ctx: SystemRoutesContext): Router {
         errorInfo: configError ?? null,
         status: configStatus,
         mqttConnected,
+        integrationType,
       };
     });
 

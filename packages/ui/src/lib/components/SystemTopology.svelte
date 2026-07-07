@@ -17,6 +17,7 @@
     globalError = null,
     mqttError = null,
     serialError = null,
+    integrationType = 'mqtt',
   }: {
     mqttUrl: string;
     mqttStatus?: 'idle' | 'connecting' | 'connected' | 'error';
@@ -25,6 +26,7 @@
     globalError?: BridgeErrorPayload | null;
     mqttError?: string | null;
     serialError?: string | null;
+    integrationType?: string;
   } = $props();
 
   // Helper to determine if a node has an error
@@ -195,7 +197,9 @@
           </svg>
         </div>
         <div class="node-label">
-          {$t('dashboard.topology.mqtt_broker', { default: 'MQTT Broker' })}
+          {integrationType === 'log'
+            ? $t('dashboard.topology.log_adapter', { default: 'Log Adapter' })
+            : $t('dashboard.topology.mqtt_broker', { default: 'MQTT Broker' })}
         </div>
         {#if hasMqttError}
           <div class="error-badge" title={mqttError || ''}>!</div>
@@ -282,7 +286,9 @@
     <div class="details-column right">
       <div class="mobile-node-name">
         <span class="value">
-          {$t('dashboard.topology.mqtt_broker', { default: 'MQTT Broker' })}
+          {integrationType === 'log'
+            ? $t('dashboard.topology.log_adapter', { default: 'Log Adapter' })
+            : $t('dashboard.topology.mqtt_broker', { default: 'MQTT Broker' })}
         </span>
       </div>
       {#if hasMqttError || !isGreen(mqttStatus)}
@@ -298,13 +304,22 @@
           </span>
         </div>
       {/if}
-      <div class="detail-item" title={mqttUrl}>
+      <div
+        class="detail-item"
+        title={integrationType === 'log' ? $t('dashboard.topology.log_mode') : mqttUrl}
+      >
         <span class="label">{$t('dashboard.topology.url', { default: 'URL' })}</span>
-        <span class="value">{mqttUrl}</span>
+        <span class="value">
+          {integrationType === 'log'
+            ? $t('dashboard.topology.log_mode', { default: 'Local Logging Mode' })
+            : mqttUrl}
+        </span>
       </div>
       <div class="detail-item">
         <span class="label">{$t('dashboard.topology.subscription', { default: 'SUB' })}</span>
-        <span class="value">{portMetadata?.topic ? portMetadata.topic + '/#' : '-'}</span>
+        <span class="value">
+          {integrationType === 'log' ? '-' : portMetadata?.topic ? portMetadata.topic + '/#' : '-'}
+        </span>
       </div>
     </div>
 

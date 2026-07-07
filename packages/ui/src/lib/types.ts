@@ -109,7 +109,7 @@ export interface ActivityLog {
 }
 
 export type BridgeStatus = 'idle' | 'starting' | 'started' | 'stopped' | 'error' | 'reconnecting';
-export type BridgeErrorSource = 'serial' | 'core' | 'mqtt' | 'service';
+export type BridgeErrorSource = 'serial' | 'core' | 'mqtt' | 'service' | 'integration';
 export type BridgeErrorSeverity = 'error' | 'warning';
 
 export type BridgeErrorPayload = {
@@ -138,6 +138,7 @@ export type BridgeEntry = {
   error?: string;
   errorInfo?: BridgeErrorPayload | null;
   status: 'idle' | 'starting' | 'started' | 'error' | 'stopped';
+  integrationType?: string;
 };
 
 export type BridgeInfo = {

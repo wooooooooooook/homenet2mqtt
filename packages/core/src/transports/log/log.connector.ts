@@ -12,6 +12,11 @@ export class LogConnector implements IntegrationConnector {
   async initialize(context: ConnectorContext): Promise<void> {
     this.context = context;
     logger.info({ portId: context.portId }, '[LogConnector] Initialized integration log adapter');
+    eventBus.emit('integration:status', {
+      type: 'log',
+      state: 'connecting',
+      portId: context.portId,
+    });
   }
 
   async start(): Promise<void> {
@@ -22,6 +27,11 @@ export class LogConnector implements IntegrationConnector {
     eventBus.on('mqtt-publish', this.handleMqttPublish);
 
     logger.info({ portId: this.context.portId }, '[LogConnector] Started integration log adapter');
+    eventBus.emit('integration:status', {
+      type: 'log',
+      state: 'connected',
+      portId: this.context.portId,
+    });
   }
 
   async stop(): Promise<void> {
@@ -32,6 +42,11 @@ export class LogConnector implements IntegrationConnector {
     eventBus.off('mqtt-publish', this.handleMqttPublish);
 
     logger.info({ portId: this.context.portId }, '[LogConnector] Stopped integration log adapter');
+    eventBus.emit('integration:status', {
+      type: 'log',
+      state: 'disconnected',
+      portId: this.context.portId,
+    });
   }
 
   onStateChanged(event: StateChangedEvent): void {

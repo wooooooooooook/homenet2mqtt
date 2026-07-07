@@ -559,6 +559,8 @@
     "topology": {
       "serial_device": "RS485-serial",
       "mqtt_broker": "MQTT Broker",
+      "log_adapter": "Log Adapter",
+      "log_mode": "Local Logging Mode",
       "homenet2mqtt": "HomeNet2MQTT",
       "path": "PATH",
       "baud": "BAUD",

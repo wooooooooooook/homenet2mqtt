@@ -233,11 +233,11 @@ const latestStates = streamManager.getLatestStates();
 streamManager.registerGlobalEventHandlers();
 streamManager.registerWebSocketHandlers();
 
-eventBus.on('mqtt:status', (event: { state: string; portId?: string }) => {
+eventBus.on('integration:status', (event: { type: string; state: string; portId?: string }) => {
   if (autoRestartSuppressed) return;
 
   const portId = event.portId ?? 'default';
-  const faultKey = `mqtt:${portId}`;
+  const faultKey = `integration:${portId}`;
 
   if (event.state === 'connected') {
     autoRestartService.clear(faultKey);
@@ -247,29 +247,18 @@ eventBus.on('mqtt:status', (event: { state: string; portId?: string }) => {
   void autoRestartService.schedule({
     key: faultKey,
     portId,
-    reason: `mqtt ${event.state}`,
+    reason: `${event.type} ${event.state}`,
   });
 });
 
-eventBus.on('mqtt:error', (event: { portId?: string; message?: string }) => {
+eventBus.on('integration:error', (event: { type: string; portId?: string; message?: string }) => {
   if (autoRestartSuppressed) return;
 
   const portId = event.portId ?? 'default';
   void autoRestartService.schedule({
-    key: `mqtt:${portId}`,
+    key: `integration:${portId}`,
     portId,
-    reason: event.message ? `mqtt error: ${event.message}` : 'mqtt error',
-  });
-});
-
-eventBus.on('mqtt:disconnected', (event: { portId?: string }) => {
-  if (autoRestartSuppressed) return;
-
-  const portId = event.portId ?? 'default';
-  void autoRestartService.schedule({
-    key: `mqtt:${portId}`,
-    portId,
-    reason: 'mqtt disconnected',
+    reason: event.message ? `${event.type} error: ${event.message}` : `${event.type} error`,
   });
 });
 
