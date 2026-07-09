@@ -13,7 +13,12 @@ import { BasicInformationServer } from '../behaviors/basic-information-server.js
 import { HomenetEntityBehavior } from '../behaviors/homenet-entity-behavior.js';
 import { OnOffServer } from '../behaviors/on-off-server.js';
 import { LevelControlServer } from '../behaviors/level-control-server.js';
-import { ThermostatServer } from '../behaviors/thermostat-server.js';
+import {
+  ThermostatServer,
+  ThermostatServerHeatingOnly,
+  ThermostatServerCoolingOnly,
+  ThermostatServerHeatingAndCooling,
+} from '../behaviors/thermostat-server.js';
 import { LockServer } from '../behaviors/lock-server.js';
 import type { EntityConfig } from '../../../domain/entities/base.entity.js';
 
@@ -40,11 +45,32 @@ const HomenetSwitch = OnOffPlugInUnitDevice.with(
   OnOffServer,
 );
 
-const HomenetThermostat = ThermostatDevice.with(
+const HomenetThermostatFull = ThermostatDevice.with(
   BasicInformationServer,
   IdentifyServer,
   HomenetEntityBehavior,
   ThermostatServer,
+);
+
+const HomenetThermostatHeatingOnly = ThermostatDevice.with(
+  BasicInformationServer,
+  IdentifyServer,
+  HomenetEntityBehavior,
+  ThermostatServerHeatingOnly,
+);
+
+const HomenetThermostatCoolingOnly = ThermostatDevice.with(
+  BasicInformationServer,
+  IdentifyServer,
+  HomenetEntityBehavior,
+  ThermostatServerCoolingOnly,
+);
+
+const HomenetThermostatHeatingAndCooling = ThermostatDevice.with(
+  BasicInformationServer,
+  IdentifyServer,
+  HomenetEntityBehavior,
+  ThermostatServerHeatingAndCooling,
 );
 
 const HomenetLock = DoorLockDevice.with(
@@ -71,7 +97,19 @@ export function createEndpointType(type: string, config: EntityConfig): Endpoint
   }
 
   if (type === 'climate') {
-    return HomenetThermostat;
+    const climate = config as any;
+    const supportsHeating = !!(climate.state_heat || climate.command_heat);
+    const supportsCooling = !!(climate.state_cool || climate.command_cool);
+    const supportsAuto = !!(climate.state_auto || climate.command_auto);
+
+    if (supportsHeating && supportsCooling) {
+      return supportsAuto ? HomenetThermostatFull : HomenetThermostatHeatingAndCooling;
+    }
+    if (supportsCooling) {
+      return HomenetThermostatCoolingOnly;
+    }
+    // Default to heating-only for floor heating and general Korean apartments
+    return HomenetThermostatHeatingOnly;
   }
 
   if (type === 'lock') {

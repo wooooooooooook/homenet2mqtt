@@ -73,7 +73,23 @@ export class MatterConnector implements IntegrationConnector {
     // 2. Initialize Aggregator (acts as the bridge hub)
     this.aggregator = new AggregatorEndpoint('aggregator');
 
-    // 3. Find and register all supported entities
+    // 3. Instantiate ServerNode first (so aggregator is installed in a Node)
+    this.serverNode = new BridgeServerNode(
+      this.env,
+      {
+        id: `homenet_${portId}`,
+        name: `Homenet Bridge ${portId}`,
+        port: this.options.port,
+        passcode: this.options.passcode,
+        discriminator: this.options.discriminator,
+        vendorId: this.options.vendorId,
+        productId: this.options.productId,
+        productName: this.options.productName,
+      },
+      this.aggregator,
+    );
+
+    // 4. Find, register and add all supported entities to the aggregator
     const executeCmd = (entityId: string, cmd: string, val?: number | string) =>
       this.context.executeCommand(entityId, cmd, val);
 
@@ -107,22 +123,6 @@ export class MatterConnector implements IntegrationConnector {
         logger.info({ entityId: entity.id, type }, '[MatterConnector] Registered Matter endpoint');
       }
     }
-
-    // 4. Instantiate ServerNode
-    this.serverNode = new BridgeServerNode(
-      this.env,
-      {
-        id: `homenet_${portId}`,
-        name: `Homenet Bridge ${portId}`,
-        port: this.options.port,
-        passcode: this.options.passcode,
-        discriminator: this.options.discriminator,
-        vendorId: this.options.vendorId,
-        productId: this.options.productId,
-        productName: this.options.productName,
-      },
-      this.aggregator,
-    );
   }
 
   async start(): Promise<void> {
