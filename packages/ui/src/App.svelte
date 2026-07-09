@@ -1383,6 +1383,14 @@
     error?: string;
     errorInfo?: BridgeErrorPayload | null;
     status?: 'idle' | 'starting' | 'started' | 'error' | 'stopped';
+    integrationType?: string;
+    commissioning?: {
+      isCommissioned: boolean;
+      passcode: number;
+      discriminator: number;
+      manualPairingCode: string;
+      qrPairingCode: string;
+    } | null;
   };
 
   const portMetadata = $derived.by(() => {
@@ -1402,6 +1410,8 @@
             error: bridge.error,
             errorInfo: bridge.errorInfo ?? null,
             status: bridge.status,
+            integrationType: bridge.integrationType,
+            commissioning: bridge.commissioning,
           },
         ]);
       }
@@ -1413,6 +1423,8 @@
             error: bridge.error,
             errorInfo: bridge.errorInfo ?? null,
             status: bridge.status,
+            integrationType: bridge.integrationType,
+            commissioning: bridge.commissioning,
           },
         ]);
       }

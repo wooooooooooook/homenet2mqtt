@@ -7,6 +7,14 @@
     error?: string;
     errorInfo?: BridgeErrorPayload | null;
     status?: 'idle' | 'starting' | 'started' | 'error' | 'stopped';
+    integrationType?: string;
+    commissioning?: {
+      isCommissioned: boolean;
+      passcode: number;
+      discriminator: number;
+      manualPairingCode: string;
+      qrPairingCode: string;
+    } | null;
   }
 
   let {
@@ -182,24 +190,43 @@
         style="--status-color: {getStatusColor(mqttStatus, hasMqttError)}"
       >
         <div class="icon-circle">
-          <!-- Cloud Icon -->
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z" />
-          </svg>
+          {#if integrationType === 'matter'}
+            <!-- Home Icon for Matter -->
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+              <polyline points="9 22 9 12 15 12 15 22" />
+            </svg>
+          {:else}
+            <!-- Cloud Icon for MQTT -->
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z" />
+            </svg>
+          {/if}
         </div>
         <div class="node-label">
-          {integrationType === 'log'
-            ? $t('dashboard.topology.log_adapter', { default: 'Log Adapter' })
-            : $t('dashboard.topology.mqtt_broker', { default: 'MQTT Broker' })}
+          {integrationType === 'matter'
+            ? $t('dashboard.topology.matter_controller', { default: 'Matter Controller' })
+            : integrationType === 'log'
+              ? $t('dashboard.topology.log_adapter', { default: 'Log Adapter' })
+              : $t('dashboard.topology.mqtt_broker', { default: 'MQTT Broker' })}
         </div>
         {#if hasMqttError}
           <div class="error-badge" title={mqttError || ''}>!</div>
@@ -282,45 +309,109 @@
     <!-- Link Gap -->
     <div class="link-gap"></div>
 
-    <!-- Details 3: MQTT (Right aligned) -->
+    <!-- Details 3: MQTT / Matter / Log (Right aligned) -->
     <div class="details-column right">
       <div class="mobile-node-name">
         <span class="value">
-          {integrationType === 'log'
-            ? $t('dashboard.topology.log_adapter', { default: 'Log Adapter' })
-            : $t('dashboard.topology.mqtt_broker', { default: 'MQTT Broker' })}
+          {integrationType === 'matter'
+            ? $t('dashboard.topology.matter_controller', { default: 'Matter Controller' })
+            : integrationType === 'log'
+              ? $t('dashboard.topology.log_adapter', { default: 'Log Adapter' })
+              : $t('dashboard.topology.mqtt_broker', { default: 'MQTT Broker' })}
         </span>
       </div>
-      {#if hasMqttError || !isGreen(mqttStatus)}
-        <div class="detail-item detail-item-error">
-          <span
-            class="value"
-            class:error-text={hasMqttError}
-            style:color={!hasMqttError ? getStatusColor(mqttStatus, false) : undefined}
-          >
-            {hasMqttError
-              ? mqttError || $t('common.status.error')
-              : $t(`common.status.${getStatusLabel(mqttStatus)}`)}
+
+      {#if integrationType === 'matter'}
+        {#if portMetadata?.commissioning}
+          <div class="detail-item">
+            <span class="label"
+              >{$t('dashboard.topology.commissioned', { default: 'COMMISSIONED' })}</span
+            >
+            <span
+              class="value"
+              style:color={portMetadata.commissioning.isCommissioned
+                ? 'var(--status-success, #10b981)'
+                : 'var(--status-warning, #f59e0b)'}
+            >
+              {portMetadata.commissioning.isCommissioned ? 'Yes' : 'No'}
+            </span>
+          </div>
+          <div class="detail-item">
+            <span class="label"
+              >{$t('dashboard.topology.manual_code', { default: 'MANUAL CODE' })}</span
+            >
+            <span class="value select-all">{portMetadata.commissioning.manualPairingCode}</span>
+          </div>
+          <div class="detail-item">
+            <span class="label">{$t('dashboard.topology.passcode', { default: 'PASSCODE' })}</span>
+            <span class="value">{portMetadata.commissioning.passcode}</span>
+          </div>
+          <div class="detail-item">
+            <span class="label"
+              >{$t('dashboard.topology.discriminator', { default: 'DISCRIMINATOR' })}</span
+            >
+            <span class="value">{portMetadata.commissioning.discriminator}</span>
+          </div>
+
+          {#if !portMetadata.commissioning.isCommissioned && portMetadata.commissioning.qrPairingCode}
+            <div class="matter-qr-wrapper">
+              <img
+                src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data={encodeURIComponent(
+                  portMetadata.commissioning.qrPairingCode,
+                )}"
+                alt="Matter Pairing QR Code"
+                class="matter-qr-image"
+              />
+              <span class="matter-qr-tip"
+                >{$t('dashboard.topology.qr_tip', { default: 'Scan to Pair Device' })}</span
+              >
+            </div>
+          {/if}
+        {:else}
+          <div class="detail-item">
+            <span class="value text-muted"
+              >{$t('dashboard.topology.no_pairing_info', {
+                default: 'Pairing info not available',
+              })}</span
+            >
+          </div>
+        {/if}
+      {:else}
+        {#if hasMqttError || !isGreen(mqttStatus)}
+          <div class="detail-item detail-item-error">
+            <span
+              class="value"
+              class:error-text={hasMqttError}
+              style:color={!hasMqttError ? getStatusColor(mqttStatus, false) : undefined}
+            >
+              {hasMqttError
+                ? mqttError || $t('common.status.error')
+                : $t(`common.status.${getStatusLabel(mqttStatus)}`)}
+            </span>
+          </div>
+        {/if}
+        <div
+          class="detail-item"
+          title={integrationType === 'log' ? $t('dashboard.topology.log_mode') : mqttUrl}
+        >
+          <span class="label">{$t('dashboard.topology.url', { default: 'URL' })}</span>
+          <span class="value">
+            {integrationType === 'log'
+              ? $t('dashboard.topology.log_mode', { default: 'Local Logging Mode' })
+              : mqttUrl}
+          </span>
+        </div>
+        <div class="detail-item">
+          <span class="label">{$t('dashboard.topology.subscription', { default: 'SUB' })}</span>
+          <span class="value">
+            {integrationType === 'log'
+              ? '-'
+              : portMetadata?.topic
+                ? portMetadata.topic + '/#'
+                : '-'}
           </span>
         </div>
       {/if}
-      <div
-        class="detail-item"
-        title={integrationType === 'log' ? $t('dashboard.topology.log_mode') : mqttUrl}
-      >
-        <span class="label">{$t('dashboard.topology.url', { default: 'URL' })}</span>
-        <span class="value">
-          {integrationType === 'log'
-            ? $t('dashboard.topology.log_mode', { default: 'Local Logging Mode' })
-            : mqttUrl}
-        </span>
-      </div>
-      <div class="detail-item">
-        <span class="label">{$t('dashboard.topology.subscription', { default: 'SUB' })}</span>
-        <span class="value">
-          {integrationType === 'log' ? '-' : portMetadata?.topic ? portMetadata.topic + '/#' : '-'}
-        </span>
-      </div>
     </div>
 
     <!-- Side Gutter -->
@@ -785,5 +876,33 @@
   .error-text {
     color: #ef4444 !important;
     font-weight: 600;
+  }
+
+  .matter-qr-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    width: 100%;
+  }
+
+  .matter-qr-image {
+    background: white;
+    padding: 0.5rem;
+    border-radius: 8px;
+    box-shadow:
+      0 4px 6px -1px rgba(0, 0, 0, 0.1),
+      0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+
+  .matter-qr-tip {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    text-align: center;
+  }
+
+  .select-all {
+    user-select: all;
   }
 </style>

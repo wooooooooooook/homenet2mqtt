@@ -48,6 +48,15 @@ importers:
       '@marcbachmann/cel-js':
         specifier: ^6.3.4
         version: 6.3.4
+      '@matter/general':
+        specifier: 0.16.7
+        version: 0.16.7
+      '@matter/main':
+        specifier: 0.16.7
+        version: 0.16.7
+      '@matter/nodejs':
+        specifier: 0.16.7
+        version: 0.16.7
       aromanize:
         specifier: ^0.1.5
         version: 0.1.5
@@ -827,9 +836,39 @@ packages:
     resolution: {integrity: sha512-ObOHvYavXc9ePrQrC5lyub+w5nnJxfQgEHEGK9ePeMWxslF9JC1H2IZCAP4YTdSgDqlJnMhCYb1PsvNMM9hPjw==}
     engines: {node: '>=20.19.0'}
 
+  '@matter/general@0.16.7':
+    resolution: {integrity: sha512-b2JzhArkGm01vx/8NMo8KDAuffg0zeEcljW0bL2lWXcNiG/bFo/qDwrttZXO2igtej8OlA3yRih0DWX32SQkIQ==}
+
+  '@matter/main@0.16.7':
+    resolution: {integrity: sha512-qRamX7AQyDqBOPchM1d0ghjXcUyxcuMJjfsJN+ob7DtHpdQcZ0rTR6uSfuf2AFB2IzV5HSIrCSeraG4AEFcloA==}
+
+  '@matter/model@0.16.7':
+    resolution: {integrity: sha512-zjsKz9DX39IVXOydoibyh4RIHVed+fkBSJ/m7VhIchbsHdiPjx2n3b4vuexDh/ToPkOVePRuKjKW8QluhgPk6Q==}
+
+  '@matter/node@0.16.7':
+    resolution: {integrity: sha512-qM7NN1RvyvaNE6BC0ZrqpOdrzINJLTojDdkYT3BQcH4q+qE3CvnYlm+IeZa4vDOxC9FViUJ1tx7LQajWoVFBXA==}
+
+  '@matter/nodejs@0.16.7':
+    resolution: {integrity: sha512-fL5i9Cxga6JqFj7+dpc6dfWh2XvYvsVD9VLxe1wUuBD58vxQ6lXqx9RbUebbDJ5BqhLgZNcnpJQgEI4ziV1Bww==}
+    engines: {node: '>=20.19.0 <22.0.0 || >=22.13.0'}
+
+  '@matter/protocol@0.16.7':
+    resolution: {integrity: sha512-wPBug0Yr401Mw7l6WYb3Kw/Uvwl68Sky6nVcWwaPMZtFepd7+uDpJ2SLyvuCpRsv0T8+O/VhN0y1FNybJxiivA==}
+
+  '@matter/types@0.16.7':
+    resolution: {integrity: sha512-eQrzYJOzdFy8gwA9cp+wsDHfc6q5iuAHf3Ir4xSkxp+zR75xIYYyavCPVncT4f3Su4nxikz6EXblIgPXUUP01g==}
+
+  '@noble/curves@2.2.0':
+    resolution: {integrity: sha512-T/BoHgFXirb0ENSPBquzX0rcjXeM6Lo892a2jlYJkqk83LqZx0l1Of7DzlKJ6jkpvMrkHSnAcgb5JegL8SeIkQ==}
+    engines: {node: '>= 20.19.0'}
+
   '@noble/hashes@1.8.0':
     resolution: {integrity: sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A==}
     engines: {node: ^14.21.3 || >=16}
+
+  '@noble/hashes@2.2.0':
+    resolution: {integrity: sha512-IYqDGiTXab6FniAgnSdZwgWbomxpy9FtYvLKs7wCUs2a8RkITG+DFGO1DM9cr+E3/RgADRpFjrKVaJ1z6sjtEg==}
+    engines: {node: '>= 20.19.0'}
 
   '@paralleldrive/cuid2@2.3.1':
     resolution: {integrity: sha512-XO7cAxhnTZl0Yggq6jOgjiOHhbgcO4NqFqwSmQpjK3b6TEE6Uj/jfSk6wzYyemh3+I0sHirKSetjQwn5cZktFw==}
@@ -3322,7 +3361,56 @@ snapshots:
 
   '@marcbachmann/cel-js@6.3.4': {}
 
+  '@matter/general@0.16.7':
+    dependencies:
+      '@noble/curves': 2.2.0
+
+  '@matter/main@0.16.7':
+    dependencies:
+      '@matter/general': 0.16.7
+      '@matter/model': 0.16.7
+      '@matter/node': 0.16.7
+      '@matter/protocol': 0.16.7
+      '@matter/types': 0.16.7
+    optionalDependencies:
+      '@matter/nodejs': 0.16.7
+
+  '@matter/model@0.16.7':
+    dependencies:
+      '@matter/general': 0.16.7
+
+  '@matter/node@0.16.7':
+    dependencies:
+      '@matter/general': 0.16.7
+      '@matter/model': 0.16.7
+      '@matter/protocol': 0.16.7
+      '@matter/types': 0.16.7
+
+  '@matter/nodejs@0.16.7':
+    dependencies:
+      '@matter/general': 0.16.7
+      '@matter/node': 0.16.7
+      '@matter/protocol': 0.16.7
+      '@matter/types': 0.16.7
+
+  '@matter/protocol@0.16.7':
+    dependencies:
+      '@matter/general': 0.16.7
+      '@matter/model': 0.16.7
+      '@matter/types': 0.16.7
+
+  '@matter/types@0.16.7':
+    dependencies:
+      '@matter/general': 0.16.7
+      '@matter/model': 0.16.7
+
+  '@noble/curves@2.2.0':
+    dependencies:
+      '@noble/hashes': 2.2.0
+
   '@noble/hashes@1.8.0': {}
+
+  '@noble/hashes@2.2.0': {}
 
   '@paralleldrive/cuid2@2.3.1':
     dependencies:

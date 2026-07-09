@@ -30,4 +30,11 @@ export interface IntegrationConnector {
   clearRetainedMessages?(): Promise<number>;
   clearRetainedMessagesForEntity?(entityId: string): Promise<number>;
   revokeDevice?(entityId: string): void | Promise<void>;
+  getCommissioningInfo?(): {
+    isCommissioned: boolean;
+    passcode: number;
+    discriminator: number;
+    manualPairingCode: string;
+    qrPairingCode: string;
+  } | null;
 }

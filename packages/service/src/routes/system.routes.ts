@@ -172,6 +172,7 @@ export function createSystemRoutes(ctx: SystemRoutesContext): Router {
           status: configStatus,
           mqttConnected,
           integrationType,
+          commissioning: null,
         };
       }
 
@@ -184,6 +185,8 @@ export function createSystemRoutes(ctx: SystemRoutesContext): Router {
         topic: `${BASE_MQTT_PREFIX}/${pId}`,
       };
 
+      const commissioning = bridgeInstance?.bridge.getCommissioningInfo?.() ?? null;
+
       return {
         configFile,
         serial: serialInfo,
@@ -194,6 +197,7 @@ export function createSystemRoutes(ctx: SystemRoutesContext): Router {
         status: configStatus,
         mqttConnected,
         integrationType,
+        commissioning,
       };
     });
 

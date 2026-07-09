@@ -56,7 +56,7 @@ export type SerialFactory = (serialPath: string, serialConfig: SerialConfig) => 
 // Redefine BridgeOptions to use the new HomenetBridgeConfig
 export interface BridgeOptions {
   configPath: string; // Path to the homenet_bridge.yaml configuration file
-  mqttUrl: string;
+  mqttUrl?: string;
   mqttUsername?: string;
   mqttPassword?: string;
   mqttTopicPrefix?: string;
@@ -165,6 +165,11 @@ export class HomeNetBridge extends EventEmitter {
   get isMqttConnected(): boolean {
     const context = this.getDefaultContext();
     return context?.integrationConnector?.isConnected?.() ?? false;
+  }
+
+  getCommissioningInfo() {
+    const context = this.getDefaultContext();
+    return context?.integrationConnector?.getCommissioningInfo?.() ?? null;
   }
 
   async clearRetainedMessages(): Promise<number> {
@@ -702,7 +707,7 @@ export class HomeNetBridge extends EventEmitter {
       if (integrationConfig.type === 'mqtt') {
         const mqttConf = integrationConfig.mqtt || {};
         connector = new MqttConnector({
-          mqttUrl: mqttConf.url || this.options.mqttUrl,
+          mqttUrl: mqttConf.url || this.options.mqttUrl || '',
           mqttUsername: mqttConf.username || this.options.mqttUsername,
           mqttPassword: mqttConf.password || this.options.mqttPassword,
           mqttTopicPrefix: mqttConf.topic_prefix || this.options.mqttTopicPrefix,
@@ -719,6 +724,10 @@ export class HomeNetBridge extends EventEmitter {
           port: integrationConfig.matter?.port,
           passcode: integrationConfig.matter?.passcode,
           discriminator: integrationConfig.matter?.discriminator,
+          vendorId: integrationConfig.matter?.vendor_id,
+          productId: integrationConfig.matter?.product_id,
+          productName: integrationConfig.matter?.product_name,
+          storagePath: integrationConfig.matter?.storage_path,
         });
       } else if (integrationConfig.type === 'log') {
         connector = new LogConnector();

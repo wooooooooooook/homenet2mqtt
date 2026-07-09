@@ -139,6 +139,13 @@ export type BridgeEntry = {
   errorInfo?: BridgeErrorPayload | null;
   status: 'idle' | 'starting' | 'started' | 'error' | 'stopped';
   integrationType?: string;
+  commissioning?: {
+    isCommissioned: boolean;
+    passcode: number;
+    discriminator: number;
+    manualPairingCode: string;
+    qrPairingCode: string;
+  } | null;
 };
 
 export type BridgeInfo = {
