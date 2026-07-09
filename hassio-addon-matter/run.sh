@@ -44,7 +44,7 @@ if [ -f "$CONFIG_PATH" ]; then
   export MQTT_TOPIC_PREFIX=$(jq --raw-output '.mqtt_topic_prefix // "homenet2mqtt"' $CONFIG_PATH)
   export TIMEZONE=$(jq --raw-output '.timezone // ""' $CONFIG_PATH)
   export DISCOVERY_ENABLED=$(jq --raw-output '.discovery_enabled // "true"' $CONFIG_PATH)
-  export INTEGRATION_TYPE=$(jq --raw-output '.integration_type // "mqtt"' $CONFIG_PATH)
+  export INTEGRATION_TYPE=$(jq --raw-output '.integration_type // "matter"' $CONFIG_PATH)
   export MATTER_PORT=$(jq --raw-output '.matter_port // ""' $CONFIG_PATH)
   export MATTER_PASSCODE=$(jq --raw-output '.matter_passcode // ""' $CONFIG_PATH)
   export MATTER_DISCRIMINATOR=$(jq --raw-output '.matter_discriminator // ""' $CONFIG_PATH)
@@ -88,7 +88,7 @@ else
   export TIMEZONE="${TIMEZONE:-}"
   export DISCOVERY_ENABLED="${DISCOVERY_ENABLED:-false}"
   export CONFIG_FILES="${CONFIG_FILES:-}"
-  export INTEGRATION_TYPE="${INTEGRATION_TYPE:-mqtt}"
+  export INTEGRATION_TYPE="${INTEGRATION_TYPE:-matter}"
   export MATTER_PORT="${MATTER_PORT:-}"
   export MATTER_PASSCODE="${MATTER_PASSCODE:-}"
   export MATTER_DISCRIMINATOR="${MATTER_DISCRIMINATOR:-}"

@@ -698,40 +698,62 @@ export class HomeNetBridge extends EventEmitter {
       this.resolvedPortTopicPrefixes.set(normalizedPortId, portPrefix);
     }
 
-    // Determine integration connector based on config or fallback to options
+    // Determine integration connector based on config, environment variables, or fallback to options
     let connector: IntegrationConnector | undefined;
-    const integrationConfig = this.config.integration;
-    logger.info({ integrationConfig }, '[core] Loaded integration config');
+    const integrationType = (process.env.INTEGRATION_TYPE ||
+      this.config.integration?.type ||
+      'mqtt') as 'mqtt' | 'matter' | 'log';
+    const integrationConfig = (this.config.integration || {}) as any;
 
-    if (integrationConfig) {
-      if (integrationConfig.type === 'mqtt') {
-        const mqttConf = integrationConfig.mqtt || {};
-        connector = new MqttConnector({
-          mqttUrl: mqttConf.url || this.options.mqttUrl || '',
-          mqttUsername: mqttConf.username || this.options.mqttUsername,
-          mqttPassword: mqttConf.password || this.options.mqttPassword,
-          mqttTopicPrefix: mqttConf.topic_prefix || this.options.mqttTopicPrefix,
-          enableDiscovery: mqttConf.enable_discovery ?? this.options.enableDiscovery,
-        });
-      } else if (integrationConfig.type === 'matter') {
-        // MatterConnector will be imported/defined later. Stub it out.
-        const { MatterConnector } = await import('../transports/matter/matter.connector.js').catch(
-          () => {
-            throw new Error('MatterConnector not found');
-          },
-        );
-        connector = new MatterConnector({
-          port: integrationConfig.matter?.port,
-          passcode: integrationConfig.matter?.passcode,
-          discriminator: integrationConfig.matter?.discriminator,
-          vendorId: integrationConfig.matter?.vendor_id,
-          productId: integrationConfig.matter?.product_id,
-          productName: integrationConfig.matter?.product_name,
-          storagePath: integrationConfig.matter?.storage_path,
-        });
-      } else if (integrationConfig.type === 'log') {
-        connector = new LogConnector();
-      }
+    logger.info({ integrationType, integrationConfig }, '[core] Loaded integration config');
+
+    if (integrationType === 'mqtt') {
+      const mqttConf = integrationConfig.mqtt || {};
+      connector = new MqttConnector({
+        mqttUrl: mqttConf.url || this.options.mqttUrl || '',
+        mqttUsername: mqttConf.username || this.options.mqttUsername,
+        mqttPassword: mqttConf.password || this.options.mqttPassword,
+        mqttTopicPrefix: mqttConf.topic_prefix || this.options.mqttTopicPrefix,
+        enableDiscovery: mqttConf.enable_discovery ?? this.options.enableDiscovery,
+      });
+    } else if (integrationType === 'matter') {
+      const { MatterConnector } = await import('../transports/matter/matter.connector.js').catch(
+        () => {
+          throw new Error('MatterConnector not found');
+        },
+      );
+
+      const mPort = process.env.MATTER_PORT
+        ? parseInt(process.env.MATTER_PORT, 10)
+        : integrationConfig.matter?.port;
+      const mPasscode = process.env.MATTER_PASSCODE
+        ? parseInt(process.env.MATTER_PASSCODE, 10)
+        : integrationConfig.matter?.passcode;
+      const mDiscriminator = process.env.MATTER_DISCRIMINATOR
+        ? parseInt(process.env.MATTER_DISCRIMINATOR, 10)
+        : integrationConfig.matter?.discriminator;
+      const mVendorId = process.env.MATTER_VENDOR_ID
+        ? parseInt(process.env.MATTER_VENDOR_ID, 10)
+        : integrationConfig.matter?.vendor_id;
+      const mProductId = process.env.MATTER_PRODUCT_ID
+        ? parseInt(process.env.MATTER_PRODUCT_ID, 10)
+        : integrationConfig.matter?.product_id;
+      const mProductName =
+        process.env.MATTER_PRODUCT_NAME || integrationConfig.matter?.product_name;
+      const mStoragePath =
+        process.env.MATTER_STORAGE_PATH || integrationConfig.matter?.storage_path;
+
+      connector = new MatterConnector({
+        port: mPort,
+        passcode: mPasscode,
+        discriminator: mDiscriminator,
+        vendorId: mVendorId,
+        productId: mProductId,
+        productName: mProductName,
+        storagePath: mStoragePath,
+      });
+    } else if (integrationType === 'log') {
+      connector = new LogConnector();
     } else if (this.options.mqttUrl) {
       // Fallback to options
       connector = new MqttConnector({

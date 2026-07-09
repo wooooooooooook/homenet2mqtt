@@ -1,0 +1,518 @@
+** ⚠️ 지난 업데이트 내역입니다. **
+
+v2.10.0
+- feat: 엔티티 추가모달과 엔티티 YAML 편집 모달에 MQTT 디스커버리 내용을 미리볼수있는 기능 추가함.
+- feat: crc8 및 crc16의 다양한 변형을 [지원하는 1-byte 및 2-bytes checksum](https://homenet2mqtt-docs.vercel.app/config/packet-defaults.html#%E1%84%8C%E1%85%B5%E1%84%8B%E1%85%AF%E1%86%AB%E1%84%92%E1%85%A1%E1%84%82%E1%85%B3%E1%86%AB-%E1%84%8E%E1%85%A6%E1%84%8F%E1%85%B3%E1%84%89%E1%85%A5%E1%86%B7-%E1%84%8B%E1%85%A1%E1%86%AF%E1%84%80%E1%85%A9%E1%84%85%E1%85%B5%E1%84%8C%E1%85%B3%E1%86%B7-supported-checksum-algorithms) 유형에 추가함.
+- feat: crc8*, crc16* 파라미터를 입력하여 사용할 수 있는 체크섬 계산용 CEL 헬퍼함수 추가. 
+- fix: 설정폴더에서 모든 설정파일을 삭제했을 때 오류 대신 초기설정 마법사로 진입하도록 수정함.
+- fix: Raw패킷로그에서 유효패킷만 보기 상태일때 패킷간격 및 통계정보를 표시하지 않도록 수정. (유효패킷만 보기상태에서 패킷 간격은 실제 간격이 아닌 여러패킷이 한번에 들어왔을때 유효패킷으로 프로세싱한 간격일 뿐이었기 때문입니다.)
+- 기타 성능 최적화 및 UI 수정
+
+v2.9.3
+
+- climate엔티티 수정
+  - `temperature_unit` 옵션으로 온도 단위를 지정할수있습니다 (`C`또는 `F`, 기본값 `C`)
+  - `visual`옵션에 `min_temp/max_temp/temp_step`가 숫자만 받도록변경됩니다. (이전처럼 단위가 붙어있는 문자열도 허용되지만 단위는 무시되고 `temperature_unit`의 단위를 사용합니다)
+  - `visual`옵션이 하드코딩되어 반영되지 않는 문제 수정. 
+
+v2.9.2
+
+- yaml에 엔티티 type, unique_id가 노출되지 않도록 변경함. (직접 수정해도 무시되거나 수정할필요 없는 항목들인데 설정 공유시 포함되어서 혼란을 유발했기 때문입니다.)
+- 초기설정마법사 과정에서 사이드바를 비활성화했습니다.
+
+v2.9.1
+
+- fix: 후원 qr이미지 경로 오류로 깨짐 수정
+- 갤러리에서 갯수가 여러개인 엔티티 추가할때 이미존재하는 하나의 엔티티를 덮어쓰도록 하는 문제를 새 항목 추가를 기본값으로 하도록 수정함.
+- 대시보드에서 항목추가시 갤러리로 바로가는 추천 버튼 추가.
+- 유효패킷탐지전략 중 체크섬 스윕 전략을 제외한 나머지 전략에서 체크섬실패를 로그로 남기도록 수정함.
+
+v2.9.0
+
+- feat: light 엔티티에 color_temp가 mired대신 kelvin을 사용하도록 수정.
+- 문서 사이트 개설 [바로가기](https://homenet2mqtt-docs.vercel.app/)
+- 기타 성능 최적화 및 버그수정
+
+v2.8.5
+
+- fix: entity에 packet_parameters로 정의한 tx_checksum등의 override가 무시되던 문제 수정.
+- 기타 성능 최적화
+
+v2.8.4
+
+- feat: 2-byte checksum crc_ccitt_xmodem 체크섬 유형을 추가 (코콤 도어벨)
+
+v2.8.3
+
+- fix: 개별 docker환경에서 CONFIG_FILES를 비워두면(권장) 앱이 시작되지 않는 현상 수정
+- fix: 특정상황에서 portId를 잘못 찾는 문제 수정
+  - `[service] findConfigIndexForEntity called for ${entityId}. This is an exceptional situation where portId was not found.` 이런식의 에러가 로그에 있다면 알려주세요.
+
+v2.8.1-2.8.2
+
+- arm64 빌드 실패 수정
+
+v2.8.0
+
+- feat: entity에 discovery_skip옵션추가. true로 설정시 해당엔티티에대한 mqtt 디스커버리 메시지를 발행하지않습니다. 이 경우 ha에 등록하려면 수동으로 엔티티등록을 해야합니다.
+- feat: internal: true인 엔티티를 대시보드에 표시하는 옵션 추가. 대시보드에서 검색을 통해 접근하는경우 항상 internal entity도 표시되도록 개선함.
+- 실수로 텍스트값을 sensor로 정의하거나 숫자값을 text_sensor로 정의해도 허용하도록 변경함. (허용은 하지만 문서에 있는대로 구성하기를 권장합니다)
+
+v2.7.0
+
+- baseimage를 homeassistant base image로 변경하고 node20에서 node22로 migration
+  - 향후 유지보수비용을 줄이기 위함.
+
+v2.6.6
+
+- refactor: 애드온 구성에 `홈어시스턴트 MQTT 통합 연동`(`use_supervisor_mqtt`) 옵션으로 자동로그인을 제어할 수 있게함. 활성화시 supervisor를 통해 mqtt통합구성요소에 접속합니다(자동로그인). 비활성화하여 명시적으로 자동로그인을 비활성화할 수 있게함.
+  - 이미 mqtt_url, mqtt_user, mqtt_passwd를 입력한 상태로 사용중이라면 이 옵션을 false로 설정해도됩니다.
+  - mqtt 접속이 안되는경우 mqtt애드온을 재시작해보세요.
+- armv7 아키텍쳐(32비트 os가 설치된 라즈베리파이 등..) 지원 삭제: armv7 사용자는 거의 없는데 반해 빌드시간이 오래걸리며 유지보수 비용이 큽니다. arm64(64비트 os)로 마이그레이션해주세요.
+
+v2.6.5
+
+- fix: 잘못된 아키텍처의 s6 overlay가 빌드되어 애드온 시작이 안되는 문제 수정
+
+v2.6.4
+
+- fix: 갤러리 모든 아이템이 포트비호환으로 나오는 문제 수정
+  - 포트비호환인 아이템도 강제적용 가능하도록함
+- fix: 일부 환경에서 애드온 시작 불가 문제 수정
+
+v2.6.1-2.6.3
+
+- fix: 애드온 시작 불가 수정함
+
+v2.6.0
+
+- feat: bashio도입으로 HA 애드온 환경에서 mqtt 자동 로그인 지원 (mqtt애드온 사용중인경우 mqtt_user, mqtt_passwd를 비워두면 자동로그인됩니다.)
+- refactor: HA discovery를 옵션으로 변경 (ha 애드온 환경에서는 기본값 true입니다.)
+  - 독립 도커환경에서 ha 의존성을 제거하기위함.
+- feat: 갤러리에서 포트 호환성 검사를 느슨하게할 수 있도록 개선
+  - 현대통신 주방폰 등에서 baud_rate, parity 등을 미세조정하더라도 갤러리 기능 사용 가능하도록.
+- 초기 설정시 제공되는 기본 엔티티를 타입당 1-2개정도로 줄였습니다. 갤러리에서 갯수에 맞춰 업데이트하도록 유도하기 위함입니다.
+
+v2.5.4
+
+- github repository 이름을 homenet2mqtt로 변경(https://github.com/wooooooooooook/homenet2mqtt)
+- button엔티티는 상태패킷을 가지지 않으므로 discovery_linked_id를 설정하지 않는한 discovery_always가 true를 기본값으로 가지도록 수정함
+- button엔티티 카드에 상태없음이라는 문구가 보이지 않도록 수정
+
+v2.5.3
+
+- fix: optimistic 옵션이 true이고 on/off command가 정의되지 않은 스위치가 상태를 가지거나 on off동작이 되지 않는 문제 수정
+- fix: optimistic 옵션이 있는 엔티티의 초기 상태가 디스커버리와 일치하지 않는 문제 수정
+- ui: optimistic 옵션이 true일때 on/off command가 정의되지 않았더라도 대시보드에서 조작할 수 있게 수정함
+
+v2.5.2
+
+- 자동화, 스크립트 상세보기모달에서 직접 실행했을때 실행완료 피드백 시점을 앞당김
+- 활동로그 문장수정
+
+v2.5.1
+
+- fix: 액션이 여러개인 자동화에서 연속된 액션에 대한 로그가 매번 '트리거됨-'으로 시작되는 문제 수정
+- fix: 스케쥴 트리거가 아닌 자동화에도 priority가 low로 잘못주입되던 문제 수정
+- 성능개선, ui 수정 등
+
+v2.5.0
+
+- feat: UI에서 엔티티 이름 변경시 한글인 경우 entityId에 로마자변환 추가 및 entityId 유지 옵션 추가.
+- fix: 일부 엔티티의 discovery에서 없는 속성을 발행하는 문제 수정
+- fix: command\_\*가 script를 실행할때 args를 전달하지 않는 문제 수정
+- fix: 설정에서 자동화/스크립트 로그 숨기기 상태일 때 대시보드-자동화 카드에서 무조건 '실행된적 없음'으로 표시되는 문제 수정
+- refactor: 자동화 실행 로그 간소화
+- refactor: serial 설정에서 portId대신 port_id 사용 가능
+- 기타 성능 최적화, UI 수정
+
+v2.4.0
+
+- feat: packet_defaults에 rx_min_length, rx_max_length 옵션 도입
+- fix: script실행시 args 전달 안되는 문제 수정.
+- fix: 갤러리 스니펫 적용시 스크립트, 자동화도 변경사항 확인할수있도록 수정. (스크립트, 자동화는 대상 선택 안됩니다.)
+- fix: 분석페이지 패킷로그에서 로그가 조금만 쌓여도 렉이 심한 현상 개선
+
+v2.3.0
+
+- feat: 갤러리 스니펫을 적용할 때 대상 엔티티를 추천하고 선택할 수 있도록 개선했습니다.
+- feat: 엔티티카드에서 preset_mode같이 옵션입력이 필요한 명령 입력지원 (기존에는 ha통해서만 가능했음)
+- feat: 분석페이지에서 도구들 토글기능 추가. (아직도 패킷로그가 특정 환경에서 렉이 심한것같습니다. 개선 노력중입니다.)
+- fix: 오류가 발생한 엔티티의 활동로그를 보려할때 key 중복으로 열리지 않는현상 수정.
+
+v2.2.0
+
+- [상태 프록시 (`state_proxy`) 도입](https://homenet2mqtt-docs.vercel.app/config/common-entity-options.html)
+  - 서로 다른 종류의 패킷이나 여러 소스로부터 하나의 엔티티 상태를 업데이트해야 할 때 사용합니다. 이 옵션을 사용하면 해당 엔티티는 자신의 상태를 갖지 않고, 파싱된 결과를 지정된 `target_id` 엔티티로 전달합니다.
+  - 현대통신의 주기적 상태업데이트로직에 사용됩니다. 갤러리에서 업데이트된 설정을 적용해보세요
+
+v2.1.0
+
+- feat: 기본 yaml 편집기로 monaco(vs-code 경험) 도입
+- feat: 대시보드에 항목추가기능 - 대시보드에서 엔티티, 자동화, 스크립트를 추가할 수 있습니다. (yaml입력)
+- fix: 갤러리 discovery에서 len()헬퍼가 누락된문제 수정
+- 기타 성능향상, ui 수정
+- 갤러리 업데이트는 수시로 진행됩니다. 문의하신 채널로 수정했다고 말씀드리고 있습니다.
+
+v2.0.0
+
+- ## **🚨Breaking change**
+  - offset의 해석의 일관성을 위해 수정사항이 있으며 이로인해 설정이 깨졌을수 있습니다!
+  - 모든 offset은 헤더를 포함한 수신패킷 전체의 0-based index로 해석됩니다.
+  - [Breaking change 안내](https://homenet2mqtt-docs.vercel.app/breaking-changes.html)
+    > **요약**
+    >
+    > 대상: **kocom, betin, cvnet, ezville, 현대통신**
+    >
+    > 업데이트 후 상태업데이트가 안되거나 이상한값을 가지는 엔티티는 **갤러리**에서 수정본을 적용해주세요.
+    >
+    > 수동으로 수정하려면 **state\_\* 의 offset 속성에 header길이를 더해주세요.**
+    > (kocom은 +2, betin, cvnet, ezville, 현대통신은 +1, commax, samsung_sds는 해당없음)
+- 분석페이지 사용성 향상
+  - 각 분석기로 바로가기 버튼 추가.
+  - 패킷 딕셔너리에 정보 복사 버튼 추가.
+  - 패킷 해석 테스트: 바이트 가독성 향상, 매칭된 엔티티 설정 미리보기 추가.
+
+v1.17.0
+
+- feat: 분석 페이지에 패킷해석 테스트 추가. 패킷을 넣어 어떻게 해석되는지 테스트해 볼 수 있습니다.
+- fix: get*from*\* 헬퍼의 기본값을 undefined에서 null로 변경함
+- 기타 성능 향상 및 UI수정
+
+v1.16.0
+
+- feat: CEL에서 states, state에 안전하게 접근하기위한 헬퍼함수 추가 [CEL가이드](https://homenet2mqtt-docs.vercel.app/guide/cel-guide.html#%ED%97%AC%ED%8D%BC-%ED%95%A8%EC%88%98)
+- 헬퍼함수 적용하여 갤러리 파일들 업데이트
+
+v1.15.0
+
+- feat: 갤러리 템플릿에 $if 지원 추가
+- kocom 갤러리에 전등, 콘센트, 환풍기 업데이트
+
+v1.14.1
+
+- 갤러리 파라미터에 변수 스키마 안내 추가
+
+v1.14.0
+
+- **갤러리 대폭 개선**
+  - **파라미터**를 지원하는 스니펫을 추가하여 방갯수, 기기갯수 등을 입력하여 추가할 수 있도록 지원 함.
+  - **발견**기능을 추가하여 RS485에서 수집된 패킷과 일치하는 스니펫을 찾아줍니다.
+- 분석-raw패킷로그에 유효패킷 세트 보기 뷰를 추가. 어떤 패킷들이 떠다니고있고 어떤게 파싱되었고, 어떤게 미지의 상태인지 확인할 수 있습니다.
+- UI 개선
+  - 대시보드의 상태 표시 UI 개선.
+  - 대시보드에서 엔티티, 자동화, 스크립트 보기 여부를 토글 가능.
+  - 엔티티 파싱, 명령전송등에서 오류가 발생한경우 UI에서도 확인할 수 있도록 개선.
+  - 포트 선택기를 헤더로 이동.
+- 기타 성능 개선, 보안 강화 등.
+
+v1.13.0
+
+- samsung_sds기본 설정에서 rx_header를 삭제. samsung_xor체크섬을 신규도입
+  - 현관문과 엘리베이터호출에서 b0가 아닌 패킷을 수신하기위한 변경입니다.
+  - 기존 사용자분들은 초기화 한뒤 초기설정마법사를통해 새 구조로 변경해야 갤러리의 samsung_sds파일을 업데이트할 수 있습니다.
+- feat: [packet_defaults](https://homenet2mqtt-docs.vercel.app/config/packet-defaults.html)에 rx_valid_headers, rx_length_expr 옵션 도입
+  - **rx_valid_headers**: rx_header, rx_footer모두 없는경우 체크섬 충돌가능성이 있는데, rx_valid_headers 배열에 정의된 바이트로 시작하는 경우만 유효한 패킷으로 간주합니다. (삼성sds에서 rx_header를 b0로 쓰던것을 rx_header를 폐지한뒤 발생한 문제를 해결)
+  - **rx_length_expr**: rx_length는 동적이지만 패킷에 길이를 나타내는 정보가 있는경우 사용하면 패킷파싱성능향상에 도움이됩니다. (bestin 설정에서 사용)
+- feat: automation의 packet trigger에 prev_packet 속성을 추가하여 가드로 사용가능.
+  - [AUTOMATION.md](https://homenet2mqtt-docs.vercel.app/guide/automation.html)
+- feat: 엔티티 상세 모달에서 해당 엔티티의 활동로그 확인 기능 추가.
+- feat: 설정에서 로그파일 목록 확인 및 삭제 기능 추가.
+- feat: 활동로그에서 자동화/스크립트의 로그를 가리는 기능 추가.
+- fix: internal 옵션 설정된 엔티티의 MQTT메시지가 발행되던 문제 수정.
+
+v1.12.1
+
+- fix: timezone을 설정해도 로그에 UTC로 기록되던 문제 수정.
+- fix: 설정의 로그보관 옵션이 앱 재시작시 초기화되는 문제 수정.
+- schedule 트리거의 timezone 적용 방식을 문서에 명확히 하였습니다. timezone 설정시 로컬타임존을 사용하며 미설정시 UTC를 사용합니다.
+
+v1.12.0
+
+- feat: timezone 옵션 추가.
+  - UI에서는 기존에 브라우저의 타임존을 사용하였으나 서버는 UTC를 사용하여 불일치 문제가있었음.
+  - 구성에서 timezone을 설정한경우 서버와 UI의 타임존 일치. 비워두면기존처럼 동작함.
+- feat: 로그 보관의 기본 TTL을 1시간, 활성화로 변경하고 TTL을 설정할수있도록 옵션으로 제공.
+- feat: 애드온 구성에 항목별 description 추가.
+- fix: update_state액션이 parseData와 같은방식으로 상태를 해석하도록 수정함.
+- etc: 성능개선, 보안강화, 접근성 강화 등.
+
+v1.11.0
+
+> ### **!!breaking change!!**
+>
+> offset의 해석의 일관성을 위해 수정사항이 있으며 이로인해 설정이 깨졌을수 있습니다!
+>
+> **영향 받은 자동화 목록** - 갤러리에서 수정본 적용 가능
+>
+> - ezville 현관문열림
+> - hyundai imazu 주기적 조명 상태요청 자동화
+> - 삼성sds 현관문 및 엘리베이터 (원래 작동 안됐음.. 지금도 안될겁니다)
+>
+> **offset은 헤더를 포함한 수신패킷 전체의 0-based index**이며 offset이 생략된경우 offset은 rx_header의 길이로 해석됩니다.
+> 따라서 기존에 offset을 생략했을때 offset: 0으로 해석되던 자동화의 packet trigger 사용부분에서 data에서 헤더부분을 삭제하거나 offset: 0으로 설정해야합니다.
+>
+> ```yaml
+> # 기존 예시
+> # 0xAD는 rx_header일 때
+> trigger:
+>   - type: packet
+>     match:
+>       data: [0xAD, 0x41, 0x00, 0x6C]
+>
+> # 수정된 예시
+> trigger:
+>   - type: packet
+>     match:
+>       data: [0xAD, 0x41, 0x00, 0x6C]
+>       # offset: 0을 추가하여 헤더를 포함하여 매칭하도록 수정.
+>       offset: 0
+>
+>       # 혹은 헤더를 삭제.
+>       data: [0x41, 0x00, 0x6C]
+> ```
+
+- fix: commandSchema의 ack가 offset: 0 으로 해석되어 ack를 못찾는 문제 수정
+
+- feat: 엔티티 yaml 수정시 재시작여부를 묻는 모달 추가
+- feat: 마지막 남은 브릿지를 제거하면 초기 설정 마법사가 실행됩니다.
+- feat: mqtt cleanup 기능 추가. 설정-애플리케이션 관리에서 실행할 수 있으며 {prefix} (기본값 homenet2mqtt) 이하 모든 토픽을 삭제하고 재발행합니다. 설정파일 수정 등 이전 메시지가 지저분하게 남는경우 사용하세요.
+- fix: climate의 preset discovery 오류 수정
+
+v1.10.0
+
+- feat: 일정시간 패킷이 수신되지 않으면 시리얼에 재연결을 시도하는 로직 추가.
+  - config파일에 serial에 `serial_idle`를 옵션으로 추가할수 있습니다. 기본값은 10분이며, `0`으로 설정하면 비활성화됩니다.
+  - [serial 설정 가이드](https://homenet2mqtt-docs.vercel.app/config/serial.html)
+- feat: light, fan에도 optimistic 옵션을 사용할 수 있습니다.
+- fix:
+  - 아이폰 모바일에서 엔티티상세모달 등 일부모달이 나타나지 않는 문제 수정
+  - climate에서 `preset modes[]` 설정없이 `state_preset_*`으로 설정한 프리셋도 디스커버리에서 포함, 상태해석 되도록 수정
+  - UI 레이아웃 수정
+
+v1.9.2
+
+- state_update 액션에서 offset이 헤더를 제외하고 계산되던 오류 수정
+
+v1.9.1
+
+- TCP 재연결 기능 보완 (ew11 사용시 끊어져도 재연결하지 않던 문제 수정)
+
+v1.9.0
+
+- feat: script에 args지원 추가.
+- checksum type에 bestin_sum 추가
+  - bestin 지원을 위해 작업중입니다..
+- 성능개선
+
+v1.8.0
+
+- feat: 자동화 액션에 state_update를 추가.
+  - [state_update](https://homenet2mqtt-docs.vercel.app/guide/automation.html#%EC%83%81%ED%83%9C-%EA%B0%B1%EC%8B%A0-update-state)
+- feat: packet log 검색기능추가 및 성능최적화
+- 로그보관으로 로그가쌓이는경우 성능저하가 심하여 기간을 24->6시간으로 줄였습니다.
+  - 그럼에도 로그가 쌓이면 분석페이지 진입 및 로그확인에 지연이 심하므로 분석이 꼭 필요한 경우가 아니면 로그보관을 끄고 사용하세요.
+- 각종 성능개선 및 ui수정
+
+v1.7.0
+
+- feat: commandSchema에 ack를 추가하였습니다. [schema 가이드](https://homenet2mqtt-docs.vercel.app/config/schemas.html#commandschema)
+  - 기존: 명령패킷 전송 후 해당 엔티티의 상태변화가 있으면 전송 성공으로판단.
+  - 변경: ack가 정의된경우 상태변화와 ack패킷 중 먼저온 것을 성공으로 판단. (button 등 state가 없는 엔티티에서도 ack판단이 가능해졌습니다.)
+- fix: 명령이 없는 엔티티가 대시보드에 나타나지 않는 문제 수정
+- fix: 엔티티와 스크립트/자동화의 id가 겹칠수 있어 UI가 마비되는 현상 -> id가 중복되지 않도록 자동수정하도록 했습니다.
+- etc: 성능 최적화
+- gallery: 현대 imazu 현관문(주방폰에 별도 포트연결필요), 이지빌 스마트플러그(F750패킷) 추가
+
+v1.6.1
+
+- config_files를 기본값으로 비워뒀을때 `WARN: [service] CONFIG_FILES에 단일 값이 입력되었습니다. 쉼표로 구분된 배열 형식(CONFIG_FILES=item1,item2) 사용을 권장합니다.` 경고가 뜨는문제 수정
+- 마지막 남은 브릿지를 삭제할수 없도록 수정
+- 비활성화 보기 토글을 유지하여 비활성화엔티티 삭제 편의성 향상
+
+v1.6.0
+
+- 초기설정마법사를 강화: 예제 뿐 아니라 시리얼 직접설정을 지원, 포함할 엔티티 체크 추가.
+- 멀티포트환경을 더 쉽게 이용할 수 있도록 브릿지추가마법사를 추가하고 설정에서 브릿지 추가/삭제를 할 수 있도록 했습니다.
+- 대시보드에서 automation과 script를 엔티티처럼 확인할 수 있습니다. 클릭하면 액션을 바로 실행하거나 자동화/스크립트 실행 기록을 확인할 수 있습니다.
+- raw패킷 로그에서 유효패킷만 보기 옵션을 추가 : 헤더,푸터,체크섬이 유효한 패킷만 보여줍니다. usb시리얼장치사용하는 분들도 패킷을 쉽게 확인할 수 있습니다.
+- 분석페이지에 패킷전송기를 추가하여 테스트목적의 패킷전송이 가능합니다.
+- 재시작기능 추가.
+- etc: UI 수정, 성능 최적화 등..
+
+v1.5.1
+
+- fix: text_sensor의 디스커버리타입을 sensor로 수정하여 HA에 정상등록되도록 수정했습니다
+
+v1.5.0
+
+- feat: state schema에 guard와 except옵션을 추가했습니다.
+  - 패킷매칭후에 판단하여 예외 처리할 수 있게되었습니다.
+- feat: 패킷 파서를 별도 워커에서 실행하도록 분리하여 데이터 양이 많은 환경에서도 mqtt와 ui서버제공에 부하가 가지 않도록 개선했습니다.
+- feat: 분석 페이지에 CEL테스트기를 추가
+- etc: ui수정, 갤러리 엔티티 추가 등
+
+v1.4.1
+
+- state\_\* CEL 표현식에서 이전 상태 값을 참조할 수 있도록 state 참조가능.
+
+v1.4.0
+
+- feat: automation의 action - send_packet에 header와 footer 옵션을 추가하였습니다. (기본값 false)
+
+v1.3.0
+
+- feat: automation action에 choose, wait_until, repeat 등 더 많은 로직을 구현할수 있게되었습니다.
+  - [자동화 설정 가이드](https://homenet2mqtt-docs.vercel.app/guide/automation.html#)
+  - 엔티티에 optimistic옵션을 추가하여 switch,text엔티티를 자동화 변수로 사용하는등 유연한 사용이 가능해졌습니다.
+- feat: 강화된 자동화를 기반으로 [uartex](https://github.com/eigger/espcomponents/tree/master/components/uartex)에 구현되어있던 코콤, 현대통신, 삼성SDS 현관문을 업데이트하였습니다.
+  - 갤러리에서 설정을 다운받아 적용할 수 있습니다. (작동할지 테스트는 안되었습니다. 되면 제보부탁드립니다.)
+- etc: 도커 이미지 다이어트, 성능개선, UI 수정 등..
+
+v1.2.0
+
+- feat: 설정 갤러리 기능 추가.
+  - 설정 스니펫을 다운받아 적용할 수 있는 기능을 추가하였습니다. 현재는 기본파일내용 그대로이므로 업데이트할 것은 없습니다.
+  - 기본 설정파일에 없던 기능을 추가하거나 아파트별로 다른 환경에 맞춰 업데이트하는데 사용할 수 있습니다. (엘리베이터 기능 추가, 단지별 설정 업데이트 등)
+  - 기본 설정파일이 망가진 경우에 업데이트하여 되돌리는데 사용할 수도 있습니다.
+  - 설정 스니펫은 github PR을 통해 제공해주실 수 있습니다.
+- feat: 스크립트 추가. HA의 automation, script의 관계와 유사합니다. [스크립트 설정 가이드](https://homenet2mqtt-docs.vercel.app/guide/scripts.html)
+- feat: automation에 mode를 추가하였습니다. ha의 것과 유사합니다. [자동화 설정 가이드](https://homenet2mqtt-docs.vercel.app/guide/automation.html#)
+- fix: CEL을 사용하는 명령을 가진 엔티티를 HA에서 제어할때 정상적으로 패킷이 생성되지 않는 문제를 수정하였습니다.
+- etc: 성능개선
+
+v1.1.0
+
+- feat: 엔티티 강제 활성화기능 추가
+  - 비활성화된 엔티티 상세보기 - 관리탭에서 강제 활성화 버튼을 통해 강제 활성화할 수 있습니다. (discovery_always: true 옵션을 추가해주는 기능입니다.)
+- feat: 패킷로그 저장기능 옵션 추가. 기본값으로 off 되어있습니다. UI에서 지난 로그를 확인하려면 on 해주세요. 패킷로그저장은 메모리에 이루어지며 애드온을 재시작하면 사라집니다. 24시간마다 파일로 저장하는 옵션도 있습니다.
+- feat: raw패킷로그 저장/다운로드 기능 추가 - 분석-raw패킷로그에서 녹화시작/종료를 통해 녹화할 수 있습니다. 녹화된 파일은 버그리포트할 때 혹은 패킷 자료 제공해주실때 첨부해 주시면 도움이 될 것 같습니다.
+- etc
+  - 대용량 로그 표시 최적화
+  - 모바일화면 레이아웃 개선
+
+v1.0.4
+
+- fix: ezville, kocom, cvnet설정의 CEL문법오류수정. 기존설정파일은 자동으로 업데이트 되지 않으니 .initialized 파일을 삭제후 업데이트하여 새로 설정파일을 구성해야합니다.
+  - 그 밖에 commax, samsung_sds에서 button 엔티티 오류 수정이 있었으므로 button 엔티티를 사용중이라면 .initialized 파일을 삭제후 업데이트하여 새로 설정파일을 구성해야합니다.
+- fix: discovery_always, discovery_linked_id 옵션으로 활성화된 엔티티가 UI에서 활성화되지 않는 문제 수정
+
+v1.0.3
+
+- fix: ezville설정파일에 CEL문법오류가있어 수정했습니다. 기존설정파일은 자동으로 업데이트 되지 않으니 .initialized 파일을 삭제후 업데이트하여 새로 설정파일을 구성해야합니다.
+
+v1.0.2
+
+- fix: ezville같은 2-byte checksum을 사용하는 구성에서 명령패킷에 헤더와 체크섬이 포함되지 않는 문제 수정
+
+v1.0.1
+
+- fix: ha addon환경에서 serial device 매핑 누락 수정 - usb시리얼장치 접근이 안되는 문제 수정입니다
+
+v1.0.0
+
+- **베타버전 진입**
+- 알파버전 사용자분들은 설정을 초기화하고 다시 시작하여야합니다.
+  - 애드온인 경우 구성에서 config_files를 비워두세요. 그리고 `homenet2mqtt` 폴더에서 `.initialized` 파일을 제거하고 애드온을 재시작하세요.
+- 도커컨테이너 실행 지원
+
+- **Breaking Change**
+- 보안상의 이유로 lambda 문법이 더 이상 작동하지 않습니다.
+  - 기존 설정파일이 동작하지 않을가능성이 매우 큽니다.
+  - CEL 문법으로 변경해야 합니다. ([문서 확인](../docs/CEL_GUIDE.md))
+  - `.initialized` 파일을 삭제 후 애드온을 재시작하여 새 설정파일을 만들어 시작하시기바랍니다.
+
+v0.4.1
+
+- 영어 지원 강화(i18n)
+- 모바일화면레이아웃 개선
+- 멀티포트구성에서 초기 설정 실패하더라도 다른 브릿지는 작동하도록 수정
+
+v0.4.0
+
+- 언어지원 추가 (영어)
+
+v0.3.0
+
+- 엔티티 삭제, 디스커버리회수 기능 추가
+- 버그수정
+- 알파버전표시
+
+v0.2.0
+
+- 성능 최적화
+- 로그수집을 동의 받아 수행
+- 지연시간측정 테스트
+
+...
+
+v0.0.29
+
+- feat: 최근 활동 로그 표시 방식 개선
+  - 최신 활동이 목록 하단에 표시되도록 정렬 순서를 변경하고, 새 활동 추가 시 자동으로 스크롤됩니다.
+  - 상태 변경 로그에 상세 정보(속성, 이전/이후 값)를 포함하여 가독성을 높였습니다.
+  - 로그 생성 로직을 서버로 중앙화하여, 페이지를 새로고침해도 최근 활동이 유지되도록 안정성을 강화했습니다.
+
+v0.0.28
+
+- feat: 대시보드 레이아웃 개편 및 실시간 '최근 활동' 기능 추가
+  - MQTT 및 포트 메타데이터 표시부를 최소화하여 공간 효율성 개선
+  - 각 포트 탭 하단에 지난 24시간 동안의 주요 활동(상태 변경, 명령 전송 등)을 실시간으로 보여주는 '최근 활동' 패널 추가
+
+v0.0.24
+
+- fix: MQTT 접두사가 포함된 토픽에서도 포트 ID를 일관되게 해석하도록 백엔드/프론트 포트 정규화 통합
+
+v0.0.22
+
+- fix: 대시보드 초기 접속 시 MQTT 상태 캐시를 재전송하도록 개선
+
+v0.0.21
+
+- feat: 멀티포트 UI 반영
+
+v0.0.20
+
+- refactor: 설정파일 구성 변경
+
+v0.0.19
+
+- feat: MQTT 공통 접두사(mqtt_common_prefix) 설정 추가
+
+v0.0.18
+
+- fix: MQTT 기본 토픽 구조 변경에 맞춰 테스트 및 기본 프리픽스 정비
+
+v0.0.17
+
+- fix: run.sh 실행을 위해 bash 패키지 추가
+
+v0.0.16
+
+- fix: 애드온 실행 스크립트를 bash로 변경하여 실행 오류 해결
+
+v0.0.15
+
+- feat: multi port 지원 시작
+
+v0.0.14
+
+- feat: 엔티티 이름변경 및 ha반영
+
+v0.0.13
+
+- feat: device, area지정 추가 (esphome의 설정과 유사)
+
+v0.0.12
+
+- feat: 비활성화엔티티보기 토글 추가
+
+v0.0.11
+
+- feat: 개별엔티티 config 수정 기능
+- refactoring: 패킷 로그화면 재구성
+- 모바일화면 개선
+
+v0.0.10
+
+- feat: raw패킷 로그를 시작할 때만 스트리밍하여 네트워크 부하 절약
