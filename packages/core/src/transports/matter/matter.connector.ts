@@ -89,6 +89,9 @@ export class MatterConnector implements IntegrationConnector {
       this.aggregator,
     );
 
+    // Wait for the server node's construction to be fully ready
+    await this.serverNode.construction.ready;
+
     // 4. Find, register and add all supported entities to the aggregator
     const executeCmd = (entityId: string, cmd: string, val?: number | string) =>
       this.context.executeCommand(entityId, cmd, val);
