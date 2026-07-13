@@ -166,20 +166,29 @@ async function thermostatPostInitialize(self: any): Promise<void> {
   const homenet = await self.agent.load(HomenetEntityBehavior);
   updateFromEntityState(self, homenet.entityState);
 
+  // executeCommand와 entityId를 state가 살아있는 시점에 미리 캡처한다.
+  // reactTo 콜백은 비동기적으로 실행되므로, 그 시점에는 트랜잭션 컨텍스트
+  // (managed proxy)가 이미 만료되어 homenet.state 접근 시 ExpiredReferenceError가
+  // 발생한다. 클로저로 직접 참조를 보관하면 이 문제를 회피할 수 있다.
+  const executeCommand = homenet.state.executeCommand;
+  const entityId = homenet.entityId;
+
   self.reactTo(self.events.systemMode$Changed, (v: SystemMode, o: SystemMode, c?: ActionContext) =>
-    handleSystemModeChanged(self, v, o, c),
+    handleSystemModeChanged(executeCommand, entityId, v, o, c),
   );
 
   if (self.features.heating) {
     self.reactTo(
       self.events.occupiedHeatingSetpoint$Changed,
-      (v: number, o: number, c?: ActionContext) => handleSetpointChanged(self, v, o, c),
+      (v: number, o: number, c?: ActionContext) =>
+        handleSetpointChanged(executeCommand, entityId, v, o, c),
     );
   }
   if (self.features.cooling) {
     self.reactTo(
       self.events.occupiedCoolingSetpoint$Changed,
-      (v: number, o: number, c?: ActionContext) => handleSetpointChanged(self, v, o, c),
+      (v: number, o: number, c?: ActionContext) =>
+        handleSetpointChanged(executeCommand, entityId, v, o, c),
     );
   }
 
@@ -258,13 +267,13 @@ function updateFromEntityState(behavior: any, entityState: any): void {
 }
 
 async function handleSystemModeChanged(
-  behavior: any,
+  executeCommand: HomenetEntityBehavior.State['executeCommand'],
+  entityId: string,
   systemMode: SystemMode,
   _oldValue: SystemMode,
   context?: ActionContext,
 ): Promise<void> {
   if (transactionIsOffline(context)) return;
-  const homenet = behavior.agent.get(HomenetEntityBehavior);
   let command = 'off';
   if (systemMode === SystemMode.Heat) command = 'heat';
   else if (systemMode === SystemMode.Cool) command = 'cool';
@@ -272,19 +281,19 @@ async function handleSystemModeChanged(
   else if (systemMode === SystemMode.Dry) command = 'dry';
   else if (systemMode === SystemMode.FanOnly) command = 'fan_only';
 
-  await homenet.state.executeCommand(homenet.entityId, command);
+  await executeCommand(entityId, command);
 }
 
 async function handleSetpointChanged(
-  behavior: any,
+  executeCommand: HomenetEntityBehavior.State['executeCommand'],
+  entityId: string,
   value: number,
   _oldValue: number,
   context?: ActionContext,
 ): Promise<void> {
   if (transactionIsOffline(context)) return;
-  const homenet = behavior.agent.get(HomenetEntityBehavior);
   const targetTemp = value / 100;
-  await homenet.state.executeCommand(homenet.entityId, 'temperature', targetTemp);
+  await executeCommand(entityId, 'temperature', targetTemp);
 }
 
 // ── 1. Full Featured variant (Heating + Cooling + AutoMode) ────────────────
