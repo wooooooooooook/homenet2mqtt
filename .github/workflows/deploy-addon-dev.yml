@@ -100,7 +100,7 @@ jobs:
           path: target
 
       - name: Install js-yaml
-        run: npm install -g js-yaml
+        run: cd source && npm install js-yaml
 
       - name: Sync Files
         run: |
@@ -131,7 +131,6 @@ jobs:
             exit 0
           fi
 
-          export NODE_PATH=$(npm root -g)
           node source/scripts/generate-addons.mjs --target target --version "$VERSION" --types "$TYPES"
 
           # Check for changes
