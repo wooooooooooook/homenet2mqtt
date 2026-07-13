@@ -3,7 +3,7 @@ meta:
   name_en: "Smart Plugs"
   description: "현대 이마주 스마트 콘센트 설정입니다. 방 개수와 방별 콘센트 개수(전력 측정 포함)를 설정할 수 있습니다."
   description_en: "Hyundai Imazu smart plugs configuration. You can configure room count and plugs per room (with power meter)."
-  version: "2.0.0"
+  version: "2.1.0"
   author: "wooooooooooook"
   tags: ["switch", "plug", "sensor", "power", "hyundai", "imazu"]
 
@@ -63,6 +63,30 @@ entities:
           data: [0x0b, 0x01, 0x1f, 0x02, 0x40, '{{bitOr(bitShiftLeft(room.room_id, 4), outlet_num)}}', 0x02, 0x00]
           ack: [0x0b, 0x01, 0x1f, 0x04, 0x40, '{{bitOr(bitShiftLeft(room.room_id, 4), outlet_num)}}', 0x02, 0x02]
 
+    # State Proxies for Periodic Updates
+    - $repeat:
+        over: rooms
+        as: room
+      $nested:
+        $repeat:
+          count: '{{room.outlet_count}}'
+          as: outlet_num
+          start: 1
+        id: 'room_{{room.room_id}}_plug_{{outlet_num}}_proxy'
+        name: 'Room {{room.room_id}} Plug {{outlet_num}} Proxy'
+        state_proxy: true
+        target_id: 'room_{{room.room_id}}_plug_{{outlet_num}}'
+        state:
+          # Room state packet: [0x00, 0x01, 0x1F, 0x04, 0x40, (room_id << 4)]
+          data: [0x00, 0x01, 0x1F, 0x04, 0x40, '{{bitShiftLeft(room.room_id, 4)}}']
+          mask: [0x00, 0xff, 0xff, 0xff, 0xff, 0xf0]
+        state_on:
+          index: '{{9 + (outlet_num - 1) * 9}}'
+          data: [0x01]
+        state_off:
+          index: '{{9 + (outlet_num - 1) * 9}}'
+          data: [0x02]
+
   sensor:
     - $repeat:
         over: rooms
@@ -85,3 +109,40 @@ entities:
           index: 9
           length: 2
           precision: 0
+
+    # State Proxies for Periodic Updates (Power Meter)
+    - $repeat:
+        over: rooms
+        as: room
+      $nested:
+        $repeat:
+          count: '{{room.outlet_count}}'
+          as: outlet_num
+          start: 1
+        id: 'room_{{room.room_id}}_plug_{{outlet_num}}_power_proxy'
+        name: 'Room {{room.room_id}} Plug {{outlet_num}} Power Proxy'
+        state_proxy: true
+        target_id: 'room_{{room.room_id}}_plug_{{outlet_num}}_power'
+        state:
+          data: [0x00, 0x01, 0x1F, 0x04, 0x40, '{{bitShiftLeft(room.room_id, 4)}}']
+          mask: [0x00, 0xff, 0xff, 0xff, 0xff, 0xf0]
+        state_number:
+          index: '{{10 + (outlet_num - 1) * 9}}'
+          length: 2
+          precision: 0
+
+automation:
+  - $repeat:
+      over: rooms
+      as: room
+    id: 'request_room_{{room.room_id}}_plug_state'
+    trigger:
+      - type: schedule
+        every: 1m
+    then:
+      - action: send_packet
+        # Request packet: [0x0B, 0x01, 0x1F, 0x01, 0x40, (room_id << 4), 0x00, 0x00]
+        data: [0x0B, 0x01, 0x1F, 0x01, 0x40, '{{bitShiftLeft(room.room_id, 4)}}', 0x00, 0x00]
+        header: true
+        footer: true
+        checksum: true
