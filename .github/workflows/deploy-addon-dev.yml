@@ -100,7 +100,13 @@ jobs:
           path: target
 
       - name: Install js-yaml
-        run: cd source && npm install js-yaml
+        run: |
+          mkdir -p npm_temp
+          cd npm_temp
+          npm install js-yaml
+          mv node_modules ../source/node_modules
+          cd ..
+          rm -rf npm_temp
 
       - name: Sync Files
         run: |
