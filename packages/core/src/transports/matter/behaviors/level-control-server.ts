@@ -1,13 +1,30 @@
 // packages/core/src/transports/matter/behaviors/level-control-server.ts
 
 import { LevelControlServer as Base } from '@matter/main/behaviors';
+import { LevelControl } from '@matter/main/clusters';
 import { applyPatchState } from '../utils/apply-patch-state.js';
 import { HomenetEntityBehavior } from './homenet-entity-behavior.js';
 
 const FeaturedBase = Base.with('OnOff', 'Lighting');
 
 export class LevelControlServer extends FeaturedBase {
+  private pendingTransitionTime: number | undefined;
+
   override async initialize() {
+    // Set default values BEFORE super.initialize() to prevent validation errors.
+    if (this.state.currentLevel == null) {
+      this.state.currentLevel = 1;
+    }
+    if (this.state.minLevel == null) {
+      this.state.minLevel = 1;
+    }
+    if (this.state.maxLevel == null) {
+      this.state.maxLevel = 254;
+    }
+    // Force onLevel to null so the base class's handleOnOffChange never
+    // overwrites currentLevel when the device turns on.
+    this.state.onLevel = null;
+
     await super.initialize();
     const homenet = await this.agent.load(HomenetEntityBehavior);
     this.update(homenet.entityState);
@@ -34,6 +51,36 @@ export class LevelControlServer extends FeaturedBase {
     }
   }
 
+  override async moveToLevel(request: LevelControl.MoveToLevelRequest) {
+    if (request.transitionTime == null) {
+      request.transitionTime = 0;
+    }
+    this.pendingTransitionTime = request.transitionTime;
+    return super.moveToLevel(request);
+  }
+
+  override async moveToLevelWithOnOff(request: LevelControl.MoveToLevelRequest) {
+    if (request.transitionTime == null) {
+      request.transitionTime = 0;
+    }
+    this.pendingTransitionTime = request.transitionTime;
+    return super.moveToLevelWithOnOff(request);
+  }
+
+  override step(request: LevelControl.StepRequest) {
+    if (request.transitionTime == null) {
+      request.transitionTime = 0;
+    }
+    return super.step(request);
+  }
+
+  override stepWithOnOff(request: LevelControl.StepRequest) {
+    if (request.transitionTime == null) {
+      request.transitionTime = 0;
+    }
+    return super.stepWithOnOff(request);
+  }
+
   override async moveToLevelLogic(level: number) {
     const homenet = this.agent.get(HomenetEntityBehavior);
     const minLevel = this.state.minLevel ?? 1;
@@ -42,6 +89,12 @@ export class LevelControlServer extends FeaturedBase {
     const percent = (level - minLevel) / (maxLevel - minLevel);
     const brightness = Math.min(255, Math.max(0, Math.round(percent * 255)));
 
+    // Update currentLevel immediately so controllers get instant feedback
+    this.state.currentLevel = level;
+
     await homenet.state.executeCommand(homenet.entityId, 'brightness', brightness);
   }
+}
+export namespace LevelControlServer {
+  export class State extends FeaturedBase.State {}
 }

@@ -1,4 +1,13 @@
 // packages/core/src/transports/matter/behaviors/thermostat-server.ts
+//
+// Thermostat behavior variants for Matter bridge, adapted from RiDDiX's
+// home-assistant-matter-hub implementation.
+//
+// Key design decisions (from upstream):
+// - .set() pre-populates defaults BEFORE Matter.js runs validation during init
+// - absMin/absMax setpoint limits are 0..5000 (0~50°C) to avoid constraint errors
+// - thermostatPreInitialize runs BEFORE super.initialize() to repair persisted limits
+// - this.features.heating/cooling (Matter.js built-in) replaces manual feature flags
 
 import { ThermostatServer as Base } from '@matter/main/behaviors';
 import { Thermostat } from '@matter/main/clusters';
@@ -11,202 +20,312 @@ import { ClimateEntity } from '../../../domain/entities/climate.entity.js';
 
 import SystemMode = Thermostat.SystemMode;
 
-// Helper to copy prototype methods from source class to target class (from RiDDiX implementation)
-function copyPrototype(source: any, target: any) {
-  for (const name of Object.getOwnPropertyNames(source.prototype)) {
-    if (name === 'constructor' || name === 'initialize') continue;
-    const desc = Object.getOwnPropertyDescriptor(source.prototype, name);
-    if (desc) {
-      Object.defineProperty(target.prototype, name, desc);
-    }
-  }
+// ── Default state values ───────────────────────────────────────────────────
+// These MUST be set via .set() when creating the behavior class because
+// Matter.js validates setpoints before our initialize() method runs.
+
+const heatingOnlyDefaults = {
+  localTemperature: 2100,
+  occupiedHeatingSetpoint: 2000,
+  minHeatSetpointLimit: 0,
+  maxHeatSetpointLimit: 5000,
+  absMinHeatSetpointLimit: 0,
+  absMaxHeatSetpointLimit: 5000,
+};
+
+const coolingOnlyDefaults = {
+  localTemperature: 2100,
+  occupiedCoolingSetpoint: 2400,
+  minCoolSetpointLimit: 0,
+  maxCoolSetpointLimit: 5000,
+  absMinCoolSetpointLimit: 0,
+  absMaxCoolSetpointLimit: 5000,
+};
+
+const fullDefaults = {
+  ...heatingOnlyDefaults,
+  ...coolingOnlyDefaults,
+  minSetpointDeadBand: 0,
+};
+
+const heatingAndCoolingDefaults = {
+  ...heatingOnlyDefaults,
+  ...coolingOnlyDefaults,
+};
+
+// ── Feature-specific bases ─────────────────────────────────────────────────
+
+const FullFeaturedBase = Base.with('Heating', 'Cooling', 'AutoMode').set(fullDefaults);
+const HeatingOnlyFeaturedBase = Base.with('Heating').set(heatingOnlyDefaults);
+const CoolingOnlyFeaturedBase = Base.with('Cooling').set(coolingOnlyDefaults);
+const HeatingAndCoolingFeaturedBase = Base.with('Heating', 'Cooling').set(
+  heatingAndCoolingDefaults,
+);
+
+// ── Setpoint limit repair ──────────────────────────────────────────────────
+// Persisted storage can hold stale limits from a previous configuration.
+// Ensure absMin <= min <= max <= absMax to prevent Matter.js ConstraintError.
+
+interface SetpointLimits {
+  absMin: number;
+  min: number;
+  max: number;
+  absMax: number;
 }
 
-// 1. Full Featured variant
-const FullFeaturedBase = Base.with('Heating', 'Cooling', 'AutoMode');
+function repairSetpointLimits(limits: SetpointLimits): SetpointLimits {
+  let { min, max } = limits;
+  if (min > max) [min, max] = [max, min];
+  return {
+    min,
+    max,
+    absMin: Math.min(limits.absMin, min),
+    absMax: Math.max(limits.absMax, max),
+  };
+}
+
+// ── Pre-super initialization ───────────────────────────────────────────────
+// Must run BEFORE super.initialize() because Matter.js validates setpoints
+// during super. Sets limits with wide range (0~50°C) and repairs persisted state.
+
+function thermostatPreInitialize(self: any): void {
+  // Force-set localTemperature
+  const currentLocal = self.state.localTemperature;
+  self.state.localTemperature =
+    typeof currentLocal === 'number' && !Number.isNaN(currentLocal)
+      ? currentLocal
+      : currentLocal === null
+        ? null
+        : 2100;
+
+  // Set heating limits and setpoint (only if Heating feature enabled)
+  // Order: abs limits → regular limits → setpoints
+  if (self.features.heating) {
+    self.state.absMinHeatSetpointLimit = self.state.absMinHeatSetpointLimit ?? 0;
+    self.state.absMaxHeatSetpointLimit = self.state.absMaxHeatSetpointLimit ?? 5000;
+    self.state.minHeatSetpointLimit = self.state.minHeatSetpointLimit ?? 0;
+    self.state.maxHeatSetpointLimit = self.state.maxHeatSetpointLimit ?? 5000;
+
+    const heat = repairSetpointLimits({
+      absMin: self.state.absMinHeatSetpointLimit,
+      min: self.state.minHeatSetpointLimit,
+      max: self.state.maxHeatSetpointLimit,
+      absMax: self.state.absMaxHeatSetpointLimit,
+    });
+    self.state.absMinHeatSetpointLimit = heat.absMin;
+    self.state.minHeatSetpointLimit = heat.min;
+    self.state.maxHeatSetpointLimit = heat.max;
+    self.state.absMaxHeatSetpointLimit = heat.absMax;
+
+    const currentHeating = self.state.occupiedHeatingSetpoint;
+    self.state.occupiedHeatingSetpoint =
+      typeof currentHeating === 'number' && !Number.isNaN(currentHeating) ? currentHeating : 2000;
+  }
+
+  // Set cooling limits and setpoint (only if Cooling feature enabled)
+  if (self.features.cooling) {
+    self.state.absMinCoolSetpointLimit = self.state.absMinCoolSetpointLimit ?? 0;
+    self.state.absMaxCoolSetpointLimit = self.state.absMaxCoolSetpointLimit ?? 5000;
+    self.state.minCoolSetpointLimit = self.state.minCoolSetpointLimit ?? 0;
+    self.state.maxCoolSetpointLimit = self.state.maxCoolSetpointLimit ?? 5000;
+
+    const cool = repairSetpointLimits({
+      absMin: self.state.absMinCoolSetpointLimit,
+      min: self.state.minCoolSetpointLimit,
+      max: self.state.maxCoolSetpointLimit,
+      absMax: self.state.absMaxCoolSetpointLimit,
+    });
+    self.state.absMinCoolSetpointLimit = cool.absMin;
+    self.state.minCoolSetpointLimit = cool.min;
+    self.state.maxCoolSetpointLimit = cool.max;
+    self.state.absMaxCoolSetpointLimit = cool.absMax;
+
+    const currentCooling = self.state.occupiedCoolingSetpoint;
+    self.state.occupiedCoolingSetpoint =
+      typeof currentCooling === 'number' && !Number.isNaN(currentCooling) ? currentCooling : 2400;
+  }
+
+  // minSetpointDeadBand only valid with AutoMode feature
+  if (self.features.autoMode) {
+    self.state.minSetpointDeadBand = self.state.minSetpointDeadBand ?? 0;
+  }
+
+  // Set controlSequenceOfOperation based on features
+  self.state.controlSequenceOfOperation =
+    self.features.cooling && self.features.heating && self.features.autoMode
+      ? Thermostat.ControlSequenceOfOperation.CoolingAndHeating
+      : self.features.heating
+        ? Thermostat.ControlSequenceOfOperation.HeatingOnly
+        : Thermostat.ControlSequenceOfOperation.CoolingOnly;
+}
+
+// ── Post-super initialization ──────────────────────────────────────────────
+// Must run AFTER super.initialize() because agent/events aren't ready before.
+
+async function thermostatPostInitialize(self: any): Promise<void> {
+  const homenet = await self.agent.load(HomenetEntityBehavior);
+  updateFromEntityState(self, homenet.entityState);
+
+  self.reactTo(self.events.systemMode$Changed, (v: SystemMode, o: SystemMode, c?: ActionContext) =>
+    handleSystemModeChanged(self, v, o, c),
+  );
+
+  if (self.features.heating) {
+    self.reactTo(
+      self.events.occupiedHeatingSetpoint$Changed,
+      (v: number, o: number, c?: ActionContext) => handleSetpointChanged(self, v, o, c),
+    );
+  }
+  if (self.features.cooling) {
+    self.reactTo(
+      self.events.occupiedCoolingSetpoint$Changed,
+      (v: number, o: number, c?: ActionContext) => handleSetpointChanged(self, v, o, c),
+    );
+  }
+
+  self.reactTo(homenet.onChange, (state: any) => updateFromEntityState(self, state));
+}
+
+// ── Shared update logic ────────────────────────────────────────────────────
+
+function updateFromEntityState(behavior: any, entityState: any): void {
+  const currentTemp = entityState?.current_temperature;
+  const targetTemp = entityState?.target_temperature;
+  const mode = entityState?.mode;
+
+  const config = behavior.agent.get(HomenetEntityBehavior).entityConfig as ClimateEntity;
+  const visual = config.visual;
+
+  // Use wide defaults (0~50°C) to avoid constraint violations
+  const WIDE_MIN = 0;
+  const WIDE_MAX = 5000;
+  const minSetpointLimit =
+    visual?.min_temperature != null ? visual.min_temperature * 100 : WIDE_MIN;
+  const maxSetpointLimit =
+    visual?.max_temperature != null ? visual.max_temperature * 100 : WIDE_MAX;
+
+  let systemMode = SystemMode.Off;
+  if (mode === 'heat') systemMode = SystemMode.Heat;
+  else if (mode === 'cool') systemMode = SystemMode.Cool;
+  else if (mode === 'auto') systemMode = SystemMode.Auto;
+  else if (mode === 'dry') systemMode = SystemMode.Dry;
+  else if (mode === 'fan_only') systemMode = SystemMode.FanOnly;
+
+  // Limits are set FIRST, then setpoints. Order matters because Matter.js
+  // validates setpoints against limits during property writes.
+  // abs limits are set equal to regular limits to allow the full user range.
+  applyPatchState(behavior.state, {
+    ...(behavior.features.heating
+      ? {
+          absMinHeatSetpointLimit: minSetpointLimit,
+          absMaxHeatSetpointLimit: maxSetpointLimit,
+          minHeatSetpointLimit: minSetpointLimit,
+          maxHeatSetpointLimit: maxSetpointLimit,
+        }
+      : {}),
+    ...(behavior.features.cooling
+      ? {
+          absMinCoolSetpointLimit: minSetpointLimit,
+          absMaxCoolSetpointLimit: maxSetpointLimit,
+          minCoolSetpointLimit: minSetpointLimit,
+          maxCoolSetpointLimit: maxSetpointLimit,
+        }
+      : {}),
+    localTemperature: typeof currentTemp === 'number' ? currentTemp * 100 : null,
+    systemMode: systemMode,
+  });
+
+  // Setpoints in a separate patch (after limits are applied)
+  const setpointValue = typeof targetTemp === 'number' ? targetTemp * 100 : undefined;
+  applyPatchState(behavior.state, {
+    ...(behavior.features.heating && setpointValue != null
+      ? {
+          occupiedHeatingSetpoint: Math.max(
+            minSetpointLimit,
+            Math.min(maxSetpointLimit, setpointValue),
+          ),
+        }
+      : {}),
+    ...(behavior.features.cooling && setpointValue != null
+      ? {
+          occupiedCoolingSetpoint: Math.max(
+            minSetpointLimit,
+            Math.min(maxSetpointLimit, setpointValue),
+          ),
+        }
+      : {}),
+  });
+}
+
+async function handleSystemModeChanged(
+  behavior: any,
+  systemMode: SystemMode,
+  _oldValue: SystemMode,
+  context?: ActionContext,
+): Promise<void> {
+  if (transactionIsOffline(context)) return;
+  const homenet = behavior.agent.get(HomenetEntityBehavior);
+  let command = 'off';
+  if (systemMode === SystemMode.Heat) command = 'heat';
+  else if (systemMode === SystemMode.Cool) command = 'cool';
+  else if (systemMode === SystemMode.Auto) command = 'auto';
+  else if (systemMode === SystemMode.Dry) command = 'dry';
+  else if (systemMode === SystemMode.FanOnly) command = 'fan_only';
+
+  await homenet.state.executeCommand(homenet.entityId, command);
+}
+
+async function handleSetpointChanged(
+  behavior: any,
+  value: number,
+  _oldValue: number,
+  context?: ActionContext,
+): Promise<void> {
+  if (transactionIsOffline(context)) return;
+  const homenet = behavior.agent.get(HomenetEntityBehavior);
+  const targetTemp = value / 100;
+  await homenet.state.executeCommand(homenet.entityId, 'temperature', targetTemp);
+}
+
+// ── 1. Full Featured variant (Heating + Cooling + AutoMode) ────────────────
+
 export class ThermostatServer extends FullFeaturedBase {
   override async initialize() {
-    this.state.controlSequenceOfOperation = Thermostat.ControlSequenceOfOperation.CoolingAndHeating;
+    thermostatPreInitialize(this);
     await super.initialize();
-
-    const homenet = await this.agent.load(HomenetEntityBehavior);
-    this.update(homenet.entityState);
-    this.reactTo(homenet.onChange, this.update);
-
-    this.reactTo(this.events.systemMode$Changed, this.systemModeChanged);
-    this.reactTo(this.events.occupiedHeatingSetpoint$Changed, this.heatingSetpointChanged);
-    this.reactTo(this.events.occupiedCoolingSetpoint$Changed, this.coolingSetpointChanged);
-  }
-
-  private update(entityState: any) {
-    const currentTemp = entityState?.current_temperature;
-    const targetTemp = entityState?.target_temperature;
-    const mode = entityState?.mode;
-
-    const config = this.agent.get(HomenetEntityBehavior).entityConfig as ClimateEntity;
-    const visual = config.visual;
-    const minSetpointLimit = (visual?.min_temperature ?? 5) * 100;
-    const maxSetpointLimit = (visual?.max_temperature ?? 35) * 100;
-
-    let systemMode = SystemMode.Off;
-    if (mode === 'heat') systemMode = SystemMode.Heat;
-    else if (mode === 'cool') systemMode = SystemMode.Cool;
-    else if (mode === 'auto') systemMode = SystemMode.Auto;
-    else if (mode === 'dry') systemMode = SystemMode.Dry;
-    else if (mode === 'fan_only') systemMode = SystemMode.FanOnly;
-
-    const patches: any = {
-      localTemperature: typeof currentTemp === 'number' ? currentTemp * 100 : undefined,
-      systemMode: systemMode,
-    };
-
-    // Safely update feature-specific attributes if they exist on this behavior variant
-    if ('occupiedHeatingSetpoint' in this.state) {
-      patches.occupiedHeatingSetpoint =
-        typeof targetTemp === 'number' ? targetTemp * 100 : undefined;
-      patches.minHeatSetpointLimit = minSetpointLimit;
-      patches.maxHeatSetpointLimit = maxSetpointLimit;
-    }
-
-    if ('occupiedCoolingSetpoint' in this.state) {
-      patches.occupiedCoolingSetpoint =
-        typeof targetTemp === 'number' ? targetTemp * 100 : undefined;
-      patches.minCoolSetpointLimit = minSetpointLimit;
-      patches.maxCoolSetpointLimit = maxSetpointLimit;
-    }
-
-    applyPatchState(this.state, patches);
-  }
-
-  private async systemModeChanged(
-    systemMode: SystemMode,
-    _oldValue: SystemMode,
-    context?: ActionContext,
-  ) {
-    if (transactionIsOffline(context)) return;
-    const homenet = this.agent.get(HomenetEntityBehavior);
-    let command = 'off';
-    if (systemMode === SystemMode.Heat) command = 'heat';
-    else if (systemMode === SystemMode.Cool) command = 'cool';
-    else if (systemMode === SystemMode.Auto) command = 'auto';
-    else if (systemMode === SystemMode.Dry) command = 'dry';
-    else if (systemMode === SystemMode.FanOnly) command = 'fan_only';
-
-    await homenet.state.executeCommand(homenet.entityId, command);
-  }
-
-  private async heatingSetpointChanged(value: number, _oldValue: number, context?: ActionContext) {
-    if (transactionIsOffline(context)) return;
-    const homenet = this.agent.get(HomenetEntityBehavior);
-    const targetTemp = value / 100;
-    await homenet.state.executeCommand(homenet.entityId, 'temperature', targetTemp);
-  }
-
-  private async coolingSetpointChanged(value: number, _oldValue: number, context?: ActionContext) {
-    if (transactionIsOffline(context)) return;
-    const homenet = this.agent.get(HomenetEntityBehavior);
-    const targetTemp = value / 100;
-    await homenet.state.executeCommand(homenet.entityId, 'temperature', targetTemp);
+    await thermostatPostInitialize(this);
   }
 }
 
-// 2. Heating-only variant
-const HeatingOnlyFeaturedBase = Base.with('Heating');
+// ── 2. Heating-only variant ────────────────────────────────────────────────
+
 export class ThermostatServerHeatingOnly extends HeatingOnlyFeaturedBase {
   override async initialize() {
-    this.state.controlSequenceOfOperation = Thermostat.ControlSequenceOfOperation.HeatingOnly;
+    thermostatPreInitialize(this);
     await super.initialize();
-
-    const homenet = await this.agent.load(HomenetEntityBehavior);
-    this.update(homenet.entityState);
-    this.reactTo(homenet.onChange, this.update);
-
-    this.reactTo(this.events.systemMode$Changed, this.systemModeChanged);
-    this.reactTo(this.events.occupiedHeatingSetpoint$Changed, this.heatingSetpointChanged);
+    await thermostatPostInitialize(this);
   }
-
-  // Will be populated by copyPrototype
-  private update!: (entityState: any) => void;
-  private systemModeChanged!: (
-    systemMode: SystemMode,
-    _oldValue: SystemMode,
-    context?: ActionContext,
-  ) => Promise<void>;
-  private heatingSetpointChanged!: (
-    value: number,
-    _oldValue: number,
-    context?: ActionContext,
-  ) => Promise<void>;
 }
 
-// 3. Cooling-only variant
-const CoolingOnlyFeaturedBase = Base.with('Cooling');
+// ── 3. Cooling-only variant ────────────────────────────────────────────────
+
 export class ThermostatServerCoolingOnly extends CoolingOnlyFeaturedBase {
   override async initialize() {
-    this.state.controlSequenceOfOperation = Thermostat.ControlSequenceOfOperation.CoolingOnly;
+    thermostatPreInitialize(this);
     await super.initialize();
-
-    const homenet = await this.agent.load(HomenetEntityBehavior);
-    this.update(homenet.entityState);
-    this.reactTo(homenet.onChange, this.update);
-
-    this.reactTo(this.events.systemMode$Changed, this.systemModeChanged);
-    this.reactTo(this.events.occupiedCoolingSetpoint$Changed, this.coolingSetpointChanged);
+    await thermostatPostInitialize(this);
   }
-
-  // Will be populated by copyPrototype
-  private update!: (entityState: any) => void;
-  private systemModeChanged!: (
-    systemMode: SystemMode,
-    _oldValue: SystemMode,
-    context?: ActionContext,
-  ) => Promise<void>;
-  private coolingSetpointChanged!: (
-    value: number,
-    _oldValue: number,
-    context?: ActionContext,
-  ) => Promise<void>;
 }
 
-// 4. Heating & Cooling variant (no AutoMode)
-const HeatingAndCoolingFeaturedBase = Base.with('Heating', 'Cooling');
+// ── 4. Heating & Cooling variant (no AutoMode) ────────────────────────────
+
 export class ThermostatServerHeatingAndCooling extends HeatingAndCoolingFeaturedBase {
   override async initialize() {
-    this.state.controlSequenceOfOperation = Thermostat.ControlSequenceOfOperation.CoolingAndHeating;
+    thermostatPreInitialize(this);
     await super.initialize();
-
-    const homenet = await this.agent.load(HomenetEntityBehavior);
-    this.update(homenet.entityState);
-    this.reactTo(homenet.onChange, this.update);
-
-    this.reactTo(this.events.systemMode$Changed, this.systemModeChanged);
-    this.reactTo(this.events.occupiedHeatingSetpoint$Changed, this.heatingSetpointChanged);
-    this.reactTo(this.events.occupiedCoolingSetpoint$Changed, this.coolingSetpointChanged);
+    await thermostatPostInitialize(this);
   }
-
-  // Will be populated by copyPrototype
-  private update!: (entityState: any) => void;
-  private systemModeChanged!: (
-    systemMode: SystemMode,
-    _oldValue: SystemMode,
-    context?: ActionContext,
-  ) => Promise<void>;
-  private heatingSetpointChanged!: (
-    value: number,
-    _oldValue: number,
-    context?: ActionContext,
-  ) => Promise<void>;
-  private coolingSetpointChanged!: (
-    value: number,
-    _oldValue: number,
-    context?: ActionContext,
-  ) => Promise<void>;
 }
-
-// Copy methods to prevent code duplication
-copyPrototype(ThermostatServer, ThermostatServerHeatingOnly);
-copyPrototype(ThermostatServer, ThermostatServerCoolingOnly);
-copyPrototype(ThermostatServer, ThermostatServerHeatingAndCooling);
 
 export namespace ThermostatServer {
   export class State extends FullFeaturedBase.State {}

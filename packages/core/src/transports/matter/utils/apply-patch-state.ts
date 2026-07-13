@@ -1,5 +1,6 @@
-// packages/core/src/transports/matter/utils/apply-patch-state.ts
-// Ported from home-assistant-matter-hub (MIT License)
+import { Logger } from '@matter/general';
+
+const logger = Logger.get('ApplyPatchState');
 
 /**
  * Safely applies a patch to Matter state, only updating changed properties.
@@ -20,17 +21,37 @@ export function applyPatchState<T extends object>(state: T, patch: Partial<T>): 
     }
   }
 
-  try {
-    for (const key in actualPatch) {
-      if (Object.hasOwn(actualPatch, key)) {
-        state[key] = actualPatch[key] as T[Extract<keyof T, string>];
+  const failedKeys: string[] = [];
+  for (const key in actualPatch) {
+    if (!Object.hasOwn(actualPatch, key)) continue;
+    try {
+      state[key] = actualPatch[key] as T[Extract<keyof T, string>];
+    } catch (e) {
+      const errorMessage = e instanceof Error ? e.message : String(e);
+      // Endpoint not yet attached to a node, all remaining writes will fail too
+      if (
+        errorMessage.includes(
+          'Endpoint storage inaccessible because endpoint is not a node and is not owned by another endpoint',
+        )
+      ) {
+        logger.debug(
+          `Suppressed endpoint storage error, patch not applied: ${JSON.stringify(actualPatch)}`,
+        );
+        return actualPatch;
       }
+      // Transaction conflict, all remaining writes will also fail
+      if (errorMessage.includes('synchronous-transaction-conflict')) {
+        logger.warn(`Transaction conflict, state update DROPPED: ${JSON.stringify(actualPatch)}`);
+        return actualPatch;
+      }
+      // Per-property failure: log warning and continue with remaining properties
+      failedKeys.push(key);
+      logger.warn(`Failed to set property '${key}': ${errorMessage}`);
     }
-  } catch (e) {
-    throw new Error(
-      `Failed to patch the following properties: ${JSON.stringify(actualPatch, null, 2)}`,
-      { cause: e },
-    );
+  }
+
+  if (failedKeys.length > 0) {
+    logger.warn(`${failedKeys.length} properties failed to update: [${failedKeys.join(', ')}]`);
   }
 
   return actualPatch;

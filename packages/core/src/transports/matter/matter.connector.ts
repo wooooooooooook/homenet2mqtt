@@ -1,6 +1,7 @@
 // packages/core/src/transports/matter/matter.connector.ts
 
 import { Environment, StorageService } from '@matter/main';
+import '@matter/nodejs';
 import { StorageBackendDisk } from '@matter/nodejs';
 import path from 'node:path';
 import fs from 'node:fs';
@@ -56,7 +57,7 @@ export class MatterConnector implements IntegrationConnector {
     });
 
     // 1. Initialize Matter Environment
-    this.env = new Environment(`homenet-matter-${portId}`);
+    this.env = new Environment(`homenet-matter-${portId}`, Environment.default);
 
     // Set storage location and backend
     const storagePath = this.options.storagePath
@@ -89,8 +90,10 @@ export class MatterConnector implements IntegrationConnector {
       this.aggregator,
     );
 
-    // Wait for the server node's construction to be fully ready
+    // Wait for the server node and aggregator construction to be fully ready.
+    // The aggregator must be installed in the Node before add() can be called.
     await this.serverNode.construction.ready;
+    await this.aggregator.construction.ready;
 
     // 4. Find, register and add all supported entities to the aggregator
     const executeCmd = (entityId: string, cmd: string, val?: number | string) =>

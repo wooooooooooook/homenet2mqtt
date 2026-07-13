@@ -12,7 +12,7 @@ export class BasicInformationServer extends Base {
     await super.initialize();
     const homenet = await this.agent.load(HomenetEntityBehavior);
     this.update(homenet.entityConfig, homenet.entityState);
-    this.reactTo(homenet.onChange, this.updateStateOnly);
+    this.reactTo(homenet.onChange, this.updateStateOnly, { offline: true });
   }
 
   private updateStateOnly(entityState: any) {
@@ -32,10 +32,14 @@ export class BasicInformationServer extends Base {
       nodeLabel: trimToLength(friendlyName, 32),
       reachable: entityState != null && entityState.state !== 'unavailable',
       serialNumber: crypto.createHash('md5').update(config.id).digest('hex').substring(0, 32),
+      uniqueId: crypto.createHash('md5').update(config.id).digest('hex').substring(0, 32),
       hardwareVersion: 1,
       softwareVersion: 1,
       hardwareVersionString: '1.0',
       softwareVersionString: '1.0',
     });
   }
+}
+export namespace BasicInformationServer {
+  export class State extends Base.State {}
 }

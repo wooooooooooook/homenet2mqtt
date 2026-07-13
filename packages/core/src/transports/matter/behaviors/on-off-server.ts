@@ -24,6 +24,8 @@ export class OnOffServer extends FeaturedBase {
   }
 
   override async on() {
+    // Set onOff immediately so the controller gets instant feedback
+    applyPatchState(this.state, { onOff: true });
     const homenet = this.agent.get(HomenetEntityBehavior);
     const type = homenet.entityConfig.type;
     const command = type === 'valve' ? 'open' : 'on';
@@ -31,9 +33,14 @@ export class OnOffServer extends FeaturedBase {
   }
 
   override async off() {
+    // Set onOff immediately so the controller gets instant feedback
+    applyPatchState(this.state, { onOff: false });
     const homenet = this.agent.get(HomenetEntityBehavior);
     const type = homenet.entityConfig.type;
     const command = type === 'valve' ? 'close' : 'off';
     await homenet.state.executeCommand(homenet.entityId, command);
   }
+}
+export namespace OnOffServer {
+  export class State extends FeaturedBase.State {}
 }

@@ -30,22 +30,30 @@ export class LockServer extends Base {
       lockType: DoorLock.LockType.DeadBolt,
       operatingMode: DoorLock.OperatingMode.Normal,
       actuatorEnabled: true,
+      // Matter DoorLock bitmap: true = mode NOT supported (inverted semantics)
       supportedOperatingModes: {
-        noRemoteLockUnlock: false,
-        normal: true,
-        passage: false,
-        privacy: false,
-        vacation: false,
+        noRemoteLockUnlock: true,
+        normal: false, // false = supported
+        passage: true,
+        privacy: true,
+        vacation: true,
+        // AlwaysSet (bits 5-15) is mandatory per the Matter spec; matter.js
+        // requires supportedOperatingModes.alwaysSet to be 2047.
+        alwaysSet: 2047,
       },
     });
   }
 
   override async lockDoor() {
+    // Set lockState immediately for instant UI feedback
+    applyPatchState(this.state, { lockState: LockState.Locked });
     const homenet = this.agent.get(HomenetEntityBehavior);
     await homenet.state.executeCommand(homenet.entityId, 'lock');
   }
 
   override async unlockDoor() {
+    // Set lockState immediately for instant UI feedback
+    applyPatchState(this.state, { lockState: LockState.Unlocked });
     const homenet = this.agent.get(HomenetEntityBehavior);
     await homenet.state.executeCommand(homenet.entityId, 'unlock');
   }
