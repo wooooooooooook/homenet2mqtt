@@ -20,34 +20,16 @@ init: false
 hassio_api: true
 auth_api: true
 uart: true
-services:
-  - mqtt:need
 options:
   log_level: info
-  mqtt_topic_prefix: homenet2mqtt
-  discovery_enabled: true
-  use_supervisor_mqtt: true
-  mqtt_url: ""
-  mqtt_need_login: true
-  mqtt_user: ""
-  mqtt_passwd: ""
   config_files:
     - default.homenet_bridge.yaml
   timezone: ""
-  integration_type: matter
 schema:
   log_level: list(trace|debug|info|warn|error|fatal)
-  use_supervisor_mqtt: bool
-  mqtt_url: str?
-  mqtt_need_login: bool
-  mqtt_user: str?
-  mqtt_passwd: str?
-  mqtt_topic_prefix: str?
-  discovery_enabled: bool
   config_files:
     - str
   timezone: str?
-  integration_type: list(mqtt|matter|log)
 ingress: true
 ingress_port: 3000
 ingress_stream: true

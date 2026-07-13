@@ -8,43 +8,57 @@ if [ -f "$CONFIG_PATH" ]; then
   # Home Assistant 애드온 환경
   bashio::log.info "Running as Home Assistant addon"
   export LOG_LEVEL=$(jq --raw-output '.log_level // "info"' $CONFIG_PATH)
-  export USE_SUPERVISOR_MQTT=$(jq --raw-output '.use_supervisor_mqtt' $CONFIG_PATH)
-
-  if [ "$USE_SUPERVISOR_MQTT" == "true" ] && bashio::services.available "mqtt"; then
-    bashio::log.info "Using Supervisor MQTT service"
-    MQTT_HOST=$(bashio::services mqtt "host")
-    MQTT_PORT=$(bashio::services mqtt "port")
-    export MQTT_URL="mqtt://${MQTT_HOST}:${MQTT_PORT}"
-    export MQTT_USER=$(bashio::services mqtt "username")
-    export MQTT_PASSWD=$(bashio::services mqtt "password")
-
-    if [ -n "$MQTT_USER" ] && [ "$MQTT_USER" != "null" ]; then
-      export MQTT_NEED_LOGIN="true"
-    else
-      export MQTT_NEED_LOGIN="false"
-      export MQTT_USER=""
-      export MQTT_PASSWD=""
-    fi
+  # 애드온 slug로 integration_type 자동 판별
+  ADDON_SLUG=$(bashio::addon.slug 2>/dev/null || echo "h2m")
+  if [[ "$ADDON_SLUG" == h2m-matter* ]]; then
+    export INTEGRATION_TYPE="matter"
+    bashio::log.info "Matter addon detected: INTEGRATION_TYPE=matter (MQTT options skipped)"
+    export USE_SUPERVISOR_MQTT="false"
+    export MQTT_URL=""
+    export MQTT_NEED_LOGIN="false"
+    export MQTT_USER=""
+    export MQTT_PASSWD=""
+    export MQTT_TOPIC_PREFIX="homenet2mqtt"
+    export DISCOVERY_ENABLED="false"
   else
-    bashio::log.info "Using user-defined MQTT configuration"
-    export MQTT_URL=$(jq --raw-output '.mqtt_url // ""' $CONFIG_PATH)
-    export MQTT_NEED_LOGIN=$(jq --raw-output '.mqtt_need_login // false' $CONFIG_PATH)
-    export MQTT_USER=$(jq --raw-output '.mqtt_user // ""' $CONFIG_PATH)
-    export MQTT_PASSWD=$(jq --raw-output '.mqtt_passwd // ""' $CONFIG_PATH)
+    export INTEGRATION_TYPE="mqtt"
+    export USE_SUPERVISOR_MQTT=$(jq --raw-output '.use_supervisor_mqtt' $CONFIG_PATH)
 
-    if [ "$MQTT_NEED_LOGIN" != "true" ]; then
-      export MQTT_USER=""
-      export MQTT_PASSWD=""
-    fi
+    if [ "$USE_SUPERVISOR_MQTT" == "true" ] && bashio::services.available "mqtt"; then
+      bashio::log.info "Using Supervisor MQTT service"
+      MQTT_HOST=$(bashio::services mqtt "host")
+      MQTT_PORT=$(bashio::services mqtt "port")
+      export MQTT_URL="mqtt://${MQTT_HOST}:${MQTT_PORT}"
+      export MQTT_USER=$(bashio::services mqtt "username")
+      export MQTT_PASSWD=$(bashio::services mqtt "password")
 
-    if [ -z "$MQTT_URL" ] || [ "$MQTT_URL" == "null" ]; then
-       export MQTT_URL="mqtt://core-mosquitto:1883"
+      if [ -n "$MQTT_USER" ] && [ "$MQTT_USER" != "null" ]; then
+        export MQTT_NEED_LOGIN="true"
+      else
+        export MQTT_NEED_LOGIN="false"
+        export MQTT_USER=""
+        export MQTT_PASSWD=""
+      fi
+    else
+      bashio::log.info "Using user-defined MQTT configuration"
+      export MQTT_URL=$(jq --raw-output '.mqtt_url // ""' $CONFIG_PATH)
+      export MQTT_NEED_LOGIN=$(jq --raw-output '.mqtt_need_login // false' $CONFIG_PATH)
+      export MQTT_USER=$(jq --raw-output '.mqtt_user // ""' $CONFIG_PATH)
+      export MQTT_PASSWD=$(jq --raw-output '.mqtt_passwd // ""' $CONFIG_PATH)
+
+      if [ "$MQTT_NEED_LOGIN" != "true" ]; then
+        export MQTT_USER=""
+        export MQTT_PASSWD=""
+      fi
+
+      if [ -z "$MQTT_URL" ] || [ "$MQTT_URL" == "null" ]; then
+        export MQTT_URL="mqtt://core-mosquitto:1883"
+      fi
     fi
+    export MQTT_TOPIC_PREFIX=$(jq --raw-output '.mqtt_topic_prefix // "homenet2mqtt"' $CONFIG_PATH)
+    export DISCOVERY_ENABLED=$(jq --raw-output '.discovery_enabled // "true"' $CONFIG_PATH)
   fi
-  export MQTT_TOPIC_PREFIX=$(jq --raw-output '.mqtt_topic_prefix // "homenet2mqtt"' $CONFIG_PATH)
   export TIMEZONE=$(jq --raw-output '.timezone // ""' $CONFIG_PATH)
-  export DISCOVERY_ENABLED=$(jq --raw-output '.discovery_enabled // "true"' $CONFIG_PATH)
-  export INTEGRATION_TYPE=$(jq --raw-output '.integration_type // "mqtt"' $CONFIG_PATH)
 
   CONFIG_FILES=$(jq --raw-output '.config_files // [] | join(",")' $CONFIG_PATH)
   LEGACY_CONFIG_FILE=$(jq --raw-output '.config_file // ""' $CONFIG_PATH)

@@ -36,7 +36,6 @@ options:
   config_files:
     - default.homenet_bridge.yaml
   timezone: ""
-  integration_type: mqtt
 schema:
   log_level: list(trace|debug|info|warn|error|fatal)
   use_supervisor_mqtt: bool
@@ -49,7 +48,6 @@ schema:
   config_files:
     - str
   timezone: str?
-  integration_type: list(mqtt|matter|log)
 ingress: true
 ingress_port: 3000
 ingress_stream: true

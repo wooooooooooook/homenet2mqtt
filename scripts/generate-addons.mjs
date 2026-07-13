@@ -41,8 +41,8 @@ function copyDirSync(src, dest, isDevAddon) {
     const srcPath = path.join(src, entry.name);
     const destPath = path.join(dest, entry.name);
 
-    // config-matter.yaml과 logo-dev.png는 템플릿용 특수 파일이므로 직접 대상 디렉토리에 그대로 복사하지 않음
-    if (entry.name === 'config-matter.yaml' || entry.name === 'logo-dev.png') {
+    // config-matter.yaml, logo-dev.png, README-*.md 는 템플릿용 특수 파일이므로 직접 대상 디렉토리에 그대로 복사하지 않음
+    if (entry.name === 'config-matter.yaml' || entry.name === 'logo-dev.png' || /^README-.+\.md$/.test(entry.name)) {
       continue;
     }
 
@@ -99,18 +99,21 @@ function main() {
       folderName: 'Homenet2MQTT',
       isDev: false,
       isMatter: false,
+      readme: null, // 기본 README.md 사용
       updates: {}
     },
     'matter': {
       folderName: 'Homenet2Matter',
       isDev: false,
       isMatter: true,
+      readme: 'README-matter.md',
       updates: {}
     },
     'mqtt-dev': {
       folderName: 'Homenet2MQTT-dev',
       isDev: true,
       isMatter: false,
+      readme: 'README-mqtt-dev.md',
       updates: {
         name: 'Homenet2MQTT (Dev)',
         slug: 'h2m-dev',
@@ -121,6 +124,7 @@ function main() {
       folderName: 'Homenet2Matter-dev',
       isDev: true,
       isMatter: true,
+      readme: 'README-matter-dev.md',
       updates: {
         name: 'Homenet2Matter (Dev)',
         slug: 'h2m-matter-dev',
@@ -165,6 +169,18 @@ function main() {
 
     // config.yaml 업데이트 적용 (이름, 슬러그, 버전, 설명 등)
     updateConfig(configDestPath, updates);
+
+    // 타입별 README 교체
+    if (configData.readme) {
+      const srcReadme = path.join(sourceAddonDir, configData.readme);
+      const destReadme = path.join(destPath, 'README.md');
+      if (fs.existsSync(srcReadme)) {
+        fs.copyFileSync(srcReadme, destReadme);
+        console.log(`  README: ${configData.readme} -> README.md`);
+      } else {
+        console.warn(`  Warning: ${configData.readme} not found, keeping original README.md`);
+      }
+    }
   }
 
   console.log('Done generating addons!');

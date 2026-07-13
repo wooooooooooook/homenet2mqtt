@@ -39,10 +39,6 @@
         "timezone": {
             "name": "타임존",
             "description": "시스템 타임존을 설정합니다. (예: Asia/Seoul) 비워두면 서버는 UTC timezone, UI는 브라우저의 타임존을 사용합니다."
-        },
-        "integration_type": {
-            "name": "연동 타입",
-            "description": "기기 연동 방식을 설정합니다. (mqtt, matter, log)"
         }
     }
 }
