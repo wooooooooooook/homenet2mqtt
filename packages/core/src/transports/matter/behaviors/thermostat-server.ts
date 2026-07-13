@@ -164,46 +164,54 @@ function thermostatPreInitialize(self: any): void {
 
 async function thermostatPostInitialize(self: any): Promise<void> {
   const homenet = await self.agent.load(HomenetEntityBehavior);
-  updateFromEntityState(self, homenet.entityState);
 
-  // executeCommand와 entityId를 state가 살아있는 시점에 미리 캡처한다.
-  // reactTo 콜백은 비동기적으로 실행되므로, 그 시점에는 트랜잭션 컨텍스트
-  // (managed proxy)가 이미 만료되어 homenet.state 접근 시 ExpiredReferenceError가
-  // 발생한다. 클로저로 직접 참조를 보관하면 이 문제를 회피할 수 있다.
+  // executeCommand, entityId, entityConfig(visual)를 state가 살아있는 시점에 미리 캡처한다.
+  // reactTo / onChange 콜백은 post-commit 단계에서 비동기적으로 실행되므로,
+  // 그 시점에는 트랜잭션 컨텍스트(managed proxy)가 이미 만료되어
+  // homenet.state 또는 behavior.agent.get(HomenetEntityBehavior) 접근 시
+  // ExpiredReferenceError가 발생한다.
+  // 클로저로 직접 참조를 보관하면 이 문제를 회피할 수 있다.
   const executeCommand = homenet.state.executeCommand;
   const entityId = homenet.entityId;
+  const entityConfig = homenet.entityConfig as ClimateEntity;
+
+  updateFromEntityState(self, homenet.entityState, entityConfig);
 
   self.reactTo(self.events.systemMode$Changed, (v: SystemMode, o: SystemMode, c?: ActionContext) =>
     handleSystemModeChanged(executeCommand, entityId, v, o, c),
   );
 
+  // temperature_step이 없으면 기본 1°C 단위(Matter 단위: 100)로 snap한다.
+  // Google Home은 Matter spec과 무관하게 0.5°C 단위 UI를 사용할 수 있으므로
+  // step을 명시적으로 적용해 원하지 않는 0.5°C 단위 명령을 방지한다.
+  const temperatureStepMatter = Math.round((entityConfig.visual?.temperature_step ?? 1) * 100);
+
   if (self.features.heating) {
     self.reactTo(
       self.events.occupiedHeatingSetpoint$Changed,
       (v: number, o: number, c?: ActionContext) =>
-        handleSetpointChanged(executeCommand, entityId, v, o, c),
+        handleSetpointChanged(executeCommand, entityId, v, o, c, temperatureStepMatter),
     );
   }
   if (self.features.cooling) {
     self.reactTo(
       self.events.occupiedCoolingSetpoint$Changed,
       (v: number, o: number, c?: ActionContext) =>
-        handleSetpointChanged(executeCommand, entityId, v, o, c),
+        handleSetpointChanged(executeCommand, entityId, v, o, c, temperatureStepMatter),
     );
   }
 
-  self.reactTo(homenet.onChange, (state: any) => updateFromEntityState(self, state));
+  self.reactTo(homenet.onChange, (state: any) => updateFromEntityState(self, state, entityConfig));
 }
 
 // ── Shared update logic ────────────────────────────────────────────────────
 
-function updateFromEntityState(behavior: any, entityState: any): void {
+function updateFromEntityState(behavior: any, entityState: any, entityConfig: ClimateEntity): void {
   const currentTemp = entityState?.current_temperature;
   const targetTemp = entityState?.target_temperature;
   const mode = entityState?.mode;
 
-  const config = behavior.agent.get(HomenetEntityBehavior).entityConfig as ClimateEntity;
-  const visual = config.visual;
+  const visual = entityConfig.visual;
 
   // Use wide defaults (0~50°C) to avoid constraint violations
   const WIDE_MIN = 0;
@@ -290,9 +298,13 @@ async function handleSetpointChanged(
   value: number,
   _oldValue: number,
   context?: ActionContext,
+  stepMatter = 100,
 ): Promise<void> {
   if (transactionIsOffline(context)) return;
-  const targetTemp = value / 100;
+  // step 단위로 반올림: Google Home이 0.5°C 단위로 보내더라도
+  // temperature_step 설정(기본 1°C)에 맞게 snap한다.
+  const snapped = Math.round(value / stepMatter) * stepMatter;
+  const targetTemp = snapped / 100;
   await executeCommand(entityId, 'temperature', targetTemp);
 }
 
