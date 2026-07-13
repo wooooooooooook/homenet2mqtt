@@ -729,12 +729,12 @@ export class HomeNetBridge extends EventEmitter {
       const defaultDiscriminator = 3840 + bridgeIndex;
 
       const mPort = matterConf?.port !== undefined ? matterConf.port : defaultPort;
-      const mPasscode = matterConf?.passcode !== undefined ? matterConf.passcode : 20202021;
-      const mDiscriminator =
-        matterConf?.discriminator !== undefined ? matterConf.discriminator : defaultDiscriminator;
-      const mVendorId = matterConf?.vendor_id !== undefined ? matterConf.vendor_id : 65521;
-      const mProductId = matterConf?.product_id !== undefined ? matterConf.product_id : 32768;
-      const mProductName = matterConf?.product_name || `Homenet Bridge ${bridgeIndex + 1}`;
+      const mPasscode = matterConf?.passcode !== undefined ? matterConf.passcode : undefined;
+      const mDiscriminator = matterConf?.discriminator;
+      const mVendorId = 65521;
+      const mProductId = 32768;
+      const portId = this.config?.serial ? normalizePortId(this.config.serial.portId, 0) : 'bridge';
+      const mProductName = matterConf?.product_name || `H2M ${portId}`;
       const mStoragePath = matterConf?.storage_path;
 
       connector = new MatterConnector({

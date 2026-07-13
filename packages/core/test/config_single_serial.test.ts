@@ -40,7 +40,7 @@ describe('설정 검증 - 단일 시리얼 제한', () => {
     expect(() => validateConfig(config, config)).toThrow('mqtt_topic_prefix');
   });
 
-  it('integration이 설정 파일에 존재하면 예외를 던진다', () => {
+  it('integration이 설정 파일에 존재하더라도 예외를 던지지 않는다', () => {
     const config = {
       integration: {
         type: 'mqtt',
@@ -53,11 +53,9 @@ describe('설정 검증 - 단일 시리얼 제한', () => {
         parity: 'none',
         stop_bits: 1,
       } as any,
-      light: [{ id: 'light1' }],
+      light: [{ id: 'light1', optimistic: true }],
     } as unknown as HomenetBridgeConfig;
 
-    expect(() => validateConfig(config, config)).toThrow(
-      'integration은 더 이상 설정 파일에 정의할 수 없습니다',
-    );
+    expect(() => validateConfig(config, config)).not.toThrow();
   });
 });

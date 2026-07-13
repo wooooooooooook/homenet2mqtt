@@ -59,7 +59,7 @@ export class MatterConnector implements IntegrationConnector {
 
     // 0. Resolve port collision dynamically
     const startPort = this.options.port || 5540;
-    const startDiscriminator = this.options.discriminator || 3840;
+    const startDiscriminator = this.options.discriminator;
 
     let finalPort = startPort;
     let finalDiscriminator = startDiscriminator;
@@ -67,11 +67,17 @@ export class MatterConnector implements IntegrationConnector {
     try {
       finalPort = await findAvailablePort(startPort);
       const portOffset = finalPort - startPort;
-      finalDiscriminator = startDiscriminator + portOffset;
+      if (startDiscriminator !== undefined) {
+        finalDiscriminator = startDiscriminator + portOffset;
+      }
       if (portOffset > 0) {
         logger.warn(
-          { originalPort: startPort, allocatedPort: finalPort, discriminator: finalDiscriminator },
-          `[MatterConnector] Port ${startPort} was occupied. Automatically allocated port ${finalPort} and discriminator ${finalDiscriminator}`,
+          {
+            originalPort: startPort,
+            allocatedPort: finalPort,
+            discriminator: finalDiscriminator ?? 'auto',
+          },
+          `[MatterConnector] Port ${startPort} was occupied. Automatically allocated port ${finalPort} and discriminator ${finalDiscriminator ?? 'auto'}`,
         );
       }
     } catch (err) {

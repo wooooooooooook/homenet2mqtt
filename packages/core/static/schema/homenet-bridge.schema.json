@@ -288,12 +288,6 @@
         "discriminator": {
           "type": "number"
         },
-        "vendor_id": {
-          "type": "number"
-        },
-        "product_id": {
-          "type": "number"
-        },
         "product_name": {
           "type": "string"
         },

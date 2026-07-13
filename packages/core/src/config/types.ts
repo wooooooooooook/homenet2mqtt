@@ -369,8 +369,6 @@ export interface IntegrationConfig {
     port?: number;
     passcode?: number;
     discriminator?: number;
-    vendor_id?: number;
-    product_id?: number;
     product_name?: string;
     storage_path?: string;
   };
@@ -380,8 +378,6 @@ export interface MatterConfig {
   port?: number;
   passcode?: number;
   discriminator?: number;
-  vendor_id?: number;
-  product_id?: number;
   product_name?: string;
   storage_path?: string;
 }
