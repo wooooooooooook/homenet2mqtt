@@ -356,7 +356,7 @@
           {#if !portMetadata.commissioning.isCommissioned && portMetadata.commissioning.qrPairingCode}
             <div class="matter-qr-wrapper">
               <img
-                src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data={encodeURIComponent(
+                src="./api/qr?size=120&data={encodeURIComponent(
                   portMetadata.commissioning.qrPairingCode,
                 )}"
                 alt="Matter Pairing QR Code"

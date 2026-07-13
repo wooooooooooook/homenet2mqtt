@@ -168,7 +168,83 @@ export class MatterConnector implements IntegrationConnector {
 
     logger.info({ portId: this.context.portId }, '[MatterConnector] Starting Matter ServerNode...');
 
-    await this.serverNode.start();
+    let attempts = 0;
+    const maxAttempts = 10;
+    let currentPort = this.serverNode.state.network.port;
+    let currentDiscriminator = this.serverNode.state.commissioning.discriminator;
+
+    while (attempts < maxAttempts) {
+      try {
+        await this.serverNode.start();
+        this.options.port = currentPort;
+        this.options.discriminator = currentDiscriminator;
+        break;
+      } catch (err: any) {
+        attempts++;
+        const errMessage = err?.message || '';
+        const errCode = err?.code;
+        const isAddrInUse =
+          errCode === 'EADDRINUSE' ||
+          errMessage.includes('EADDRINUSE') ||
+          errMessage.includes('Address already in use') ||
+          (err?.cause &&
+            (err.cause.code === 'EADDRINUSE' || String(err.cause.message).includes('EADDRINUSE')));
+
+        if (!isAddrInUse || attempts >= maxAttempts) {
+          logger.error(
+            { err, port: currentPort },
+            `[MatterConnector] Failed to start Matter ServerNode after attempt ${attempts}`,
+          );
+          this.isStarted = false;
+          throw err;
+        }
+
+        try {
+          await this.serverNode.cancel();
+        } catch (cancelErr) {
+          logger.debug({ cancelErr }, '[MatterConnector] Error canceling failed serverNode');
+        }
+
+        const startPort = currentPort + 1;
+        let nextPort = startPort;
+        try {
+          nextPort = await findAvailablePort(startPort);
+        } catch (portErr) {
+          nextPort = startPort;
+        }
+
+        const portOffset = nextPort - currentPort;
+        const nextDiscriminator =
+          currentDiscriminator !== undefined ? currentDiscriminator + portOffset : undefined;
+
+        logger.warn(
+          { port: currentPort, nextPort, nextDiscriminator, attempt: attempts },
+          `[MatterConnector] Port ${currentPort} is already in use. Automatically re-allocated to port ${nextPort} and discriminator ${nextDiscriminator ?? 'auto'} (attempt ${attempts}/${maxAttempts})`,
+        );
+
+        currentPort = nextPort;
+        if (nextDiscriminator !== undefined) {
+          currentDiscriminator = nextDiscriminator;
+        }
+
+        this.serverNode = new BridgeServerNode(
+          this.env,
+          {
+            id: `homenet_${this.context.portId}`,
+            name: `Homenet Bridge ${this.context.portId}`,
+            port: currentPort,
+            passcode: this.options.passcode,
+            discriminator: currentDiscriminator,
+            vendorId: this.options.vendorId,
+            productId: this.options.productId,
+            productName: this.options.productName,
+          },
+          this.aggregator,
+        );
+
+        await this.serverNode.construction.ready;
+      }
+    }
 
     const commissioning = this.serverNode.state.commissioning;
     logger.info(
