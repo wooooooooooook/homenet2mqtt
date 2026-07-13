@@ -123,8 +123,8 @@ jobs:
           secrets: |
             LOG_COLLECTOR_API_KEY=${{ secrets.LOG_COLLECTOR_API_KEY }}
             COMMENT_SECRET=${{ secrets.COMMENT_SECRET }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=${{ github.workflow }}
+          cache-to: type=gha,mode=max,scope=${{ github.workflow }}
 
       - name: Multi-arch smoke test
         if: steps.check_image.outputs.exists != 'true'

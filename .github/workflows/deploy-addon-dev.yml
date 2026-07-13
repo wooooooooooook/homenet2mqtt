@@ -43,9 +43,6 @@ jobs:
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
           echo "Generated version: $VERSION"
 
-          # Update package.json version for the app to show correct version
-          sed -i "0,/\"version\": \".*\"/s//\"version\": \"$VERSION\"/" package.json
-
       - name: Login to Docker Hub
         uses: docker/login-action@v4
         with:
@@ -65,14 +62,16 @@ jobs:
           file: hassio-addon/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
+          build-args: |
+            VERSION=${{ steps.version.outputs.VERSION }}
           tags: |
             nubiz/homenet2mqtt:dev
             nubiz/homenet2mqtt:${{ steps.version.outputs.VERSION }}
           secrets: |
             LOG_COLLECTOR_API_KEY=${{ secrets.LOG_COLLECTOR_API_KEY }}
             COMMENT_SECRET=${{ secrets.COMMENT_SECRET }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=${{ github.workflow }}
+          cache-to: type=gha,mode=max,scope=${{ github.workflow }}
 
       - name: Multi-arch smoke test
         run: |
