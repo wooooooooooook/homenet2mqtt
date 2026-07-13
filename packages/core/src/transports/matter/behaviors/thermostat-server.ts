@@ -171,7 +171,7 @@ async function thermostatPostInitialize(self: any): Promise<void> {
   // homenet.state 또는 behavior.agent.get(HomenetEntityBehavior) 접근 시
   // ExpiredReferenceError가 발생한다.
   // 클로저로 직접 참조를 보관하면 이 문제를 회피할 수 있다.
-  const executeCommand = homenet.state.executeCommand;
+  const executeCommand = homenet.executeCommand.bind(homenet);
   const entityId = homenet.entityId;
   const entityConfig = homenet.entityConfig as ClimateEntity;
 
@@ -282,7 +282,7 @@ function updateFromEntityState(behavior: any, entityState: any, entityConfig: Cl
 }
 
 async function handleSystemModeChanged(
-  executeCommand: HomenetEntityBehavior.State['executeCommand'],
+  executeCommand: HomenetEntityBehavior['executeCommand'],
   entityId: string,
   systemMode: SystemMode,
   _oldValue: SystemMode,
@@ -300,7 +300,7 @@ async function handleSystemModeChanged(
 }
 
 async function handleSetpointChanged(
-  executeCommand: HomenetEntityBehavior.State['executeCommand'],
+  executeCommand: HomenetEntityBehavior['executeCommand'],
   entityId: string,
   value: number,
   _oldValue: number,

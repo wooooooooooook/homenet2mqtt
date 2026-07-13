@@ -33,17 +33,24 @@ export class HomenetEntityBehavior extends Behavior {
   get onChange(): HomenetEntityBehavior.Events['entityState$Changed'] {
     return this.events.entityState$Changed;
   }
+
+  async executeCommand(
+    entityId: string,
+    commandName: string,
+    value?: number | string,
+  ): Promise<{ success: boolean; packet?: string; error?: string }> {
+    const endpoint = this.endpoint as any;
+    if (endpoint && typeof endpoint.executeCommand === 'function') {
+      return endpoint.executeCommand(entityId, commandName, value);
+    }
+    throw new Error(`executeCommand is not defined on endpoint for entity ${entityId}`);
+  }
 }
 
 export namespace HomenetEntityBehavior {
   export class State {
     entityConfig!: EntityConfig;
     entityState!: Record<string, any>;
-    executeCommand!: (
-      entityId: string,
-      commandName: string,
-      value?: number | string,
-    ) => Promise<{ success: boolean; packet?: string; error?: string }>;
   }
 
   export class Events extends EventEmitter {

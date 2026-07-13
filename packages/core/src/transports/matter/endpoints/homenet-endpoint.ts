@@ -6,6 +6,11 @@ import { HomenetEntityBehavior } from '../behaviors/homenet-entity-behavior.js';
 
 export class HomenetEndpoint extends Endpoint {
   readonly entityId: string;
+  readonly executeCommand: (
+    entityId: string,
+    commandName: string,
+    value?: number | string,
+  ) => Promise<{ success: boolean; packet?: string; error?: string }>;
 
   constructor(
     type: EndpointType,
@@ -19,10 +24,10 @@ export class HomenetEndpoint extends Endpoint {
       homenetEntity: {
         entityConfig: config,
         entityState: initialState,
-        executeCommand,
       },
     } as any);
     this.entityId = entityId;
+    this.executeCommand = executeCommand;
   }
 
   async updateState(state: Record<string, any>): Promise<void> {
