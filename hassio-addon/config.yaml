@@ -37,12 +37,6 @@ options:
     - default.homenet_bridge.yaml
   timezone: ""
   integration_type: mqtt
-  matter_port: 5540
-  matter_passcode: 20202021
-  matter_discriminator: 3840
-  matter_vendor_id: 65521
-  matter_product_id: 32768
-  matter_product_name: "Homenet Bridge"
 schema:
   log_level: list(trace|debug|info|warn|error|fatal)
   use_supervisor_mqtt: bool
@@ -56,12 +50,6 @@ schema:
     - str
   timezone: str?
   integration_type: list(mqtt|matter|log)
-  matter_port: int?
-  matter_passcode: int?
-  matter_discriminator: int?
-  matter_vendor_id: int?
-  matter_product_id: int?
-  matter_product_name: str?
 ingress: true
 ingress_port: 3000
 ingress_stream: true

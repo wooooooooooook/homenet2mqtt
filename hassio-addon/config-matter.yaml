@@ -1,8 +1,9 @@
-name: "Homenet2MQTT (Dev)"
-version: "dev"
-slug: "h2m-dev"
-description: "Bridge between RS485 HomeNet devices and MQTT (supports multi-port/topic mapping)"
-url: "https://github.com/wooooooooooook/homenet2mqtt"
+name: Homenet2Matter
+version: 2.15.1
+breaking_versions: [2.0.0]
+slug: h2m-matter
+description: Bridge between RS485 HomeNet devices and Matter (supports multi-port mapping).
+url: https://github.com/wooooooooooook/homenet2mqtt
 arch:
   - aarch64
   - amd64
@@ -14,15 +15,13 @@ map:
     read_only: false
     path: /homeassistant
 hassio_role: default
+host_network: true
 init: false
 hassio_api: true
 auth_api: true
 uart: true
 services:
   - mqtt:need
-ports:
-  5540/tcp: 5540
-  5540/udp: 5540
 options:
   log_level: info
   mqtt_topic_prefix: homenet2mqtt
@@ -35,6 +34,7 @@ options:
   config_files:
     - default.homenet_bridge.yaml
   timezone: ""
+  integration_type: matter
 schema:
   log_level: list(trace|debug|info|warn|error|fatal)
   use_supervisor_mqtt: bool
@@ -47,6 +47,7 @@ schema:
   config_files:
     - str
   timezone: str?
+  integration_type: list(mqtt|matter|log)
 ingress: true
 ingress_port: 3000
 ingress_stream: true

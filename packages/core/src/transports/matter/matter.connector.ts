@@ -5,6 +5,7 @@ import '@matter/nodejs';
 import { StorageBackendDisk } from '@matter/nodejs';
 import path from 'node:path';
 import fs from 'node:fs';
+import net from 'node:net';
 
 import { IntegrationConnector, ConnectorContext } from '../../service/connector.interface.js';
 import { logger } from '../../utils/logger.js';
@@ -56,6 +57,30 @@ export class MatterConnector implements IntegrationConnector {
       portId,
     });
 
+    // 0. Resolve port collision dynamically
+    const startPort = this.options.port || 5540;
+    const startDiscriminator = this.options.discriminator || 3840;
+
+    let finalPort = startPort;
+    let finalDiscriminator = startDiscriminator;
+
+    try {
+      finalPort = await findAvailablePort(startPort);
+      const portOffset = finalPort - startPort;
+      finalDiscriminator = startDiscriminator + portOffset;
+      if (portOffset > 0) {
+        logger.warn(
+          { originalPort: startPort, allocatedPort: finalPort, discriminator: finalDiscriminator },
+          `[MatterConnector] Port ${startPort} was occupied. Automatically allocated port ${finalPort} and discriminator ${finalDiscriminator}`,
+        );
+      }
+    } catch (err) {
+      logger.error(
+        { err },
+        '[MatterConnector] Failed to find available port, falling back to configured port.',
+      );
+    }
+
     // 1. Initialize Matter Environment
     this.env = new Environment(`homenet-matter-${portId}`, Environment.default);
 
@@ -80,9 +105,9 @@ export class MatterConnector implements IntegrationConnector {
       {
         id: `homenet_${portId}`,
         name: `Homenet Bridge ${portId}`,
-        port: this.options.port,
+        port: finalPort,
         passcode: this.options.passcode,
-        discriminator: this.options.discriminator,
+        discriminator: finalDiscriminator,
         vendorId: this.options.vendorId,
         productId: this.options.productId,
         productName: this.options.productName,
@@ -207,4 +232,31 @@ export class MatterConnector implements IntegrationConnector {
   private handleStateChanged = (event: StateChangedEvent) => {
     this.onStateChanged(event);
   };
+}
+
+function isPortAvailable(port: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const server = net.createServer();
+    server.once('error', () => {
+      resolve(false);
+    });
+    server.once('listening', () => {
+      server.close(() => {
+        resolve(true);
+      });
+    });
+    server.listen(port, '0.0.0.0');
+  });
+}
+
+async function findAvailablePort(startPort: number, maxAttempts = 100): Promise<number> {
+  let port = startPort;
+  for (let i = 0; i < maxAttempts; i++) {
+    if (await isPortAvailable(port)) {
+      return port;
+    }
+    logger.warn(`[MatterConnector] Port ${port} is already in use, trying next port...`);
+    port++;
+  }
+  throw new Error(`Could not find an available port starting from ${startPort}`);
 }

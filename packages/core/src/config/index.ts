@@ -411,6 +411,52 @@ export function validateConfig(
     );
   }
 
+  if (
+    (config as any).integration !== undefined ||
+    (rawConfig && (rawConfig as any).integration !== undefined)
+  ) {
+    errors.push(
+      'integration은 더 이상 설정 파일에 정의할 수 없습니다. INTEGRATION_TYPE 및 관련 환경변수를 사용하세요.',
+    );
+  }
+
+  if (config.matter) {
+    const matter = config.matter;
+    if (
+      matter.port !== undefined &&
+      (typeof matter.port !== 'number' || Number.isNaN(matter.port))
+    ) {
+      errors.push('matter.port는 숫자여야 합니다.');
+    }
+    if (
+      matter.passcode !== undefined &&
+      (typeof matter.passcode !== 'number' || Number.isNaN(matter.passcode))
+    ) {
+      errors.push('matter.passcode는 숫자여야 합니다.');
+    }
+    if (
+      matter.discriminator !== undefined &&
+      (typeof matter.discriminator !== 'number' || Number.isNaN(matter.discriminator))
+    ) {
+      errors.push('matter.discriminator는 숫자여야 합니다.');
+    }
+    if (
+      matter.vendor_id !== undefined &&
+      (typeof matter.vendor_id !== 'number' || Number.isNaN(matter.vendor_id))
+    ) {
+      errors.push('matter.vendor_id는 숫자여야 합니다.');
+    }
+    if (
+      matter.product_id !== undefined &&
+      (typeof matter.product_id !== 'number' || Number.isNaN(matter.product_id))
+    ) {
+      errors.push('matter.product_id는 숫자여야 합니다.');
+    }
+    if (matter.product_name !== undefined && typeof matter.product_name !== 'string') {
+      errors.push('matter.product_name은 문자열이어야 합니다.');
+    }
+  }
+
   if (!config.serial) {
     errors.push('serial 설정은 필수입니다.');
   }

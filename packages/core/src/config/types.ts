@@ -376,16 +376,26 @@ export interface IntegrationConfig {
   };
 }
 
+export interface MatterConfig {
+  port?: number;
+  passcode?: number;
+  discriminator?: number;
+  vendor_id?: number;
+  product_id?: number;
+  product_name?: string;
+  storage_path?: string;
+}
+
 /**
  * Root configuration structure for HomeNet Bridge (`homenet_bridge` key).
  */
 export interface HomenetBridgeConfig {
-  /** Integration settings (MQTT, Matter) */
-  integration?: IntegrationConfig;
   /** Global packet defaults (headers, checksums, timings). */
   packet_defaults?: PacketDefaults;
   /** Serial port settings. */
   serial: SerialConfig;
+  /** Matter integration settings. */
+  matter?: MatterConfig;
   /** Generic devices list. */
   devices?: DeviceConfig[];
   /** Light entities. */

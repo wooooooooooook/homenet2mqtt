@@ -559,6 +559,7 @@ async function instantiateBridges(
         mqttTopicPrefix: BASE_MQTT_PREFIX,
         configOverride: result.config,
         enableDiscovery: process.env.DISCOVERY_ENABLED !== 'false',
+        bridgeIndex: i,
       });
 
       // Listen for status changes from the bridge

@@ -39,6 +39,10 @@
         "timezone": {
             "name": "Timezone",
             "description": "System timezone (e.g., Asia/Seoul). If left empty, the server uses UTC timezone, and the UI uses the browser's timezone."
+        },
+        "integration_type": {
+            "name": "Integration Type",
+            "description": "Set the device integration mode. (mqtt, matter, log)"
         }
     }
 }

@@ -10,8 +10,19 @@ on:
       - main
     paths:
       - 'packages/**'
-      - 'hassio-addon-dev/**'
+      - 'hassio-addon/**'
   workflow_dispatch:
+    inputs:
+      deploy_mqtt:
+        description: 'Deploy Homenet2MQTT-dev (MQTT dev)'
+        type: boolean
+        required: true
+        default: true
+      deploy_matter:
+        description: 'Deploy Homenet2Matter-dev (Matter dev)'
+        type: boolean
+        required: true
+        default: true
 
 permissions:
   contents: read
@@ -32,9 +43,6 @@ jobs:
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
           echo "Generated version: $VERSION"
 
-          # Update config.yaml with timestamp version
-          sed -i "s/^version: .*/version: \"$VERSION\"/" hassio-addon-dev/config.yaml
-
           # Update package.json version for the app to show correct version
           sed -i "0,/\"version\": \".*\"/s//\"version\": \"$VERSION\"/" package.json
 
@@ -54,7 +62,7 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: .
-          file: hassio-addon-dev/Dockerfile
+          file: hassio-addon/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
@@ -84,12 +92,6 @@ jobs:
         with:
           path: source
 
-      - name: Update Config Version (From Build Job)
-        run: |
-          VERSION="${{ needs.build.outputs.VERSION }}"
-          echo "Using version from build: $VERSION"
-          sed -i "s/^version: .*/version: \"$VERSION\"/" source/hassio-addon-dev/config.yaml
-
       - name: Checkout Target Repo
         uses: actions/checkout@v6
         with:
@@ -97,10 +99,40 @@ jobs:
           token: ${{ secrets.ADDONS_REPO_TOKEN }}
           path: target
 
+      - name: Install js-yaml
+        run: npm install -g js-yaml
+
       - name: Sync Files
         run: |
-          mkdir -p target/Homenet2MQTT-dev
-          cp -r source/hassio-addon-dev/* target/Homenet2MQTT-dev/
+          VERSION="${{ needs.build.outputs.VERSION }}"
+          
+          # Default to true for push triggers, respect inputs for manual dispatch
+          DEPLOY_MQTT="true"
+          DEPLOY_MATTER="true"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            DEPLOY_MQTT="${{ github.event.inputs.deploy_mqtt }}"
+            DEPLOY_MATTER="${{ github.event.inputs.deploy_matter }}"
+          fi
+
+          TYPES=""
+          if [ "$DEPLOY_MQTT" = "true" ]; then
+            TYPES="mqtt-dev"
+          fi
+          if [ "$DEPLOY_MATTER" = "true" ]; then
+            if [ -n "$TYPES" ]; then
+              TYPES="$TYPES,matter-dev"
+            else
+              TYPES="matter-dev"
+            fi
+          fi
+
+          if [ -z "$TYPES" ]; then
+            echo "No dev addons selected for deployment. Skipping sync."
+            exit 0
+          fi
+
+          export NODE_PATH=$(npm root -g)
+          node source/scripts/generate-addons.mjs --target target --version "$VERSION" --types "$TYPES"
 
           # Check for changes
           cd target
@@ -108,7 +140,7 @@ jobs:
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
             git add .
-            git commit -m "Update homenet2mqtt-dev addon (Build ${{ needs.build.outputs.VERSION }})"
+            git commit -m "Update dev addons ($TYPES) (Build $VERSION)"
             git pull --rebase
             git push
           else

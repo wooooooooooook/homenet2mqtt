@@ -63,6 +63,7 @@ export interface BridgeOptions {
   configOverride?: HomenetBridgeConfig;
   serialFactory?: SerialFactory;
   enableDiscovery?: boolean; // Enable Home Assistant MQTT Discovery (default: true)
+  bridgeIndex?: number;
 }
 
 import { EventEmitter } from 'node:events';
@@ -698,23 +699,22 @@ export class HomeNetBridge extends EventEmitter {
       this.resolvedPortTopicPrefixes.set(normalizedPortId, portPrefix);
     }
 
-    // Determine integration connector based on config, environment variables, or fallback to options
+    // Determine integration connector based on environment variables, or fallback to options
     let connector: IntegrationConnector | undefined;
-    const integrationType = (process.env.INTEGRATION_TYPE ||
-      this.config.integration?.type ||
-      'mqtt') as 'mqtt' | 'matter' | 'log';
-    const integrationConfig = (this.config.integration || {}) as any;
+    const integrationType = (process.env.INTEGRATION_TYPE || 'mqtt') as 'mqtt' | 'matter' | 'log';
 
-    logger.info({ integrationType, integrationConfig }, '[core] Loaded integration config');
+    logger.info({ integrationType }, '[core] Loaded integration config from environment variables');
 
     if (integrationType === 'mqtt') {
-      const mqttConf = integrationConfig.mqtt || {};
       connector = new MqttConnector({
-        mqttUrl: mqttConf.url || this.options.mqttUrl || '',
-        mqttUsername: mqttConf.username || this.options.mqttUsername,
-        mqttPassword: mqttConf.password || this.options.mqttPassword,
-        mqttTopicPrefix: mqttConf.topic_prefix || this.options.mqttTopicPrefix,
-        enableDiscovery: mqttConf.enable_discovery ?? this.options.enableDiscovery,
+        mqttUrl: process.env.MQTT_URL?.trim() || this.options.mqttUrl || '',
+        mqttUsername: process.env.MQTT_USER?.trim() || this.options.mqttUsername,
+        mqttPassword: process.env.MQTT_PASSWD?.trim() || this.options.mqttPassword,
+        mqttTopicPrefix: process.env.MQTT_TOPIC_PREFIX?.trim() || this.options.mqttTopicPrefix,
+        enableDiscovery:
+          process.env.DISCOVERY_ENABLED !== undefined
+            ? process.env.DISCOVERY_ENABLED !== 'false'
+            : this.options.enableDiscovery,
       });
     } else if (integrationType === 'matter') {
       const { MatterConnector } = await import('../transports/matter/matter.connector.js').catch(
@@ -723,25 +723,19 @@ export class HomeNetBridge extends EventEmitter {
         },
       );
 
-      const mPort = process.env.MATTER_PORT
-        ? parseInt(process.env.MATTER_PORT, 10)
-        : integrationConfig.matter?.port;
-      const mPasscode = process.env.MATTER_PASSCODE
-        ? parseInt(process.env.MATTER_PASSCODE, 10)
-        : integrationConfig.matter?.passcode;
-      const mDiscriminator = process.env.MATTER_DISCRIMINATOR
-        ? parseInt(process.env.MATTER_DISCRIMINATOR, 10)
-        : integrationConfig.matter?.discriminator;
-      const mVendorId = process.env.MATTER_VENDOR_ID
-        ? parseInt(process.env.MATTER_VENDOR_ID, 10)
-        : integrationConfig.matter?.vendor_id;
-      const mProductId = process.env.MATTER_PRODUCT_ID
-        ? parseInt(process.env.MATTER_PRODUCT_ID, 10)
-        : integrationConfig.matter?.product_id;
-      const mProductName =
-        process.env.MATTER_PRODUCT_NAME || integrationConfig.matter?.product_name;
-      const mStoragePath =
-        process.env.MATTER_STORAGE_PATH || integrationConfig.matter?.storage_path;
+      const matterConf = this.config.matter;
+      const bridgeIndex = this.options.bridgeIndex || 0;
+      const defaultPort = 5540 + bridgeIndex;
+      const defaultDiscriminator = 3840 + bridgeIndex;
+
+      const mPort = matterConf?.port !== undefined ? matterConf.port : defaultPort;
+      const mPasscode = matterConf?.passcode !== undefined ? matterConf.passcode : 20202021;
+      const mDiscriminator =
+        matterConf?.discriminator !== undefined ? matterConf.discriminator : defaultDiscriminator;
+      const mVendorId = matterConf?.vendor_id !== undefined ? matterConf.vendor_id : 65521;
+      const mProductId = matterConf?.product_id !== undefined ? matterConf.product_id : 32768;
+      const mProductName = matterConf?.product_name || `Homenet Bridge ${bridgeIndex + 1}`;
+      const mStoragePath = matterConf?.storage_path;
 
       connector = new MatterConnector({
         port: mPort,

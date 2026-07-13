@@ -5,7 +5,6 @@ on:
   push:
     paths:
       - 'hassio-addon/**'
-      - 'hassio-addon-dev/**'
       - '.github/workflows/verify-arm64-runtime.yml'
 
 jobs:
@@ -13,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        addon: ['hassio-addon', 'hassio-addon-dev']
+        addon: ['hassio-addon']
     steps:
       - name: Checkout
         uses: actions/checkout@v6

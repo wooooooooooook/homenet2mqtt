@@ -45,20 +45,6 @@ if [ -f "$CONFIG_PATH" ]; then
   export TIMEZONE=$(jq --raw-output '.timezone // ""' $CONFIG_PATH)
   export DISCOVERY_ENABLED=$(jq --raw-output '.discovery_enabled // "true"' $CONFIG_PATH)
   export INTEGRATION_TYPE=$(jq --raw-output '.integration_type // "mqtt"' $CONFIG_PATH)
-  export MATTER_PORT=$(jq --raw-output '.matter_port // ""' $CONFIG_PATH)
-  export MATTER_PASSCODE=$(jq --raw-output '.matter_passcode // ""' $CONFIG_PATH)
-  export MATTER_DISCRIMINATOR=$(jq --raw-output '.matter_discriminator // ""' $CONFIG_PATH)
-  export MATTER_VENDOR_ID=$(jq --raw-output '.matter_vendor_id // ""' $CONFIG_PATH)
-  export MATTER_PRODUCT_ID=$(jq --raw-output '.matter_product_id // ""' $CONFIG_PATH)
-  export MATTER_PRODUCT_NAME=$(jq --raw-output '.matter_product_name // ""' $CONFIG_PATH)
-
-  # Filter out "null" values from jq
-  [ "$MATTER_PORT" == "null" ] && export MATTER_PORT=""
-  [ "$MATTER_PASSCODE" == "null" ] && export MATTER_PASSCODE=""
-  [ "$MATTER_DISCRIMINATOR" == "null" ] && export MATTER_DISCRIMINATOR=""
-  [ "$MATTER_VENDOR_ID" == "null" ] && export MATTER_VENDOR_ID=""
-  [ "$MATTER_PRODUCT_ID" == "null" ] && export MATTER_PRODUCT_ID=""
-  [ "$MATTER_PRODUCT_NAME" == "null" ] && export MATTER_PRODUCT_NAME=""
 
   CONFIG_FILES=$(jq --raw-output '.config_files // [] | join(",")' $CONFIG_PATH)
   LEGACY_CONFIG_FILE=$(jq --raw-output '.config_file // ""' $CONFIG_PATH)
@@ -89,12 +75,6 @@ else
   export DISCOVERY_ENABLED="${DISCOVERY_ENABLED:-false}"
   export CONFIG_FILES="${CONFIG_FILES:-}"
   export INTEGRATION_TYPE="${INTEGRATION_TYPE:-mqtt}"
-  export MATTER_PORT="${MATTER_PORT:-}"
-  export MATTER_PASSCODE="${MATTER_PASSCODE:-}"
-  export MATTER_DISCRIMINATOR="${MATTER_DISCRIMINATOR:-}"
-  export MATTER_VENDOR_ID="${MATTER_VENDOR_ID:-}"
-  export MATTER_PRODUCT_ID="${MATTER_PRODUCT_ID:-}"
-  export MATTER_PRODUCT_NAME="${MATTER_PRODUCT_NAME:-}"
   
   # CONFIG_ROOT 환경변수 또는 기본값 /config 사용
   HA_CONFIG_DIR="${CONFIG_ROOT:-/config}"
