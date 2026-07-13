@@ -19,7 +19,7 @@ export class LockServer extends Base {
     this._executeCommand = homenet.state.executeCommand;
     this._entityId = homenet.entityId;
     this.update(homenet.entityState);
-    this.reactTo(homenet.onChange, this.update);
+    this.reactTo(homenet.onChange, this.update, { offline: true });
   }
 
   private update(entityState: any) {

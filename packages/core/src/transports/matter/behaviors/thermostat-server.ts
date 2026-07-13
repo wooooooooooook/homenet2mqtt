@@ -177,8 +177,11 @@ async function thermostatPostInitialize(self: any): Promise<void> {
 
   updateFromEntityState(self, homenet.entityState, entityConfig);
 
-  self.reactTo(self.events.systemMode$Changed, (v: SystemMode, o: SystemMode, c?: ActionContext) =>
-    handleSystemModeChanged(executeCommand, entityId, v, o, c),
+  self.reactTo(
+    self.events.systemMode$Changed,
+    (v: SystemMode, o: SystemMode, c?: ActionContext) =>
+      handleSystemModeChanged(executeCommand, entityId, v, o, c),
+    { offline: true },
   );
 
   // temperature_step이 없으면 기본 1°C 단위(Matter 단위: 100)로 snap한다.
@@ -191,6 +194,7 @@ async function thermostatPostInitialize(self: any): Promise<void> {
       self.events.occupiedHeatingSetpoint$Changed,
       (v: number, o: number, c?: ActionContext) =>
         handleSetpointChanged(executeCommand, entityId, v, o, c, temperatureStepMatter),
+      { offline: true },
     );
   }
   if (self.features.cooling) {
@@ -198,10 +202,13 @@ async function thermostatPostInitialize(self: any): Promise<void> {
       self.events.occupiedCoolingSetpoint$Changed,
       (v: number, o: number, c?: ActionContext) =>
         handleSetpointChanged(executeCommand, entityId, v, o, c, temperatureStepMatter),
+      { offline: true },
     );
   }
 
-  self.reactTo(homenet.onChange, (state: any) => updateFromEntityState(self, state, entityConfig));
+  self.reactTo(homenet.onChange, (state: any) => updateFromEntityState(self, state, entityConfig), {
+    offline: true,
+  });
 }
 
 // ── Shared update logic ────────────────────────────────────────────────────

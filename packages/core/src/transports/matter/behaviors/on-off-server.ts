@@ -20,7 +20,7 @@ export class OnOffServer extends FeaturedBase {
     this._entityId = homenet.entityId;
     this._entityType = homenet.entityConfig.type ?? '';
     this.update(homenet.entityState);
-    this.reactTo(homenet.onChange, this.update);
+    this.reactTo(homenet.onChange, this.update, { offline: true });
   }
 
   private update(entityState: any) {
