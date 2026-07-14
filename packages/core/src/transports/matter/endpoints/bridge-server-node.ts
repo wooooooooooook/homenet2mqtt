@@ -30,8 +30,8 @@ export class BridgeServerNode extends ServerNode {
         port: options.port ?? 5540,
       },
       commissioning: {
-        passcode: options.passcode,
-        discriminator: options.discriminator,
+        passcode: options.passcode ?? -1,
+        discriminator: options.discriminator ?? -1,
       },
       productDescription: {
         name,
