@@ -410,6 +410,7 @@
   },
   "sidebar": {
     "dashboard": "대시보드",
+    "devices": "기기",
     "analysis": "분석",
     "gallery": "갤러리",
     "settings": "설정",
@@ -945,5 +946,18 @@
     "state_updated": "상태가 갱신되었습니다.",
     "entity_renamed_title": "엔티티 이름 변경",
     "entity_renamed_message": "{name} 으로 이름이 변경되었습니다."
+  },
+  "devices": {
+    "title": "기기 목록",
+    "subtitle": "연결된 기기(엔티티)의 상세 상태를 확인하고 관리합니다.",
+    "name": "이름",
+    "id": "ID",
+    "type": "타입",
+    "port": "포트",
+    "status": "상태",
+    "search_placeholder": "기기 이름 또는 ID로 검색...",
+    "no_devices": "등록된 기기가 없습니다.",
+    "active": "활성",
+    "inactive": "비활성"
   }
 }
