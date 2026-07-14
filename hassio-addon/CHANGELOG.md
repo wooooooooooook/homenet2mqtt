@@ -1,6 +1,9 @@
 ** ⚠️ 업데이트 전 백업 권장 **
 - 오류가 있으면 homeasssutant [카페](https://cafe.naver.com/koreassistant), [깃헙](https://github.com/wooooooooooook/homenet2mqtt), [디스코드](https://discord.gg/kGwhUBMe5z) 등으로 알려주세요.
 
+v2.15.3
+- ui: 기기목록뷰 추가 및 엔티티정보 창에 상세정보탭 추가
+
 v2.15.2
 - fix: `optimistic: true`인 엔티티에서 `command_*`를 비워둔경우 패킷전송 시도를 하지 않도록 수정.
 
