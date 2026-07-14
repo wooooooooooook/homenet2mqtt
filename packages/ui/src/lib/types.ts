@@ -153,6 +153,7 @@ export type BridgeEntry = {
       label: string;
     }[];
     deviceCount?: number;
+    productName?: string;
   } | null;
 };
 

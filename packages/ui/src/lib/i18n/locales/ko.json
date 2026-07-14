@@ -642,7 +642,7 @@
       "status": "상태 & 명령",
       "execute": "실행",
       "status_run": "상태 & 실행",
-      "mqtt": "상세정보",
+      "details": "상세정보",
       "config": "설정 (YAML)",
       "packets": "패킷 로그",
       "manage": "관리",

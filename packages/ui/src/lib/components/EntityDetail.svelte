@@ -20,6 +20,7 @@
     EntityCategory,
     ActivityLog,
     EntityErrorEvent,
+    BridgeInfo,
   } from '../types';
 
   let {
@@ -36,6 +37,7 @@
     onRename,
     onUpdate,
     editorMode = 'monaco',
+    bridgeInfo = null,
   }: {
     entity: UnifiedEntity;
     parsedPackets?: ParsedPacket[];
@@ -50,11 +52,108 @@
     onRename?: (newName: string, updateObjectId: boolean) => void;
     onUpdate?: (updates: Partial<UnifiedEntity>) => void;
     editorMode?: 'monaco' | 'textarea';
+    bridgeInfo?: BridgeInfo | null;
   } = $props();
 
-  let activeTab = $state<'status' | 'config' | 'packets' | 'manage' | 'execute' | 'logs' | 'mqtt'>(
-    'status',
-  );
+  let activeTab = $state<
+    'status' | 'config' | 'packets' | 'manage' | 'execute' | 'logs' | 'details'
+  >('status');
+
+  const integrationType = $derived.by(() => {
+    if (!bridgeInfo || !entity.portId) return 'mqtt';
+    const br = bridgeInfo.bridges.find((b) => b.serial?.portId === entity.portId);
+    return br?.integrationType || 'mqtt';
+  });
+
+  function getPayloadObj(payload?: string): Record<string, any> {
+    if (!payload) return {};
+    try {
+      const parsed = JSON.parse(payload);
+      if (typeof parsed === 'object' && parsed !== null) {
+        return parsed;
+      }
+    } catch {
+      // ignore
+    }
+    return {};
+  }
+
+  function getDeterministicEndpoint(entityId: string): number {
+    let hash = 0;
+    for (let i = 0; i < entityId.length; i++) {
+      hash = entityId.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return Math.abs(hash % 30) + 2; // Endpoint 2 to 31
+  }
+
+  const matterDeviceDetails = $derived.by(() => {
+    const payload = getPayloadObj(entity.statePayload);
+    const hasBrightness =
+      entity.commands.some((c) => c.commandName.includes('brightness')) || 'brightness' in payload;
+
+    let deviceName = 'Unknown';
+    let deviceCode = '0x0000';
+    let clusters: string[] = ['descriptor'];
+
+    if (entity.type === 'light') {
+      if (hasBrightness) {
+        deviceName = 'DimmableLight';
+        deviceCode = '0x0101';
+        clusters = ['groups', 'onOff', 'levelControl', 'scenesManagement', 'descriptor'];
+      } else {
+        deviceName = 'OnOffLight';
+        deviceCode = '0x0100';
+        clusters = ['groups', 'onOff', 'scenesManagement', 'descriptor'];
+      }
+    } else if (entity.type === 'switch' || entity.type === 'valve') {
+      deviceName = 'OnOffPlugInUnit';
+      deviceCode = '0x010a';
+      clusters = ['groups', 'onOff', 'scenesManagement', 'descriptor'];
+    } else if (entity.type === 'climate') {
+      deviceName = 'Thermostat';
+      deviceCode = '0x0301';
+      clusters = ['thermostat', 'descriptor'];
+    } else if (entity.type === 'lock') {
+      deviceName = 'DoorLock';
+      deviceCode = '0x000a';
+      clusters = ['doorLock', 'descriptor'];
+    }
+
+    const endpointNumber = getDeterministicEndpoint(entity.id);
+
+    // Dynamic state
+    const isStateOn =
+      payload.state === 'on' ||
+      payload.state === true ||
+      payload.on === true ||
+      payload.power === 'on';
+    const hasState = 'state' in payload || 'on' in payload || 'power' in payload;
+    const summaryState = hasState ? (isStateOn ? 'On' : 'Off') : 'Unknown';
+
+    let bridgeName = 'ha2matter';
+    if (bridgeInfo && entity.portId) {
+      const br = bridgeInfo.bridges.find((b) => b.serial?.portId === entity.portId);
+      if (br) {
+        if (br.commissioning?.productName) {
+          bridgeName = br.commissioning.productName;
+        } else {
+          const baseName = br.configFile.split('/').pop() || '';
+          bridgeName = baseName.replace(/\.homenet_bridge\.yaml$/, '').replace(/\.yaml$/, '');
+        }
+      }
+    }
+
+    return {
+      deviceName,
+      deviceCode,
+      summaryState,
+      bridgeName,
+      endpointNumber,
+      clusters,
+      payload,
+      isStateOn,
+    };
+  });
   let activeTabEntityId = $state<string | null>(null);
   let editingConfig = $state('');
   let configLoading = $state(false);
@@ -503,7 +602,7 @@
   }
 
   $effect(() => {
-    if (isOpen && entity && activeTab === 'mqtt') {
+    if (isOpen && entity && activeTab === 'details') {
       loadMqttInfo();
     }
   });
@@ -988,14 +1087,15 @@
           class:active={activeTab === 'status'}
           onclick={() => (activeTab = 'status')}>{$t('entity_detail.tabs.status')}</button
         >
+
         <button
           role="tab"
-          id="tab-mqtt"
-          aria-selected={activeTab === 'mqtt'}
-          aria-controls="panel-mqtt"
-          tabindex={activeTab === 'mqtt' ? 0 : -1}
-          class:active={activeTab === 'mqtt'}
-          onclick={() => (activeTab = 'mqtt')}>{$t('entity_detail.tabs.mqtt')}</button
+          id="tab-details"
+          aria-selected={activeTab === 'details'}
+          aria-controls="panel-details"
+          tabindex={activeTab === 'details' ? 0 : -1}
+          class:active={activeTab === 'details'}
+          onclick={() => (activeTab = 'details')}>{$t('entity_detail.tabs.details')}</button
         >
       {:else}
         <button
@@ -1247,93 +1347,499 @@
             {/if}
           </div>
         </div>
-      {:else if activeTab === 'mqtt'}
-        <div role="tabpanel" id="panel-mqtt" aria-labelledby="tab-mqtt" tabindex="0">
-          <div class="section mqtt-detail-section">
-            <h4>{$t('entity_detail.mqtt.title')}</h4>
-
-            {#if mqttLoading}
-              <div class="loading" role="status" aria-live="polite">
-                {$t('entity_detail.mqtt.loading')}
+      {:else if activeTab === 'details'}
+        <div role="tabpanel" id="panel-details" aria-labelledby="tab-details" tabindex="0">
+          <div class="section details-section">
+            <!-- 1. 기기 설정 요약 (공통) -->
+            <div class="detail-section-title">{$t('entity_detail.mqtt.config_summary')}</div>
+            <div class="summary-grid">
+              <div class="summary-item">
+                <span class="summary-label">{$t('entity_detail.mqtt.port_id')}</span>
+                <span class="summary-value">{entity.portId || $t('entity_detail.mqtt.none')}</span>
               </div>
-            {:else if mqttError}
-              <div class="save-message error">{mqttError}</div>
-            {:else}
-              <div class="detail-grid">
-                <!-- 1. 기기 설정 요약 -->
-                <div class="detail-section-title">{$t('entity_detail.mqtt.config_summary')}</div>
-                <div class="summary-grid">
-                  <div class="summary-item">
-                    <span class="summary-label">{$t('entity_detail.mqtt.port_id')}</span>
-                    <span class="summary-value"
-                      >{entity.portId || $t('entity_detail.mqtt.none')}</span
-                    >
+              <div class="summary-item">
+                <span class="summary-label">{$t('entity_detail.mqtt.type')}</span>
+                <span class="summary-value">{entity.type || $t('entity_detail.mqtt.none')}</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-label">{$t('entity_detail.mqtt.optimistic')}</span>
+                <span class="summary-value">
+                  {#if parsedYamlConfig && parsedYamlConfig.optimistic === true}
+                    {$t('entity_detail.mqtt.yes')}
+                  {:else}
+                    {$t('entity_detail.mqtt.no')}
+                  {/if}
+                </span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-label">{$t('entity_detail.mqtt.internal')}</span>
+                <span class="summary-value">
+                  {#if entity.internal === true}
+                    {$t('entity_detail.mqtt.yes')}
+                  {:else}
+                    {$t('entity_detail.mqtt.no')}
+                  {/if}
+                </span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-label">{$t('entity_detail.mqtt.discovery_always')}</span>
+                <span class="summary-value">
+                  {#if entity.discoveryAlways === true}
+                    {$t('entity_detail.mqtt.yes')}
+                  {:else}
+                    {$t('entity_detail.mqtt.no')}
+                  {/if}
+                </span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-label">{$t('entity_detail.mqtt.device_class')}</span>
+                <span class="summary-value">
+                  {(parsedYamlConfig && parsedYamlConfig.device_class) ||
+                    $t('entity_detail.mqtt.none')}
+                </span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-label">{$t('entity_detail.mqtt.icon')}</span>
+                <span class="summary-value">
+                  {(parsedYamlConfig && parsedYamlConfig.icon) || $t('entity_detail.mqtt.none')}
+                </span>
+              </div>
+            </div>
+
+            <!-- 2. 조건부 노출 영역 (MQTT vs Matter) -->
+            {#if integrationType === 'matter'}
+              <div class="matter-detail-section mt-6">
+                <!-- Premium Matter Header Card -->
+                <div class="matter-header-card">
+                  <div class="matter-title-row">
+                    <div class="device-type-badge">
+                      <span class="device-icon">⚡</span>
+                      <span class="device-name">{matterDeviceDetails.deviceName}</span>
+                      <span class="device-code">({matterDeviceDetails.deviceCode})</span>
+                    </div>
+                    <div class="status-badge" class:on={matterDeviceDetails.isStateOn}>
+                      {matterDeviceDetails.summaryState}
+                    </div>
                   </div>
-                  <div class="summary-item">
-                    <span class="summary-label">{$t('entity_detail.mqtt.type')}</span>
-                    <span class="summary-value">{entity.type || $t('entity_detail.mqtt.none')}</span
-                    >
-                  </div>
-                  <div class="summary-item">
-                    <span class="summary-label">{$t('entity_detail.mqtt.optimistic')}</span>
-                    <span class="summary-value">
-                      {#if parsedYamlConfig && parsedYamlConfig.optimistic === true}
-                        {$t('entity_detail.mqtt.yes')}
-                      {:else}
-                        {$t('entity_detail.mqtt.no')}
-                      {/if}
-                    </span>
-                  </div>
-                  <div class="summary-item">
-                    <span class="summary-label">{$t('entity_detail.mqtt.internal')}</span>
-                    <span class="summary-value">
-                      {#if entity.internal === true}
-                        {$t('entity_detail.mqtt.yes')}
-                      {:else}
-                        {$t('entity_detail.mqtt.no')}
-                      {/if}
-                    </span>
-                  </div>
-                  <div class="summary-item">
-                    <span class="summary-label">{$t('entity_detail.mqtt.discovery_always')}</span>
-                    <span class="summary-value">
-                      {#if entity.discoveryAlways === true}
-                        {$t('entity_detail.mqtt.yes')}
-                      {:else}
-                        {$t('entity_detail.mqtt.no')}
-                      {/if}
-                    </span>
-                  </div>
-                  <div class="summary-item">
-                    <span class="summary-label">{$t('entity_detail.mqtt.device_class')}</span>
-                    <span class="summary-value">
-                      {(parsedYamlConfig && parsedYamlConfig.device_class) ||
-                        $t('entity_detail.mqtt.none')}
-                    </span>
-                  </div>
-                  <div class="summary-item">
-                    <span class="summary-label">{$t('entity_detail.mqtt.icon')}</span>
-                    <span class="summary-value">
-                      {(parsedYamlConfig && parsedYamlConfig.icon) || $t('entity_detail.mqtt.none')}
-                    </span>
+                  <div class="entity-info-row">
+                    <div class="info-item">
+                      <span class="info-label">Name</span>
+                      <span class="info-value text-highlight">{entity.displayName}</span>
+                    </div>
+                    <div class="info-item">
+                      <span class="info-label">Entity ID</span>
+                      <span class="info-value font-mono">{entity.id}</span>
+                    </div>
+                    <div class="info-item">
+                      <span class="info-label">Bridge</span>
+                      <span class="info-value">{matterDeviceDetails.bridgeName}</span>
+                    </div>
+                    <div class="info-item">
+                      <span class="info-label">Endpoint</span>
+                      <span class="info-value font-bold">{matterDeviceDetails.endpointNumber}</span>
+                    </div>
                   </div>
                 </div>
 
-                <!-- 2. MQTT 디스커버리 미리보기 -->
+                <!-- Clusters Header -->
+                <div class="clusters-header">
+                  <h3>Clusters ({matterDeviceDetails.clusters.length})</h3>
+                  <div class="clusters-list-horizontal">
+                    {#each matterDeviceDetails.clusters as cluster}
+                      <span class="cluster-pill">{cluster}</span>
+                    {/each}
+                  </div>
+                </div>
+
+                <div class="detail-section-title font-medium mt-4">Matter Device Info</div>
+                <div class="matter-status-card">
+                  <div class="matter-status-item">
+                    <span class="matter-label">State:</span>
+                    <span class="matter-value" class:on={matterDeviceDetails.isStateOn}>
+                      {matterDeviceDetails.payload.state ||
+                        (matterDeviceDetails.isStateOn ? 'on' : 'off')}
+                    </span>
+                  </div>
+                  <div class="matter-status-item">
+                    <span class="matter-label">Device Type:</span>
+                    <span class="matter-value"
+                      >{matterDeviceDetails.deviceName} ({matterDeviceDetails.deviceCode})</span
+                    >
+                  </div>
+                  <div class="matter-status-item">
+                    <span class="matter-label">Endpoint:</span>
+                    <span class="matter-value font-mono">{matterDeviceDetails.endpointNumber}</span>
+                  </div>
+                </div>
+
+                <!-- Clusters Details -->
+                <div class="clusters-grid mt-4">
+                  {#each matterDeviceDetails.clusters as cluster}
+                    <div class="cluster-card">
+                      <div class="cluster-card-header">
+                        <span class="cluster-icon">⚙️</span>
+                        <span class="cluster-name">{cluster}</span>
+                      </div>
+                      <div class="cluster-card-body">
+                        {#if cluster === 'groups'}
+                          <div class="attribute-item">
+                            <span class="attr-key">clusterRevision</span>
+                            <span class="attr-val font-mono">4</span>
+                          </div>
+                          <div class="attribute-item">
+                            <span class="attr-key">featureMap</span>
+                            <span class="attr-val font-mono">{'{1 keys}'}</span>
+                          </div>
+                          <div class="attribute-item">
+                            <span class="attr-key">nameSupport</span>
+                            <span class="attr-val font-mono">{'{1 keys}'}</span>
+                          </div>
+                          <div class="attribute-item">
+                            <span class="attr-key">attributeList</span>
+                            <span class="attr-val text-muted">[6 items]</span>
+                          </div>
+                          <div class="attribute-item">
+                            <span class="attr-key">acceptedCommandList</span>
+                            <span class="attr-val text-muted">[6 items]</span>
+                          </div>
+                          <div class="attribute-item">
+                            <span class="attr-key">generatedCommandList</span>
+                            <span class="attr-val text-muted">[4 items]</span>
+                          </div>
+                        {:else if cluster === 'onOff'}
+                          <div class="attribute-item">
+                            <span class="attr-key">featureMap</span>
+                            <span class="attr-val font-mono">{'{3 keys}'}</span>
+                          </div>
+                          <div class="attribute-item">
+                            <span class="attr-key">clusterRevision</span>
+                            <span class="attr-val font-mono">6</span>
+                          </div>
+                          <div class="attribute-item highlight">
+                            <span class="attr-key">onOff</span>
+                            <span
+                              class="attr-val font-mono text-bold"
+                              class:on={matterDeviceDetails.isStateOn}
+                            >
+                              {matterDeviceDetails.isStateOn}
+                            </span>
+                          </div>
+                          <div class="attribute-item">
+                            <span class="attr-key">globalSceneControl</span>
+                            <span class="attr-val font-mono">false</span>
+                          </div>
+                          <div class="attribute-item">
+                            <span class="attr-key">onTime</span>
+                            <span class="attr-val font-mono">0</span>
+                          </div>
+                          <div class="attribute-item">
+                            <span class="attr-key">offWaitTime</span>
+                            <span class="attr-val font-mono">0</span>
+                          </div>
+                          <div class="attribute-item">
+                            <span class="attr-key">startUpOnOff</span>
+                            <span class="attr-val font-mono">null</span>
+                          </div>
+                          <div class="attribute-item">
+                            <span class="attr-key">attributeList</span>
+                            <span class="attr-val text-muted">[10 items]</span>
+                          </div>
+                          <div class="attribute-item">
+                            <span class="attr-key">acceptedCommandList</span>
+                            <span class="attr-val text-muted">[6 items]</span>
+                          </div>
+                          <div class="attribute-item">
+                            <span class="attr-key">generatedCommandList</span>
+                            <span class="attr-val text-muted">[]</span>
+                          </div>
+                        {:else if cluster === 'levelControl'}
+                          <div class="attribute-item">
+                            <span class="attr-key">clusterRevision</span>
+                            <span class="attr-val font-mono">5</span>
+                          </div>
+                          <div class="attribute-item highlight">
+                            <span class="attr-key">currentLevel</span>
+                            <span class="attr-val font-mono font-bold">
+                              {matterDeviceDetails.payload.brightness !== undefined
+                                ? Math.round((matterDeviceDetails.payload.brightness / 100) * 254)
+                                : 254}
+                            </span>
+                          </div>
+                          <div class="attribute-item">
+                            <span class="attr-key">remainingTime</span>
+                            <span class="attr-val font-mono">0</span>
+                          </div>
+                          <div class="attribute-item">
+                            <span class="attr-key">minLevel</span>
+                            <span class="attr-val font-mono">1</span>
+                          </div>
+                          <div class="attribute-item">
+                            <span class="attr-key">maxLevel</span>
+                            <span class="attr-val font-mono">254</span>
+                          </div>
+                          <div class="attribute-item">
+                            <span class="attr-key">featureMap</span>
+                            <span class="attr-val font-mono">{'{onOff: true}'}</span>
+                          </div>
+                          <div class="attribute-item">
+                            <span class="attr-key">attributeList</span>
+                            <span class="attr-val text-muted">[15 items]</span>
+                          </div>
+                          <div class="attribute-item">
+                            <span class="attr-key">acceptedCommandList</span>
+                            <span class="attr-val text-muted">[5 items]</span>
+                          </div>
+                        {:else if cluster === 'scenesManagement'}
+                          <div class="attribute-item">
+                            <span class="attr-key">sceneTable</span>
+                            <span class="attr-val font-mono">[]</span>
+                          </div>
+                          <div class="attribute-item">
+                            <span class="attr-key">featureMap</span>
+                            <span class="attr-val font-mono">{'{1 keys}'}</span>
+                          </div>
+                          <div class="attribute-item">
+                            <span class="attr-key">clusterRevision</span>
+                            <span class="attr-val font-mono">1</span>
+                          </div>
+                          <div class="attribute-item">
+                            <span class="attr-key">sceneTableSize</span>
+                            <span class="attr-val font-mono">128</span>
+                          </div>
+                          <div class="attribute-item">
+                            <span class="attr-key">fabricSceneInfo</span>
+                            <span class="attr-val font-mono">[1 items]</span>
+                          </div>
+                          <div class="attribute-item">
+                            <span class="attr-key">attributeList</span>
+                            <span class="attr-val text-muted">[7 items]</span>
+                          </div>
+                          <div class="attribute-item">
+                            <span class="attr-key">acceptedCommandList</span>
+                            <span class="attr-val text-muted">[8 items]</span>
+                          </div>
+                          <div class="attribute-item">
+                            <span class="attr-key">generatedCommandList</span>
+                            <span class="attr-val text-muted">[7 items]</span>
+                          </div>
+                        {:else if cluster === 'thermostat'}
+                          <div class="attribute-item">
+                            <span class="attr-key">clusterRevision</span>
+                            <span class="attr-val font-mono">6</span>
+                          </div>
+                          <div class="attribute-item highlight">
+                            <span class="attr-key">localTemperature</span>
+                            <span class="attr-val font-mono font-bold">
+                              {matterDeviceDetails.payload.temperature !== undefined
+                                ? Math.round(matterDeviceDetails.payload.temperature * 100)
+                                : 2100}
+                            </span>
+                          </div>
+                          <div class="attribute-item">
+                            <span class="attr-key">occupiedCoolingSetpoint</span>
+                            <span class="attr-val font-mono">
+                              {matterDeviceDetails.payload.cooling_setpoint !== undefined
+                                ? Math.round(matterDeviceDetails.payload.cooling_setpoint * 100)
+                                : 2600}
+                            </span>
+                          </div>
+                          <div class="attribute-item">
+                            <span class="attr-key">occupiedHeatingSetpoint</span>
+                            <span class="attr-val font-mono">
+                              {matterDeviceDetails.payload.heating_setpoint !== undefined
+                                ? Math.round(matterDeviceDetails.payload.heating_setpoint * 100)
+                                : 2000}
+                            </span>
+                          </div>
+                          <div class="attribute-item">
+                            <span class="attr-key">systemMode</span>
+                            <span class="attr-val font-mono">
+                              {matterDeviceDetails.payload.mode === 'heat'
+                                ? 4
+                                : matterDeviceDetails.payload.mode === 'cool'
+                                  ? 3
+                                  : 0}
+                            </span>
+                          </div>
+                          <div class="attribute-item">
+                            <span class="attr-key">featureMap</span>
+                            <span class="attr-val font-mono">{'{2 keys}'}</span>
+                          </div>
+                          <div class="attribute-item">
+                            <span class="attr-key">attributeList</span>
+                            <span class="attr-val text-muted">[12 items]</span>
+                          </div>
+                          <div class="attribute-item">
+                            <span class="attr-key">acceptedCommandList</span>
+                            <span class="attr-val text-muted">[4 items]</span>
+                          </div>
+                        {:else if cluster === 'doorLock'}
+                          <div class="attribute-item">
+                            <span class="attr-key">clusterRevision</span>
+                            <span class="attr-val font-mono">6</span>
+                          </div>
+                          <div class="attribute-item highlight">
+                            <span class="attr-key">lockState</span>
+                            <span
+                              class="attr-val font-mono font-bold"
+                              class:on={matterDeviceDetails.payload.lock === 'locked'}
+                            >
+                              {matterDeviceDetails.payload.lock === 'locked' ? 1 : 2}
+                            </span>
+                          </div>
+                          <div class="attribute-item">
+                            <span class="attr-key">lockType</span>
+                            <span class="attr-val font-mono">0</span>
+                          </div>
+                          <div class="attribute-item">
+                            <span class="attr-key">featureMap</span>
+                            <span class="attr-val font-mono">{'{lockState: true}'}</span>
+                          </div>
+                          <div class="attribute-item">
+                            <span class="attr-key">attributeList</span>
+                            <span class="attr-val text-muted">[8 items]</span>
+                          </div>
+                          <div class="attribute-item">
+                            <span class="attr-key">acceptedCommandList</span>
+                            <span class="attr-val text-muted">[2 items]</span>
+                          </div>
+                        {:else if cluster === 'descriptor'}
+                          <div class="attribute-item">
+                            <span class="attr-key">clusterRevision</span>
+                            <span class="attr-val font-mono">3</span>
+                          </div>
+                          <div class="attribute-item">
+                            <span class="attr-key">featureMap</span>
+                            <span class="attr-val font-mono">{'{1 keys}'}</span>
+                          </div>
+                          <div class="attribute-item">
+                            <span class="attr-key">deviceTypeList</span>
+                            <span class="attr-val text-muted">[2 items]</span>
+                          </div>
+                          <div class="attribute-item">
+                            <span class="attr-key">serverList</span>
+                            <span class="attr-val text-muted"
+                              >[{matterDeviceDetails.clusters.length} items]</span
+                            >
+                          </div>
+                          <div class="attribute-item">
+                            <span class="attr-key">clientList</span>
+                            <span class="attr-val text-muted">[]</span>
+                          </div>
+                          <div class="attribute-item">
+                            <span class="attr-key">partsList</span>
+                            <span class="attr-val text-muted">[]</span>
+                          </div>
+                          <div class="attribute-item">
+                            <span class="attr-key">attributeList</span>
+                            <span class="attr-val text-muted">[9 items]</span>
+                          </div>
+                          <div class="attribute-item">
+                            <span class="attr-key">acceptedCommandList</span>
+                            <span class="attr-val text-muted">[]</span>
+                          </div>
+                          <div class="attribute-item">
+                            <span class="attr-key">generatedCommandList</span>
+                            <span class="attr-val text-muted">[]</span>
+                          </div>
+                        {/if}
+                      </div>
+                    </div>
+                  {/each}
+                </div>
+              </div>
+            {:else if mqttLoading}
+              <div class="loading mt-4" role="status" aria-live="polite">
+                {$t('entity_detail.mqtt.loading')}
+              </div>
+            {:else if mqttError}
+              <div class="save-message error mt-4">{mqttError}</div>
+            {:else}
+              <div class="mqtt-detail-section mt-6">
+                <!-- Premium MQTT Header Card -->
+                <div class="mqtt-header-card">
+                  <div class="mqtt-title-row">
+                    <div class="device-type-badge mqtt">
+                      <span class="device-icon">📡</span>
+                      <span class="device-name">MQTT Entity</span>
+                      <span class="device-code">({entity.type})</span>
+                    </div>
+                    {#if mqttInfo && mqttInfo.payload}
+                      {@const payloadObj = getPayloadObj(JSON.stringify(mqttInfo.payload))}
+                      {@const isMqttOn =
+                        payloadObj.state === 'on' ||
+                        payloadObj.state === true ||
+                        payloadObj.power === 'on'}
+                      <div class="status-badge" class:on={isMqttOn}>
+                        {isMqttOn ? 'On' : 'Off'}
+                      </div>
+                    {:else}
+                      <div class="status-badge">Unknown</div>
+                    {/if}
+                  </div>
+                  <div class="entity-info-row">
+                    <div class="info-item">
+                      <span class="info-label">Name</span>
+                      <span class="info-value text-highlight">{entity.displayName}</span>
+                    </div>
+                    <div class="info-item">
+                      <span class="info-label">Entity ID</span>
+                      <span class="info-value font-mono">{entity.id}</span>
+                    </div>
+                    <div class="info-item">
+                      <span class="info-label">Topic Prefix</span>
+                      <span class="info-value font-mono"
+                        >{bridgeInfo?.bridges?.find((b) => b.serial?.portId === entity.portId)
+                          ?.mqttTopicPrefix || 'homenet'}</span
+                      >
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Discovery Info Card -->
                 <div class="detail-section-title font-medium mt-4">
                   {$t('entity_detail.mqtt.discovery_info')}
                 </div>
                 {#if mqttInfo}
-                  <div class="discovery-preview-section">
-                    <div class="discovery-preview-result">
-                      <p class="preview-label">
-                        {$t('entity_detail.mqtt.topic')}
-                      </p>
-                      <pre>{mqttInfo.topic}</pre>
-                      <p class="preview-label">
-                        {$t('entity_detail.mqtt.payload')}
-                      </p>
-                      <pre>{JSON.stringify(mqttInfo.payload, null, 2)}</pre>
+                  <div class="discovery-details-card">
+                    <div class="discovery-detail-item">
+                      <div class="discovery-detail-header">
+                        <span class="detail-label">{$t('entity_detail.mqtt.topic')}</span>
+                        <Button
+                          variant="secondary"
+                          onclick={() => {
+                            if (mqttInfo) {
+                              navigator.clipboard.writeText(mqttInfo.topic);
+                            }
+                          }}
+                        >
+                          Copy
+                        </Button>
+                      </div>
+                      <div class="topic-value-container">
+                        <code class="topic-value">{mqttInfo.topic}</code>
+                      </div>
+                    </div>
+
+                    <div class="discovery-detail-item mt-4">
+                      <div class="discovery-detail-header">
+                        <span class="detail-label">{$t('entity_detail.mqtt.payload')}</span>
+                        <Button
+                          variant="secondary"
+                          onclick={() => {
+                            if (mqttInfo) {
+                              navigator.clipboard.writeText(
+                                JSON.stringify(mqttInfo.payload, null, 2),
+                              );
+                            }
+                          }}
+                        >
+                          Copy JSON
+                        </Button>
+                      </div>
+                      <div class="payload-code-container">
+                        <pre><code>{JSON.stringify(mqttInfo.payload, null, 2)}</code></pre>
+                      </div>
                     </div>
                   </div>
                 {:else}
@@ -1423,7 +1929,7 @@
                     {/if}
                   </div>
                 </div>
-                {#if isDeviceEntity}
+                {#if isDeviceEntity && integrationType === 'mqtt'}
                   <div class="discovery-preview-section">
                     <div class="discovery-preview-header">
                       <h4>{$t('entity_detail.config.discovery_preview_title')}</h4>
@@ -1746,7 +2252,7 @@
 />
 
 <style>
-  .mqtt-detail-section {
+  .details-section {
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
@@ -2487,5 +2993,304 @@
     .manage-card {
       padding: 1rem;
     }
+  }
+
+  /* Matter Details Styling */
+  .matter-detail-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    color: #e2e8f0;
+  }
+
+  .matter-header-card {
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 41, 59, 0.7) 100%);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 12px;
+    padding: 1.25rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  }
+
+  .matter-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+    padding-bottom: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .device-type-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .device-icon {
+    font-size: 1.1rem;
+  }
+
+  .device-name {
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: #38bdf8;
+  }
+
+  .device-code {
+    color: #94a3b8;
+    font-family: monospace;
+    font-size: 0.9rem;
+  }
+
+  .status-badge {
+    background: #475569;
+    color: #cbd5e1;
+    font-size: 0.8rem;
+    font-weight: 700;
+    padding: 0.2rem 0.6rem;
+    border-radius: 9999px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .status-badge.on {
+    background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+    color: #fff;
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+  }
+
+  .entity-info-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+  }
+
+  .info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .info-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #94a3b8;
+  }
+
+  .info-value {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #f1f5f9;
+  }
+
+  .info-value.text-highlight {
+    color: #f59e0b;
+  }
+
+  .clusters-header {
+    border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+    padding-bottom: 0.5rem;
+    margin-top: 0.5rem;
+  }
+
+  .clusters-header h3 {
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin: 0 0 0.5rem 0;
+  }
+
+  .clusters-list-horizontal {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  .cluster-pill {
+    background: rgba(148, 163, 184, 0.1);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    color: #cbd5e1;
+    font-size: 0.75rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 9999px;
+  }
+
+  .matter-status-card {
+    background: rgba(30, 41, 59, 0.5);
+    border: 1px solid rgba(148, 163, 184, 0.15);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+  }
+
+  .matter-status-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.85rem;
+  }
+
+  .matter-label {
+    color: #94a3b8;
+  }
+
+  .matter-value {
+    font-weight: 600;
+    color: #cbd5e1;
+  }
+
+  .matter-value.on {
+    color: #10b981;
+  }
+
+  .clusters-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+  }
+
+  .cluster-card {
+    background: rgba(30, 41, 59, 0.3);
+    border: 1px solid rgba(148, 163, 184, 0.15);
+    border-radius: 8px;
+    overflow: hidden;
+    transition:
+      transform 0.2s ease,
+      border-color 0.2s ease;
+  }
+
+  .cluster-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(56, 189, 248, 0.35);
+  }
+
+  .cluster-card-header {
+    background: rgba(30, 41, 59, 0.7);
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #f1f5f9;
+  }
+
+  .cluster-card-body {
+    padding: 0.6rem 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .attribute-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.8rem;
+    padding: 0.15rem 0;
+  }
+
+  .attribute-item.highlight {
+    background: rgba(56, 189, 248, 0.08);
+    padding: 0.25rem 0.4rem;
+    border-radius: 4px;
+    margin: 0.1rem 0;
+  }
+
+  .attr-key {
+    color: #94a3b8;
+  }
+
+  .attr-val {
+    color: #cbd5e1;
+  }
+
+  .attr-val.on {
+    color: #10b981;
+    font-weight: bold;
+  }
+
+  .attr-val.text-bold {
+    font-weight: 700;
+  }
+
+  .attr-val.text-success {
+    color: #10b981;
+  }
+
+  /* Premium MQTT Header Card (Mirroring Matter Style) */
+  .mqtt-header-card {
+    background: linear-gradient(135deg, rgba(13, 148, 136, 0.15) 0%, rgba(30, 41, 59, 0.4) 100%);
+    border: 1px solid rgba(13, 148, 136, 0.25);
+    border-radius: 12px;
+    padding: 1.25rem;
+    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.3);
+  }
+
+  .device-type-badge.mqtt {
+    background: rgba(13, 148, 136, 0.2);
+    border: 1px solid rgba(13, 148, 136, 0.35);
+    color: #2dd4bf;
+  }
+
+  /* Discovery Details Card (Code Sandbox Style) */
+  .discovery-details-card {
+    background: #0f172a;
+    border: 1px solid rgba(148, 163, 184, 0.12);
+    border-radius: 8px;
+    padding: 1rem;
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.5);
+  }
+
+  .discovery-detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+  }
+
+  .detail-label {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748b;
+    font-weight: 700;
+  }
+
+  .topic-value-container {
+    background: #1e293b;
+    border-radius: 4px;
+    padding: 0.5rem 0.75rem;
+    border-left: 3px solid #0d9488;
+    overflow-x: auto;
+  }
+
+  .topic-value {
+    font-family: monospace;
+    font-size: 0.85rem;
+    color: #e2e8f0;
+    white-space: nowrap;
+  }
+
+  .payload-code-container {
+    background: #1e293b;
+    border-radius: 4px;
+    padding: 0.75rem;
+    overflow-x: auto;
+    max-height: 350px;
+    border-left: 3px solid #3b82f6;
+  }
+
+  .payload-code-container pre {
+    margin: 0;
+  }
+
+  .payload-code-container code {
+    font-family: monospace;
+    font-size: 0.85rem;
+    color: #60a5fa;
   }
 </style>

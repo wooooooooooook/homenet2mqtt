@@ -1922,6 +1922,7 @@
       {renamingEntityId}
       {renameError}
       {logVersion}
+      {bridgeInfo}
       onRename={(newName, updateObjectId) => {
         if (selectedEntityKey) {
           const parsed = parseEntityKey(selectedEntityKey);

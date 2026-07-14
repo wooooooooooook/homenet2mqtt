@@ -637,7 +637,7 @@
       "status": "Status & Commands",
       "execute": "Run",
       "status_run": "Status & Run",
-      "mqtt": "Details",
+      "details": "Details",
       "config": "Config (YAML)",
       "packets": "Packet Log",
       "manage": "Manage",

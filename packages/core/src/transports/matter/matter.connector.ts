@@ -317,6 +317,7 @@ export class MatterConnector implements IntegrationConnector {
       qrPairingCode: comm.pairingCodes.qrPairingCode,
       fabrics,
       deviceCount: this.endpoints.size,
+      productName: this.options.productName || `Homenet Bridge ${this.context.portId}`,
     };
   }
 
