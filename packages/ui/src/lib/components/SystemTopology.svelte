@@ -1,6 +1,7 @@
 <script lang="ts">
   import { t } from 'svelte-i18n';
   import type { BridgeErrorPayload, BridgeSerialInfo, BridgeStatus } from '../types';
+  import Button from './Button.svelte';
 
   interface PortMetadata extends BridgeSerialInfo {
     configFile: string;
@@ -357,9 +358,9 @@
               <span class="label" style="color: var(--status-warning, #f59e0b)">
                 {$t('dashboard.topology.pairing_needed', { default: 'PAIRING NEEDED' })}
               </span>
-              <button type="button" class="matter-nav-btn" onclick={() => onNavigateToMatter?.()}>
+              <Button variant="outline-primary" class="matter-nav-btn" onclick={onNavigateToMatter}>
                 {$t('dashboard.topology.setup_matter', { default: 'Setup Matter' })}
-              </button>
+              </Button>
             </div>
           {/if}
         {:else}
@@ -883,26 +884,9 @@
     width: 100%;
   }
 
-  .matter-nav-btn {
-    background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
-    border: none;
-    color: white;
-    padding: 0.4rem 0.8rem;
-    border-radius: 6px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-    box-shadow: 0 2px 4px rgba(79, 70, 229, 0.3);
-  }
-
-  .matter-nav-btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(79, 70, 229, 0.45);
-    background: linear-gradient(135deg, #4338ca 0%, #2563eb 100%);
-  }
-
-  .matter-nav-btn:active {
-    transform: translateY(0);
+  :global(.matter-nav-btn) {
+    padding: 0.3rem 0.6rem !important;
+    font-size: 0.75rem !important;
+    border-radius: 4px !important;
   }
 </style>
