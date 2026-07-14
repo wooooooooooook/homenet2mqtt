@@ -8,8 +8,6 @@ import { HomenetEntityBehavior } from './homenet-entity-behavior.js';
 const FeaturedBase = Base.with('OnOff', 'Lighting');
 
 export class LevelControlServer extends FeaturedBase {
-  private pendingTransitionTime: number | undefined;
-
   // initialize 시점에 캡처한 참조 — state managed proxy가 만료된 이후에도
   // executeCommand를 안전하게 호출하기 위해 클로저로 보관한다.
   private _executeCommand!: HomenetEntityBehavior['executeCommand'];
@@ -62,7 +60,6 @@ export class LevelControlServer extends FeaturedBase {
     if (request.transitionTime == null) {
       request.transitionTime = 0;
     }
-    this.pendingTransitionTime = request.transitionTime;
     return super.moveToLevel(request);
   }
 
@@ -70,7 +67,6 @@ export class LevelControlServer extends FeaturedBase {
     if (request.transitionTime == null) {
       request.transitionTime = 0;
     }
-    this.pendingTransitionTime = request.transitionTime;
     return super.moveToLevelWithOnOff(request);
   }
 

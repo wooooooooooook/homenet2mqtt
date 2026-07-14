@@ -355,7 +355,6 @@ export class CelExecutor {
     xorOut: number,
   ): bigint {
     let buf: Uint8Array;
-    let baseOffset = 0;
     let endOffset = 0;
 
     // Check if data is a proxy from ReusableBufferView
@@ -388,7 +387,6 @@ export class CelExecutor {
     xorOut: number,
   ): bigint[] {
     let buf: Uint8Array;
-    let baseOffset = 0;
     let endOffset = 0;
 
     if (data && typeof data === 'object' && Array.isArray(data)) {

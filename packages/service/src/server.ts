@@ -30,7 +30,6 @@ import type {
   BridgeErrorPayload,
   BridgeStatus,
   ConfigStatus,
-  RawPacketStreamMode,
 } from './types/index.js';
 import {
   createBridgeErrorPayload,

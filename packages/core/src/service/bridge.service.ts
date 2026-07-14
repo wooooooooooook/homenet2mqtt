@@ -11,7 +11,7 @@ import {
   ScriptConfig,
 } from '../config/types.js';
 import { loadConfig } from '../config/index.js';
-import { EntityConfig, CommandSchema, RestoreMode } from '../domain/entities/base.entity.js';
+import { EntityConfig, CommandSchema } from '../domain/entities/base.entity.js';
 import { PacketProcessor, EntityStateProvider } from '../protocol/packet-processor.js';
 import {
   calculateChecksumFromBuffer,
@@ -684,6 +684,9 @@ export class HomeNetBridge extends EventEmitter {
     stateManager: StateManager,
   ) {
     // Stub for unit tests compatibility
+    void config;
+    void mqttTopicPrefix;
+    void stateManager;
   }
 
   private async initialize() {
@@ -731,7 +734,8 @@ export class HomeNetBridge extends EventEmitter {
 
       const mPort = matterConf?.port !== undefined ? matterConf.port : defaultPort;
       const mPasscode = matterConf?.passcode !== undefined ? matterConf.passcode : undefined;
-      const mDiscriminator = matterConf?.discriminator;
+      const mDiscriminator =
+        matterConf?.discriminator !== undefined ? matterConf.discriminator : defaultDiscriminator;
       const mVendorId = 65521;
       const mProductId = 32768;
       const portId = this.config?.serial ? normalizePortId(this.config.serial.portId, 0) : 'bridge';

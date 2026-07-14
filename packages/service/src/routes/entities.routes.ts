@@ -151,12 +151,6 @@ export function createEntitiesRoutes(ctx: EntitiesRoutesContext): Router {
       const normalizedConfig = normalizeConfig(
         loadedYamlFromFile.homenet_bridge as HomenetBridgeConfig,
       );
-      const bridgeInstance = findBridgeForEntity(
-        ctx.getCurrentConfigs(),
-        ctx.getBridges(),
-        ctx.getCurrentConfigFiles(),
-        entityId,
-      );
 
       let targetEntity: any | null = null;
       for (const type of ENTITY_TYPE_KEYS) {

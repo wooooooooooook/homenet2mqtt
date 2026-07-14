@@ -1,3 +1,4 @@
+<!-- svelte-ignore non_reactive_update -->
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte';
   import { isLoading, locale, t } from 'svelte-i18n';
@@ -506,6 +507,8 @@
   });
 
   const flushLogBuffers = () => {
+    let updated = false;
+
     if (commandLogBuffer.length > 0) {
       // Sort buffer by timestamp descending (newest first)
       commandLogBuffer.sort((a, b) => (b.timestampMs ?? 0) - (a.timestampMs ?? 0));
@@ -533,6 +536,7 @@
       }
 
       commandLogBuffer = [];
+      updated = true;
     }
 
     if (parsedLogBuffer.length > 0) {
@@ -556,6 +560,12 @@
       }
 
       parsedLogBuffer = [];
+      updated = true;
+    }
+
+    if (updated) {
+      // 버퍼가 비워지고 실제 로그 배열이 업데이트되었을 때 반응성을 트리거합니다.
+      logVersion += 1;
     }
   };
 

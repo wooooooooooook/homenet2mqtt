@@ -31,7 +31,6 @@ import {
   getGalleryRawBaseUrl,
   getGalleryListUrl,
   resolveSecurePath,
-  getDefaultFrontendSettings,
   isDefaultGallerySettings,
 } from '../utils/helpers.js';
 import { getFrontendSettings } from '../services/frontend-settings.service.js';
