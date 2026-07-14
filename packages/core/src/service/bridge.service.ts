@@ -1,6 +1,7 @@
 // packages/core/src/service/bridge.service.ts
 
 import { Duplex } from 'stream';
+import path from 'node:path';
 
 import { logger } from '../utils/logger.js';
 import {
@@ -735,7 +736,6 @@ export class HomeNetBridge extends EventEmitter {
       const mProductId = 32768;
       const portId = this.config?.serial ? normalizePortId(this.config.serial.portId, 0) : 'bridge';
       const mProductName = matterConf?.product_name || `H2M ${portId}`;
-      const mStoragePath = matterConf?.storage_path;
 
       connector = new MatterConnector({
         port: mPort,
@@ -744,7 +744,7 @@ export class HomeNetBridge extends EventEmitter {
         vendorId: mVendorId,
         productId: mProductId,
         productName: mProductName,
-        storagePath: mStoragePath,
+        configDir: path.dirname(this.options.configPath),
       });
     } else if (integrationType === 'log') {
       connector = new LogConnector();

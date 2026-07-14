@@ -24,7 +24,7 @@ export interface MatterConnectorOptions {
   vendorId?: number;
   productId?: number;
   productName?: string;
-  storagePath?: string;
+  configDir: string;
 }
 
 export class MatterConnector implements IntegrationConnector {
@@ -90,11 +90,8 @@ export class MatterConnector implements IntegrationConnector {
     // 1. Initialize Matter Environment
     this.env = new Environment(`homenet-matter-${portId}`, Environment.default);
 
-    // Set storage location and backend
-    const storagePath = this.options.storagePath
-      ? path.resolve(this.options.storagePath)
-      : path.join(process.cwd(), '.matter-storage');
-
+    // Set storage location and backend (always saved under configDir/.matter-storage)
+    const storagePath = path.join(this.options.configDir, '.matter-storage');
     fs.mkdirSync(storagePath, { recursive: true });
 
     const storageService = this.env.get(StorageService);
