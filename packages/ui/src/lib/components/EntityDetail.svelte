@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { fade, scale } from 'svelte/transition';
   import { t, locale } from 'svelte-i18n';
+  import yaml from 'js-yaml';
   import Button from './Button.svelte';
   import Toggle from '$lib/components/Toggle.svelte';
   import Dialog from './Dialog.svelte';
@@ -51,13 +52,19 @@
     editorMode?: 'monaco' | 'textarea';
   } = $props();
 
-  let activeTab = $state<'status' | 'config' | 'packets' | 'manage' | 'execute' | 'logs'>('status');
+  let activeTab = $state<'status' | 'config' | 'packets' | 'manage' | 'execute' | 'logs' | 'mqtt'>(
+    'status',
+  );
   let activeTabEntityId = $state<string | null>(null);
   let editingConfig = $state('');
   let configLoading = $state(false);
   let configError = $state<string | null>(null);
   let isSaving = $state(false);
   let saveMessage = $state('');
+  let mqttInfo = $state<{ topic: string; payload: unknown } | null>(null);
+  let mqttLoading = $state(false);
+  let mqttError = $state<string | null>(null);
+  let parsedYamlConfig = $state<any>(null);
   let discoveryPreview = $state<{ topic: string; payload: unknown } | null>(null);
   let discoveryPreviewLoading = $state(false);
   let discoveryPreviewError = $state<string | null>(null);
@@ -444,6 +451,62 @@
       configLoading = false;
     }
   }
+
+  async function loadMqttInfo() {
+    mqttLoading = true;
+    mqttError = null;
+    mqttInfo = null;
+    parsedYamlConfig = null;
+    try {
+      let yamlToPreview = editingConfig;
+      if (!yamlToPreview || loadedConfigEntityId !== entity.id) {
+        const res = await fetch(`./api/config/raw/${entityCategory}/${entity.id}`);
+        if (!res.ok) throw new Error('Failed to load entity config');
+        const data = await res.json();
+        yamlToPreview = data.yaml;
+        editingConfig = data.yaml;
+        loadedConfigEntityId = entity.id;
+      }
+
+      try {
+        parsedYamlConfig = yaml.load(yamlToPreview);
+      } catch (err) {
+        console.error('Failed to parse entity YAML config', err);
+      }
+
+      const response = await fetch('./api/config/discovery-preview', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          portId: entity.portId,
+          entityType: entity.type,
+          yaml: yamlToPreview,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to generate discovery preview');
+      }
+
+      mqttInfo = {
+        topic: data.topic,
+        payload: data.payload,
+      };
+    } catch (e) {
+      mqttError = e instanceof Error ? e.message : String(e);
+    } finally {
+      mqttLoading = false;
+    }
+  }
+
+  $effect(() => {
+    if (isOpen && entity && activeTab === 'mqtt') {
+      loadMqttInfo();
+    }
+  });
 
   async function triggerSystemRestart() {
     dialog.title = $t('settings.app_control.restart');
@@ -925,6 +988,15 @@
           class:active={activeTab === 'status'}
           onclick={() => (activeTab = 'status')}>{$t('entity_detail.tabs.status')}</button
         >
+        <button
+          role="tab"
+          id="tab-mqtt"
+          aria-selected={activeTab === 'mqtt'}
+          aria-controls="panel-mqtt"
+          tabindex={activeTab === 'mqtt' ? 0 : -1}
+          class:active={activeTab === 'mqtt'}
+          onclick={() => (activeTab = 'mqtt')}>{$t('entity_detail.tabs.mqtt')}</button
+        >
       {:else}
         <button
           role="tab"
@@ -1172,6 +1244,104 @@
             {/if}
             {#if executeError}
               <div class="save-message error">{executeError}</div>
+            {/if}
+          </div>
+        </div>
+      {:else if activeTab === 'mqtt'}
+        <div role="tabpanel" id="panel-mqtt" aria-labelledby="tab-mqtt" tabindex="0">
+          <div class="section mqtt-detail-section">
+            <h4>{$t('entity_detail.mqtt.title')}</h4>
+
+            {#if mqttLoading}
+              <div class="loading" role="status" aria-live="polite">
+                {$t('entity_detail.mqtt.loading')}
+              </div>
+            {:else if mqttError}
+              <div class="save-message error">{mqttError}</div>
+            {:else}
+              <div class="detail-grid">
+                <!-- 1. 기기 설정 요약 -->
+                <div class="detail-section-title">{$t('entity_detail.mqtt.config_summary')}</div>
+                <div class="summary-grid">
+                  <div class="summary-item">
+                    <span class="summary-label">{$t('entity_detail.mqtt.port_id')}</span>
+                    <span class="summary-value"
+                      >{entity.portId || $t('entity_detail.mqtt.none')}</span
+                    >
+                  </div>
+                  <div class="summary-item">
+                    <span class="summary-label">{$t('entity_detail.mqtt.type')}</span>
+                    <span class="summary-value">{entity.type || $t('entity_detail.mqtt.none')}</span
+                    >
+                  </div>
+                  <div class="summary-item">
+                    <span class="summary-label">{$t('entity_detail.mqtt.optimistic')}</span>
+                    <span class="summary-value">
+                      {#if parsedYamlConfig && parsedYamlConfig.optimistic === true}
+                        {$t('entity_detail.mqtt.yes')}
+                      {:else}
+                        {$t('entity_detail.mqtt.no')}
+                      {/if}
+                    </span>
+                  </div>
+                  <div class="summary-item">
+                    <span class="summary-label">{$t('entity_detail.mqtt.internal')}</span>
+                    <span class="summary-value">
+                      {#if entity.internal === true}
+                        {$t('entity_detail.mqtt.yes')}
+                      {:else}
+                        {$t('entity_detail.mqtt.no')}
+                      {/if}
+                    </span>
+                  </div>
+                  <div class="summary-item">
+                    <span class="summary-label">{$t('entity_detail.mqtt.discovery_always')}</span>
+                    <span class="summary-value">
+                      {#if entity.discoveryAlways === true}
+                        {$t('entity_detail.mqtt.yes')}
+                      {:else}
+                        {$t('entity_detail.mqtt.no')}
+                      {/if}
+                    </span>
+                  </div>
+                  <div class="summary-item">
+                    <span class="summary-label">{$t('entity_detail.mqtt.device_class')}</span>
+                    <span class="summary-value">
+                      {(parsedYamlConfig && parsedYamlConfig.device_class) ||
+                        $t('entity_detail.mqtt.none')}
+                    </span>
+                  </div>
+                  <div class="summary-item">
+                    <span class="summary-label">{$t('entity_detail.mqtt.icon')}</span>
+                    <span class="summary-value">
+                      {(parsedYamlConfig && parsedYamlConfig.icon) || $t('entity_detail.mqtt.none')}
+                    </span>
+                  </div>
+                </div>
+
+                <!-- 2. MQTT 디스커버리 미리보기 -->
+                <div class="detail-section-title font-medium mt-4">
+                  {$t('entity_detail.mqtt.discovery_info')}
+                </div>
+                {#if mqttInfo}
+                  <div class="discovery-preview-section">
+                    <div class="discovery-preview-result">
+                      <p class="preview-label">
+                        {$t('entity_detail.mqtt.topic')}
+                      </p>
+                      <pre>{mqttInfo.topic}</pre>
+                      <p class="preview-label">
+                        {$t('entity_detail.mqtt.payload')}
+                      </p>
+                      <pre>{JSON.stringify(mqttInfo.payload, null, 2)}</pre>
+                    </div>
+                  </div>
+                {:else}
+                  <p class="preview-empty">
+                    {$t('entity_detail.mqtt.empty')}
+                  </p>
+                {/if}
+              </div>
             {/if}
           </div>
         </div>
@@ -1576,6 +1746,49 @@
 />
 
 <style>
+  .mqtt-detail-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .detail-section-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    border-left: 3px solid #3b82f6;
+    padding-left: 0.5rem;
+    color: #f8fafc;
+  }
+
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .summary-item {
+    display: flex;
+    flex-direction: column;
+    background-color: #334155;
+    border: 1px solid #475569;
+    border-radius: 6px;
+    padding: 0.5rem 0.75rem;
+  }
+
+  .summary-label {
+    font-size: 0.8rem;
+    color: #94a3b8;
+    margin-bottom: 0.25rem;
+  }
+
+  .summary-value {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #f1f5f9;
+  }
+
   .modal-content-wrapper {
     background: #1e293b;
     display: flex;
