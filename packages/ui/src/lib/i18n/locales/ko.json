@@ -413,6 +413,7 @@
     "analysis": "분석",
     "gallery": "갤러리",
     "settings": "설정",
+    "matter": "Matter",
     "docs": "문서",
     "sponsor": "개발자 후원",
     "close_aria": "사이드바 닫기"
@@ -568,7 +569,12 @@
       "url": "주소 (URL)",
       "port": "포트 ID (PORT)",
       "subscription": "구독 (SUB)",
-      "status": "상태:"
+      "status": "상태:",
+      "commissioned": "연동 완료 (COMMISSIONED)",
+      "connected_fabrics": "연결된 플랫폼 수",
+      "device_count": "공유된 기기 수",
+      "pairing_needed": "연동 대기 중",
+      "setup_matter": "Matter 연동하기"
     },
     "recent_activity": {
       "title": "최근 활동",
@@ -927,5 +933,26 @@
     "state_updated": "상태가 갱신되었습니다.",
     "entity_renamed_title": "엔티티 이름 변경",
     "entity_renamed_message": "{name} 으로 이름이 변경되었습니다."
+  },
+  "matter": {
+    "title": "Matter 연동 정보",
+    "subtitle": "Matter 스마트홈 플랫폼(Apple Home, Google Home, SmartThings 등)과의 연결 정보를 확인하고 관리합니다.",
+    "status": "연동 상태",
+    "commissioned": "연동 완료",
+    "not_commissioned": "연동 대기 중 (페어링 필요)",
+    "pairing_info": "페어링 정보",
+    "passcode": "패스코드 (Passcode)",
+    "discriminator": "판별자 (Discriminator)",
+    "manual_code": "수동 페어링 코드 (Manual Code)",
+    "qr_code": "QR 코드",
+    "qr_scan_tip": "스마트홈 플랫폼 앱(Apple Home, Google Home, SmartThings 등)에서 아래 QR 코드를 스캔하여 기기 추가를 완료하세요.",
+    "device_count": "공유된 홈넷 기기 수",
+    "fabrics": "연결된 플랫폼 목록 (Fabrics)",
+    "fabric_index": "인덱스",
+    "fabric_id": "패브릭 ID",
+    "node_id": "노드 ID",
+    "vendor_id": "벤더 ID",
+    "label": "플랫폼 라벨",
+    "no_fabrics": "연결된 스마트홈 플랫폼이 없습니다."
   }
 }

@@ -299,12 +299,24 @@ export class MatterConnector implements IntegrationConnector {
   getCommissioningInfo() {
     if (!this.serverNode) return null;
     const comm = this.serverNode.state.commissioning;
+    const opCreds = this.serverNode.state.operationalCredentials;
+
+    const fabrics = (opCreds?.fabrics ?? []).map((f: any) => ({
+      fabricIndex: f.fabricIndex,
+      fabricId: f.fabricId?.toString(),
+      nodeId: f.nodeId?.toString(),
+      vendorId: f.vendorId,
+      label: f.label,
+    }));
+
     return {
       isCommissioned: comm.commissioned,
       passcode: comm.passcode,
       discriminator: comm.discriminator,
       manualPairingCode: comm.pairingCodes.manualPairingCode,
       qrPairingCode: comm.pairingCodes.qrPairingCode,
+      fabrics,
+      deviceCount: this.endpoints.size,
     };
   }
 

@@ -145,6 +145,14 @@ export type BridgeEntry = {
     discriminator: number;
     manualPairingCode: string;
     qrPairingCode: string;
+    fabrics?: {
+      fabricIndex: number;
+      fabricId: string;
+      nodeId: string;
+      vendorId: number;
+      label: string;
+    }[];
+    deviceCount?: number;
   } | null;
 };
 

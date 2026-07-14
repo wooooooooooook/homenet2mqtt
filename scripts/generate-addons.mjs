@@ -41,20 +41,15 @@ function copyDirSync(src, dest, isDevAddon) {
     const srcPath = path.join(src, entry.name);
     const destPath = path.join(dest, entry.name);
 
-    // config-matter.yaml, logo-dev.png, README-*.md 는 템플릿용 특수 파일이므로 직접 대상 디렉토리에 그대로 복사하지 않음
-    if (entry.name === 'config-matter.yaml' || entry.name === 'logo-dev.png' || /^README-.+\.md$/.test(entry.name)) {
+    // config-matter.yaml, logo-dev.png, logo.png, logos, README-*.md 는 개별 처리되거나 제외되므로 그대로 복사하지 않음
+    if (
+      entry.name === 'config-matter.yaml' ||
+      entry.name === 'logo-dev.png' ||
+      entry.name === 'logo.png' ||
+      entry.name === 'logos' ||
+      /^README-.+\.md$/.test(entry.name)
+    ) {
       continue;
-    }
-
-    if (entry.name === 'logo.png') {
-      if (isDevAddon) {
-        // 개발용 애드온이면 logo-dev.png를 logo.png 이름으로 복사
-        const devLogoPath = path.join(src, 'logo-dev.png');
-        if (fs.existsSync(devLogoPath)) {
-          fs.copyFileSync(devLogoPath, destPath);
-          continue;
-        }
-      }
     }
 
     if (entry.isDirectory()) {
@@ -100,6 +95,7 @@ function main() {
       isDev: false,
       isMatter: false,
       readme: null, // 기본 README.md 사용
+      logo: 'logos/logo_mqtt.jpg',
       updates: {}
     },
     'matter': {
@@ -107,6 +103,7 @@ function main() {
       isDev: false,
       isMatter: true,
       readme: 'README-matter.md',
+      logo: 'logos/logo_matter.jpg',
       updates: {}
     },
     'mqtt-dev': {
@@ -114,6 +111,7 @@ function main() {
       isDev: true,
       isMatter: false,
       readme: 'README-mqtt-dev.md',
+      logo: 'logos/logo_mqtt_dev.jpg',
       updates: {
         name: 'Homenet2MQTT (Dev)',
         slug: 'h2m-dev',
@@ -125,6 +123,7 @@ function main() {
       isDev: true,
       isMatter: true,
       readme: 'README-matter-dev.md',
+      logo: 'logos/logo_matter_dev.jpg',
       updates: {
         name: 'Homenet2Matter (Dev)',
         slug: 'h2m-matter-dev',
@@ -179,6 +178,20 @@ function main() {
         console.log(`  README: ${configData.readme} -> README.md`);
       } else {
         console.warn(`  Warning: ${configData.readme} not found, keeping original README.md`);
+      }
+    }
+
+    // 타입별 로고 교체 (Home Assistant 애드온 로고는 logo.png로 통일 필요)
+    if (configData.logo) {
+      const srcLogo = path.join(sourceAddonDir, configData.logo);
+      const destLogo = path.join(destPath, 'logo.png');
+      const destIcon = path.join(destPath, 'icon.jpg');
+      if (fs.existsSync(srcLogo)) {
+        fs.copyFileSync(srcLogo, destLogo);
+        fs.copyFileSync(srcLogo, destIcon);
+        console.log(`  Logo: ${configData.logo} -> logo.png & icon.jpg`);
+      } else {
+        console.warn(`  Warning: ${configData.logo} not found!`);
       }
     }
   }

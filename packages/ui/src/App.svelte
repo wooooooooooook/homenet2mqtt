@@ -34,6 +34,7 @@
   import Dashboard from './lib/views/Dashboard.svelte';
   import Analysis from './lib/views/Analysis.svelte';
   import Gallery from './lib/views/Gallery.svelte';
+  import Matter from './lib/views/Matter.svelte';
 
   import EntityDetail from './lib/components/EntityDetail.svelte';
   import ToastContainer from './lib/components/ToastContainer.svelte';
@@ -191,7 +192,9 @@
   };
 
   // -- State --
-  let activeView = $state<'dashboard' | 'analysis' | 'gallery' | 'settings'>('dashboard');
+  let activeView = $state<'dashboard' | 'analysis' | 'gallery' | 'settings' | 'matter'>(
+    'dashboard',
+  );
   // Entity selection uses a composite key: "category:portId:entityId" to distinguish entities across ports
   let selectedEntityKey = $state<string | null>(null);
   let isSidebarOpen = $state(false);
@@ -330,6 +333,10 @@
     return (
       bridgeInfo?.error === 'CONFIG_INITIALIZATION_REQUIRED' || bridgeInfo?.restartRequired === true
     );
+  });
+
+  const hasMatterBridge = $derived.by<boolean>(() => {
+    return bridgeInfo?.bridges?.some((b) => b.integrationType === 'matter') ?? false;
   });
 
   type StreamEvent =
@@ -1934,6 +1941,7 @@
         bind:activeView
         isOpen={isSidebarOpen}
         disabled={isWizardActive}
+        {hasMatterBridge}
         onClose={() => (isSidebarOpen = false)}
       />
 
@@ -1965,6 +1973,7 @@
             onToggleAutomations={toggleAutomationCards}
             onToggleScripts={toggleScriptCards}
             onBrowseGallery={() => (activeView = 'gallery')}
+            onNavigateToMatter={() => (activeView = 'matter')}
           />
         {:else if activeView === 'analysis'}
           <Analysis
@@ -2004,6 +2013,8 @@
             onAutoRestartChange={(value) => updateAutoRestartSetting(value)}
             onGalleryChange={(value) => updateGallerySetting(value)}
           />
+        {:else if activeView === 'matter'}
+          <Matter {bridgeInfo} {infoLoading} onRefresh={() => loadBridgeInfo(true)} />
         {/if}
       </section>
     </div>

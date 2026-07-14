@@ -413,6 +413,7 @@
     "analysis": "Analysis",
     "gallery": "Gallery",
     "settings": "Settings",
+    "matter": "Matter",
     "docs": "Docs",
     "sponsor": "Support Developer",
     "close_aria": "Close Sidebar"
@@ -568,7 +569,12 @@
       "url": "URL",
       "port": "PORT ID",
       "subscription": "SUB",
-      "status": "Status:"
+      "status": "Status:",
+      "commissioned": "COMMISSIONED",
+      "connected_fabrics": "FABRICS",
+      "device_count": "DEVICES",
+      "pairing_needed": "PAIRING NEEDED",
+      "setup_matter": "Setup Matter"
     },
     "recent_activity": {
       "title": "Recent Activity",
@@ -922,5 +928,26 @@
     "state_updated": "State has been updated.",
     "entity_renamed_title": "Entity Renamed",
     "entity_renamed_message": "Renamed to {name}."
+  },
+  "matter": {
+    "title": "Matter Integration Info",
+    "subtitle": "View and manage connections with Matter smart home platforms (Apple Home, Google Home, SmartThings, etc.).",
+    "status": "Integration Status",
+    "commissioned": "Commissioned",
+    "not_commissioned": "Not Commissioned (Pairing Needed)",
+    "pairing_info": "Pairing Information",
+    "passcode": "Passcode",
+    "discriminator": "Discriminator",
+    "manual_code": "Manual Pairing Code",
+    "qr_code": "QR Code",
+    "qr_scan_tip": "Scan this QR code in your smart home app (Apple Home, Google Home, SmartThings, etc.) to complete pairing.",
+    "device_count": "Shared Homenet Devices",
+    "fabrics": "Connected Platforms (Fabrics)",
+    "fabric_index": "Index",
+    "fabric_id": "Fabric ID",
+    "node_id": "Node ID",
+    "vendor_id": "Vendor ID",
+    "label": "Platform Label",
+    "no_fabrics": "No connected smart home platforms found."
   }
 }

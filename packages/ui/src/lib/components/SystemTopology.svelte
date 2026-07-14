@@ -14,6 +14,14 @@
       discriminator: number;
       manualPairingCode: string;
       qrPairingCode: string;
+      fabrics?: {
+        fabricIndex: number;
+        fabricId: string;
+        nodeId: string;
+        vendorId: number;
+        label: string;
+      }[];
+      deviceCount?: number;
     } | null;
   }
 
@@ -26,6 +34,7 @@
     mqttError = null,
     serialError = null,
     integrationType = 'mqtt',
+    onNavigateToMatter,
   }: {
     mqttUrl: string;
     mqttStatus?: 'idle' | 'connecting' | 'connected' | 'error';
@@ -35,6 +44,7 @@
     mqttError?: string | null;
     serialError?: string | null;
     integrationType?: string;
+    onNavigateToMatter?: () => void;
   } = $props();
 
   // Helper to determine if a node has an error
@@ -323,48 +333,33 @@
 
       {#if integrationType === 'matter'}
         {#if portMetadata?.commissioning}
-          <div class="detail-item">
-            <span class="label"
-              >{$t('dashboard.topology.commissioned', { default: 'COMMISSIONED' })}</span
-            >
-            <span
-              class="value"
-              style:color={portMetadata.commissioning.isCommissioned
-                ? 'var(--status-success, #10b981)'
-                : 'var(--status-warning, #f59e0b)'}
-            >
-              {portMetadata.commissioning.isCommissioned ? 'Yes' : 'No'}
-            </span>
-          </div>
-          <div class="detail-item">
-            <span class="label"
-              >{$t('dashboard.topology.manual_code', { default: 'MANUAL CODE' })}</span
-            >
-            <span class="value select-all">{portMetadata.commissioning.manualPairingCode}</span>
-          </div>
-          <div class="detail-item">
-            <span class="label">{$t('dashboard.topology.passcode', { default: 'PASSCODE' })}</span>
-            <span class="value">{portMetadata.commissioning.passcode}</span>
-          </div>
-          <div class="detail-item">
-            <span class="label"
-              >{$t('dashboard.topology.discriminator', { default: 'DISCRIMINATOR' })}</span
-            >
-            <span class="value">{portMetadata.commissioning.discriminator}</span>
-          </div>
-
-          {#if !portMetadata.commissioning.isCommissioned && portMetadata.commissioning.qrPairingCode}
-            <div class="matter-qr-wrapper">
-              <img
-                src="./api/qr?size=120&data={encodeURIComponent(
-                  portMetadata.commissioning.qrPairingCode,
-                )}"
-                alt="Matter Pairing QR Code"
-                class="matter-qr-image"
-              />
-              <span class="matter-qr-tip"
-                >{$t('dashboard.topology.qr_tip', { default: 'Scan to Pair Device' })}</span
+          {#if portMetadata.commissioning.isCommissioned}
+            <div class="detail-item">
+              <span class="label"
+                >{$t('dashboard.topology.commissioned', { default: 'COMMISSIONED' })}</span
               >
+              <span class="value" style="color: var(--status-success, #10b981)">Yes</span>
+            </div>
+            <div class="detail-item">
+              <span class="label"
+                >{$t('dashboard.topology.connected_fabrics', { default: 'FABRICS' })}</span
+              >
+              <span class="value">{portMetadata.commissioning.fabrics?.length ?? 0}</span>
+            </div>
+            <div class="detail-item">
+              <span class="label"
+                >{$t('dashboard.topology.device_count', { default: 'DEVICES' })}</span
+              >
+              <span class="value">{portMetadata.commissioning.deviceCount ?? 0}</span>
+            </div>
+          {:else}
+            <div class="detail-item matter-pairing-required">
+              <span class="label" style="color: var(--status-warning, #f59e0b)">
+                {$t('dashboard.topology.pairing_needed', { default: 'PAIRING NEEDED' })}
+              </span>
+              <button type="button" class="matter-nav-btn" onclick={() => onNavigateToMatter?.()}>
+                {$t('dashboard.topology.setup_matter', { default: 'Setup Matter' })}
+              </button>
             </div>
           {/if}
         {:else}
@@ -878,31 +873,36 @@
     font-weight: 600;
   }
 
-  .matter-qr-wrapper {
+  /* Cleaned up unused styles */
+
+  .matter-pairing-required {
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: flex-end;
     gap: 0.5rem;
-    margin-top: 1rem;
     width: 100%;
   }
 
-  .matter-qr-image {
-    background: white;
-    padding: 0.5rem;
-    border-radius: 8px;
-    box-shadow:
-      0 4px 6px -1px rgba(0, 0, 0, 0.1),
-      0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  }
-
-  .matter-qr-tip {
+  .matter-nav-btn {
+    background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
+    border: none;
+    color: white;
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
     font-size: 0.75rem;
-    color: #94a3b8;
-    text-align: center;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 2px 4px rgba(79, 70, 229, 0.3);
   }
 
-  .select-all {
-    user-select: all;
+  .matter-nav-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(79, 70, 229, 0.45);
+    background: linear-gradient(135deg, #4338ca 0%, #2563eb 100%);
+  }
+
+  .matter-nav-btn:active {
+    transform: translateY(0);
   }
 </style>
