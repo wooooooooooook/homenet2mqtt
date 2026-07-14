@@ -3,15 +3,15 @@
   import { t } from 'svelte-i18n';
 
   let {
-    activeView = $bindable<'dashboard' | 'analysis' | 'gallery' | 'settings' | 'matter'>(
-      'dashboard',
-    ),
+    activeView = $bindable<
+      'dashboard' | 'devices' | 'analysis' | 'gallery' | 'settings' | 'matter'
+    >('dashboard'),
     isOpen = false,
     disabled = false,
     hasMatterBridge = false,
     onClose,
   }: {
-    activeView: 'dashboard' | 'analysis' | 'gallery' | 'settings' | 'matter';
+    activeView: 'dashboard' | 'devices' | 'analysis' | 'gallery' | 'settings' | 'matter';
     isOpen?: boolean;
     disabled?: boolean;
     hasMatterBridge?: boolean;
@@ -61,6 +61,16 @@
     >
       <span class="icon" aria-hidden="true">📊</span>
       <span class="label">{$t('sidebar.dashboard')}</span>
+    </button>
+    <button
+      class="nav-item"
+      class:active={activeView === 'devices'}
+      aria-current={activeView === 'devices' ? 'page' : undefined}
+      onclick={() => handleNavClick('devices')}
+      {disabled}
+    >
+      <span class="icon" aria-hidden="true">🔌</span>
+      <span class="label">{$t('sidebar.devices')}</span>
     </button>
     <button
       class="nav-item"

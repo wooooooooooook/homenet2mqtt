@@ -410,6 +410,7 @@
   },
   "sidebar": {
     "dashboard": "대시보드",
+    "devices": "기기",
     "analysis": "분석",
     "gallery": "갤러리",
     "settings": "설정",
@@ -641,6 +642,7 @@
       "status": "상태 & 명령",
       "execute": "실행",
       "status_run": "상태 & 실행",
+      "mqtt": "상세정보",
       "config": "설정 (YAML)",
       "packets": "패킷 로그",
       "manage": "관리",
@@ -719,6 +721,25 @@
       "restart_confirm": "설정 변경 사항을 적용하려면 브릿지를 재시작해야 합니다. 지금 재시작하시겠습니까?",
       "restart_button": "재시작",
       "restart_initiated": "재시작 요청 중... 잠시 후 페이지가 새로고침됩니다."
+    },
+    "mqtt": {
+      "title": "엔티티 상세 정보",
+      "config_summary": "설정 요약",
+      "discovery_info": "MQTT 디스커버리 정보",
+      "port_id": "포트 ID",
+      "type": "엔티티 타입",
+      "optimistic": "Optimistic (가상 피드백)",
+      "internal": "내부 전용(Internal)",
+      "discovery_always": "디스커버리 항상 발행",
+      "device_class": "디바이스 클래스",
+      "icon": "아이콘",
+      "loading": "상세 정보를 불러오는 중...",
+      "topic": "토픽",
+      "payload": "페이로드",
+      "empty": "MQTT 디스커버리 정보가 없습니다.",
+      "yes": "예",
+      "no": "아니오",
+      "none": "없음"
     },
     "packets": {
       "title": "패킷 로그 (RX/TX)",
@@ -954,5 +975,18 @@
     "vendor_id": "벤더 ID",
     "label": "플랫폼 라벨",
     "no_fabrics": "연결된 스마트홈 플랫폼이 없습니다."
+  },
+  "devices": {
+    "title": "기기 목록",
+    "subtitle": "연결된 기기(엔티티)의 상세 상태를 확인하고 관리합니다.",
+    "name": "이름",
+    "id": "ID",
+    "type": "타입",
+    "port": "포트",
+    "status": "상태",
+    "search_placeholder": "기기 이름 또는 ID로 검색...",
+    "no_devices": "등록된 기기가 없습니다.",
+    "active": "활성",
+    "inactive": "비활성"
   }
 }

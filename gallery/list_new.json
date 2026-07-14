@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-04T06:10:17.993Z",
+  "generated_at": "2026-07-13T05:51:26.864Z",
   "vendors": [
     {
       "id": "bestin",
@@ -2596,7 +2596,7 @@
           "name_en": "Smart Plugs",
           "description": "현대 이마주 스마트 콘센트 설정입니다. 방 개수와 방별 콘센트 개수(전력 측정 포함)를 설정할 수 있습니다.",
           "description_en": "Hyundai Imazu smart plugs configuration. You can configure room count and plugs per room (with power meter).",
-          "version": "2.0.0",
+          "version": "2.1.0",
           "author": "wooooooooooook",
           "tags": [
             "switch",
@@ -2642,10 +2642,10 @@
           ],
           "content_summary": {
             "entities": {
-              "switch": 1,
-              "sensor": 1
+              "switch": 2,
+              "sensor": 2
             },
-            "automations": 0,
+            "automations": 1,
             "scripts": 0
           },
           "discovery": {
@@ -2807,7 +2807,7 @@
           "name_en": "Doorbell Set",
           "description": "현대 이마주 현관문세트 설정입니다. 개인현관문과 공동현관문의 벨 감지, 통화, 문열기 기능을 지원합니다. 주방폰에 baud_rate 3880으로 연결됩니다.",
           "description_en": "Hyundai Imazu doorbell set configuration. Supports bell detection, calling, and door opening for private and common entrances. It is thought that it needs to connect to the kitchen phone at baud_rate 3880.",
-          "version": "2.0.1",
+          "version": "2.0.2",
           "author": "blank-page-1203",
           "tags": [
             "doorbell",

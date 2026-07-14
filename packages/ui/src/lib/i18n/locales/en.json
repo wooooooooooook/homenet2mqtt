@@ -410,6 +410,7 @@
   },
   "sidebar": {
     "dashboard": "Dashboard",
+    "devices": "Devices",
     "analysis": "Analysis",
     "gallery": "Gallery",
     "settings": "Settings",
@@ -636,6 +637,7 @@
       "status": "Status & Commands",
       "execute": "Run",
       "status_run": "Status & Run",
+      "mqtt": "Details",
       "config": "Config (YAML)",
       "packets": "Packet Log",
       "manage": "Manage",
@@ -714,6 +716,25 @@
       "restart_confirm": "Do you want to restart the bridge to apply changes?",
       "restart_button": "Restart",
       "restart_initiated": "Restart initiated. The page will reload shortly."
+    },
+    "mqtt": {
+      "title": "Entity Detailed Info",
+      "config_summary": "Configuration Summary",
+      "discovery_info": "MQTT Discovery Info",
+      "port_id": "Port ID",
+      "type": "Entity Type",
+      "optimistic": "Optimistic Mode",
+      "internal": "Internal Entity",
+      "discovery_always": "Discovery Always",
+      "device_class": "Device Class",
+      "icon": "Icon",
+      "loading": "Loading details...",
+      "topic": "Topic",
+      "payload": "Payload",
+      "empty": "No MQTT discovery info available.",
+      "yes": "Yes",
+      "no": "No",
+      "none": "None"
     },
     "packets": {
       "title": "Packet Log (RX/TX)",
@@ -949,5 +970,18 @@
     "vendor_id": "Vendor ID",
     "label": "Platform Label",
     "no_fabrics": "No connected smart home platforms found."
+  },
+  "devices": {
+    "title": "Devices",
+    "subtitle": "View and manage the detailed state of connected devices (entities).",
+    "name": "Name",
+    "id": "ID",
+    "type": "Type",
+    "port": "Port",
+    "status": "Status",
+    "search_placeholder": "Search by device name or ID...",
+    "no_devices": "No devices registered.",
+    "active": "Active",
+    "inactive": "Inactive"
   }
 }

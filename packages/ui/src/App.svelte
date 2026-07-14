@@ -35,11 +35,13 @@
   import Analysis from './lib/views/Analysis.svelte';
   import Gallery from './lib/views/Gallery.svelte';
   import Matter from './lib/views/Matter.svelte';
+  import Devices from './lib/views/Devices.svelte';
 
-  import EntityDetail from './lib/components/EntityDetail.svelte';
+  import EntityDetailModal from './lib/components/EntityDetailModal.svelte';
   import ToastContainer from './lib/components/ToastContainer.svelte';
   import SetupWizard from './lib/components/SetupWizard.svelte';
   import SettingsView from './lib/views/Settings.svelte';
+  import { makeEntityKey, parseEntityKey } from './lib/utils/entity';
   import { getTimeZone, setTimeZone, withTimeZone } from './lib/utils/time';
 
   const MAX_PACKETS = 500000; // ~24 hours at 5 packets/sec
@@ -192,7 +194,7 @@
   };
 
   // -- State --
-  let activeView = $state<'dashboard' | 'analysis' | 'gallery' | 'settings' | 'matter'>(
+  let activeView = $state<'dashboard' | 'devices' | 'analysis' | 'gallery' | 'settings' | 'matter'>(
     'dashboard',
   );
   // Entity selection uses a composite key: "category:portId:entityId" to distinguish entities across ports
@@ -202,34 +204,6 @@
   let showEntityCards = $state(true);
   let showAutomationCards = $state(true);
   let showScriptCards = $state(true);
-
-  // Helper to create/parse entity composite keys
-  const makeEntityKey = (
-    portId: string | undefined,
-    entityId: string,
-    category: EntityCategory = 'entity',
-  ) => `${category}:${portId ?? 'unknown'}:${entityId}`;
-  const parseEntityKey = (
-    key: string,
-  ): { portId: string | undefined; entityId: string; category: EntityCategory } => {
-    const parts = key.split(':');
-    if (parts.length < 3) {
-      const idx = key.indexOf(':');
-      if (idx === -1) return { portId: undefined, entityId: key, category: 'entity' };
-      const portId = key.slice(0, idx);
-      return {
-        portId: portId === 'unknown' ? undefined : portId,
-        entityId: key.slice(idx + 1),
-        category: 'entity',
-      };
-    }
-    const [category, portId, ...rest] = parts;
-    return {
-      category: (category as EntityCategory) ?? 'entity',
-      portId: portId === 'unknown' ? undefined : portId,
-      entityId: rest.join(':'),
-    };
-  };
 
   let bridgeInfo = $state<BridgeInfo | null>(null);
   let infoLoading = $state(false);
@@ -1724,110 +1698,11 @@
     }
   });
 
-  // --- Entity Detail Logic ---
-
-  const selectedEntity = $derived.by<UnifiedEntity | null>(() => {
-    if (!selectedEntityKey) return null;
-    const { portId, entityId, category } = parseEntityKey(selectedEntityKey);
-    return (
-      unifiedEntities.find(
-        (e) => e.id === entityId && e.portId === portId && e.category === category,
-      ) || null
-    );
-  });
-
-  const selectedEntityErrors = $derived.by<EntityErrorEvent[]>(() => {
-    if (!selectedEntity) return [];
-    const key = makeEntityKey(
-      selectedEntity.portId,
-      selectedEntity.id,
-      selectedEntity.category ?? 'entity',
-    );
-    return entityErrorsByKey.get(key) ?? [];
-  });
-
-  const selectedEntityParsedPackets = $derived.by<ParsedPacket[]>(() => {
-    logVersion;
-    return selectedEntity && selectedEntity.category === 'entity'
-      ? parsedPacketLogs
-          .filter(
-            (p) =>
-              p.entityId === selectedEntity.id &&
-              (!selectedEntity.portId || !p.portId || p.portId === selectedEntity.portId),
-          )
-          .slice(0, 20)
-          .map((log) => ({
-            entityId: log.entityId,
-            packet: packetDictionary[log.packetId] || '',
-            state: log.state,
-            timestamp: log.timestamp,
-            portId: log.portId,
-            timestampMs: log.timestampMs,
-            timeLabel: log.timeLabel,
-            searchText: log.searchText,
-          }))
-      : [];
-  });
-
-  const selectedEntityCommandPackets = $derived.by<CommandPacket[]>(() => {
-    logVersion;
-    return selectedEntity && selectedEntity.category === 'entity'
-      ? commandPacketLogs
-          .filter(
-            (p) =>
-              (p.entityId === selectedEntity.id || p.sourceEntityId === selectedEntity.id) &&
-              (!selectedEntity.portId || !p.portId || p.portId === selectedEntity.portId),
-          )
-          .slice(0, 20)
-          .map((log) => ({
-            entity: log.entity,
-            entityId: log.entityId,
-            command: log.command,
-            value: log.value,
-            packet: packetDictionary[log.packetId] || '',
-            timestamp: log.timestamp,
-            portId: log.portId,
-            timestampMs: log.timestampMs,
-            timeLabel: log.timeLabel,
-            searchText: log.searchText,
-            sourceEntityId: log.sourceEntityId,
-          }))
-      : [];
-  });
-
-  const selectedEntityActivityLogs = $derived.by<ActivityLog[]>(() => {
-    if (!selectedEntity) return [];
-    if (selectedEntity.category === 'automation') {
-      return activityLogs.filter(
-        (log) =>
-          log.code.startsWith('log.automation_') && log.params?.automationId === selectedEntity.id,
-      );
-    }
-    if (selectedEntity.category === 'script') {
-      return activityLogs.filter(
-        (log) => log.code.startsWith('log.script_') && log.params?.scriptId === selectedEntity.id,
-      );
-    }
-    // 일반 엔티티: entityId로 상태 변경 로그 + sourceEntityId로 스크립트 실행 로그 필터링
-    return activityLogs.filter(
-      (log) =>
-        log.params?.entityId === selectedEntity.id ||
-        log.params?.sourceEntityId === selectedEntity.id,
-    );
-  });
-
-  $effect(() => {
-    if (selectedEntityKey) {
-      const { portId, entityId, category } = parseEntityKey(selectedEntityKey);
-      const exists = unifiedEntities.some(
-        (entity) =>
-          entity.id === entityId && entity.portId === portId && entity.category === category,
-      );
-      if (!exists) {
-        selectedEntityKey = null;
-      }
-    }
-  });
+  const devicesEntities = $derived.by<UnifiedEntity[]>(() =>
+    allUnifiedEntities.filter(
+      (e) => e.category === 'entity' && (!activePortId || e.portId === activePortId),
+    ),
+  );
 
   $effect(() => {
     if (!selectedEntityKey) {
@@ -2015,30 +1890,46 @@
           />
         {:else if activeView === 'matter'}
           <Matter {bridgeInfo} {infoLoading} onRefresh={() => loadBridgeInfo(true)} />
+        {:else if activeView === 'devices'}
+          <Devices
+            entities={devicesEntities}
+            onSelect={(entityId, portId, category) =>
+              (selectedEntityKey = makeEntityKey(portId, entityId, category))}
+          />
         {/if}
       </section>
     </div>
 
-    {#if selectedEntity}
-      <EntityDetail
-        entity={selectedEntity}
-        isOpen={!!selectedEntityKey}
-        parsedPackets={selectedEntityParsedPackets}
-        commandPackets={selectedEntityCommandPackets}
-        activityLogs={selectedEntityActivityLogs}
-        entityErrors={selectedEntityErrors}
-        onClose={() => (selectedEntityKey = null)}
-        onExecute={(cmd, value) => executeCommand(cmd, value)}
-        isRenaming={renamingEntityId === selectedEntity.id}
-        {renameError}
-        onRename={(newName, updateObjectId) =>
-          selectedEntity &&
-          renameEntityRequest(selectedEntity.id, newName, selectedEntity.portId, updateObjectId)}
-        onUpdate={(updates) =>
-          selectedEntity && handleEntityUpdate(selectedEntity.id, selectedEntity.portId, updates)}
-        editorMode={frontendSettings?.editor?.default ?? 'monaco'}
-      />
-    {/if}
+    <EntityDetailModal
+      bind:selectedEntityKey
+      {allUnifiedEntities}
+      {parsedPacketLogs}
+      {commandPacketLogs}
+      {activityLogs}
+      {entityErrorsByKey}
+      {packetDictionary}
+      {frontendSettings}
+      {renamingEntityId}
+      {renameError}
+      {logVersion}
+      onRename={(newName, updateObjectId) => {
+        if (selectedEntityKey) {
+          const parsed = parseEntityKey(selectedEntityKey);
+          if (parsed.entityId) {
+            renameEntityRequest(parsed.entityId, newName, parsed.portId, updateObjectId);
+          }
+        }
+      }}
+      onExecute={(cmd, value) => executeCommand(cmd, value)}
+      onUpdate={(updates) => {
+        if (selectedEntityKey) {
+          const parsed = parseEntityKey(selectedEntityKey);
+          if (parsed.entityId) {
+            handleEntityUpdate(parsed.entityId, parsed.portId, updates);
+          }
+        }
+      }}
+    />
 
     {#if showAddBridgeModal}
       <SetupWizard mode="add" onclose={() => (showAddBridgeModal = false)} />
