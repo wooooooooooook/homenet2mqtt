@@ -332,7 +332,7 @@
     },
     "packet_dictionary": {
       "title": "Packet Dictionary",
-      "desc": "View all packets collected by the bridge. 'Matched' means parsed packets (state parsing + command logs), while 'Unmatched' are valid packets not linked to any item.",
+      "desc": "View all packets collected by the bridge. 'Matched' means parsed packets (state parsing + command logs), while 'Unmatched' are valid packets not linked to any item (mainly includes state request packets sent from the wallpad to devices).",
       "parsed_count": "Matched (parsed/command): {count}",
       "unmatched_count": "Unmatched: {count}",
       "tab_all": "All",
