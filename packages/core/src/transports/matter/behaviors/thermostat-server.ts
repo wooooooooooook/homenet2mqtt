@@ -172,7 +172,11 @@ async function thermostatPostInitialize(self: any): Promise<void> {
     self.events.systemMode$Changed,
     async function (this: any, v: SystemMode, o: SystemMode, c?: ActionContext) {
       const h = await this.agent.load(HomenetEntityBehavior);
-      await handleSystemModeChanged(h.executeCommand.bind(h), h.entityId, v, o, c);
+      try {
+        await handleSystemModeChanged(h.executeCommand.bind(h), h.entityId, v, o, c);
+      } finally {
+        updateFromEntityState(this, h.entityState, entityConfig);
+      }
     },
     { offline: true },
   );
@@ -187,16 +191,20 @@ async function thermostatPostInitialize(self: any): Promise<void> {
       self.events.occupiedHeatingSetpoint$Changed,
       async function (this: any, v: number, o: number, c?: ActionContext) {
         const h = await this.agent.load(HomenetEntityBehavior);
-        await handleSetpointChanged(
-          this,
-          h.executeCommand.bind(h),
-          h.entityId,
-          v,
-          o,
-          c,
-          temperatureStepMatter,
-          'heating',
-        );
+        try {
+          await handleSetpointChanged(
+            this,
+            h.executeCommand.bind(h),
+            h.entityId,
+            v,
+            o,
+            c,
+            temperatureStepMatter,
+            'heating',
+          );
+        } finally {
+          updateFromEntityState(this, h.entityState, entityConfig);
+        }
       },
       { offline: true },
     );
@@ -206,16 +214,20 @@ async function thermostatPostInitialize(self: any): Promise<void> {
       self.events.occupiedCoolingSetpoint$Changed,
       async function (this: any, v: number, o: number, c?: ActionContext) {
         const h = await this.agent.load(HomenetEntityBehavior);
-        await handleSetpointChanged(
-          this,
-          h.executeCommand.bind(h),
-          h.entityId,
-          v,
-          o,
-          c,
-          temperatureStepMatter,
-          'cooling',
-        );
+        try {
+          await handleSetpointChanged(
+            this,
+            h.executeCommand.bind(h),
+            h.entityId,
+            v,
+            o,
+            c,
+            temperatureStepMatter,
+            'cooling',
+          );
+        } finally {
+          updateFromEntityState(this, h.entityState, entityConfig);
+        }
       },
       { offline: true },
     );

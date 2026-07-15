@@ -88,7 +88,11 @@ export class LevelControlServer extends FeaturedBase {
     this.state.currentLevel = level;
 
     const homenet = await this.agent.load(HomenetEntityBehavior);
-    await homenet.executeCommand(homenet.entityId, 'brightness', brightness);
+    try {
+      await homenet.executeCommand(homenet.entityId, 'brightness', brightness);
+    } finally {
+      this.update(homenet.entityState);
+    }
   }
 }
 export namespace LevelControlServer {

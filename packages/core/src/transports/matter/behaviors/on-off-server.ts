@@ -29,18 +29,26 @@ export class OnOffServer extends FeaturedBase {
 
     if (type === 'button') {
       applyPatchState(this.state, { onOff: true });
-      await homenet.executeCommand(homenet.entityId, 'press');
-      // Momentary switch behavior: turn off after a short delay
-      setTimeout(() => {
-        applyPatchState(this.state, { onOff: false });
-      }, 500);
+      try {
+        await homenet.executeCommand(homenet.entityId, 'press');
+      } finally {
+        this.update(homenet.entityState);
+        // Momentary switch behavior: turn off after a short delay
+        setTimeout(() => {
+          applyPatchState(this.state, { onOff: false });
+        }, 500);
+      }
       return;
     }
 
     // Set onOff immediately so the controller gets instant feedback
     applyPatchState(this.state, { onOff: true });
     const command = type === 'valve' ? 'open' : 'on';
-    await homenet.executeCommand(homenet.entityId, command);
+    try {
+      await homenet.executeCommand(homenet.entityId, command);
+    } finally {
+      this.update(homenet.entityState);
+    }
   }
 
   override async off() {
@@ -48,7 +56,11 @@ export class OnOffServer extends FeaturedBase {
     applyPatchState(this.state, { onOff: false });
     const homenet = await this.agent.load(HomenetEntityBehavior);
     const command = (homenet.entityConfig.type ?? '') === 'valve' ? 'close' : 'off';
-    await homenet.executeCommand(homenet.entityId, command);
+    try {
+      await homenet.executeCommand(homenet.entityId, command);
+    } finally {
+      this.update(homenet.entityState);
+    }
   }
 }
 export namespace OnOffServer {

@@ -40,8 +40,11 @@ export function applyPatchState<T extends object>(state: T, patch: Partial<T>): 
         return actualPatch;
       }
       // Transaction conflict, all remaining writes will also fail
-      if (errorMessage.includes('synchronous-transaction-conflict')) {
-        logger.warn(`Transaction conflict, state update DROPPED: ${JSON.stringify(actualPatch)}`);
+      if (
+        errorMessage.includes('synchronous-transaction-conflict') ||
+        (errorMessage.includes('Cannot lock') && errorMessage.includes('synchronously'))
+      ) {
+        logger.debug(`Transaction conflict, state update DROPPED: ${JSON.stringify(actualPatch)}`);
         return actualPatch;
       }
       // Per-property failure: log warning and continue with remaining properties

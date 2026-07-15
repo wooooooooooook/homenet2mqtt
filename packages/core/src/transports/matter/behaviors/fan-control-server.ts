@@ -57,21 +57,25 @@ export class FanControlServer extends FeaturedBase {
     const config = homenet.entityConfig as any;
     const speedMax = config.speed_range_max ?? 3;
 
-    // If target speed is 0, turn off the fan
-    if (speed === 0) {
-      await homenet.executeCommand(homenet.entityId, 'off');
-      return;
-    }
+    try {
+      // If target speed is 0, turn off the fan
+      if (speed === 0) {
+        await homenet.executeCommand(homenet.entityId, 'off');
+        return;
+      }
 
-    // Determine command mapping:
-    // If the entity supports 'speed' command, send the speed number directly or map to percentage.
-    // If fan uses percentage:
-    const hasPercentage = config.command_percentage || config.state_percentage;
-    if (hasPercentage) {
-      const percent = Math.round((speed / speedMax) * 100);
-      await homenet.executeCommand(homenet.entityId, 'percentage', percent);
-    } else {
-      await homenet.executeCommand(homenet.entityId, 'speed', speed);
+      // Determine command mapping:
+      // If the entity supports 'speed' command, send the speed number directly or map to percentage.
+      // If fan uses percentage:
+      const hasPercentage = config.command_percentage || config.state_percentage;
+      if (hasPercentage) {
+        const percent = Math.round((speed / speedMax) * 100);
+        await homenet.executeCommand(homenet.entityId, 'percentage', percent);
+      } else {
+        await homenet.executeCommand(homenet.entityId, 'speed', speed);
+      }
+    } finally {
+      this.update(homenet.entityState);
     }
   }
 }

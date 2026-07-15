@@ -49,7 +49,11 @@ export class SelectModeServer extends Base {
     const option = options[newMode];
     if (option !== undefined) {
       this.state.currentMode = newMode;
-      await homenet.executeCommand(homenet.entityId, 'select', option);
+      try {
+        await homenet.executeCommand(homenet.entityId, 'select', option);
+      } finally {
+        this.update(homenet.entityState);
+      }
     }
   }
 }
