@@ -23,6 +23,16 @@ on:
         type: boolean
         required: true
         default: true
+      arch_amd64:
+        description: 'Build Homenet2MQTT-dev for amd64'
+        type: boolean
+        required: true
+        default: true
+      arch_arm64:
+        description: 'Build Homenet2MQTT-dev for arm64'
+        type: boolean
+        required: true
+        default: false
 
 permissions:
   contents: read
@@ -43,6 +53,47 @@ jobs:
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
           echo "Generated version: $VERSION"
 
+      - name: Determine platforms
+        id: set-platforms
+        run: |
+          # Default values for push triggers (both architectures)
+          AMD64="true"
+          ARM64="true"
+          
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            AMD64="${{ github.event.inputs.arch_amd64 }}"
+            ARM64="${{ github.event.inputs.arch_arm64 }}"
+          fi
+          
+          PLATFORMS=""
+          SMOKE_TEST=""
+          
+          if [ "$AMD64" = "true" ]; then
+            PLATFORMS="linux/amd64"
+            SMOKE_TEST="linux/amd64"
+          fi
+          
+          if [ "$ARM64" = "true" ]; then
+            if [ -n "$PLATFORMS" ]; then
+              PLATFORMS="$PLATFORMS,linux/arm64"
+              SMOKE_TEST="$SMOKE_TEST linux/arm64"
+            else
+              PLATFORMS="linux/arm64"
+              SMOKE_TEST="linux/arm64"
+            fi
+          fi
+          
+          # Fallback if none selected
+          if [ -z "$PLATFORMS" ]; then
+            echo "No platforms selected, defaulting to linux/amd64"
+            PLATFORMS="linux/amd64"
+            SMOKE_TEST="linux/amd64"
+          fi
+          
+          echo "platforms=$PLATFORMS" >> $GITHUB_OUTPUT
+          echo "smoke_test=$SMOKE_TEST" >> $GITHUB_OUTPUT
+          echo "Selected platforms: $PLATFORMS"
+
       - name: Login to Docker Hub
         uses: docker/login-action@v4
         with:
@@ -60,7 +111,7 @@ jobs:
         with:
           context: .
           file: hassio-addon/Dockerfile
-          platforms: linux/amd64,linux/arm64
+          platforms: ${{ steps.set-platforms.outputs.platforms }}
           push: true
           build-args: |
             VERSION=${{ steps.version.outputs.VERSION }}
@@ -75,7 +126,7 @@ jobs:
 
       - name: Multi-arch smoke test
         run: |
-          for PLATFORM in linux/amd64 linux/arm64; do
+          for PLATFORM in ${{ steps.set-platforms.outputs.smoke_test }}; do
             echo "Testing $PLATFORM"
             docker run --rm --entrypoint node --platform $PLATFORM nubiz/homenet2mqtt:${{ steps.version.outputs.VERSION }} \
               -v || exit 1

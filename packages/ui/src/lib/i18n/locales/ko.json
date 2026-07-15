@@ -411,6 +411,7 @@
   "sidebar": {
     "dashboard": "대시보드",
     "devices": "기기",
+    "automations": "자동화/스크립트",
     "analysis": "분석",
     "gallery": "갤러리",
     "settings": "설정",
@@ -954,7 +955,9 @@
     "select": "선택",
     "text_sensor": "텍스트 센서",
     "text": "텍스트 입력",
-    "binary_sensor": "이진 센서"
+    "binary_sensor": "이진 센서",
+    "automation": "자동화",
+    "script": "스크립트"
   },
   "toasts": {
     "command_sent": "{entity} 명령 전송",
@@ -998,5 +1001,19 @@
     "no_devices": "등록된 기기가 없습니다.",
     "active": "활성",
     "inactive": "비활성"
+  },
+  "automations": {
+    "title": "자동화/스크립트 목록",
+    "subtitle": "설정된 자동화 규칙 및 실행 가능한 스크립트 목록을 확인하고 관리합니다.",
+    "name": "이름",
+    "id": "ID",
+    "type": "타입",
+    "port": "포트",
+    "status": "상태",
+    "search_placeholder": "이름, ID 또는 설명으로 검색...",
+    "no_items": "등록된 자동화나 스크립트가 없습니다.",
+    "active": "활성",
+    "inactive": "비활성",
+    "description": "설명"
   }
 }

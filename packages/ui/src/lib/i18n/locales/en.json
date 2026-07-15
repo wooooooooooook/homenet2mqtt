@@ -411,6 +411,7 @@
   "sidebar": {
     "dashboard": "Dashboard",
     "devices": "Devices",
+    "automations": "Automations/Scripts",
     "analysis": "Analysis",
     "gallery": "Gallery",
     "settings": "Settings",
@@ -949,7 +950,9 @@
     "select": "Select",
     "text_sensor": "Text Sensor",
     "text": "Text Input",
-    "binary_sensor": "Binary Sensor"
+    "binary_sensor": "Binary Sensor",
+    "automation": "Automation",
+    "script": "Script"
   },
   "toasts": {
     "command_sent": "{entity} Command Sent",
@@ -993,5 +996,19 @@
     "no_devices": "No devices registered.",
     "active": "Active",
     "inactive": "Inactive"
+  },
+  "automations": {
+    "title": "Automations & Scripts",
+    "subtitle": "View, manage, and execute configured automation rules and scripts.",
+    "name": "Name",
+    "id": "ID",
+    "type": "Type",
+    "port": "Port",
+    "status": "Status",
+    "search_placeholder": "Search by name, ID, or description...",
+    "no_items": "No automations or scripts registered.",
+    "active": "Active",
+    "inactive": "Inactive",
+    "description": "Description"
   }
 }

@@ -4,14 +4,21 @@
 
   let {
     activeView = $bindable<
-      'dashboard' | 'devices' | 'analysis' | 'gallery' | 'settings' | 'matter'
+      'dashboard' | 'devices' | 'automations' | 'analysis' | 'gallery' | 'settings' | 'matter'
     >('dashboard'),
     isOpen = false,
     disabled = false,
     hasMatterBridge = false,
     onClose,
   }: {
-    activeView: 'dashboard' | 'devices' | 'analysis' | 'gallery' | 'settings' | 'matter';
+    activeView:
+      | 'dashboard'
+      | 'devices'
+      | 'automations'
+      | 'analysis'
+      | 'gallery'
+      | 'settings'
+      | 'matter';
     isOpen?: boolean;
     disabled?: boolean;
     hasMatterBridge?: boolean;
@@ -62,6 +69,7 @@
       <span class="icon" aria-hidden="true">📊</span>
       <span class="label">{$t('sidebar.dashboard')}</span>
     </button>
+    <hr class="nav-divider" />
     <button
       class="nav-item"
       class:active={activeView === 'devices'}
@@ -74,6 +82,17 @@
     </button>
     <button
       class="nav-item"
+      class:active={activeView === 'automations'}
+      aria-current={activeView === 'automations' ? 'page' : undefined}
+      onclick={() => handleNavClick('automations')}
+      {disabled}
+    >
+      <span class="icon" aria-hidden="true">⚡</span>
+      <span class="label">{$t('sidebar.automations')}</span>
+    </button>
+    <hr class="nav-divider" />
+    <button
+      class="nav-item"
       class:active={activeView === 'analysis'}
       aria-current={activeView === 'analysis' ? 'page' : undefined}
       onclick={() => handleNavClick('analysis')}
@@ -82,6 +101,7 @@
       <span class="icon" aria-hidden="true">📈</span>
       <span class="label">{$t('sidebar.analysis')}</span>
     </button>
+    <hr class="nav-divider" />
     <button
       class="nav-item"
       class:active={activeView === 'gallery'}
@@ -92,6 +112,7 @@
       <span class="icon" aria-hidden="true">📦</span>
       <span class="label">{$t('sidebar.gallery')}</span>
     </button>
+    <hr class="nav-divider" />
     {#if hasMatterBridge}
       <button
         class="nav-item"
@@ -178,6 +199,13 @@
 {/if}
 
 <style>
+  .nav-divider {
+    border: none;
+    height: 1px;
+    background: rgba(148, 163, 184, 0.15);
+    margin: 0.25rem 0;
+  }
+
   .sidebar {
     width: 250px;
     background: rgba(15, 23, 42, 0.95);

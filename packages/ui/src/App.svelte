@@ -37,6 +37,7 @@
   import Gallery from './lib/views/Gallery.svelte';
   import Matter from './lib/views/Matter.svelte';
   import Devices from './lib/views/Devices.svelte';
+  import Automations from './lib/views/Automations.svelte';
 
   import EntityDetailModal from './lib/components/EntityDetailModal.svelte';
   import ToastContainer from './lib/components/ToastContainer.svelte';
@@ -195,9 +196,9 @@
   };
 
   // -- State --
-  let activeView = $state<'dashboard' | 'devices' | 'analysis' | 'gallery' | 'settings' | 'matter'>(
-    'dashboard',
-  );
+  let activeView = $state<
+    'dashboard' | 'devices' | 'automations' | 'analysis' | 'gallery' | 'settings' | 'matter'
+  >('dashboard');
   // Entity selection uses a composite key: "category:portId:entityId" to distinguish entities across ports
   let selectedEntityKey = $state<string | null>(null);
   let isSidebarOpen = $state(false);
@@ -1714,6 +1715,14 @@
     ),
   );
 
+  const automationsEntities = $derived.by<UnifiedEntity[]>(() =>
+    allUnifiedEntities.filter(
+      (e) =>
+        (e.category === 'automation' || e.category === 'script') &&
+        (!activePortId || e.portId === activePortId),
+    ),
+  );
+
   $effect(() => {
     if (!selectedEntityKey) {
       renameError = '';
@@ -1900,6 +1909,12 @@
           />
         {:else if activeView === 'matter'}
           <Matter {bridgeInfo} {infoLoading} onRefresh={() => loadBridgeInfo(true)} />
+        {:else if activeView === 'automations'}
+          <Automations
+            entities={automationsEntities}
+            onSelect={(entityId, portId, category) =>
+              (selectedEntityKey = makeEntityKey(portId, entityId, category))}
+          />
         {:else if activeView === 'devices'}
           <Devices
             entities={devicesEntities}
