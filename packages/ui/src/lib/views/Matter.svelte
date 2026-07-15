@@ -197,7 +197,16 @@
                       <td class="index-cell"><span class="idx-badge">{fabric.fabricIndex}</span></td
                       >
                       <td class="label-cell">
-                        <span class="platform-label" class:custom={fabric.label !== 'Platform'}>
+                        <span
+                          class="platform-label"
+                          class:custom={fabric.label !== 'Platform'}
+                          class:google={fabric.label === 'Google Home'}
+                          class:apple={fabric.label === 'Apple Home'}
+                          class:smartthings={fabric.label === 'Samsung SmartThings'}
+                          class:alexa={fabric.label === 'Amazon Alexa'}
+                          class:homeassistant={fabric.label === 'Home Assistant'}
+                          class:test={fabric.label === 'Test Platform'}
+                        >
                           {fabric.label || 'Platform'}
                         </span>
                       </td>
@@ -554,6 +563,36 @@
   .platform-label.custom {
     background: rgba(59, 130, 246, 0.15);
     color: #60a5fa;
+  }
+
+  .platform-label.google {
+    background: rgba(244, 180, 0, 0.15);
+    color: #f4b400;
+  }
+
+  .platform-label.apple {
+    background: rgba(255, 149, 0, 0.15);
+    color: #ff9500;
+  }
+
+  .platform-label.smartthings {
+    background: rgba(3, 169, 244, 0.15);
+    color: #03a9f4;
+  }
+
+  .platform-label.alexa {
+    background: rgba(0, 202, 243, 0.15);
+    color: #00caf3;
+  }
+
+  .platform-label.homeassistant {
+    background: rgba(3, 155, 229, 0.15);
+    color: #039be5;
+  }
+
+  .platform-label.test {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
   }
 
   .mono-cell {

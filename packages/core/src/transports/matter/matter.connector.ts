@@ -301,13 +301,19 @@ export class MatterConnector implements IntegrationConnector {
     const comm = this.serverNode.state.commissioning;
     const opCreds = this.serverNode.state.operationalCredentials;
 
-    const fabrics = (opCreds?.fabrics ?? []).map((f: any) => ({
-      fabricIndex: f.fabricIndex,
-      fabricId: f.fabricId?.toString(),
-      nodeId: f.nodeId?.toString(),
-      vendorId: f.vendorId,
-      label: f.label,
-    }));
+    const fabrics = (opCreds?.fabrics ?? []).map((f: any) => {
+      let label = f.label;
+      if (!label || label === 'Platform' || label === 'platform') {
+        label = PLATFORM_LABELS[f.vendorId] || 'Platform';
+      }
+      return {
+        fabricIndex: f.fabricIndex,
+        fabricId: f.fabricId?.toString(),
+        nodeId: f.nodeId?.toString(),
+        vendorId: f.vendorId,
+        label,
+      };
+    });
 
     return {
       isCommissioned: comm.commissioned,
@@ -352,3 +358,14 @@ async function findAvailablePort(startPort: number, maxAttempts = 100): Promise<
   }
   throw new Error(`Could not find an available port starting from ${startPort}`);
 }
+
+const PLATFORM_LABELS: Record<number, string> = {
+  0x1111: 'Google Home',
+  0x130b: 'Apple Home',
+  0x1349: 'Apple Home',
+  0x1384: 'Apple Home',
+  0x110a: 'Samsung SmartThings',
+  0x1211: 'Amazon Alexa',
+  0x120f: 'Home Assistant',
+  0xfff1: 'Test Platform',
+};
