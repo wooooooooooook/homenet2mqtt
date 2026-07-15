@@ -6,11 +6,13 @@ interface PendingPatch<T extends object> {
   patch: Partial<T>;
   timeoutId: NodeJS.Timeout | null;
   retryCount: number;
+  sequence: number;
 }
 
 const pendingPatches = new WeakMap<object, PendingPatch<any>>();
 const MAX_RETRY_COUNT = 20;
 const RETRY_DELAY_MS = 20;
+let globalSequence = 0;
 
 /**
  * Safely applies a patch to Matter state, only updating changed properties.
@@ -21,13 +23,21 @@ export function applyPatchState<T extends object>(
   state: T,
   patch: Partial<T>,
   isRetry = false,
+  sequence?: number,
 ): Partial<T> {
+  const currentSequence = sequence ?? ++globalSequence;
   let finalPatch = { ...patch };
 
   // If there's a pending patch, merge it (newer patch values take precedence)
   const pending = pendingPatches.get(state);
   if (pending) {
     if (!isRetry) {
+      if (currentSequence < pending.sequence) {
+        logger.debug(
+          `Out-of-order patch dropped: incoming sequence ${currentSequence} is older than pending sequence ${pending.sequence}`,
+        );
+        return {};
+      }
       finalPatch = { ...pending.patch, ...patch };
       if (pending.timeoutId) {
         clearTimeout(pending.timeoutId);
@@ -122,6 +132,7 @@ export function applyPatchState<T extends object>(
         patch: {},
         timeoutId: null,
         retryCount: 0,
+        sequence: currentSequence,
       };
 
       if (currentPending.timeoutId) {
@@ -130,9 +141,10 @@ export function applyPatchState<T extends object>(
 
       currentPending.patch = { ...currentPending.patch, ...actualPatch };
       currentPending.retryCount = retryCount;
+      currentPending.sequence = currentSequence;
       currentPending.timeoutId = setTimeout(() => {
         try {
-          applyPatchState(state, currentPending.patch, true);
+          applyPatchState(state, currentPending.patch, true, currentPending.sequence);
         } catch (e) {
           logger.error(
             `Error in async applyPatchState retry: ${e instanceof Error ? e.stack : String(e)}`,

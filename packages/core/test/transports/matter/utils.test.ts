@@ -124,6 +124,38 @@ describe('Matter Transports Utilities', () => {
       const actualPatch = applyPatchState(targetState, { onOff: true });
       expect(actualPatch).toEqual({ onOff: true });
     });
+
+    it('should drop out-of-order patches with older sequences when a patch is pending', async () => {
+      let failCount = 1;
+      const targetState = {
+        _onOff: false,
+        get onOff(): boolean {
+          return this._onOff;
+        },
+        set onOff(value: boolean) {
+          if (failCount > 0) {
+            failCount--;
+            throw new Error('synchronous-transaction-conflict');
+          }
+          this._onOff = value;
+        },
+      };
+
+      // 1. First update changes state from false to true, triggers a lock conflict and gets pending (seq = N)
+      applyPatchState(targetState, { onOff: true });
+
+      // 2. A delayed, older update (seq = 0) to change it back to false comes in
+      const droppedPatch = applyPatchState(targetState, { onOff: false }, false, 0);
+
+      // It must be dropped and return empty object
+      expect(droppedPatch).toEqual({});
+
+      // 3. Wait for retry timer to resolve the pending update
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      // Stale update (false) should be ignored, and targetState must remain true as requested by the latest command
+      expect(targetState._onOff).toBe(true);
+    });
   });
 
   describe('trimToLength', () => {
