@@ -39,7 +39,7 @@ jobs:
       - name: Generate Timestamp Version
         id: version
         run: |
-          VERSION="dev-$(date +'%Y%m%d-%H%M')"
+          VERSION="dev-$(TZ=Asia/Seoul date +'%Y%m%d-%H%M')"
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
           echo "Generated version: $VERSION"
 
