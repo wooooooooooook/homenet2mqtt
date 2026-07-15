@@ -260,7 +260,7 @@
   let packetStatsByPort = $state(new Map<string, PacketStats>());
   let hasIntervalPackets = $state(false);
   let lastRawPacketTimestamp = $state<number | null>(null);
-  let validRawPacketsOnly = $state(true);
+  let validRawPacketsOnly = $state(false);
   let toasts = $state<ToastMessage[]>([]);
   const toastTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
   const MAX_TOASTS = 4;

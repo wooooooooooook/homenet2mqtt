@@ -260,15 +260,7 @@
   </div>
 {/snippet}
 
-<div id="packet-log" class="log-section">
-  <div class="log-header">
-    <div class="header-left">
-      <h2>{$t('analysis.packet_log.title')}</h2>
-    </div>
-  </div>
-
-  <p class="description">{$t('analysis.packet_log.desc')}</p>
-
+<div class="packet-log-content">
   <div class="filter-row">
     <label class="filter-label">
       <span>{$t('analysis.packet_log.search_placeholder')}</span>
@@ -355,47 +347,6 @@
 </div>
 
 <style>
-  .log-section {
-    background: rgba(30, 41, 59, 0.5);
-    border: 1px solid rgba(148, 163, 184, 0.1);
-    border-radius: 12px;
-    padding: 1.5rem;
-  }
-
-  @media (max-width: 480px) {
-    .log-section {
-      padding: 0.75rem;
-      border-radius: 8px;
-    }
-  }
-
-  .log-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-    gap: 1rem;
-  }
-
-  .header-left {
-    display: flex;
-    align-items: center;
-    gap: 1.5rem;
-    flex-wrap: wrap;
-  }
-
-  h2 {
-    font-size: 1.1rem;
-    margin: 0;
-    color: #e2e8f0;
-  }
-
-  .description {
-    color: #94a3b8;
-    font-size: 0.9rem;
-    margin-bottom: 1rem;
-  }
-
   .filter-row {
     display: flex;
     align-items: flex-end;

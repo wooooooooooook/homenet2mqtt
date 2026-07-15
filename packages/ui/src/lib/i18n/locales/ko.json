@@ -193,7 +193,7 @@
       "empty": "표시할 자동화 또는 스크립트 기록이 없습니다."
     },
     "packet_log": {
-      "title": "패킷 로그 (RX/TX)",
+      "title": "패킷로그",
       "rx": "RX (수신)",
       "tx": "TX (발신)",
       "desc": "파싱된 수신패킷과 H2M에서 발신한 패킷 목록입니다.",
@@ -240,7 +240,7 @@
       "recording_duration": "녹화 시간: {duration}",
       "auto_stopped_limit": "녹화 제한(20분 또는 10,000개 패킷)에 도달하여 녹화가 자동 중단되었습니다.",
       "sender": {
-        "title": "패킷 전송",
+        "title": "패킷 전송기",
         "hex_input_label": "Hex 패킷 입력 (공백 무관)",
         "hex_input_placeholder": "예: AF 00 F7 ...",
         "options_label": "전송 옵션",

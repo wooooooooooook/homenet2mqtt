@@ -193,7 +193,7 @@
       "empty": "No automation or script logs to display."
     },
     "packet_log": {
-      "title": "Packet Log (RX/TX)",
+      "title": "Packet Log",
       "rx": "RX (Received)",
       "tx": "TX (Sent)",
       "desc": "List of parsed received packets and packets sent by H2M.",
