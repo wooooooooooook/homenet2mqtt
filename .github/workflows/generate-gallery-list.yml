@@ -32,7 +32,7 @@ jobs:
       - name: Generate list.json and list_new.json
         run: |
           export NODE_PATH=$(npm root -g)
-          node scripts/generate-gallery-list.mjs
+          node scripts/generate-gallery-list.cjs
 
       - name: Commit list.json and list_new.json
         run: |

@@ -1,6 +1,6 @@
-import fs from 'fs';
-import path from 'path';
-import yaml from 'js-yaml';
+const fs = require('fs');
+const path = require('path');
+const yaml = require('js-yaml');
 
 const galleryDir = './gallery';
 const vendorsLegacy = {};  // Without parameters/discovery
