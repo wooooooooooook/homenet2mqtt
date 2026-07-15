@@ -42,9 +42,20 @@ export function applyPatchState<T extends object>(
     if (Object.hasOwn(finalPatch, key)) {
       const patchValue = finalPatch[key];
       if (patchValue !== undefined) {
-        const stateValue = state[key];
-        if (!deepEqual(stateValue, patchValue)) {
-          actualPatch[key] = patchValue;
+        try {
+          const stateValue = state[key];
+          if (!deepEqual(stateValue, patchValue)) {
+            actualPatch[key] = patchValue;
+          }
+        } catch (e) {
+          if (isExpiredReferenceError(e)) {
+            logger.debug(`Context expired while reading property '${key}', dropping patch.`);
+            pendingPatches.delete(state);
+            return {};
+          }
+          logger.warn(
+            `Failed to read property '${key}': ${e instanceof Error ? e.message : String(e)}`,
+          );
         }
       }
     }
@@ -62,6 +73,11 @@ export function applyPatchState<T extends object>(
     try {
       state[key] = actualPatch[key] as T[Extract<keyof T, string>];
     } catch (e) {
+      if (isExpiredReferenceError(e)) {
+        logger.debug(`Context expired while writing property '${key}', dropping patch.`);
+        pendingPatches.delete(state);
+        return actualPatch;
+      }
       const errorMessage = e instanceof Error ? e.message : String(e);
       // Endpoint not yet attached to a node, all remaining writes will fail too
       if (
@@ -115,7 +131,14 @@ export function applyPatchState<T extends object>(
       currentPending.patch = { ...currentPending.patch, ...actualPatch };
       currentPending.retryCount = retryCount;
       currentPending.timeoutId = setTimeout(() => {
-        applyPatchState(state, currentPending.patch, true);
+        try {
+          applyPatchState(state, currentPending.patch, true);
+        } catch (e) {
+          logger.error(
+            `Error in async applyPatchState retry: ${e instanceof Error ? e.stack : String(e)}`,
+          );
+          pendingPatches.delete(state);
+        }
       }, RETRY_DELAY_MS);
 
       pendingPatches.set(state, currentPending);
@@ -152,4 +175,17 @@ function deepEqual<T>(a: T, b: T): boolean {
     return keys.every((key) => deepEqual(a[key], b[key]));
   }
   return a === b;
+}
+
+function isExpiredReferenceError(e: any): boolean {
+  if (!e) return false;
+  const errorMessage = e instanceof Error ? e.message : String(e);
+  const errorName = e.name || (e.constructor && e.constructor.name);
+  return (
+    errorName === 'ExpiredReferenceError' ||
+    errorMessage.includes('ExpiredReference') ||
+    errorMessage.includes('expired-reference') ||
+    errorMessage.includes('context has exited') ||
+    errorMessage.includes('no longer available')
+  );
 }

@@ -87,6 +87,43 @@ describe('Matter Transports Utilities', () => {
       expect(targetState._onOff).toBe(false);
       expect(failCount).toBe(9);
     });
+
+    it('should handle ExpiredReferenceError gracefully on state read', () => {
+      const targetState = {
+        get onOff(): boolean {
+          const err = new Error(
+            'Referencing onOff.state: This value is no longer available because its context has exited (1)',
+          );
+          err.name = 'ExpiredReferenceError';
+          throw err;
+        },
+        set onOff(value: boolean) {
+          // should not reach here
+        },
+      };
+
+      const actualPatch = applyPatchState(targetState, { onOff: true });
+      expect(actualPatch).toEqual({});
+    });
+
+    it('should handle ExpiredReferenceError gracefully on state write', () => {
+      const targetState = {
+        _onOff: false,
+        get onOff(): boolean {
+          return this._onOff;
+        },
+        set onOff(value: boolean) {
+          const err = new Error(
+            'Referencing onOff.state: This value is no longer available because its context has exited (1)',
+          );
+          err.name = 'ExpiredReferenceError';
+          throw err;
+        },
+      };
+
+      const actualPatch = applyPatchState(targetState, { onOff: true });
+      expect(actualPatch).toEqual({ onOff: true });
+    });
   });
 
   describe('trimToLength', () => {
