@@ -221,9 +221,12 @@ export class PacketProcessor extends EventEmitter {
         this.emit('state', { deviceId: entity.id, state: optimisticState });
       }
 
-      // If no command packet was generated (virtual switch), return empty array
+      // If no command packet was generated (virtual switch due to empty/missing config), return empty array
       // so the caller treats it as "processed" instead of "failed"
-      if (!cmd) {
+      if (
+        !cmd &&
+        (commandConfig === undefined || commandConfig === null || isCommandEmpty(commandConfig))
+      ) {
         return [];
       }
     }

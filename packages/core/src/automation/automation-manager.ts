@@ -1233,6 +1233,15 @@ export class AutomationManager {
       celAck = commandResult.ack;
     }
 
+    // If empty packet (virtual switch/optimistic only), we skip sending
+    if (packet.length === 0) {
+      logger.debug(
+        { entity: entity.name, command: normalized },
+        `[automation] Virtual/Optimistic command processed (no packet sent)`,
+      );
+      return;
+    }
+
     let isLowPriority = action.low_priority;
     if (isLowPriority === undefined) {
       const schemaLowPriority =

@@ -605,6 +605,15 @@ export class HomeNetBridge extends EventEmitter {
       celAck = commandResult.ack;
     }
 
+    // If empty packet (virtual switch/optimistic only), we skip sending but consider it success
+    if (commandPacket.length === 0) {
+      logger.debug(
+        { entity: targetEntity.name, command: commandName },
+        `[bridge] Virtual/Optimistic command processed (no packet sent)`,
+      );
+      return { success: true, packet: '' };
+    }
+
     const hexPacket = Buffer.from(commandPacket).toString('hex');
 
     // Emit command-packet event (same as subscriber)
