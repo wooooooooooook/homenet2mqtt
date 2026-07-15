@@ -7,18 +7,9 @@ import { HomenetEntityBehavior } from './homenet-entity-behavior.js';
 const FeaturedBase = Base.with('Lighting');
 
 export class OnOffServer extends FeaturedBase {
-  // initialize 시점에 캡처한 참조 — state managed proxy가 만료된 이후에도
-  // executeCommand를 안전하게 호출하기 위해 클로저로 보관한다.
-  private _executeCommand!: HomenetEntityBehavior['executeCommand'];
-  private _entityId!: string;
-  private _entityType!: string;
-
   override async initialize() {
     await super.initialize();
     const homenet = await this.agent.load(HomenetEntityBehavior);
-    this._executeCommand = homenet.executeCommand.bind(homenet);
-    this._entityId = homenet.entityId;
-    this._entityType = homenet.entityConfig.type ?? '';
     this.update(homenet.entityState);
     this.reactTo(homenet.onChange, this.update, { offline: true });
   }
@@ -35,15 +26,17 @@ export class OnOffServer extends FeaturedBase {
   override async on() {
     // Set onOff immediately so the controller gets instant feedback
     applyPatchState(this.state, { onOff: true });
-    const command = this._entityType === 'valve' ? 'open' : 'on';
-    await this._executeCommand(this._entityId, command);
+    const homenet = await this.agent.load(HomenetEntityBehavior);
+    const command = (homenet.entityConfig.type ?? '') === 'valve' ? 'open' : 'on';
+    await homenet.executeCommand(homenet.entityId, command);
   }
 
   override async off() {
     // Set onOff immediately so the controller gets instant feedback
     applyPatchState(this.state, { onOff: false });
-    const command = this._entityType === 'valve' ? 'close' : 'off';
-    await this._executeCommand(this._entityId, command);
+    const homenet = await this.agent.load(HomenetEntityBehavior);
+    const command = (homenet.entityConfig.type ?? '') === 'valve' ? 'close' : 'off';
+    await homenet.executeCommand(homenet.entityId, command);
   }
 }
 export namespace OnOffServer {

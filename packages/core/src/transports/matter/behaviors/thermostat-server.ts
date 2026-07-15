@@ -164,23 +164,16 @@ function thermostatPreInitialize(self: any): void {
 
 async function thermostatPostInitialize(self: any): Promise<void> {
   const homenet = await self.agent.load(HomenetEntityBehavior);
-
-  // executeCommand, entityId, entityConfig(visual)를 state가 살아있는 시점에 미리 캡처한다.
-  // reactTo / onChange 콜백은 post-commit 단계에서 비동기적으로 실행되므로,
-  // 그 시점에는 트랜잭션 컨텍스트(managed proxy)가 이미 만료되어
-  // homenet.state 또는 behavior.agent.get(HomenetEntityBehavior) 접근 시
-  // ExpiredReferenceError가 발생한다.
-  // 클로저로 직접 참조를 보관하면 이 문제를 회피할 수 있다.
-  const executeCommand = homenet.executeCommand.bind(homenet);
-  const entityId = homenet.entityId;
   const entityConfig = homenet.entityConfig as ClimateEntity;
 
   updateFromEntityState(self, homenet.entityState, entityConfig);
 
   self.reactTo(
     self.events.systemMode$Changed,
-    (v: SystemMode, o: SystemMode, c?: ActionContext) =>
-      handleSystemModeChanged(executeCommand, entityId, v, o, c),
+    async function (this: any, v: SystemMode, o: SystemMode, c?: ActionContext) {
+      const h = await this.agent.load(HomenetEntityBehavior);
+      await handleSystemModeChanged(h.executeCommand.bind(h), h.entityId, v, o, c);
+    },
     { offline: true },
   );
 
@@ -192,23 +185,45 @@ async function thermostatPostInitialize(self: any): Promise<void> {
   if (self.features.heating) {
     self.reactTo(
       self.events.occupiedHeatingSetpoint$Changed,
-      (v: number, o: number, c?: ActionContext) =>
-        handleSetpointChanged(executeCommand, entityId, v, o, c, temperatureStepMatter),
+      async function (this: any, v: number, o: number, c?: ActionContext) {
+        const h = await this.agent.load(HomenetEntityBehavior);
+        await handleSetpointChanged(
+          h.executeCommand.bind(h),
+          h.entityId,
+          v,
+          o,
+          c,
+          temperatureStepMatter,
+        );
+      },
       { offline: true },
     );
   }
   if (self.features.cooling) {
     self.reactTo(
       self.events.occupiedCoolingSetpoint$Changed,
-      (v: number, o: number, c?: ActionContext) =>
-        handleSetpointChanged(executeCommand, entityId, v, o, c, temperatureStepMatter),
+      async function (this: any, v: number, o: number, c?: ActionContext) {
+        const h = await this.agent.load(HomenetEntityBehavior);
+        await handleSetpointChanged(
+          h.executeCommand.bind(h),
+          h.entityId,
+          v,
+          o,
+          c,
+          temperatureStepMatter,
+        );
+      },
       { offline: true },
     );
   }
 
-  self.reactTo(homenet.onChange, (state: any) => updateFromEntityState(self, state, entityConfig), {
-    offline: true,
-  });
+  self.reactTo(
+    homenet.onChange,
+    function (this: any, state: any) {
+      updateFromEntityState(this, state, entityConfig);
+    },
+    { offline: true },
+  );
 }
 
 // ── Shared update logic ────────────────────────────────────────────────────

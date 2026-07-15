@@ -8,16 +8,9 @@ import { HomenetEntityBehavior } from './homenet-entity-behavior.js';
 import LockState = DoorLock.LockState;
 
 export class LockServer extends Base {
-  // initialize 시점에 캡처한 참조 — state managed proxy가 만료된 이후에도
-  // executeCommand를 안전하게 호출하기 위해 클로저로 보관한다.
-  private _executeCommand!: HomenetEntityBehavior['executeCommand'];
-  private _entityId!: string;
-
   override async initialize() {
     await super.initialize();
     const homenet = await this.agent.load(HomenetEntityBehavior);
-    this._executeCommand = homenet.executeCommand.bind(homenet);
-    this._entityId = homenet.entityId;
     this.update(homenet.entityState);
     this.reactTo(homenet.onChange, this.update, { offline: true });
   }
@@ -54,13 +47,15 @@ export class LockServer extends Base {
   override async lockDoor() {
     // Set lockState immediately for instant UI feedback
     applyPatchState(this.state, { lockState: LockState.Locked });
-    await this._executeCommand(this._entityId, 'lock');
+    const homenet = await this.agent.load(HomenetEntityBehavior);
+    await homenet.executeCommand(homenet.entityId, 'lock');
   }
 
   override async unlockDoor() {
     // Set lockState immediately for instant UI feedback
     applyPatchState(this.state, { lockState: LockState.Unlocked });
-    await this._executeCommand(this._entityId, 'unlock');
+    const homenet = await this.agent.load(HomenetEntityBehavior);
+    await homenet.executeCommand(homenet.entityId, 'unlock');
   }
 }
 export namespace LockServer {
