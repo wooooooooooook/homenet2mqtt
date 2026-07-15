@@ -188,12 +188,14 @@ async function thermostatPostInitialize(self: any): Promise<void> {
       async function (this: any, v: number, o: number, c?: ActionContext) {
         const h = await this.agent.load(HomenetEntityBehavior);
         await handleSetpointChanged(
+          this,
           h.executeCommand.bind(h),
           h.entityId,
           v,
           o,
           c,
           temperatureStepMatter,
+          'heating',
         );
       },
       { offline: true },
@@ -205,12 +207,14 @@ async function thermostatPostInitialize(self: any): Promise<void> {
       async function (this: any, v: number, o: number, c?: ActionContext) {
         const h = await this.agent.load(HomenetEntityBehavior);
         await handleSetpointChanged(
+          this,
           h.executeCommand.bind(h),
           h.entityId,
           v,
           o,
           c,
           temperatureStepMatter,
+          'cooling',
         );
       },
       { offline: true },
@@ -315,17 +319,26 @@ async function handleSystemModeChanged(
 }
 
 async function handleSetpointChanged(
+  self: any,
   executeCommand: HomenetEntityBehavior['executeCommand'],
   entityId: string,
   value: number,
   _oldValue: number,
   context?: ActionContext,
   stepMatter = 100,
+  type: 'heating' | 'cooling' = 'heating',
 ): Promise<void> {
   if (transactionIsOffline(context)) return;
   // step 단위로 반올림: Google Home이 0.5°C 단위로 보내더라도
   // temperature_step 설정(기본 1°C)에 맞게 snap한다.
   const snapped = Math.round(value / stepMatter) * stepMatter;
+
+  if (snapped !== value) {
+    applyPatchState(self.state, {
+      [type === 'heating' ? 'occupiedHeatingSetpoint' : 'occupiedCoolingSetpoint']: snapped,
+    });
+  }
+
   const targetTemp = snapped / 100;
   await executeCommand(entityId, 'temperature', targetTemp);
 }
