@@ -361,11 +361,14 @@ async function findAvailablePort(startPort: number, maxAttempts = 100): Promise<
 
 const PLATFORM_LABELS: Record<number, string> = {
   0x1111: 'Google Home',
+  0x6006: 'Google Home',
   0x130b: 'Apple Home',
   0x1349: 'Apple Home',
   0x1384: 'Apple Home',
   0x110a: 'Samsung SmartThings',
+  0x10e1: 'Samsung SmartThings',
   0x1211: 'Amazon Alexa',
+  0x1217: 'Amazon Alexa',
   0x120f: 'Home Assistant',
   0xfff1: 'Test Platform',
 };
