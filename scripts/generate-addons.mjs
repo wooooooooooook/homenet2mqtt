@@ -95,7 +95,7 @@ function main() {
       isDev: false,
       isMatter: false,
       readme: null, // 기본 README.md 사용
-      logo: 'logos/logo_mqtt.jpg',
+      logo: 'logos/logo_mqtt.png',
       updates: {}
     },
     'matter': {
@@ -103,7 +103,7 @@ function main() {
       isDev: false,
       isMatter: true,
       readme: 'README-matter.md',
-      logo: 'logos/logo_matter.jpg',
+      logo: 'logos/logo_matter.png',
       updates: {}
     },
     'mqtt-dev': {
@@ -111,7 +111,7 @@ function main() {
       isDev: true,
       isMatter: false,
       readme: 'README-mqtt-dev.md',
-      logo: 'logos/logo_mqtt_dev.jpg',
+      logo: 'logos/logo_mqtt_dev.png',
       updates: {
         name: 'Homenet2MQTT (Dev)',
         slug: 'h2m-dev',
@@ -123,7 +123,7 @@ function main() {
       isDev: true,
       isMatter: true,
       readme: 'README-matter-dev.md',
-      logo: 'logos/logo_matter_dev.jpg',
+      logo: 'logos/logo_matter_dev.png',
       updates: {
         name: 'Homenet2Matter (Dev)',
         slug: 'h2m-matter-dev',
@@ -185,11 +185,11 @@ function main() {
     if (configData.logo) {
       const srcLogo = path.join(sourceAddonDir, configData.logo);
       const destLogo = path.join(destPath, 'logo.png');
-      const destIcon = path.join(destPath, 'icon.jpg');
+      const destIcon = path.join(destPath, 'icon.png');
       if (fs.existsSync(srcLogo)) {
         fs.copyFileSync(srcLogo, destLogo);
         fs.copyFileSync(srcLogo, destIcon);
-        console.log(`  Logo: ${configData.logo} -> logo.png & icon.jpg`);
+        console.log(`  Logo: ${configData.logo} -> logo.png & icon.png`);
       } else {
         console.warn(`  Warning: ${configData.logo} not found!`);
       }
