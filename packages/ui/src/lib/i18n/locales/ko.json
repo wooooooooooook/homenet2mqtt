@@ -982,7 +982,9 @@
     "node_id": "노드 ID",
     "vendor_id": "벤더 ID",
     "label": "플랫폼 라벨",
-    "no_fabrics": "연결된 스마트홈 플랫폼이 없습니다."
+    "no_fabrics": "연결된 스마트홈 플랫폼이 없습니다.",
+    "show_pairing": "페어링 정보 보기",
+    "hide_pairing": "페어링 정보 숨기기"
   },
   "devices": {
     "title": "기기 목록",

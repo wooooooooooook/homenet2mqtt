@@ -977,7 +977,9 @@
     "node_id": "Node ID",
     "vendor_id": "Vendor ID",
     "label": "Platform Label",
-    "no_fabrics": "No connected smart home platforms found."
+    "no_fabrics": "No connected smart home platforms found.",
+    "show_pairing": "Show Pairing Info",
+    "hide_pairing": "Hide Pairing Info"
   },
   "devices": {
     "title": "Devices",

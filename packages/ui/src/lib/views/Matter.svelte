@@ -22,6 +22,7 @@
 
   let copySuccess = $state<string | null>(null);
   let copyTimeout: ReturnType<typeof setTimeout>;
+  let showPairingInfo = $state(false);
 
   function handleCopy(text: string, type: 'passcode' | 'manualCode' | 'discriminator') {
     if (typeof window === 'undefined') return;
@@ -74,6 +75,15 @@
                   >{$t('matter.commissioned', { default: 'Commissioned' })}</span
                 >
               </div>
+              <Button
+                variant="secondary"
+                onclick={() => (showPairingInfo = !showPairingInfo)}
+                class="show-pairing-btn"
+              >
+                {showPairingInfo
+                  ? $t('matter.hide_pairing', { default: 'Hide Pairing Info' })
+                  : $t('matter.show_pairing', { default: 'Show Pairing Info' })}
+              </Button>
             {:else}
               <div class="status-badge waiting">
                 <span class="badge-icon">⏳</span>
@@ -94,7 +104,7 @@
       </section>
 
       <!-- Pairing Section -->
-      {#if !commissioning.isCommissioned}
+      {#if !commissioning.isCommissioned || showPairingInfo}
         <section class="info-card pairing-details">
           <div class="card-header">
             <h3>{$t('matter.pairing_info', { default: 'Pairing Credentials' })}</h3>
@@ -311,6 +321,19 @@
     gap: 2rem;
     flex-wrap: wrap;
     padding: 0.5rem 0;
+  }
+
+  .status-badge-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  :global(.show-pairing-btn) {
+    font-size: 0.8rem !important;
+    padding: 0.35rem 0.75rem !important;
+    border-radius: 8px !important;
   }
 
   .status-badge {
