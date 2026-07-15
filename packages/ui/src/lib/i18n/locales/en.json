@@ -736,6 +736,14 @@
       "no": "No",
       "none": "None"
     },
+    "matter": {
+      "title": "Matter Device Info",
+      "bridge": "Bridge",
+      "endpoint": "Endpoint",
+      "clusters": "Clusters ({count})",
+      "state": "State",
+      "device_type": "Device Type"
+    },
     "packets": {
       "title": "Packet Log (RX/TX)",
       "rx_label": "RX (Received)",

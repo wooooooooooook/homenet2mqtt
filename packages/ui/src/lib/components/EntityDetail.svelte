@@ -1012,6 +1012,202 @@
     if (entity.type) return `${baseUrl}/config/${entity.type.replace('_', '-')}.html`;
     return null;
   });
+
+  // Matter cluster detailed dynamic definitions for expanding UI details
+  const clusterDetailsData = $derived.by<Record<string, any>>(() => {
+    return {
+      groups: {
+        clusterRevision: 4,
+        featureMap: { groupNames: true },
+        nameSupport: { nameSupport: true },
+        attributeList: [
+          'groupList',
+          'nameSupport',
+          'featureMap',
+          'clusterRevision',
+          'attributeList',
+          'acceptedCommandList',
+        ],
+        acceptedCommandList: [
+          'addGroup',
+          'viewGroup',
+          'getGroupMembership',
+          'removeGroup',
+          'removeAllGroups',
+          'addGroupIfIdentifying',
+        ],
+        generatedCommandList: [
+          'addGroupResponse',
+          'viewGroupResponse',
+          'getGroupMembershipResponse',
+          'removeGroupResponse',
+        ],
+      },
+      onOff: {
+        clusterRevision: 6,
+        featureMap: { levelControl: true, lighting: true, scenes: true },
+        globalSceneControl: false,
+        onTime: 0,
+        offWaitTime: 0,
+        startUpOnOff: null,
+        attributeList: [
+          'onOff',
+          'globalSceneControl',
+          'onTime',
+          'offWaitTime',
+          'startUpOnOff',
+          'featureMap',
+          'clusterRevision',
+          'attributeList',
+          'acceptedCommandList',
+          'generatedCommandList',
+        ],
+        acceptedCommandList: [
+          'off',
+          'on',
+          'toggle',
+          'offWithEffect',
+          'onWithRecallGlobalScene',
+          'onWithTimedOff',
+        ],
+        generatedCommandList: [],
+      },
+      levelControl: {
+        clusterRevision: 5,
+        remainingTime: 0,
+        minLevel: 1,
+        maxLevel: 254,
+        featureMap: { onOff: true },
+        attributeList: [
+          'currentLevel',
+          'remainingTime',
+          'minLevel',
+          'maxLevel',
+          'currentFrequency',
+          'minFrequency',
+          'maxFrequency',
+          'options',
+          'onOffTransitionTime',
+          'onLevel',
+          'onTransitionTime',
+          'offTransitionTime',
+          'defaultMoveRate',
+          'startUpCurrentLevel',
+          'featureMap',
+        ],
+        acceptedCommandList: ['moveToLevel', 'move', 'step', 'stop', 'moveToLevelWithOnOff'],
+      },
+      scenesManagement: {
+        sceneTable: [],
+        featureMap: { scenes: true },
+        clusterRevision: 1,
+        sceneTableSize: 128,
+        fabricSceneInfo: [
+          'fabricIndex: 1',
+          'sceneCount: 0',
+          'currentScene: 0',
+          'currentGroup: 0',
+          'sceneValid: false',
+        ],
+        attributeList: [
+          'sceneCount',
+          'currentScene',
+          'currentGroup',
+          'sceneValid',
+          'sceneTableSize',
+          'fabricSceneInfo',
+          'clusterRevision',
+        ],
+        acceptedCommandList: [
+          'addScene',
+          'viewScene',
+          'removeScene',
+          'removeAllScenes',
+          'storeScene',
+          'recallScene',
+          'getSceneMembership',
+          'copyScene',
+        ],
+        generatedCommandList: [
+          'addSceneResponse',
+          'viewSceneResponse',
+          'removeSceneResponse',
+          'removeAllScenesResponse',
+          'storeSceneResponse',
+          'getSceneMembershipResponse',
+          'copySceneResponse',
+        ],
+      },
+      thermostat: {
+        clusterRevision: 6,
+        featureMap: { heating: true, cooling: true },
+        attributeList: [
+          'localTemperature',
+          'occupiedCoolingSetpoint',
+          'occupiedHeatingSetpoint',
+          'systemMode',
+          'controlSequenceOfOperation',
+          'thermostatRunningMode',
+          'startOfWeek',
+          'numberOfWeeklyTransitions',
+          'numberOfDailyTransitions',
+          'temperatureSetpointHold',
+          'temperatureSetpointHoldDuration',
+          'thermostatRunningState',
+        ],
+        acceptedCommandList: [
+          'setpointRaiseLower',
+          'setWeeklySchedule',
+          'getWeeklySchedule',
+          'clearWeeklySchedule',
+        ],
+      },
+      doorLock: {
+        clusterRevision: 6,
+        lockType: 0,
+        featureMap: { lockState: true },
+        attributeList: [
+          'lockState',
+          'lockType',
+          'actuatorEnabled',
+          'doorState',
+          'doorOpenEvents',
+          'doorClosedEvents',
+          'openPeriod',
+          'featureMap',
+        ],
+        acceptedCommandList: ['lockDoor', 'unlockDoor'],
+      },
+      descriptor: {
+        clusterRevision: 3,
+        featureMap: { tagList: true },
+        deviceTypeList: ['deviceType: 0x0101', 'revision: 1'],
+        serverList: matterDeviceDetails.clusters,
+        clientList: [],
+        partsList: [],
+        attributeList: [
+          'deviceTypeList',
+          'serverList',
+          'clientList',
+          'partsList',
+          'featureMap',
+          'clusterRevision',
+          'attributeList',
+          'acceptedCommandList',
+          'generatedCommandList',
+        ],
+        acceptedCommandList: [],
+        generatedCommandList: [],
+      },
+    };
+  });
+
+  let expandedAttrs = $state<Record<string, boolean>>({});
+
+  function toggleAttr(clusterName: string, attrKey: string) {
+    const key = `${clusterName}:${attrKey}`;
+    expandedAttrs[key] = !expandedAttrs[key];
+  }
 </script>
 
 <Modal open={isOpen} width="1400px" onclose={close} oncancel={close}>
@@ -1408,10 +1604,10 @@
 
             <!-- 2. 조건부 노출 영역 (MQTT vs Matter) -->
             {#if integrationType === 'matter'}
-              <div class="matter-detail-section mt-6">
+              <div class="entity-detail-section mt-6">
                 <!-- Premium Matter Header Card -->
-                <div class="matter-header-card">
-                  <div class="matter-title-row">
+                <div class="entity-header-card">
+                  <div class="entity-title-row">
                     <div class="device-type-badge">
                       <span class="device-icon">⚡</span>
                       <span class="device-name">{matterDeviceDetails.deviceName}</span>
@@ -1431,11 +1627,11 @@
                       <span class="info-value font-mono">{entity.id}</span>
                     </div>
                     <div class="info-item">
-                      <span class="info-label">Bridge</span>
+                      <span class="info-label">{$t('entity_detail.matter.bridge')}</span>
                       <span class="info-value">{matterDeviceDetails.bridgeName}</span>
                     </div>
                     <div class="info-item">
-                      <span class="info-label">Endpoint</span>
+                      <span class="info-label">{$t('entity_detail.matter.endpoint')}</span>
                       <span class="info-value font-bold">{matterDeviceDetails.endpointNumber}</span>
                     </div>
                   </div>
@@ -1443,7 +1639,11 @@
 
                 <!-- Clusters Header -->
                 <div class="clusters-header">
-                  <h3>Clusters ({matterDeviceDetails.clusters.length})</h3>
+                  <h3>
+                    {$t('entity_detail.matter.clusters', {
+                      values: { count: matterDeviceDetails.clusters.length },
+                    })}
+                  </h3>
                   <div class="clusters-list-horizontal">
                     {#each matterDeviceDetails.clusters as cluster}
                       <span class="cluster-pill">{cluster}</span>
@@ -1451,23 +1651,25 @@
                   </div>
                 </div>
 
-                <div class="detail-section-title font-medium mt-4">Matter Device Info</div>
+                <div class="detail-section-title font-medium mt-4">
+                  {$t('entity_detail.matter.title')}
+                </div>
                 <div class="matter-status-card">
                   <div class="matter-status-item">
-                    <span class="matter-label">State:</span>
+                    <span class="matter-label">{$t('entity_detail.matter.state')}:</span>
                     <span class="matter-value" class:on={matterDeviceDetails.isStateOn}>
                       {matterDeviceDetails.payload.state ||
                         (matterDeviceDetails.isStateOn ? 'on' : 'off')}
                     </span>
                   </div>
                   <div class="matter-status-item">
-                    <span class="matter-label">Device Type:</span>
+                    <span class="matter-label">{$t('entity_detail.matter.device_type')}:</span>
                     <span class="matter-value"
                       >{matterDeviceDetails.deviceName} ({matterDeviceDetails.deviceCode})</span
                     >
                   </div>
                   <div class="matter-status-item">
-                    <span class="matter-label">Endpoint:</span>
+                    <span class="matter-label">{$t('entity_detail.matter.endpoint')}:</span>
                     <span class="matter-value font-mono">{matterDeviceDetails.endpointNumber}</span>
                   </div>
                 </div>
@@ -1481,40 +1683,8 @@
                         <span class="cluster-name">{cluster}</span>
                       </div>
                       <div class="cluster-card-body">
-                        {#if cluster === 'groups'}
-                          <div class="attribute-item">
-                            <span class="attr-key">clusterRevision</span>
-                            <span class="attr-val font-mono">4</span>
-                          </div>
-                          <div class="attribute-item">
-                            <span class="attr-key">featureMap</span>
-                            <span class="attr-val font-mono">{'{1 keys}'}</span>
-                          </div>
-                          <div class="attribute-item">
-                            <span class="attr-key">nameSupport</span>
-                            <span class="attr-val font-mono">{'{1 keys}'}</span>
-                          </div>
-                          <div class="attribute-item">
-                            <span class="attr-key">attributeList</span>
-                            <span class="attr-val text-muted">[6 items]</span>
-                          </div>
-                          <div class="attribute-item">
-                            <span class="attr-key">acceptedCommandList</span>
-                            <span class="attr-val text-muted">[6 items]</span>
-                          </div>
-                          <div class="attribute-item">
-                            <span class="attr-key">generatedCommandList</span>
-                            <span class="attr-val text-muted">[4 items]</span>
-                          </div>
-                        {:else if cluster === 'onOff'}
-                          <div class="attribute-item">
-                            <span class="attr-key">featureMap</span>
-                            <span class="attr-val font-mono">{'{3 keys}'}</span>
-                          </div>
-                          <div class="attribute-item">
-                            <span class="attr-key">clusterRevision</span>
-                            <span class="attr-val font-mono">6</span>
-                          </div>
+                        <!-- Dynamic Main Attribute Highlights -->
+                        {#if cluster === 'onOff'}
                           <div class="attribute-item highlight">
                             <span class="attr-key">onOff</span>
                             <span
@@ -1524,39 +1694,7 @@
                               {matterDeviceDetails.isStateOn}
                             </span>
                           </div>
-                          <div class="attribute-item">
-                            <span class="attr-key">globalSceneControl</span>
-                            <span class="attr-val font-mono">false</span>
-                          </div>
-                          <div class="attribute-item">
-                            <span class="attr-key">onTime</span>
-                            <span class="attr-val font-mono">0</span>
-                          </div>
-                          <div class="attribute-item">
-                            <span class="attr-key">offWaitTime</span>
-                            <span class="attr-val font-mono">0</span>
-                          </div>
-                          <div class="attribute-item">
-                            <span class="attr-key">startUpOnOff</span>
-                            <span class="attr-val font-mono">null</span>
-                          </div>
-                          <div class="attribute-item">
-                            <span class="attr-key">attributeList</span>
-                            <span class="attr-val text-muted">[10 items]</span>
-                          </div>
-                          <div class="attribute-item">
-                            <span class="attr-key">acceptedCommandList</span>
-                            <span class="attr-val text-muted">[6 items]</span>
-                          </div>
-                          <div class="attribute-item">
-                            <span class="attr-key">generatedCommandList</span>
-                            <span class="attr-val text-muted">[]</span>
-                          </div>
                         {:else if cluster === 'levelControl'}
-                          <div class="attribute-item">
-                            <span class="attr-key">clusterRevision</span>
-                            <span class="attr-val font-mono">5</span>
-                          </div>
                           <div class="attribute-item highlight">
                             <span class="attr-key">currentLevel</span>
                             <span class="attr-val font-mono font-bold">
@@ -1565,68 +1703,7 @@
                                 : 254}
                             </span>
                           </div>
-                          <div class="attribute-item">
-                            <span class="attr-key">remainingTime</span>
-                            <span class="attr-val font-mono">0</span>
-                          </div>
-                          <div class="attribute-item">
-                            <span class="attr-key">minLevel</span>
-                            <span class="attr-val font-mono">1</span>
-                          </div>
-                          <div class="attribute-item">
-                            <span class="attr-key">maxLevel</span>
-                            <span class="attr-val font-mono">254</span>
-                          </div>
-                          <div class="attribute-item">
-                            <span class="attr-key">featureMap</span>
-                            <span class="attr-val font-mono">{'{onOff: true}'}</span>
-                          </div>
-                          <div class="attribute-item">
-                            <span class="attr-key">attributeList</span>
-                            <span class="attr-val text-muted">[15 items]</span>
-                          </div>
-                          <div class="attribute-item">
-                            <span class="attr-key">acceptedCommandList</span>
-                            <span class="attr-val text-muted">[5 items]</span>
-                          </div>
-                        {:else if cluster === 'scenesManagement'}
-                          <div class="attribute-item">
-                            <span class="attr-key">sceneTable</span>
-                            <span class="attr-val font-mono">[]</span>
-                          </div>
-                          <div class="attribute-item">
-                            <span class="attr-key">featureMap</span>
-                            <span class="attr-val font-mono">{'{1 keys}'}</span>
-                          </div>
-                          <div class="attribute-item">
-                            <span class="attr-key">clusterRevision</span>
-                            <span class="attr-val font-mono">1</span>
-                          </div>
-                          <div class="attribute-item">
-                            <span class="attr-key">sceneTableSize</span>
-                            <span class="attr-val font-mono">128</span>
-                          </div>
-                          <div class="attribute-item">
-                            <span class="attr-key">fabricSceneInfo</span>
-                            <span class="attr-val font-mono">[1 items]</span>
-                          </div>
-                          <div class="attribute-item">
-                            <span class="attr-key">attributeList</span>
-                            <span class="attr-val text-muted">[7 items]</span>
-                          </div>
-                          <div class="attribute-item">
-                            <span class="attr-key">acceptedCommandList</span>
-                            <span class="attr-val text-muted">[8 items]</span>
-                          </div>
-                          <div class="attribute-item">
-                            <span class="attr-key">generatedCommandList</span>
-                            <span class="attr-val text-muted">[7 items]</span>
-                          </div>
                         {:else if cluster === 'thermostat'}
-                          <div class="attribute-item">
-                            <span class="attr-key">clusterRevision</span>
-                            <span class="attr-val font-mono">6</span>
-                          </div>
                           <div class="attribute-item highlight">
                             <span class="attr-key">localTemperature</span>
                             <span class="attr-val font-mono font-bold">
@@ -1635,49 +1712,7 @@
                                 : 2100}
                             </span>
                           </div>
-                          <div class="attribute-item">
-                            <span class="attr-key">occupiedCoolingSetpoint</span>
-                            <span class="attr-val font-mono">
-                              {matterDeviceDetails.payload.cooling_setpoint !== undefined
-                                ? Math.round(matterDeviceDetails.payload.cooling_setpoint * 100)
-                                : 2600}
-                            </span>
-                          </div>
-                          <div class="attribute-item">
-                            <span class="attr-key">occupiedHeatingSetpoint</span>
-                            <span class="attr-val font-mono">
-                              {matterDeviceDetails.payload.heating_setpoint !== undefined
-                                ? Math.round(matterDeviceDetails.payload.heating_setpoint * 100)
-                                : 2000}
-                            </span>
-                          </div>
-                          <div class="attribute-item">
-                            <span class="attr-key">systemMode</span>
-                            <span class="attr-val font-mono">
-                              {matterDeviceDetails.payload.mode === 'heat'
-                                ? 4
-                                : matterDeviceDetails.payload.mode === 'cool'
-                                  ? 3
-                                  : 0}
-                            </span>
-                          </div>
-                          <div class="attribute-item">
-                            <span class="attr-key">featureMap</span>
-                            <span class="attr-val font-mono">{'{2 keys}'}</span>
-                          </div>
-                          <div class="attribute-item">
-                            <span class="attr-key">attributeList</span>
-                            <span class="attr-val text-muted">[12 items]</span>
-                          </div>
-                          <div class="attribute-item">
-                            <span class="attr-key">acceptedCommandList</span>
-                            <span class="attr-val text-muted">[4 items]</span>
-                          </div>
                         {:else if cluster === 'doorLock'}
-                          <div class="attribute-item">
-                            <span class="attr-key">clusterRevision</span>
-                            <span class="attr-val font-mono">6</span>
-                          </div>
                           <div class="attribute-item highlight">
                             <span class="attr-key">lockState</span>
                             <span
@@ -1687,61 +1722,76 @@
                               {matterDeviceDetails.payload.lock === 'locked' ? 1 : 2}
                             </span>
                           </div>
-                          <div class="attribute-item">
-                            <span class="attr-key">lockType</span>
-                            <span class="attr-val font-mono">0</span>
-                          </div>
-                          <div class="attribute-item">
-                            <span class="attr-key">featureMap</span>
-                            <span class="attr-val font-mono">{'{lockState: true}'}</span>
-                          </div>
-                          <div class="attribute-item">
-                            <span class="attr-key">attributeList</span>
-                            <span class="attr-val text-muted">[8 items]</span>
-                          </div>
-                          <div class="attribute-item">
-                            <span class="attr-key">acceptedCommandList</span>
-                            <span class="attr-val text-muted">[2 items]</span>
-                          </div>
-                        {:else if cluster === 'descriptor'}
-                          <div class="attribute-item">
-                            <span class="attr-key">clusterRevision</span>
-                            <span class="attr-val font-mono">3</span>
-                          </div>
-                          <div class="attribute-item">
-                            <span class="attr-key">featureMap</span>
-                            <span class="attr-val font-mono">{'{1 keys}'}</span>
-                          </div>
-                          <div class="attribute-item">
-                            <span class="attr-key">deviceTypeList</span>
-                            <span class="attr-val text-muted">[2 items]</span>
-                          </div>
-                          <div class="attribute-item">
-                            <span class="attr-key">serverList</span>
-                            <span class="attr-val text-muted"
-                              >[{matterDeviceDetails.clusters.length} items]</span
-                            >
-                          </div>
-                          <div class="attribute-item">
-                            <span class="attr-key">clientList</span>
-                            <span class="attr-val text-muted">[]</span>
-                          </div>
-                          <div class="attribute-item">
-                            <span class="attr-key">partsList</span>
-                            <span class="attr-val text-muted">[]</span>
-                          </div>
-                          <div class="attribute-item">
-                            <span class="attr-key">attributeList</span>
-                            <span class="attr-val text-muted">[9 items]</span>
-                          </div>
-                          <div class="attribute-item">
-                            <span class="attr-key">acceptedCommandList</span>
-                            <span class="attr-val text-muted">[]</span>
-                          </div>
-                          <div class="attribute-item">
-                            <span class="attr-key">generatedCommandList</span>
-                            <span class="attr-val text-muted">[]</span>
-                          </div>
+                        {/if}
+
+                        <!-- Loop and Render Detailed Collapsible Attributes -->
+                        {#if clusterDetailsData[cluster]}
+                          {#each Object.entries(clusterDetailsData[cluster]) as [key, val]}
+                            {#if Array.isArray(val)}
+                              <div
+                                class="attribute-item flex-col"
+                                onclick={() => toggleAttr(cluster, key)}
+                                role="button"
+                                tabindex="0"
+                                onkeydown={(e) => e.key === 'Enter' && toggleAttr(cluster, key)}
+                              >
+                                <div class="attribute-row-header">
+                                  <span class="attr-key">{key}</span>
+                                  <span class="attr-val text-muted hover-highlight"
+                                    >[{val.length} items] {expandedAttrs[`${cluster}:${key}`]
+                                      ? '▲'
+                                      : '▼'}</span
+                                  >
+                                </div>
+                                {#if expandedAttrs[`${cluster}:${key}`]}
+                                  <div class="expanded-details">
+                                    {#if val.length === 0}
+                                      <span class="empty-text">Empty</span>
+                                    {:else}
+                                      <ul>
+                                        {#each val as item}
+                                          <li>{item}</li>
+                                        {/each}
+                                      </ul>
+                                    {/if}
+                                  </div>
+                                {/if}
+                              </div>
+                            {:else if typeof val === 'object' && val !== null}
+                              <div
+                                class="attribute-item flex-col"
+                                onclick={() => toggleAttr(cluster, key)}
+                                role="button"
+                                tabindex="0"
+                                onkeydown={(e) => e.key === 'Enter' && toggleAttr(cluster, key)}
+                              >
+                                <div class="attribute-row-header">
+                                  <span class="attr-key">{key}</span>
+                                  <span class="attr-val text-muted hover-highlight"
+                                    >{'{'}{Object.keys(val).length} keys{'}'}
+                                    {expandedAttrs[`${cluster}:${key}`] ? '▲' : '▼'}</span
+                                  >
+                                </div>
+                                {#if expandedAttrs[`${cluster}:${key}`]}
+                                  <div class="expanded-details">
+                                    <ul>
+                                      {#each Object.entries(val) as [k, v]}
+                                        <li>
+                                          <span class="detail-k">{k}:</span>
+                                          <span class="detail-v">{v}</span>
+                                        </li>
+                                      {/each}
+                                    </ul>
+                                  </div>
+                                {/if}
+                              </div>
+                            {:else}
+                              <div class="attribute-item">
+                                <span class="attr-key">{key}</span>
+                                <span class="attr-val font-mono">{val}</span>
+                              </div>
+                            {/if}
+                          {/each}
                         {/if}
                       </div>
                     </div>
@@ -1755,14 +1805,13 @@
             {:else if mqttError}
               <div class="save-message error mt-4">{mqttError}</div>
             {:else}
-              <div class="mqtt-detail-section mt-6">
+              <div class="entity-detail-section mt-6">
                 <!-- Premium MQTT Header Card -->
-                <div class="mqtt-header-card">
-                  <div class="mqtt-title-row">
-                    <div class="device-type-badge mqtt">
+                <div class="entity-header-card">
+                  <div class="entity-title-row">
+                    <div class="device-type-badge">
                       <span class="device-icon">📡</span>
-                      <span class="device-name">MQTT Entity</span>
-                      <span class="device-code">({entity.type})</span>
+                      <span class="device-name">{entity.type}</span>
                     </div>
                     {#if mqttInfo && mqttInfo.payload}
                       {@const payloadObj = getPayloadObj(JSON.stringify(mqttInfo.payload))}
@@ -1821,7 +1870,7 @@
                       </div>
                     </div>
 
-                    <div class="discovery-detail-item mt-4">
+                    <div class="discovery-detail-item">
                       <div class="discovery-detail-header">
                         <span class="detail-label">{$t('entity_detail.mqtt.payload')}</span>
                         <Button
@@ -2995,15 +3044,15 @@
     }
   }
 
-  /* Matter Details Styling */
-  .matter-detail-section {
+  /* Unified Details Styling */
+  .entity-detail-section {
     display: flex;
     flex-direction: column;
     gap: 1.25rem;
     color: #e2e8f0;
   }
 
-  .matter-header-card {
+  .entity-header-card {
     background: linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 41, 59, 0.7) 100%);
     border: 1px solid rgba(148, 163, 184, 0.2);
     border-radius: 12px;
@@ -3011,7 +3060,7 @@
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
   }
 
-  .matter-title-row {
+  .entity-title-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -3024,6 +3073,10 @@
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 8px;
+    background: rgba(56, 189, 248, 0.1);
+    border: 1px solid rgba(56, 189, 248, 0.25);
   }
 
   .device-icon {
@@ -3156,14 +3209,6 @@
     border: 1px solid rgba(148, 163, 184, 0.15);
     border-radius: 8px;
     overflow: hidden;
-    transition:
-      transform 0.2s ease,
-      border-color 0.2s ease;
-  }
-
-  .cluster-card:hover {
-    transform: translateY(-2px);
-    border-color: rgba(56, 189, 248, 0.35);
   }
 
   .cluster-card-header {
@@ -3221,23 +3266,13 @@
     color: #10b981;
   }
 
-  /* Premium MQTT Header Card (Mirroring Matter Style) */
-  .mqtt-header-card {
-    background: linear-gradient(135deg, rgba(13, 148, 136, 0.15) 0%, rgba(30, 41, 59, 0.4) 100%);
-    border: 1px solid rgba(13, 148, 136, 0.25);
-    border-radius: 12px;
-    padding: 1.25rem;
-    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.3);
-  }
-
-  .device-type-badge.mqtt {
-    background: rgba(13, 148, 136, 0.2);
-    border: 1px solid rgba(13, 148, 136, 0.35);
-    color: #2dd4bf;
-  }
+  /* MQTT specific styles unified to match Matter card */
 
   /* Discovery Details Card (Code Sandbox Style) */
   .discovery-details-card {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
     background: #0f172a;
     border: 1px solid rgba(148, 163, 184, 0.12);
     border-radius: 8px;
@@ -3292,5 +3327,64 @@
     font-family: monospace;
     font-size: 0.85rem;
     color: #60a5fa;
+  }
+
+  /* Collapsible Attribute Details for Matter Clusters */
+  .attribute-item.flex-col {
+    flex-direction: column;
+    align-items: stretch;
+    cursor: pointer;
+  }
+
+  .attribute-row-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+  }
+
+  .hover-highlight:hover {
+    color: #38bdf8;
+  }
+
+  .expanded-details {
+    margin-top: 0.35rem;
+    padding: 0.5rem 0.75rem;
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(148, 163, 184, 0.1);
+    border-radius: 6px;
+    width: 100%;
+  }
+
+  .expanded-details ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-family: monospace;
+    font-size: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+
+  .expanded-details li {
+    color: #cbd5e1;
+    word-break: break-all;
+    text-align: left;
+  }
+
+  .expanded-details .detail-k {
+    color: #94a3b8;
+  }
+
+  .expanded-details .detail-v {
+    color: #38bdf8;
+    font-weight: 500;
+  }
+
+  .expanded-details .empty-text {
+    font-size: 0.75rem;
+    font-style: italic;
+    color: #64748b;
   }
 </style>

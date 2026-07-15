@@ -741,6 +741,14 @@
       "no": "아니오",
       "none": "없음"
     },
+    "matter": {
+      "title": "Matter 기기 정보",
+      "bridge": "브릿지",
+      "endpoint": "엔드포인트",
+      "clusters": "클러스터 목록 ({count})",
+      "state": "상태",
+      "device_type": "디바이스 타입"
+    },
     "packets": {
       "title": "패킷 로그 (RX/TX)",
       "rx_label": "RX (수신)",
