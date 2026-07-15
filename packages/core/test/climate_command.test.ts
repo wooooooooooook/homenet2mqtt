@@ -73,9 +73,9 @@ describe('Climate Command Packet Generation', () => {
           name: 'Room 0 Heater',
           type: 'climate',
           visual: {
-            min_temperature: '5 °C',
-            max_temperature: '40 °C',
-            temperature_step: '1 °C',
+            min_temperature: '5',
+            max_temperature: '40',
+            temperature_step: '1',
           },
           state: {
             data: [0x7c, 0x01],

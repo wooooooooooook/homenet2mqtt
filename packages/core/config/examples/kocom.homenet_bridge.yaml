@@ -58,9 +58,9 @@ homenet_bridge:
     - id: 'room_0_heater'
       name: 'Room 0 Heater'
       visual:
-        min_temperature: 5 °C
-        max_temperature: 30 °C
-        temperature_step: 1 °C
+        min_temperature: 5
+        max_temperature: 30
+        temperature_step: 1
       state:
         data: [0x30, 0xd0, 0x00, 0x36, 0x00]
         mask: [0xff, 0xf0, 0xff, 0xff, 0xff]

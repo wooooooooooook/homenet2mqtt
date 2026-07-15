@@ -168,9 +168,9 @@ homenet_bridge:
     - name: 'Heater 1'
       id: 'heater_1'
       visual:
-        min_temperature: 5 °C
-        max_temperature: 40 °C
-        temperature_step: 1 °C
+        min_temperature: 5
+        max_temperature: 40
+        temperature_step: 1
       state:
         data: [0x00, 0x01, 0x18, 0x04, 0x45, 0x11]
         mask: [0x00, 0xff, 0xff, 0xff, 0xfc, 0xff]

@@ -19,7 +19,7 @@ meta:
       명령 패킷:
         - CMD: 온도 및 전원 명령 (Temp + 0x80)
   description_en: "CVNet heating thermostats. You can specify the number of thermostats."
-  version: "2.1.3"
+  version: "2.1.4"
   min_version: "1.16.0"
   author: "wooooooooooook"
   tags: ["climate", "heater", "thermostat", "cvnet"]
@@ -54,9 +54,9 @@ entities:
       id: 'heater_{{i}}'
       name: 'Heater {{i}}'
       visual:
-        min_temperature: 6 °C
-        max_temperature: 30 °C
-        temperature_step: 1 °C
+        min_temperature: 6
+        max_temperature: 30
+        temperature_step: 1
       state:
         data: [0x20, 0x01, '{{i <= 4 ? 0x4A : 0x4B}}']
       state_temperature_current:

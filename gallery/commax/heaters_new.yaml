@@ -31,7 +31,7 @@ meta:
   description_en: |
     Commax heating thermostats with temperature control.
     You can specify the count.
-  version: "2.0.0"
+  version: "2.0.1"
   author: "wooooooooooook"
   tags: ["climate", "heater", "thermostat", "commax"]
 parameters:
@@ -73,9 +73,9 @@ entities:
       id: 'heater_{{i}}'
       name: 'Heater {{i}}'
       visual:
-        min_temperature: 5 °C
-        max_temperature: 40 °C
-        temperature_step: 1 °C
+        min_temperature: 5
+        max_temperature: 40
+        temperature_step: 1
       state:
         data: [0x80, 0x00, '{{i}}']
         mask: [0xF9, 0x00, 0xFF]

@@ -317,9 +317,9 @@ describe('DiscoveryManager', () => {
 
   it('climate visual 온도 설정이 discovery payload에 반영된다', () => {
     (mockConfig.climate![0] as any).visual = {
-      min_temperature: '6 °C',
-      max_temperature: '35 °C',
-      temperature_step: '0.5 °C',
+      min_temperature: '6',
+      max_temperature: '35',
+      temperature_step: '0.5',
     };
     mockPublisher.publish.mockClear();
 

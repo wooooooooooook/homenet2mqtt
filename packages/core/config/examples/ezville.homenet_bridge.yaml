@@ -279,9 +279,9 @@ homenet_bridge:
     - id: 'thermostat_1'
       name: 'thermostat 1'
       visual:
-        min_temperature: 5 °C
-        max_temperature: 40 °C
-        temperature_step: 0.5 °C
+        min_temperature: 5
+        max_temperature: 40
+        temperature_step: 0.5
       state:
         data: [0x36, 0x1f, 0x81]
       state_temperature_target: >-
@@ -322,9 +322,9 @@ homenet_bridge:
     - id: 'thermostat_2'
       name: 'thermostat 2'
       visual:
-        min_temperature: 5 °C
-        max_temperature: 40 °C
-        temperature_step: 0.5 °C
+        min_temperature: 5
+        max_temperature: 40
+        temperature_step: 0.5
       state:
         data: [0x36, 0x1f, 0x81]
       state_temperature_target: >-

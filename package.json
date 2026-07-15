@@ -34,7 +34,8 @@
     "test": "turbo test",
     "clean": "sudo bash ./scripts/clean.sh",
     "deploy-addon": "bash deploy/deploy-addon.sh",
-    "sync-addon": "bash deploy/sync-addon-repo.sh"
+    "sync-addon": "bash deploy/sync-addon-repo.sh",
+    "gallery:generate": "node scripts/generate-gallery-list.mjs"
   },
   "devDependencies": {
     "@types/js-yaml": "^4.0.9",

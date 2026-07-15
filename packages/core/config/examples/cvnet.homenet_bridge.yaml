@@ -132,9 +132,9 @@ homenet_bridge:
     - id: 'heater_1'
       name: 'Heater 1'
       visual:
-        min_temperature: 6 °C
-        max_temperature: 30 °C
-        temperature_step: 1 °C
+        min_temperature: 6
+        max_temperature: 30
+        temperature_step: 1
       state:
         data: [0x20, 0x01, 0x4A]
       state_temperature_current:
@@ -159,9 +159,9 @@ homenet_bridge:
     - id: 'heater_2'
       name: 'Heater 2'
       visual:
-        min_temperature: 6 °C
-        max_temperature: 30 °C
-        temperature_step: 1 °C
+        min_temperature: 6
+        max_temperature: 30
+        temperature_step: 1
       state:
         data: [0x20, 0x01, 0x4A]
       state_temperature_current:
@@ -186,9 +186,9 @@ homenet_bridge:
     - id: 'heater_3'
       name: 'Heater 3'
       visual:
-        min_temperature: 6 °C
-        max_temperature: 30 °C
-        temperature_step: 1 °C
+        min_temperature: 6
+        max_temperature: 30
+        temperature_step: 1
       state:
         data: [0x20, 0x01, 0x4A]
       state_temperature_current:
@@ -213,9 +213,9 @@ homenet_bridge:
     - id: 'heater_4'
       name: 'Heater 4'
       visual:
-        min_temperature: 6 °C
-        max_temperature: 30 °C
-        temperature_step: 1 °C
+        min_temperature: 6
+        max_temperature: 30
+        temperature_step: 1
       state:
         data: [0x20, 0x01, 0x4A]
       state_temperature_current:

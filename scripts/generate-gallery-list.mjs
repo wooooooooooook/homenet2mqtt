@@ -1,0 +1,154 @@
+import fs from 'fs';
+import path from 'path';
+import yaml from 'js-yaml';
+
+const galleryDir = './gallery';
+const vendorsLegacy = {};  // Without parameters/discovery
+const vendorsNew = {};     // With parameters/discovery
+
+// Vendor display names
+const vendorNames = {
+  kocom: '코콤',
+  kocom_doorbell: '코콤 도어벨',
+  kocom_theart: '코콤 Theart',
+  kocom_thinks: '코콤 Thinks',
+  commax: '코맥스',
+  hyundai_imazu: '현대 imazu',
+  hyundai_imazu_doorbell: '현대 imazu 현관문(주방폰)',
+  ezville: '이지빌',
+  samsung_sds: '삼성 SDS',
+  cvnet: 'CVNet',
+  'bestin': 'BESTIN',
+  'bestin2.0': 'BESTIN2.0',
+};
+
+// Find all YAML files in gallery subdirectories
+const vendorDirs = fs.readdirSync(galleryDir, { withFileTypes: true })
+  .filter(d => d.isDirectory())
+  .map(d => d.name);
+
+for (const vendorId of vendorDirs) {
+  const vendorPath = path.join(galleryDir, vendorId);
+  
+  // Load vendor-level requirements.json if exists
+  let vendorRequirements = null;
+  const requirementsPath = path.join(vendorPath, 'requirements.json');
+  if (fs.existsSync(requirementsPath)) {
+    try {
+      vendorRequirements = JSON.parse(fs.readFileSync(requirementsPath, 'utf8'));
+    } catch (err) {
+      console.error(`Error parsing ${requirementsPath}:`, err.message);
+    }
+  }
+  
+  const files = fs.readdirSync(vendorPath)
+    .filter(f => f.endsWith('.yaml') || f.endsWith('.yml'));
+
+  if (files.length === 0) continue;
+
+  // Initialize vendor entries for both lists
+  const createVendorEntry = () => ({
+    id: vendorId,
+    name: vendorNames[vendorId] || vendorId,
+    requirements: vendorRequirements,
+    items: []
+  });
+
+  for (const file of files) {
+    const filePath = path.join(vendorPath, file);
+    const content = fs.readFileSync(filePath, 'utf8');
+    
+    try {
+      const doc = yaml.load(content);
+      if (!doc.meta) continue;
+
+      // Check if has parameters
+      const hasParameters = Array.isArray(doc.parameters) && doc.parameters.length > 0;
+
+      // Count entities, automations, and scripts
+      const contentSummary = {
+        entities: {},
+        automations: 0,
+        scripts: 0
+      };
+
+      if (doc.entities) {
+        for (const [type, items] of Object.entries(doc.entities)) {
+          if (Array.isArray(items)) {
+            contentSummary.entities[type] = items.length;
+          }
+        }
+      }
+
+      if (doc.automation && Array.isArray(doc.automation)) {
+        contentSummary.automations = doc.automation.length;
+      }
+
+      if (doc.scripts && Array.isArray(doc.scripts)) {
+        contentSummary.scripts = doc.scripts.length;
+      }
+
+      // Base item for legacy list (no discovery)
+      const legacyItem = {
+        file: `${vendorId}/${file}`,
+        name: doc.meta.name || file,
+        name_en: doc.meta.name_en || null,
+        description: doc.meta.description || '',
+        description_en: doc.meta.description_en || null,
+        version: doc.meta.version || '1.0.0',
+        author: doc.meta.author || 'unknown',
+        tags: doc.meta.tags || [],
+        parameters: Array.isArray(doc.parameters) ? doc.parameters : [],
+        content_summary: contentSummary
+      };
+
+      // Extended item for new list (includes discovery)
+      const newItem = {
+        ...legacyItem,
+        discovery: doc.discovery || null
+      };
+
+      // list.json: only items WITHOUT parameters (legacy compatible)
+      if (!hasParameters) {
+        if (!vendorsLegacy[vendorId]) {
+          vendorsLegacy[vendorId] = createVendorEntry();
+        }
+        vendorsLegacy[vendorId].items.push(legacyItem);
+      }
+
+      // list_new.json: ALL items with discovery info
+      if (!vendorsNew[vendorId]) {
+        vendorsNew[vendorId] = createVendorEntry();
+      }
+      vendorsNew[vendorId].items.push(newItem);
+    } catch (err) {
+      console.error(`Error parsing ${filePath}:`, err.message);
+    }
+  }
+}
+
+// Generate list.json (without parameters - legacy)
+const resultLegacy = {
+  generated_at: new Date().toISOString(),
+  vendors: Object.values(vendorsLegacy).filter(v => v.items.length > 0)
+};
+
+fs.writeFileSync(
+  path.join(galleryDir, 'list.json'),
+  JSON.stringify(resultLegacy, null, 2)
+);
+
+console.log('Generated list.json with', resultLegacy.vendors.length, 'vendors');
+
+// Generate list_new.json (with parameters/discovery)
+const resultNew = {
+  generated_at: new Date().toISOString(),
+  vendors: Object.values(vendorsNew).filter(v => v.items.length > 0)
+};
+
+fs.writeFileSync(
+  path.join(galleryDir, 'list_new.json'),
+  JSON.stringify(resultNew, null, 2)
+);
+
+console.log('Generated list_new.json with', resultNew.vendors.length, 'vendors');
