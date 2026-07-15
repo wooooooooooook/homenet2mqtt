@@ -46,14 +46,7 @@
     <span class="slider"></span>
   </button>
   {#if label}
-    <!-- svelte-ignore a11y_click_events_have_key_events -->
-    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-    <label
-      id={labelId}
-      for={elementId}
-      class="toggle-label"
-      onclick={() => !disabled && onchange?.(!checked)}
-    >
+    <label id={labelId} for={elementId} class="toggle-label">
       {label}
     </label>
   {/if}
