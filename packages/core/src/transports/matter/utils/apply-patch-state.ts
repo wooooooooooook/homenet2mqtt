@@ -2,16 +2,45 @@ import { Logger } from '@matter/general';
 
 const logger = Logger.get('ApplyPatchState');
 
+interface PendingPatch<T extends object> {
+  patch: Partial<T>;
+  timeoutId: NodeJS.Timeout | null;
+  retryCount: number;
+}
+
+const pendingPatches = new WeakMap<object, PendingPatch<any>>();
+const MAX_RETRY_COUNT = 20;
+const RETRY_DELAY_MS = 20;
+
 /**
  * Safely applies a patch to Matter state, only updating changed properties.
  * Uses deep equality comparison to avoid unnecessary Matter transactions.
+ * If a transaction conflict is encountered, it retries the update asynchronously.
  */
-export function applyPatchState<T extends object>(state: T, patch: Partial<T>): Partial<T> {
+export function applyPatchState<T extends object>(
+  state: T,
+  patch: Partial<T>,
+  isRetry = false,
+): Partial<T> {
+  let finalPatch = { ...patch };
+
+  // If there's a pending patch, merge it (newer patch values take precedence)
+  const pending = pendingPatches.get(state);
+  if (pending) {
+    if (!isRetry) {
+      finalPatch = { ...pending.patch, ...patch };
+      if (pending.timeoutId) {
+        clearTimeout(pending.timeoutId);
+      }
+      pendingPatches.delete(state);
+    }
+  }
+
   const actualPatch: Partial<T> = {};
 
-  for (const key in patch) {
-    if (Object.hasOwn(patch, key)) {
-      const patchValue = patch[key];
+  for (const key in finalPatch) {
+    if (Object.hasOwn(finalPatch, key)) {
+      const patchValue = finalPatch[key];
       if (patchValue !== undefined) {
         const stateValue = state[key];
         if (!deepEqual(stateValue, patchValue)) {
@@ -21,7 +50,13 @@ export function applyPatchState<T extends object>(state: T, patch: Partial<T>): 
     }
   }
 
+  if (Object.keys(actualPatch).length === 0) {
+    return {};
+  }
+
   const failedKeys: string[] = [];
+  let isConflict = false;
+
   for (const key in actualPatch) {
     if (!Object.hasOwn(actualPatch, key)) continue;
     try {
@@ -44,8 +79,8 @@ export function applyPatchState<T extends object>(state: T, patch: Partial<T>): 
         errorMessage.includes('synchronous-transaction-conflict') ||
         (errorMessage.includes('Cannot lock') && errorMessage.includes('synchronously'))
       ) {
-        logger.debug(`Transaction conflict, state update DROPPED: ${JSON.stringify(actualPatch)}`);
-        return actualPatch;
+        isConflict = true;
+        break;
       }
       // Per-property failure: log warning and continue with remaining properties
       failedKeys.push(key);
@@ -55,6 +90,48 @@ export function applyPatchState<T extends object>(state: T, patch: Partial<T>): 
 
   if (failedKeys.length > 0) {
     logger.warn(`${failedKeys.length} properties failed to update: [${failedKeys.join(', ')}]`);
+  }
+
+  if (isConflict) {
+    const retryCount = isRetry && pending ? pending.retryCount + 1 : 1;
+
+    if (retryCount <= MAX_RETRY_COUNT) {
+      logger.debug(
+        `Transaction conflict during state update. Retrying in ${RETRY_DELAY_MS}ms (attempt ${retryCount}/${MAX_RETRY_COUNT}): ${JSON.stringify(
+          actualPatch,
+        )}`,
+      );
+
+      const currentPending = pendingPatches.get(state) || {
+        patch: {},
+        timeoutId: null,
+        retryCount: 0,
+      };
+
+      if (currentPending.timeoutId) {
+        clearTimeout(currentPending.timeoutId);
+      }
+
+      currentPending.patch = { ...currentPending.patch, ...actualPatch };
+      currentPending.retryCount = retryCount;
+      currentPending.timeoutId = setTimeout(() => {
+        applyPatchState(state, currentPending.patch, true);
+      }, RETRY_DELAY_MS);
+
+      pendingPatches.set(state, currentPending);
+    } else {
+      logger.error(
+        `Transaction conflict, state update DROPPED after ${MAX_RETRY_COUNT} retries: ${JSON.stringify(
+          actualPatch,
+        )}`,
+      );
+      pendingPatches.delete(state);
+    }
+    return actualPatch;
+  }
+
+  if (isRetry) {
+    pendingPatches.delete(state);
   }
 
   return actualPatch;

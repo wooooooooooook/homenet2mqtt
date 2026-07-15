@@ -36,6 +36,57 @@ describe('Matter Transports Utilities', () => {
 
       expect(actualPatch).toEqual({});
     });
+
+    it('should retry asynchronously on transaction conflict and eventually succeed', async () => {
+      let failCount = 2;
+      const targetState = {
+        _onOff: false,
+        get onOff(): boolean {
+          return this._onOff;
+        },
+        set onOff(value: boolean) {
+          if (failCount > 0) {
+            failCount--;
+            throw new Error('synchronous-transaction-conflict');
+          }
+          this._onOff = value;
+        },
+      };
+
+      const actualPatch = applyPatchState(targetState, { onOff: true });
+
+      expect(actualPatch).toEqual({ onOff: true });
+      expect(targetState._onOff).toBe(false);
+
+      await new Promise((resolve) => setTimeout(resolve, 80));
+
+      expect(targetState._onOff).toBe(true);
+      expect(failCount).toBe(0);
+    });
+
+    it('should give up after MAX_RETRY_COUNT retries on persistent conflict', async () => {
+      let failCount = 30;
+      const targetState = {
+        _onOff: false,
+        get onOff(): boolean {
+          return this._onOff;
+        },
+        set onOff(value: boolean) {
+          if (failCount > 0) {
+            failCount--;
+            throw new Error('synchronous-transaction-conflict');
+          }
+          this._onOff = value;
+        },
+      };
+
+      applyPatchState(targetState, { onOff: true });
+
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      expect(targetState._onOff).toBe(false);
+      expect(failCount).toBe(9);
+    });
   });
 
   describe('trimToLength', () => {
