@@ -406,7 +406,9 @@
   "header": {
     "toggle_menu": "메뉴 열기",
     "skip_to_content": "메인 콘텐츠로 건너뛰기",
-    "select_port": "포트 선택"
+    "select_port": "포트 선택",
+    "product_name_mqtt": "Homenet2MQTT",
+    "product_name_matter": "Homenet2Matter"
   },
   "sidebar": {
     "dashboard": "대시보드",

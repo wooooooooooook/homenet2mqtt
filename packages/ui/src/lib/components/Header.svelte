@@ -80,6 +80,17 @@
     isDropdownOpen = false;
   }
 
+  const integrationType = $derived.by(() => {
+    return bridgeInfo?.bridges?.[0]?.integrationType || 'mqtt';
+  });
+
+  const productName = $derived.by(() => {
+    if (integrationType === 'matter') {
+      return $t('header.product_name_matter', { default: 'Homenet2Matter' });
+    }
+    return $t('header.product_name_mqtt', { default: 'Homenet2MQTT' });
+  });
+
   function handleClickOutside(event: MouseEvent) {
     if (
       isDropdownOpen &&
@@ -147,7 +158,7 @@
 
     <div class="logo">
       <img src="./logo.png" alt="" class="logo-icon" aria-hidden="true" />
-      <span class="logo-text">Homenet2MQTT</span>
+      <span class="logo-text">{productName}</span>
       {#if bridgeInfo?.version?.startsWith('dev-')}
         <span class="dev-badge">DEV</span>
       {:else if bridgeInfo?.version}

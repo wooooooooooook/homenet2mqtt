@@ -41,8 +41,8 @@
     // 2. Sort
     result.sort((a, b) => {
       if (sortBy === 'status') {
-        const valA = a.category === 'automation' ? (a.enabled ? 1 : 0) : 1;
-        const valB = b.category === 'automation' ? (b.enabled ? 1 : 0) : 1;
+        const valA = a.isActive ? 1 : 0;
+        const valB = b.isActive ? 1 : 0;
         const comparison = valA - valB;
         return sortOrder === 'asc' ? comparison : -comparison;
       }
@@ -190,7 +190,7 @@
       </thead>
       <tbody>
         {#each filteredAndSortedEntities as entity (entity.category + ':' + (entity.portId || '') + ':' + entity.id)}
-          {@const isActive = entity.category === 'automation' ? entity.enabled : true}
+          {@const isActive = entity.isActive ?? entity.enabled !== false}
           <tr
             class="automation-row"
             onclick={() => onSelect(entity.id, entity.portId, entity.category)}

@@ -406,7 +406,9 @@
   "header": {
     "toggle_menu": "Open navigation menu",
     "skip_to_content": "Skip to main content",
-    "select_port": "Select Port"
+    "select_port": "Select Port",
+    "product_name_mqtt": "Homenet2MQTT",
+    "product_name_matter": "Homenet2Matter"
   },
   "sidebar": {
     "dashboard": "Dashboard",
