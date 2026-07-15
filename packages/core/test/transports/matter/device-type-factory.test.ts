@@ -111,13 +111,24 @@ describe('Matter Device Type Factory', () => {
     expect(endpointType?.deviceType).toBe(DoorLockDevice.deviceType);
   });
 
+  it('should map sensor, binary_sensor, fan, button, number, select to correct devices', () => {
+    expect(
+      createEndpointType('sensor', { id: 's1', device_class: 'temperature' } as any),
+    ).toBeDefined();
+    expect(createEndpointType('binary_sensor', { id: 'bs1' } as any)).toBeDefined();
+    expect(createEndpointType('button', { id: 'btn1' } as any)).toBeDefined();
+    expect(createEndpointType('fan', { id: 'fan1' } as any)).toBeDefined();
+    expect(createEndpointType('number', { id: 'num1' } as any)).toBeDefined();
+    expect(createEndpointType('select', { id: 'sel1', options: ['A', 'B'] } as any)).toBeDefined();
+  });
+
   it('should return undefined for unsupported device types', () => {
     const config = {
-      id: 'sensor1',
-      name: 'Sensor 1',
-      type: 'sensor',
+      id: 'text1',
+      name: 'Text 1',
+      type: 'text',
     } as any;
 
-    expect(createEndpointType('sensor', config)).toBeUndefined();
+    expect(createEndpointType('text', config)).toBeUndefined();
   });
 });

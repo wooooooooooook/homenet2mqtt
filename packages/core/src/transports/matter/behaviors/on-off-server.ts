@@ -24,10 +24,22 @@ export class OnOffServer extends FeaturedBase {
   }
 
   override async on() {
+    const homenet = await this.agent.load(HomenetEntityBehavior);
+    const type = homenet.entityConfig.type ?? '';
+
+    if (type === 'button') {
+      applyPatchState(this.state, { onOff: true });
+      await homenet.executeCommand(homenet.entityId, 'press');
+      // Momentary switch behavior: turn off after a short delay
+      setTimeout(() => {
+        applyPatchState(this.state, { onOff: false });
+      }, 500);
+      return;
+    }
+
     // Set onOff immediately so the controller gets instant feedback
     applyPatchState(this.state, { onOff: true });
-    const homenet = await this.agent.load(HomenetEntityBehavior);
-    const command = (homenet.entityConfig.type ?? '') === 'valve' ? 'open' : 'on';
+    const command = type === 'valve' ? 'open' : 'on';
     await homenet.executeCommand(homenet.entityId, command);
   }
 
