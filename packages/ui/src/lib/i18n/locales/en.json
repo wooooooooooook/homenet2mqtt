@@ -971,7 +971,8 @@
     "text": "Text Input",
     "binary_sensor": "Binary Sensor",
     "automation": "Automation",
-    "script": "Script"
+    "script": "Script",
+    "undefined": "Unknown"
   },
   "toasts": {
     "command_sent": "{entity} Command Sent",
@@ -992,6 +993,7 @@
     "manual_code": "Manual Pairing Code",
     "qr_code": "QR Code",
     "qr_scan_tip": "Scan this QR code in your smart home app (Apple Home, Google Home, SmartThings, etc.) to complete pairing.",
+    "qr_code_aria": "Matter Pairing QR Code",
     "device_count": "Shared Homenet Devices",
     "fabrics": "Connected Platforms (Fabrics)",
     "fabric_index": "Index",

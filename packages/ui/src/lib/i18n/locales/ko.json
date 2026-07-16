@@ -976,7 +976,8 @@
     "text": "텍스트 입력",
     "binary_sensor": "이진 센서",
     "automation": "자동화",
-    "script": "스크립트"
+    "script": "스크립트",
+    "undefined": "알 수 없음"
   },
   "toasts": {
     "command_sent": "{entity} 명령 전송",
@@ -997,6 +998,7 @@
     "manual_code": "수동 페어링 코드 (Manual Code)",
     "qr_code": "QR 코드",
     "qr_scan_tip": "스마트홈 플랫폼 앱(Apple Home, Google Home, SmartThings 등)에서 아래 QR 코드를 스캔하여 기기 추가를 완료하세요.",
+    "qr_code_aria": "Matter 페어링 QR 코드",
     "device_count": "공유된 홈넷 기기 수",
     "fabrics": "연결된 플랫폼 목록 (Fabrics)",
     "fabric_index": "인덱스",
