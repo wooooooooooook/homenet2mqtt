@@ -150,6 +150,15 @@
       }
     }
 
+    const brightnessVal =
+      payload.brightness !== undefined ? Math.round((payload.brightness / 100) * 254) : undefined;
+
+    const temperatureVal =
+      payload.temperature !== undefined ? Math.round(payload.temperature * 100) : undefined;
+
+    const lockStateVal =
+      payload.lock !== undefined ? (payload.lock === 'locked' ? 1 : 2) : undefined;
+
     return {
       deviceName,
       deviceCode,
@@ -159,6 +168,9 @@
       clusters,
       payload,
       isStateOn,
+      brightnessVal,
+      temperatureVal,
+      lockStateVal,
     };
   });
   let activeTabEntityId = $state<string | null>(null);
@@ -1049,26 +1061,8 @@
     return null;
   });
 
-  // Matter cluster detailed dynamic definitions for expanding UI details
   const clusterDetailsData = $derived.by<Record<string, any>>(() => {
-    const payload = getPayloadObj(entity.statePayload);
-    const isStateOn =
-      payload.state === 'on' ||
-      payload.state === 'ON' ||
-      payload.state === 'OPEN' ||
-      payload.state === 'open' ||
-      payload.state === true ||
-      payload.on === true ||
-      payload.power === 'on' ||
-      payload.power === 'ON';
-
-    const brightnessVal =
-      payload.brightness !== undefined ? Math.round((payload.brightness / 100) * 254) : 254;
-
-    const temperatureVal =
-      payload.temperature !== undefined ? Math.round(payload.temperature * 100) : 2100;
-
-    const lockStateVal = payload.lock === 'locked' ? 1 : 2;
+    const { payload, isStateOn, brightnessVal, temperatureVal, lockStateVal } = matterDeviceDetails;
 
     const groupsData = matterState?.groups || {};
     const onOffData = matterState?.onOff || {};
@@ -1212,12 +1206,12 @@
         occupiedHeatingSetpoint:
           payload.target_temperature !== undefined
             ? Math.round(payload.target_temperature * 100)
-            : 2000,
+            : undefined,
         occupiedCoolingSetpoint:
           payload.target_temperature !== undefined
             ? Math.round(payload.target_temperature * 100)
-            : 2400,
-        systemMode: payload.mode || 'off',
+            : undefined,
+        systemMode: payload.mode,
         clusterRevision: 6,
         featureMap: {
           heating: entity.commands?.some((c) => c.commandName.includes('heat')) ?? true,
@@ -1785,18 +1779,14 @@
                           <div class="attribute-item highlight">
                             <span class="attr-key">currentLevel</span>
                             <span class="attr-val font-mono font-bold">
-                              {matterDeviceDetails.payload.brightness !== undefined
-                                ? Math.round((matterDeviceDetails.payload.brightness / 100) * 254)
-                                : 254}
+                              {matterDeviceDetails.brightnessVal ?? 'undefined'}
                             </span>
                           </div>
                         {:else if cluster === 'thermostat'}
                           <div class="attribute-item highlight">
                             <span class="attr-key">localTemperature</span>
                             <span class="attr-val font-mono font-bold">
-                              {matterDeviceDetails.payload.temperature !== undefined
-                                ? Math.round(matterDeviceDetails.payload.temperature * 100)
-                                : 2100}
+                              {matterDeviceDetails.temperatureVal ?? 'undefined'}
                             </span>
                           </div>
                         {:else if cluster === 'doorLock'}
@@ -1806,7 +1796,7 @@
                               class="attr-val font-mono font-bold"
                               class:on={matterDeviceDetails.payload.lock === 'locked'}
                             >
-                              {matterDeviceDetails.payload.lock === 'locked' ? 1 : 2}
+                              {matterDeviceDetails.lockStateVal ?? 'undefined'}
                             </span>
                           </div>
                         {/if}
@@ -1865,7 +1855,7 @@
                                       {#each Object.entries(val) as [k, v]}
                                         <li>
                                           <span class="detail-k">{k}:</span>
-                                          <span class="detail-v">{v}</span>
+                                          <span class="detail-v">{v ?? 'undefined'}</span>
                                         </li>
                                       {/each}
                                     </ul>
@@ -1875,7 +1865,7 @@
                             {:else}
                               <div class="attribute-item">
                                 <span class="attr-key">{key}</span>
-                                <span class="attr-val font-mono">{val}</span>
+                                <span class="attr-val font-mono">{val ?? 'undefined'}</span>
                               </div>
                             {/if}
                           {/each}
