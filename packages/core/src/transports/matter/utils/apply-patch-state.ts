@@ -10,6 +10,7 @@ interface PendingPatch<T extends object> {
 }
 
 const pendingPatches = new WeakMap<object, PendingPatch<any>>();
+const lastAppliedSequences = new WeakMap<object, number>();
 const MAX_RETRY_COUNT = 20;
 const RETRY_DELAY_MS = 20;
 let globalSequence = 0;
@@ -26,6 +27,19 @@ export function applyPatchState<T extends object>(
   sequence?: number,
 ): Partial<T> {
   const currentSequence = sequence ?? ++globalSequence;
+
+  // Drop incoming updates that are older than the last applied sequence
+  const lastSeq = lastAppliedSequences.get(state) || 0;
+  if (currentSequence < lastSeq) {
+    logger.debug(
+      `Out-of-order patch dropped: incoming sequence ${currentSequence} is older than last applied sequence ${lastSeq}`,
+    );
+    return {};
+  }
+
+  // Update the last applied sequence number
+  lastAppliedSequences.set(state, Math.max(lastSeq, currentSequence));
+
   let finalPatch = { ...patch };
 
   // If there's a pending patch, merge it (newer patch values take precedence)
@@ -34,7 +48,7 @@ export function applyPatchState<T extends object>(
     if (!isRetry) {
       if (currentSequence < pending.sequence) {
         logger.debug(
-          `Out-of-order patch dropped: incoming sequence ${currentSequence} is older than pending sequence ${pending.sequence}`,
+          `Out-of-order patch dropped (pending check): incoming sequence ${currentSequence} is older than pending sequence ${pending.sequence}`,
         );
         return {};
       }

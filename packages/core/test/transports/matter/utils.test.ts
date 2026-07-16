@@ -156,6 +156,21 @@ describe('Matter Transports Utilities', () => {
       // Stale update (false) should be ignored, and targetState must remain true as requested by the latest command
       expect(targetState._onOff).toBe(true);
     });
+
+    it('should drop out-of-order patches with older sequences even when no patch is pending', () => {
+      const state = { onOff: false };
+
+      // Apply initial patch with sequence 10
+      applyPatchState(state, { onOff: true }, false, 10);
+      expect(state.onOff).toBe(true);
+
+      // A delayed feedback with sequence 5 comes in
+      const droppedPatch = applyPatchState(state, { onOff: false }, false, 5);
+
+      // It must be dropped and return empty object
+      expect(droppedPatch).toEqual({});
+      expect(state.onOff).toBe(true); // remains true
+    });
   });
 
   describe('trimToLength', () => {
