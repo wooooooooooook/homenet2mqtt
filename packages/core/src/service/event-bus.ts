@@ -17,6 +17,12 @@ export interface StateChangedEvent {
   timestamp: string;
 }
 
+export interface MqttPublishEvent {
+  topic: string;
+  payload: string;
+  retain?: boolean;
+}
+
 export interface AutomationTriggeredEvent {
   automationId: string;
   triggerType: string;
@@ -64,6 +70,15 @@ export interface EntityErrorEvent {
   message: string;
   timestamp: string;
   context?: Record<string, unknown>;
+}
+
+export interface InterfaceLogEvent {
+  timestamp: string;
+  integration: 'mqtt' | 'matter';
+  direction: 'in' | 'out';
+  topicOrEntityId: string;
+  payload: string;
+  portId?: string;
 }
 
 export const eventBus = new EventEmitter();

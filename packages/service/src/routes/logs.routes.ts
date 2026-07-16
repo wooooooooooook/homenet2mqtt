@@ -232,6 +232,18 @@ export function createLogsRoutes(ctx: LogsRoutesContext): Router {
     }
   });
 
+  // --- Interface Log API ---
+  router.get('/api/logs/interface', (req, res) => {
+    const portId = typeof req.query.portId === 'string' ? req.query.portId : undefined;
+    try {
+      const logs = ctx.logRetentionService.getInterfaceLogs(portId);
+      res.json({ logs });
+    } catch (error) {
+      logger.error({ err: error }, '[service] Failed to get interface logs');
+      res.status(500).json({ error: 'Failed to get interface logs' });
+    }
+  });
+
   // --- Log Cache API ---
   router.get('/api/logs/cache/settings', async (_req, res) => {
     try {

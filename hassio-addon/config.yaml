@@ -21,6 +21,9 @@ auth_api: true
 uart: true
 services:
   - mqtt:need
+ports:
+  5540/tcp: 5540
+  5540/udp: 5540
 options:
   log_level: info
   mqtt_topic_prefix: homenet2mqtt
@@ -32,7 +35,7 @@ options:
   mqtt_passwd: ""
   config_files:
     - default.homenet_bridge.yaml
-  timezone: ""
+  timezone: "Asia/Seoul"
 schema:
   log_level: list(trace|debug|info|warn|error|fatal)
   use_supervisor_mqtt: bool

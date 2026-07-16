@@ -12,6 +12,8 @@
     "isolatedModules": true,
     "noEmitOnError": false,
     "baseUrl": ".",
-    "incremental": true
+    "incremental": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true
   }
 }

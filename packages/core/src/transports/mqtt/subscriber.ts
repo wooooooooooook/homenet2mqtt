@@ -108,6 +108,14 @@ export class MqttSubscriber {
     // Only emit to service if topic starts with configured MQTT topic prefix
     if (topic.startsWith(normalizedPrefix)) {
       eventBus.emit('mqtt-message', { topic, payload: message.toString(), portId: this.portId });
+      eventBus.emit('interface-log:added', {
+        timestamp: new Date().toISOString(),
+        integration: 'mqtt',
+        direction: 'in',
+        topicOrEntityId: topic,
+        payload: message.toString(),
+        portId: this.portId,
+      });
     }
 
     if (this.externalHandlers.has(topic)) {

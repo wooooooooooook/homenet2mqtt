@@ -24,17 +24,14 @@ fi
 TMP_DIR=$(mktemp -d)
 trap 'rm -rf "$TMP_DIR"' EXIT
 TARGET_DIR="$TMP_DIR/target"
-ADDON_DIR="$TARGET_DIR/Homenet2MQTT"
-
 log "${TARGET_REPO} 리포지토리를 클론합니다"
 if ! git clone "https://x-access-token:${ADDONS_REPO_TOKEN}@github.com/${TARGET_REPO}.git" "$TARGET_DIR"; then
   log "리포지토리를 클론하지 못했습니다. TARGET_REPO 또는 토큰을 확인하세요."
   exit 1
 fi
 
-rm -rf "$ADDON_DIR"
-mkdir -p "$ADDON_DIR"
-cp -R "$ROOT_DIR/hassio-addon/." "$ADDON_DIR/"
+log "애드온 파일을 생성합니다"
+node "$ROOT_DIR/scripts/generate-addons.mjs" --target "$TARGET_DIR" --types mqtt,matter
 
 pushd "$TARGET_DIR" >/dev/null
 if [[ -n $(git status -s) ]]; then

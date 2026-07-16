@@ -18,6 +18,7 @@ import {
   type ConfigEditorRoutesContext,
 } from './config-editor.routes.js';
 import { createSchemaRoutes } from './schema.routes.js';
+import { createQrRoutes } from './qr.routes.js';
 
 export interface RoutesContext
   extends SystemRoutesContext,
@@ -70,6 +71,9 @@ export function registerRoutes(app: Express, ctx: RoutesContext): void {
 
   // Schema routes (JSON Schema for Monaco YAML editor autocomplete)
   app.use(createSchemaRoutes());
+
+  // QR code generation routes
+  app.use(createQrRoutes());
 }
 
 export { createSystemRoutes } from './system.routes.js';

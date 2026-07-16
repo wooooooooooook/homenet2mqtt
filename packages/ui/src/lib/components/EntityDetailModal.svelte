@@ -9,6 +9,7 @@
     EntityErrorEvent,
     CommandInfo,
     FrontendSettings,
+    BridgeInfo,
   } from '../types';
 
   let {
@@ -26,6 +27,7 @@
     onExecute,
     onUpdate,
     logVersion,
+    bridgeInfo = null,
   }: {
     selectedEntityKey: string | null;
     allUnifiedEntities: UnifiedEntity[];
@@ -41,6 +43,7 @@
     onExecute: (cmd: CommandInfo, value: any) => void;
     onUpdate: (updates: Partial<UnifiedEntity>) => void;
     logVersion: number;
+    bridgeInfo?: BridgeInfo | null;
   } = $props();
 
   const selectedEntity = $derived.by<UnifiedEntity | null>(() => {
@@ -161,5 +164,6 @@
     {onRename}
     {onUpdate}
     editorMode={frontendSettings?.editor?.default ?? 'monaco'}
+    {bridgeInfo}
   />
 {/if}

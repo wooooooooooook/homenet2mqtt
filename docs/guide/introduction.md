@@ -11,12 +11,16 @@
 1. [Home Assistant Add-on 설치](./install-addon.md) 또는 [Docker 설치](./install-docker.md)
 2. [UI설명](./getting-started.md)
 
-## Homenet2MQTT란?
+## Homenet2MQTT / Homenet2Matter란?
 
-Homenet2MQTT는 RS485 기반 월패드(홈넷) 신호를 MQTT 메시지로 변환해 Home Assistant등의 MQTT 브로커에서 제어/모니터링할 수 있게 하는 브릿지입니다.
+RS485 기반 월패드(홈넷) 신호를 변환하여 스마트홈 플랫폼과 연동하는 브릿지입니다.
+* **MQTT 연동 (Homenet2MQTT)**: 기기 패킷을 MQTT로 변환해 Home Assistant의 MQTT Discovery 등을 통해 통합 제어합니다.
+* **Matter 연동 (Homenet2Matter)**: 기기를 Matter 표준 장치로 직접 노출하여 Apple Home, SmartThings, Google Home 등 다양한 스마트홈 플랫폼에 직접 등록 및 제어합니다.
 
 ## 준비물
 
 - RS485 USB Serial 장치 또는 TCP-Serial 변환 장치(EW11 등)
-- MQTT 브로커(권장: Home Assistant Mosquitto add-on)
-- Homenet2MQTT 실행 환경(HA Add-on 또는 Docker)
+- MQTT 브로커 (MQTT 연동 모드 사용 시 권장: Home Assistant Mosquitto add-on)
+- 스마트홈 연동 컨트롤러 (Matter 연동 모드 사용 시: SmartThings Hub, Apple HomePod 등)
+- 실행 환경 (HA Add-on 또는 Docker)
+

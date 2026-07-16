@@ -47,6 +47,7 @@
     onToggleAutomations,
     onToggleScripts,
     onBrowseGallery,
+    onNavigateToMatter,
     hideAutomationScripts = false,
     showInternal = false,
   }: {
@@ -83,6 +84,7 @@
     onToggleAutomations?: () => void;
     onToggleScripts?: () => void;
     onBrowseGallery?: () => void;
+    onNavigateToMatter?: () => void;
     hideAutomationScripts?: boolean;
     showInternal?: boolean;
   } = $props();
@@ -885,6 +887,8 @@
       mqttStatus={mqttConnectionStatus}
       portMetadata={activePortMetadata}
       bridgeStatus={bridgeInfo?.status || 'unknown'}
+      integrationType={bridgeInfo?.bridges?.[0]?.integrationType || 'mqtt'}
+      {onNavigateToMatter}
       globalError={infoError
         ? {
             code: 'API_ERROR',

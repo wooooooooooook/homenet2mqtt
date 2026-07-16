@@ -8,12 +8,14 @@ import { eventBus } from './service/event-bus.js';
 import type {
   MqttMessageEvent,
   StateChangedEvent,
+  MqttPublishEvent,
   AutomationTriggeredEvent,
   AutomationGuardEvent,
   AutomationActionEvent,
   AutomationActionFailedEvent,
   ScriptActionEvent,
   EntityErrorEvent,
+  InterfaceLogEvent,
 } from './service/event-bus.js';
 import type { HomenetBridgeConfig } from './config/types.js';
 import { CommandGenerator } from './protocol/generators/command.generator.js';
@@ -21,6 +23,7 @@ import type { EntityConfig } from './domain/entities/base.entity.js';
 import { normalizeConfig, validateConfig } from './config/index.js';
 import { normalizePortId } from './utils/port.js';
 import { CelExecutor } from './protocol/cel-executor.js';
+import type { ConnectorContext, IntegrationConnector } from './service/connector.interface.js';
 
 dotenv.config();
 
@@ -41,12 +44,16 @@ export type {
   EntityConfig,
   MqttMessageEvent,
   StateChangedEvent,
+  MqttPublishEvent,
   AutomationTriggeredEvent,
   AutomationGuardEvent,
   AutomationActionEvent,
   AutomationActionFailedEvent,
   ScriptActionEvent,
   EntityErrorEvent,
+  InterfaceLogEvent,
+  ConnectorContext,
+  IntegrationConnector,
 };
 
 export async function createBridge(

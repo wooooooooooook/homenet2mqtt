@@ -193,7 +193,7 @@
       "empty": "표시할 자동화 또는 스크립트 기록이 없습니다."
     },
     "packet_log": {
-      "title": "패킷 로그 (RX/TX)",
+      "title": "패킷로그",
       "rx": "RX (수신)",
       "tx": "TX (발신)",
       "desc": "파싱된 수신패킷과 H2M에서 발신한 패킷 목록입니다.",
@@ -240,7 +240,7 @@
       "recording_duration": "녹화 시간: {duration}",
       "auto_stopped_limit": "녹화 제한(20분 또는 10,000개 패킷)에 도달하여 녹화가 자동 중단되었습니다.",
       "sender": {
-        "title": "패킷 전송",
+        "title": "패킷 전송기",
         "hex_input_label": "Hex 패킷 입력 (공백 무관)",
         "hex_input_placeholder": "예: AF 00 F7 ...",
         "options_label": "전송 옵션",
@@ -300,6 +300,21 @@
       "expression_required": "CEL 표현식을 입력하세요.",
       "request_failed": "CEL 평가 요청에 실패했습니다."
     },
+    "interface_log": {
+      "title": "인터페이스 로그",
+      "desc": "H2M과 연동 서비스(MQTT / Matter) 간에 송수신된 통신 로그입니다.",
+      "search_placeholder": "토픽, 엔티티 ID, 페이로드 검색...",
+      "empty": "표시할 인터페이스 로그가 없습니다.",
+      "direction_in": "수신 (IN)",
+      "direction_out": "송신 (OUT)",
+      "integration_mqtt": "MQTT",
+      "integration_matter": "Matter",
+      "all_integrations": "모든 연동",
+      "all_directions": "모든 방향",
+      "direction_filter": "방향",
+      "integration_filter": "연동 서비스",
+      "auto_refresh": "자동 갱신"
+    },
     "packet_analyzer": {
       "title": "패킷 해석 테스트",
       "desc": "입력한 패킷을 core 파서 경로로 해석해 유효 패킷과 매칭 결과를 확인합니다.",
@@ -332,7 +347,7 @@
     },
     "packet_dictionary": {
       "title": "패킷 딕셔너리",
-      "desc": "브릿지에서 수집한 모든 패킷을 확인합니다. '매칭됨'은 파싱된 패킷(상태 파싱 + 명령 로그 포함), '미매칭'은 유효하지만 어떤 항목과도 연결되지 않은 패킷입니다.",
+      "desc": "브릿지에서 수집한 모든 패킷을 확인합니다. '매칭됨'은 파싱된 패킷(상태 파싱 + 명령 로그 포함), '미매칭'은 유효하지만 어떤 항목과도 연결되지 않은 패킷입니다. '미매칭'에는 주로 월패드가 단말에 보내는 상태요청 패킷들이 포함됩니다.",
       "parsed_count": "매칭됨(파싱/명령): {count}",
       "unmatched_count": "미매칭: {count}",
       "tab_all": "전체",
@@ -406,14 +421,18 @@
   "header": {
     "toggle_menu": "메뉴 열기",
     "skip_to_content": "메인 콘텐츠로 건너뛰기",
-    "select_port": "포트 선택"
+    "select_port": "포트 선택",
+    "product_name_mqtt": "Homenet2MQTT",
+    "product_name_matter": "Homenet2Matter"
   },
   "sidebar": {
     "dashboard": "대시보드",
     "devices": "기기",
+    "automations": "자동화/스크립트",
     "analysis": "분석",
     "gallery": "갤러리",
     "settings": "설정",
+    "matter": "Matter",
     "docs": "문서",
     "sponsor": "개발자 후원",
     "close_aria": "사이드바 닫기"
@@ -560,14 +579,23 @@
     "topology": {
       "serial_device": "RS485 시리얼",
       "mqtt_broker": "MQTT 브로커",
-      "homenet2mqtt": "HomeNet2MQTT",
+      "log_adapter": "로컬 로그 어댑터",
+      "log_mode": "로컬 로그 출력 모드",
+      "homenet2mqtt": "H2M",
       "path": "경로 (PATH)",
       "baud": "속도 (BAUD)",
       "config": "설정 (CONFIG)",
       "url": "주소 (URL)",
       "port": "포트 ID (PORT)",
       "subscription": "구독 (SUB)",
-      "status": "상태:"
+      "status": "상태:",
+      "commissioned": "연동 완료 (COMMISSIONED)",
+      "connected_fabrics": "연결된 플랫폼 수",
+      "device_count": "공유된 기기 수",
+      "pairing_needed": "연동 대기 중",
+      "setup_matter": "Matter 연동하기",
+      "matter_controller": "Matter 컨트롤러",
+      "no_pairing_info": "페어링 정보를 불러올 수 없음"
     },
     "recent_activity": {
       "title": "최근 활동",
@@ -634,7 +662,7 @@
       "status": "상태 & 명령",
       "execute": "실행",
       "status_run": "상태 & 실행",
-      "mqtt": "상세정보",
+      "details": "상세정보",
       "config": "설정 (YAML)",
       "packets": "패킷 로그",
       "manage": "관리",
@@ -732,6 +760,14 @@
       "yes": "예",
       "no": "아니오",
       "none": "없음"
+    },
+    "matter": {
+      "title": "Matter 기기 정보",
+      "bridge": "브릿지",
+      "endpoint": "엔드포인트",
+      "clusters": "클러스터 목록 ({count})",
+      "state": "상태",
+      "device_type": "디바이스 타입"
     },
     "packets": {
       "title": "패킷 로그 (RX/TX)",
@@ -938,7 +974,10 @@
     "select": "선택",
     "text_sensor": "텍스트 센서",
     "text": "텍스트 입력",
-    "binary_sensor": "이진 센서"
+    "binary_sensor": "이진 센서",
+    "automation": "자동화",
+    "script": "스크립트",
+    "undefined": "알 수 없음"
   },
   "toasts": {
     "command_sent": "{entity} 명령 전송",
@@ -946,6 +985,30 @@
     "state_updated": "상태가 갱신되었습니다.",
     "entity_renamed_title": "엔티티 이름 변경",
     "entity_renamed_message": "{name} 으로 이름이 변경되었습니다."
+  },
+  "matter": {
+    "title": "Matter 연동 정보",
+    "subtitle": "Matter 스마트홈 플랫폼(Apple Home, Google Home, SmartThings 등)과의 연결 정보를 확인하고 관리합니다.",
+    "status": "연동 상태",
+    "commissioned": "연동 완료",
+    "not_commissioned": "연동 대기 중 (페어링 필요)",
+    "pairing_info": "페어링 정보",
+    "passcode": "패스코드 (Passcode)",
+    "discriminator": "판별자 (Discriminator)",
+    "manual_code": "수동 페어링 코드 (Manual Code)",
+    "qr_code": "QR 코드",
+    "qr_scan_tip": "스마트홈 플랫폼 앱(Apple Home, Google Home, SmartThings 등)에서 아래 QR 코드를 스캔하여 기기 추가를 완료하세요.",
+    "qr_code_aria": "Matter 페어링 QR 코드",
+    "device_count": "공유된 홈넷 기기 수",
+    "fabrics": "연결된 플랫폼 목록 (Fabrics)",
+    "fabric_index": "인덱스",
+    "fabric_id": "패브릭 ID",
+    "node_id": "노드 ID",
+    "vendor_id": "벤더 ID",
+    "label": "플랫폼 라벨",
+    "no_fabrics": "연결된 스마트홈 플랫폼이 없습니다.",
+    "show_pairing": "페어링 정보 보기",
+    "hide_pairing": "페어링 정보 숨기기"
   },
   "devices": {
     "title": "기기 목록",
@@ -959,5 +1022,19 @@
     "no_devices": "등록된 기기가 없습니다.",
     "active": "활성",
     "inactive": "비활성"
+  },
+  "automations": {
+    "title": "자동화/스크립트 목록",
+    "subtitle": "설정된 자동화 규칙 및 실행 가능한 스크립트 목록을 확인하고 관리합니다.",
+    "name": "이름",
+    "id": "ID",
+    "type": "타입",
+    "port": "포트",
+    "status": "상태",
+    "search_placeholder": "이름, ID 또는 설명으로 검색...",
+    "no_items": "등록된 자동화나 스크립트가 없습니다.",
+    "active": "활성",
+    "inactive": "비활성",
+    "description": "설명"
   }
 }

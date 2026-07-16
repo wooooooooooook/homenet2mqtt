@@ -23,6 +23,12 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
 # Copy source code
 COPY . .
 
+# Update package.json version if VERSION arg is provided
+ARG VERSION
+RUN if [ -n "$VERSION" ]; then \
+      sed -i "0,/\"version\": \".*\"/s//\"version\": \"$VERSION\"/" package.json; \
+    fi
+
 # Build everything (fast on host)
 # core is built here too to provide types for service, but will be rebuilt in target stage
 RUN --mount=type=cache,target=/app/.turbo \
@@ -54,6 +60,12 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
 
 # Copy source code
 COPY . .
+
+# Update package.json version if VERSION arg is provided
+ARG VERSION
+RUN if [ -n "$VERSION" ]; then \
+      sed -i "0,/\"version\": \".*\"/s//\"version\": \"$VERSION\"/" package.json; \
+    fi
 
 # Copy pre-built artifacts from common-builder
 COPY --from=common-builder /app/packages/ui/dist ./packages/ui/dist

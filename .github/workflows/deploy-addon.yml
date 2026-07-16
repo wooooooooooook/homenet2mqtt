@@ -13,6 +13,16 @@ on:
           - minor
           - major
           - none
+      deploy_mqtt:
+        description: 'Deploy Homenet2MQTT (MQTT release)'
+        type: boolean
+        required: true
+        default: true
+      deploy_matter:
+        description: 'Deploy Homenet2Matter (Matter release)'
+        type: boolean
+        required: true
+        default: true
 
 permissions:
   contents: write
@@ -113,8 +123,8 @@ jobs:
           secrets: |
             LOG_COLLECTOR_API_KEY=${{ secrets.LOG_COLLECTOR_API_KEY }}
             COMMENT_SECRET=${{ secrets.COMMENT_SECRET }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=${{ github.workflow }}
+          cache-to: type=gha,mode=max,scope=${{ github.workflow }}
 
       - name: Multi-arch smoke test
         if: steps.check_image.outputs.exists != 'true'
@@ -156,10 +166,35 @@ jobs:
           token: ${{ secrets.ADDONS_REPO_TOKEN }}
           path: target
 
+      - name: Install js-yaml
+        run: |
+          mkdir -p npm_temp
+          cd npm_temp
+          npm install js-yaml
+          mv node_modules ../source/node_modules
+          cd ..
+          rm -rf npm_temp
+
       - name: Sync Files
         run: |
-          mkdir -p target/Homenet2MQTT
-          cp -r source/hassio-addon/* target/Homenet2MQTT/
+          TYPES=""
+          if [ "${{ github.event.inputs.deploy_mqtt }}" = "true" ]; then
+            TYPES="mqtt"
+          fi
+          if [ "${{ github.event.inputs.deploy_matter }}" = "true" ]; then
+            if [ -n "$TYPES" ]; then
+              TYPES="$TYPES,matter"
+            else
+              TYPES="matter"
+            fi
+          fi
+
+          if [ -z "$TYPES" ]; then
+            echo "No addons selected for deployment. Skipping sync."
+            exit 0
+          fi
+
+          node source/scripts/generate-addons.mjs --target target --types "$TYPES"
           
           # Check for changes
           cd target
@@ -167,7 +202,7 @@ jobs:
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
             git add .
-            git commit -m "Update Homenet2MQTT addon from source"
+            git commit -m "Update addons ($TYPES) from source"
             git push
           else
             echo "No changes to sync."

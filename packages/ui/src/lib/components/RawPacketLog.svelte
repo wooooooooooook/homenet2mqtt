@@ -529,26 +529,7 @@
 {/if}
 
 {#if showLog}
-  <div id="raw-packet-log" class="log-section">
-    <div class="log-header">
-      <div class="header-left">
-        <h2>{$t('analysis.raw_log.title')}</h2>
-        {#if isRecording}
-          <div class="recording-status" transition:fade>
-            <span class="dot"></span>
-            <span class="status-text">
-              {$t('analysis.raw_log.collected_packets', { values: { count: rawPackets.length } })} |
-              {$t('analysis.raw_log.recording_duration', {
-                values: { duration: formatDuration(recordingDuration) },
-              })}
-            </span>
-          </div>
-        {/if}
-      </div>
-    </div>
-    <p class="description">
-      {$t('analysis.raw_log.desc')}
-    </p>
+  <div class="raw-packet-log-content">
     <Toggle
       checked={validOnly}
       onchange={(v) => (validOnly = v)}
@@ -608,19 +589,63 @@
       </div>
     {/if}
 
-    <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-bottom: 0.5rem;">
-      {#if rawPackets.length !== 0}
-        <Button variant="secondary" onclick={togglePause}>
-          {#if isPaused}
+    <div
+      style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.5rem; flex-wrap: wrap;"
+    >
+      <div>
+        {#if isRecording}
+          <div class="recording-status" transition:fade>
+            <span class="dot"></span>
+            <span class="status-text">
+              {$t('analysis.raw_log.collected_packets', { values: { count: rawPackets.length } })} |
+              {$t('analysis.raw_log.recording_duration', {
+                values: { duration: formatDuration(recordingDuration) },
+              })}
+            </span>
+          </div>
+        {/if}
+      </div>
+      <div style="display: flex; gap: 0.5rem;">
+        {#if rawPackets.length !== 0}
+          <Button variant="secondary" onclick={togglePause}>
+            {#if isPaused}
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                width="16"
+                height="16"
+                style="margin-right: 0.4rem;"><path d="M8 5v14l11-7z" /></svg
+              >
+              {$t('analysis.raw_log.resume')}
+            {:else}
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                width="16"
+                height="16"
+                style="margin-right: 0.4rem;"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" /></svg
+              >
+              {$t('analysis.raw_log.pause')}
+            {/if}
+          </Button>
+        {/if}
+        <Button
+          variant="secondary"
+          class={isRecording ? 'recording' : ''}
+          onclick={toggleRecording}
+        >
+          {#if isRecording}
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"
               fill="currentColor"
               width="16"
               height="16"
-              style="margin-right: 0.4rem;"><path d="M8 5v14l11-7z" /></svg
+              style="margin-right: 0.4rem;"><rect x="6" y="6" width="12" height="12" /></svg
             >
-            {$t('analysis.raw_log.resume')}
+            {$t('analysis.raw_log.stop_rec')}
           {:else}
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -628,35 +653,12 @@
               fill="currentColor"
               width="16"
               height="16"
-              style="margin-right: 0.4rem;"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" /></svg
+              style="margin-right: 0.4rem;"><circle cx="12" cy="12" r="8" /></svg
             >
-            {$t('analysis.raw_log.pause')}
+            {$t('analysis.raw_log.start_rec')}
           {/if}
         </Button>
-      {/if}
-      <Button variant="secondary" class={isRecording ? 'recording' : ''} onclick={toggleRecording}>
-        {#if isRecording}
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="currentColor"
-            width="16"
-            height="16"
-            style="margin-right: 0.4rem;"><rect x="6" y="6" width="12" height="12" /></svg
-          >
-          {$t('analysis.raw_log.stop_rec')}
-        {:else}
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="currentColor"
-            width="16"
-            height="16"
-            style="margin-right: 0.4rem;"><circle cx="12" cy="12" r="8" /></svg
-          >
-          {$t('analysis.raw_log.start_rec')}
-        {/if}
-      </Button>
+      </div>
     </div>
 
     <div class="log-list raw-list">
@@ -720,35 +722,6 @@
 />
 
 <style>
-  .log-section {
-    background: rgba(30, 41, 59, 0.5);
-    border: 1px solid rgba(148, 163, 184, 0.1);
-    border-radius: 12px;
-    padding: 1.5rem;
-  }
-
-  @media (max-width: 480px) {
-    .log-section {
-      padding: 0.75rem;
-      border-radius: 8px;
-    }
-  }
-
-  .log-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-    gap: 1rem;
-  }
-
-  .header-left {
-    display: flex;
-    align-items: center;
-    gap: 1.5rem;
-    flex-wrap: wrap;
-  }
-
   .recording-status {
     display: flex;
     align-items: center;
@@ -784,17 +757,6 @@
     color: #fca5a5;
     font-weight: 500;
     white-space: nowrap;
-  }
-
-  h2 {
-    font-size: 1.1rem;
-    margin: 0;
-    color: #e2e8f0;
-  }
-
-  .description {
-    color: #94a3b8;
-    font-size: 0.9rem;
   }
 
   .filter-row {

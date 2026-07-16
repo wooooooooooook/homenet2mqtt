@@ -46,7 +46,7 @@ COPY --from=builder /app /app
 ENV NODE_ENV=production
 
 # Setup run script
-COPY hassio-addon-dev/run.sh /run.sh
+COPY hassio-addon/run.sh /run.sh
 RUN chmod +x /run.sh
 
 ENTRYPOINT [ "/sbin/tini", "--", "/run.sh" ]

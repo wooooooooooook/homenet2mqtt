@@ -62,6 +62,7 @@ describe('LogRetentionService', () => {
       await service.init();
       expect(mocks.eventBus.on).toHaveBeenCalledWith('parsed-packet', expect.any(Function));
       expect(mocks.eventBus.on).toHaveBeenCalledWith('command-packet', expect.any(Function));
+      expect(mocks.eventBus.on).toHaveBeenCalledWith('interface-log:added', expect.any(Function));
     });
 
     it('should not setup listeners if disabled', async () => {
@@ -87,7 +88,7 @@ describe('LogRetentionService', () => {
       expect(service.isEnabled()).toBe(false);
 
       await service.updateSettings({ enabled: true });
-      expect(mocks.eventBus.on).toHaveBeenCalledTimes(8); // 4 in init, 4 in updateSettings
+      expect(mocks.eventBus.on).toHaveBeenCalledTimes(10); // 5 in init, 5 in updateSettings
     });
 
     it('should update auto-save state', async () => {
@@ -180,6 +181,28 @@ describe('LogRetentionService', () => {
       expect(Object.values(dictPort1)).toContain('AABB');
       expect(Object.values(dictPort1)).not.toContain('CCDD');
     });
+
+    it('should store interface logs', () => {
+      const log = {
+        timestamp: new Date().toISOString(),
+        integration: 'mqtt' as const,
+        direction: 'in' as const,
+        topicOrEntityId: 'homenet/light/state',
+        payload: 'ON',
+        portId: 'port1',
+      };
+      handlers['interface-log:added'](log);
+
+      const history = service.getInterfaceLogs('port1');
+      expect(history).toHaveLength(1);
+      expect(history[0]).toMatchObject({
+        integration: 'mqtt',
+        direction: 'in',
+        topicOrEntityId: 'homenet/light/state',
+        payload: 'ON',
+        portId: 'port1',
+      });
+    });
   });
 
   describe('Cleanup, Stats, and File Operations', () => {
@@ -218,11 +241,46 @@ describe('LogRetentionService', () => {
       handlers['parsed-packet']({ packet: 'P1' });
       handlers['command-packet']({ packet: 'C1' });
       handlers['activity-log:added']({ timestamp: Date.now(), code: 'ACT1' });
+      handlers['interface-log:added']({
+        integration: 'mqtt',
+        direction: 'in',
+        topicOrEntityId: 'topic1',
+        payload: 'payload1',
+      });
 
       const stats = service.getStats();
       expect(stats.packetLogCount).toBe(2);
       expect(stats.activityLogCount).toBe(1);
+      expect(stats.interfaceLogCount).toBe(1);
       expect(stats.memoryUsageBytes).toBeGreaterThan(0);
+    });
+
+    it('should cleanup old interface logs based on TTL', async () => {
+      const now = Date.now();
+      vi.setSystemTime(now);
+
+      handlers['interface-log:added']({
+        integration: 'mqtt',
+        direction: 'in',
+        topicOrEntityId: 'topic1',
+        payload: 'payload1',
+        timestamp: new Date(now - 2 * 3600 * 1000).toISOString(),
+      });
+      handlers['interface-log:added']({
+        integration: 'mqtt',
+        direction: 'in',
+        topicOrEntityId: 'topic2',
+        payload: 'payload2',
+        timestamp: new Date(now).toISOString(),
+      });
+
+      expect(service.getInterfaceLogs()).toHaveLength(2);
+
+      await vi.advanceTimersByTimeAsync(3600 * 1000);
+
+      const history = service.getInterfaceLogs();
+      expect(history).toHaveLength(1);
+      expect(history[0].topicOrEntityId).toBe('topic2');
     });
 
     it('should save logs to file', async () => {

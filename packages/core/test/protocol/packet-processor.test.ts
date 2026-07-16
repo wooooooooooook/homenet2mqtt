@@ -320,6 +320,28 @@ describe('PacketProcessor', () => {
       });
     });
 
+    it('should return null (failure) when command is configured but packet construction fails even with optimistic true', () => {
+      const entity: EntityConfig = {
+        id: 'opt_fail_cmd',
+        name: 'Fail Command Device',
+        optimistic: true,
+        command_on: { packet: '010203' },
+      } as any;
+
+      const mockDevice = {
+        constructCommand: vi.fn().mockReturnValue(null),
+        getOptimisticState: vi.fn().mockReturnValue({ isOn: true }),
+        setErrorReporter: vi.fn(),
+        getLastError: vi.fn(),
+      };
+      mockProtocolManager.getDevice.mockReturnValue(mockDevice);
+
+      const result = processor.constructCommandPacket(entity, 'on');
+
+      expect(result).toBeNull();
+      expect(mockDevice.constructCommand).toHaveBeenCalledWith('on', undefined, undefined);
+    });
+
     it('should normalize command name (remove command_ prefix)', () => {
       const entity: EntityConfig = { id: 'light_1', name: 'Light' };
       const mockDevice = {

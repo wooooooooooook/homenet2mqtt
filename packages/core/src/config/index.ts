@@ -411,6 +411,59 @@ export function validateConfig(
     );
   }
 
+  if (config.matter) {
+    const matter = config.matter;
+    if (matter.port !== undefined) {
+      if (
+        typeof matter.port !== 'number' ||
+        Number.isNaN(matter.port) ||
+        !Number.isInteger(matter.port) ||
+        matter.port < 1 ||
+        matter.port > 65535
+      ) {
+        errors.push('matter.port는 1 이상 65535 이하의 정수여야 합니다.');
+      }
+    }
+    if (matter.passcode !== undefined) {
+      const invalidPasscodes = [
+        0, 11111111, 22222222, 33333333, 44444444, 55555555, 66666666, 77777777, 88888888, 99999999,
+        12345678, 87654321,
+      ];
+      if (
+        typeof matter.passcode !== 'number' ||
+        Number.isNaN(matter.passcode) ||
+        !Number.isInteger(matter.passcode) ||
+        matter.passcode < 1 ||
+        matter.passcode > 99999998 ||
+        invalidPasscodes.includes(matter.passcode)
+      ) {
+        errors.push(
+          'matter.passcode는 1 이상 99999998 이하의 유효한 8자리 패스코드여야 합니다. (동일하거나 연속된 숫자 금지)',
+        );
+      }
+    }
+    if (matter.discriminator !== undefined) {
+      if (
+        typeof matter.discriminator !== 'number' ||
+        Number.isNaN(matter.discriminator) ||
+        !Number.isInteger(matter.discriminator) ||
+        matter.discriminator < 0 ||
+        matter.discriminator > 4095
+      ) {
+        errors.push('matter.discriminator는 0 이상 4095 이하의 정수여야 합니다.');
+      }
+    }
+    if ((matter as any).vendor_id !== undefined) {
+      errors.push('matter.vendor_id는 더 이상 설정 파일에 정의할 수 없습니다.');
+    }
+    if ((matter as any).product_id !== undefined) {
+      errors.push('matter.product_id는 더 이상 설정 파일에 정의할 수 없습니다.');
+    }
+    if (matter.product_name !== undefined && typeof matter.product_name !== 'string') {
+      errors.push('matter.product_name은 문자열이어야 합니다.');
+    }
+  }
+
   if (!config.serial) {
     errors.push('serial 설정은 필수입니다.');
   }

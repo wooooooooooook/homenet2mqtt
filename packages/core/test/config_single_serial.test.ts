@@ -39,4 +39,23 @@ describe('설정 검증 - 단일 시리얼 제한', () => {
 
     expect(() => validateConfig(config, config)).toThrow('mqtt_topic_prefix');
   });
+
+  it('integration이 설정 파일에 존재하더라도 예외를 던지지 않는다', () => {
+    const config = {
+      integration: {
+        type: 'mqtt',
+      },
+      serial: {
+        portId: 'a',
+        path: '/dev/ttyUSB0',
+        baud_rate: 9600,
+        data_bits: 8,
+        parity: 'none',
+        stop_bits: 1,
+      } as any,
+      light: [{ id: 'light1', optimistic: true }],
+    } as unknown as HomenetBridgeConfig;
+
+    expect(() => validateConfig(config, config)).not.toThrow();
+  });
 });

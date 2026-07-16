@@ -1,10 +1,11 @@
 // packages/core/src/state/state-manager.ts
 
 import { Buffer } from 'buffer';
+import fs from 'node:fs';
+import path from 'node:path';
 import { HomenetBridgeConfig } from '../config/types.js';
 import { PacketProcessor } from '../protocol/packet-processor.js';
 import { logger } from '../utils/logger.js';
-import { MqttPublisher } from '../transports/mqtt/publisher.js';
 import { eventBus } from '../service/event-bus.js';
 import { stateCache } from './store.js';
 import { ENTITY_TYPE_KEYS } from '../utils/entities.js';
@@ -29,28 +30,56 @@ function getOnState(entityType: string): Record<string, any> | null {
   return onStateByType[entityType] ? { ...onStateByType[entityType] } : null;
 }
 
+export interface StatePublisher {
+  publish(topic: string, payload: string, options?: { retain?: boolean }): void | Promise<void>;
+}
+
 export class StateManager {
   private packetProcessor: PacketProcessor;
-  private mqttPublisher: MqttPublisher;
   private portId: string;
-  private mqttTopicPrefix: string;
+  private topicPrefix: string;
   private ignoredEntityId: string | null = null;
   private sharedStates?: Map<string, Record<string, any>>;
   private internalEntityIds: Set<string>;
+  private statePublisher?: StatePublisher;
+  private statesCachePath: string | null = null;
+  private saveTimer: NodeJS.Timeout | null = null;
 
   constructor(
     portId: string,
     config: HomenetBridgeConfig,
     packetProcessor: PacketProcessor,
-    mqttPublisher: MqttPublisher,
-    mqttTopicPrefix: string,
-    sharedStates?: Map<string, Record<string, any>>,
+    mqttPublisherOrTopicPrefix: any,
+    mqttTopicPrefixOrSharedStates?: any,
+    legacySharedStates?: Map<string, Record<string, any>>,
+    configPath?: string,
   ) {
     this.portId = portId;
     this.packetProcessor = packetProcessor;
-    this.mqttPublisher = mqttPublisher;
-    this.mqttTopicPrefix = mqttTopicPrefix;
+
+    let topicPrefix = 'homenet';
+    let sharedStates: Map<string, Record<string, any>> | undefined;
+
+    if (typeof mqttPublisherOrTopicPrefix === 'string') {
+      topicPrefix = mqttPublisherOrTopicPrefix;
+      sharedStates = mqttTopicPrefixOrSharedStates;
+    } else {
+      if (mqttPublisherOrTopicPrefix && typeof mqttPublisherOrTopicPrefix.publish === 'function') {
+        this.statePublisher = mqttPublisherOrTopicPrefix;
+      }
+      if (typeof mqttTopicPrefixOrSharedStates === 'string') {
+        topicPrefix = mqttTopicPrefixOrSharedStates;
+      }
+      sharedStates = legacySharedStates;
+    }
+
+    this.topicPrefix = topicPrefix;
     this.sharedStates = sharedStates;
+
+    if (configPath) {
+      this.statesCachePath = path.join(path.dirname(configPath), 'states_cache.json');
+      this.loadLocalCache();
+    }
 
     // Extract internal entity IDs from config
     this.internalEntityIds = new Set<string>();
@@ -199,12 +228,14 @@ export class StateManager {
       this.sharedStates.set(entityId, newState);
     }
 
-    const topic = `${this.mqttTopicPrefix}/${entityId}/state`;
+    const topic = `${this.topicPrefix}/${entityId}/state`;
     const payload = JSON.stringify(newState);
     stateCache.set(topic, payload);
 
     if (!this.internalEntityIds.has(entityId)) {
-      this.mqttPublisher.publish(topic, payload, { retain: true });
+      if (this.statePublisher) {
+        this.statePublisher.publish(topic, payload, { retain: true });
+      }
 
       const timestamp = new Date().toISOString();
       eventBus.emit('state:changed', {
@@ -220,6 +251,7 @@ export class StateManager {
       eventBus.emit(`device:${entityId}:state:changed`, newState);
     }
 
+    this.saveStatesDebounced();
     logger.info({ entityId, topic }, '[StateManager] Restored entity state from MQTT retained');
   }
 
@@ -297,7 +329,7 @@ export class StateManager {
       this.sharedStates.set(deviceId, newState);
     }
 
-    const topic = `${this.mqttTopicPrefix}/${deviceId}/state`;
+    const topic = `${this.topicPrefix}/${deviceId}/state`;
     const payload = JSON.stringify(newState);
 
     // Double check with cache (handles reference types like arrays that always fail strict equality)
@@ -317,7 +349,9 @@ export class StateManager {
         const stateStr = payload.replace(/["{}]/g, '').replace(/,/g, ', ');
         logger.info(`[StateManager] ${deviceId}: {${stateStr}} → ${topic} [published]`);
       }
-      this.mqttPublisher.publish(topic, payload, { retain: true });
+      if (this.statePublisher) {
+        this.statePublisher.publish(topic, payload, { retain: true });
+      }
       const timestamp = new Date().toISOString();
       eventBus.emit('state:changed', {
         portId: this.portId,
@@ -330,11 +364,87 @@ export class StateManager {
         timestamp,
       });
       eventBus.emit(`device:${deviceId}:state:changed`, newState);
+      this.saveStatesDebounced();
     } else {
       if (logger.isLevelEnabled('trace')) {
         const stateStr = payload.replace(/["{}]/g, '').replace(/,/g, ', ');
         logger.trace(`[StateManager] ${deviceId}: {${stateStr}} [unchanged]`);
       }
+    }
+  }
+
+  private loadLocalCache() {
+    if (!this.statesCachePath) return;
+    try {
+      if (!fs.existsSync(this.statesCachePath)) {
+        return;
+      }
+      const dataStr = fs.readFileSync(this.statesCachePath, 'utf8');
+      const cached = JSON.parse(dataStr) as Record<string, any>;
+      if (cached && typeof cached === 'object') {
+        for (const [entityId, state] of Object.entries(cached)) {
+          this.deviceStates.set(entityId, state);
+          if (this.sharedStates) {
+            this.sharedStates.set(entityId, state);
+          }
+        }
+        logger.info(
+          { count: Object.keys(cached).length, path: this.statesCachePath },
+          '[StateManager] Loaded states cache from disk',
+        );
+      }
+    } catch (err) {
+      logger.error(
+        { err, path: this.statesCachePath },
+        '[StateManager] Failed to load states cache from disk',
+      );
+    }
+  }
+
+  private saveStatesDebounced() {
+    if (!this.statesCachePath) return;
+    if (this.saveTimer) {
+      clearTimeout(this.saveTimer);
+    }
+    this.saveTimer = setTimeout(() => {
+      this.saveTimer = null;
+      try {
+        const cacheData = Object.fromEntries(this.deviceStates);
+        fs.writeFileSync(this.statesCachePath!, JSON.stringify(cacheData, null, 2), 'utf8');
+        logger.debug({ path: this.statesCachePath }, '[StateManager] Saved states cache to disk');
+      } catch (err) {
+        logger.error(
+          { err, path: this.statesCachePath },
+          '[StateManager] Failed to save states cache to disk',
+        );
+      }
+    }, 1000);
+  }
+
+  public publishRestoredLocalStates(): void {
+    if (this.deviceStates.size === 0) return;
+    logger.info(
+      { count: this.deviceStates.size },
+      '[StateManager] Publishing restored local states to connectors',
+    );
+    for (const [entityId, state] of this.deviceStates.entries()) {
+      if (this.internalEntityIds.has(entityId)) continue;
+
+      const topic = `${this.topicPrefix}/${this.portId}/${entityId.replace('.', '/')}/state`;
+      const payload = typeof state === 'string' ? state : JSON.stringify(state);
+      const timestamp = new Date().toISOString();
+
+      eventBus.emit('state:changed', {
+        portId: this.portId,
+        entityId,
+        topic,
+        payload,
+        state,
+        oldState: {},
+        changes: state,
+        timestamp,
+      });
+      eventBus.emit(`device:${entityId}:state:changed`, state);
     }
   }
 }

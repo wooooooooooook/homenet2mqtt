@@ -151,12 +151,6 @@ export function createEntitiesRoutes(ctx: EntitiesRoutesContext): Router {
       const normalizedConfig = normalizeConfig(
         loadedYamlFromFile.homenet_bridge as HomenetBridgeConfig,
       );
-      const bridgeInstance = findBridgeForEntity(
-        ctx.getCurrentConfigs(),
-        ctx.getBridges(),
-        ctx.getCurrentConfigFiles(),
-        entityId,
-      );
 
       let targetEntity: any | null = null;
       for (const type of ENTITY_TYPE_KEYS) {
@@ -332,6 +326,24 @@ export function createEntitiesRoutes(ctx: EntitiesRoutesContext): Router {
     } else {
       res.status(500).json({ error: result.error });
     }
+  });
+
+  router.get('/api/entities/:entityId/matter-state', (req, res) => {
+    const { entityId } = req.params;
+    if (!entityId) return res.status(400).json({ error: 'entityId required' });
+
+    const bridgeInstance = findBridgeForEntity(
+      ctx.getCurrentConfigs(),
+      ctx.getBridges(),
+      ctx.getCurrentConfigFiles(),
+      entityId,
+    );
+    if (!bridgeInstance) {
+      return res.status(404).json({ error: 'Entity not found or bridge not active' });
+    }
+
+    const state = bridgeInstance.bridge.getMatterDeviceState(entityId);
+    res.json({ state });
   });
 
   router.delete('/api/entities/:entityId', async (req, res) => {

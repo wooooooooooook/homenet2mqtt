@@ -1,0 +1,36 @@
+name: Homenet2Matter
+version: 2.15.1
+breaking_versions: [2.0.0]
+slug: h2m-matter
+description: Bridge between RS485 HomeNet devices and Matter (supports multi-port mapping).
+url: https://github.com/wooooooooooook/homenet2mqtt
+arch:
+  - aarch64
+  - amd64
+startup: application
+boot: auto
+image: "nubiz/homenet2mqtt"
+map:
+  - type: homeassistant_config
+    read_only: false
+    path: /homeassistant
+hassio_role: default
+host_network: true
+init: false
+hassio_api: true
+auth_api: true
+uart: true
+options:
+  log_level: info
+  config_files:
+    - default.homenet_bridge.yaml
+  timezone: "Asia/Seoul"
+schema:
+  log_level: list(trace|debug|info|warn|error|fatal)
+  config_files:
+    - str
+  timezone: str?
+ingress: true
+ingress_port: 3000
+ingress_stream: true
+panel_icon: mdi:crop-landscape

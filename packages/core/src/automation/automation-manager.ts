@@ -32,7 +32,6 @@ import { CelExecutor } from '../protocol/cel-executor.js';
 import { CommandManager } from '../service/command.manager.js';
 import { eventBus } from '../service/event-bus.js';
 import { StateManager } from '../state/state-manager.js';
-import { MqttPublisher } from '../transports/mqtt/publisher.js';
 import { parseDuration } from '../utils/duration.js';
 import { findEntityById } from '../utils/entities.js';
 import { logger } from '../utils/logger.js';
@@ -99,7 +98,10 @@ export class AutomationManager {
   private readonly automationList: AutomationConfig[];
   private readonly packetProcessor: PacketProcessor;
   private readonly commandManager: CommandManager;
-  private readonly mqttPublisher: MqttPublisher;
+  private readonly contextPortId?: string;
+  private readonly commandSender?: CommandSender;
+  private readonly stateManager?: StateManager;
+  private readonly mqttPublisher?: any;
   private readonly celExecutor = new CelExecutor();
   private readonly debounceTracker = new Map<string, number>();
   private readonly triggerDebounceCache = new WeakMap<AutomationTriggerState, number>();
@@ -125,17 +127,31 @@ export class AutomationManager {
     private readonly config: HomenetBridgeConfig,
     packetProcessor: PacketProcessor,
     commandManager: CommandManager,
-    mqttPublisher: MqttPublisher,
-    private readonly contextPortId?: string,
-    private readonly commandSender?: CommandSender,
-    private readonly stateManager?: StateManager,
+    mqttPublisherOrContextPortId?: any,
+    contextPortIdOrCommandSender?: any,
+    commandSenderOrStateManager?: any,
+    legacyStateManager?: StateManager,
   ) {
     this.automationList = (config.automation || []).filter(
       (automation) => automation.enabled !== false,
     );
     this.packetProcessor = packetProcessor;
     this.commandManager = commandManager;
-    this.mqttPublisher = mqttPublisher;
+
+    const isLegacy =
+      mqttPublisherOrContextPortId && typeof mqttPublisherOrContextPortId === 'object';
+
+    if (isLegacy) {
+      this.mqttPublisher = mqttPublisherOrContextPortId;
+      this.contextPortId = contextPortIdOrCommandSender;
+      this.commandSender = commandSenderOrStateManager;
+      this.stateManager = legacyStateManager;
+    } else {
+      this.contextPortId = mqttPublisherOrContextPortId;
+      this.commandSender = contextPortIdOrCommandSender;
+      this.stateManager = commandSenderOrStateManager;
+    }
+
     (config.scripts || []).forEach((script) => this.scripts.set(script.id, script));
     this.preAnalyzeUpdateStateActions();
   }
@@ -1217,6 +1233,15 @@ export class AutomationManager {
       celAck = commandResult.ack;
     }
 
+    // If empty packet (virtual switch/optimistic only), we skip sending
+    if (packet.length === 0) {
+      logger.debug(
+        { entity: entity.name, command: normalized },
+        `[automation] Virtual/Optimistic command processed (no packet sent)`,
+      );
+      return;
+    }
+
     let isLowPriority = action.low_priority;
     if (isLowPriority === undefined) {
       const schemaLowPriority =
@@ -1271,11 +1296,19 @@ export class AutomationManager {
     }
 
     const finalPayload = typeof payload === 'string' ? payload : JSON.stringify(payload);
-    this.mqttPublisher.publish(
-      action.topic,
-      finalPayload,
-      action.retain ? { retain: true } : undefined,
-    );
+    if (this.mqttPublisher) {
+      this.mqttPublisher.publish(
+        action.topic,
+        finalPayload,
+        action.retain ? { retain: true } : undefined,
+      );
+    } else {
+      eventBus.emit('mqtt-publish', {
+        topic: action.topic,
+        payload: finalPayload,
+        retain: action.retain,
+      });
+    }
   }
 
   private async executeLogAction(action: AutomationActionLog, context: TriggerContext) {

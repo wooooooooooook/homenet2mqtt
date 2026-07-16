@@ -193,7 +193,7 @@
       "empty": "No automation or script logs to display."
     },
     "packet_log": {
-      "title": "Packet Log (RX/TX)",
+      "title": "Packet Log",
       "rx": "RX (Received)",
       "tx": "TX (Sent)",
       "desc": "List of parsed received packets and packets sent by H2M.",
@@ -300,6 +300,21 @@
       "expression_required": "Enter a CEL expression.",
       "request_failed": "Failed to evaluate CEL."
     },
+    "interface_log": {
+      "title": "Interface Log",
+      "desc": "Communication logs sent/received between H2M and integration services (MQTT / Matter).",
+      "search_placeholder": "Search topic, entity ID, payload...",
+      "empty": "No interface logs to display.",
+      "direction_in": "Incoming (IN)",
+      "direction_out": "Outgoing (OUT)",
+      "integration_mqtt": "MQTT",
+      "integration_matter": "Matter",
+      "all_integrations": "All Integrations",
+      "all_directions": "All Directions",
+      "direction_filter": "Direction",
+      "integration_filter": "Integration",
+      "auto_refresh": "Auto Refresh"
+    },
     "packet_analyzer": {
       "title": "Packet Analysis Test",
       "desc": "Analyze input packets through the core parser path to inspect valid packets and matches.",
@@ -332,7 +347,7 @@
     },
     "packet_dictionary": {
       "title": "Packet Dictionary",
-      "desc": "View all packets collected by the bridge. 'Matched' means parsed packets (state parsing + command logs), while 'Unmatched' are valid packets not linked to any item.",
+      "desc": "View all packets collected by the bridge. 'Matched' means parsed packets (state parsing + command logs), while 'Unmatched' are valid packets not linked to any item (mainly includes state request packets sent from the wallpad to devices).",
       "parsed_count": "Matched (parsed/command): {count}",
       "unmatched_count": "Unmatched: {count}",
       "tab_all": "All",
@@ -406,14 +421,18 @@
   "header": {
     "toggle_menu": "Open navigation menu",
     "skip_to_content": "Skip to main content",
-    "select_port": "Select Port"
+    "select_port": "Select Port",
+    "product_name_mqtt": "Homenet2MQTT",
+    "product_name_matter": "Homenet2Matter"
   },
   "sidebar": {
     "dashboard": "Dashboard",
     "devices": "Devices",
+    "automations": "Automations/Scripts",
     "analysis": "Analysis",
     "gallery": "Gallery",
     "settings": "Settings",
+    "matter": "Matter",
     "docs": "Docs",
     "sponsor": "Support Developer",
     "close_aria": "Close Sidebar"
@@ -560,14 +579,23 @@
     "topology": {
       "serial_device": "RS485-serial",
       "mqtt_broker": "MQTT Broker",
-      "homenet2mqtt": "HomeNet2MQTT",
+      "log_adapter": "Log Adapter",
+      "log_mode": "Local Logging Mode",
+      "homenet2mqtt": "H2M",
       "path": "PATH",
       "baud": "BAUD",
       "config": "CONFIG",
       "url": "URL",
       "port": "PORT ID",
       "subscription": "SUB",
-      "status": "Status:"
+      "status": "Status:",
+      "commissioned": "COMMISSIONED",
+      "connected_fabrics": "FABRICS",
+      "device_count": "DEVICES",
+      "pairing_needed": "PAIRING NEEDED",
+      "setup_matter": "Setup Matter",
+      "matter_controller": "Matter Controller",
+      "no_pairing_info": "Pairing info not available"
     },
     "recent_activity": {
       "title": "Recent Activity",
@@ -629,7 +657,7 @@
       "status": "Status & Commands",
       "execute": "Run",
       "status_run": "Status & Run",
-      "mqtt": "Details",
+      "details": "Details",
       "config": "Config (YAML)",
       "packets": "Packet Log",
       "manage": "Manage",
@@ -727,6 +755,14 @@
       "yes": "Yes",
       "no": "No",
       "none": "None"
+    },
+    "matter": {
+      "title": "Matter Device Info",
+      "bridge": "Bridge",
+      "endpoint": "Endpoint",
+      "clusters": "Clusters ({count})",
+      "state": "State",
+      "device_type": "Device Type"
     },
     "packets": {
       "title": "Packet Log (RX/TX)",
@@ -933,7 +969,10 @@
     "select": "Select",
     "text_sensor": "Text Sensor",
     "text": "Text Input",
-    "binary_sensor": "Binary Sensor"
+    "binary_sensor": "Binary Sensor",
+    "automation": "Automation",
+    "script": "Script",
+    "undefined": "Unknown"
   },
   "toasts": {
     "command_sent": "{entity} Command Sent",
@@ -941,6 +980,30 @@
     "state_updated": "State has been updated.",
     "entity_renamed_title": "Entity Renamed",
     "entity_renamed_message": "Renamed to {name}."
+  },
+  "matter": {
+    "title": "Matter Integration Info",
+    "subtitle": "View and manage connections with Matter smart home platforms (Apple Home, Google Home, SmartThings, etc.).",
+    "status": "Integration Status",
+    "commissioned": "Commissioned",
+    "not_commissioned": "Not Commissioned (Pairing Needed)",
+    "pairing_info": "Pairing Information",
+    "passcode": "Passcode",
+    "discriminator": "Discriminator",
+    "manual_code": "Manual Pairing Code",
+    "qr_code": "QR Code",
+    "qr_scan_tip": "Scan this QR code in your smart home app (Apple Home, Google Home, SmartThings, etc.) to complete pairing.",
+    "qr_code_aria": "Matter Pairing QR Code",
+    "device_count": "Shared Homenet Devices",
+    "fabrics": "Connected Platforms (Fabrics)",
+    "fabric_index": "Index",
+    "fabric_id": "Fabric ID",
+    "node_id": "Node ID",
+    "vendor_id": "Vendor ID",
+    "label": "Platform Label",
+    "no_fabrics": "No connected smart home platforms found.",
+    "show_pairing": "Show Pairing Info",
+    "hide_pairing": "Hide Pairing Info"
   },
   "devices": {
     "title": "Devices",
@@ -954,5 +1017,19 @@
     "no_devices": "No devices registered.",
     "active": "Active",
     "inactive": "Inactive"
+  },
+  "automations": {
+    "title": "Automations & Scripts",
+    "subtitle": "View, manage, and execute configured automation rules and scripts.",
+    "name": "Name",
+    "id": "ID",
+    "type": "Type",
+    "port": "Port",
+    "status": "Status",
+    "search_placeholder": "Search by name, ID, or description...",
+    "no_items": "No automations or scripts registered.",
+    "active": "Active",
+    "inactive": "Inactive",
+    "description": "Description"
   }
 }

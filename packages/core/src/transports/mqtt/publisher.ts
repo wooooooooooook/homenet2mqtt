@@ -6,10 +6,12 @@ import { eventBus } from '../../service/event-bus.js';
 export class MqttPublisher {
   private mqttClient: InternalMqttClient;
   private topicPrefix: string;
+  private portId: string;
 
-  constructor(mqttClient: InternalMqttClient, topicPrefix: string) {
+  constructor(mqttClient: InternalMqttClient, topicPrefix: string, portId: string) {
     this.mqttClient = mqttClient;
     this.topicPrefix = topicPrefix;
+    this.portId = portId;
   }
 
   public publish(topic: string, payload: string | Buffer, options?: { retain: boolean }): void {
@@ -27,6 +29,14 @@ export class MqttPublisher {
         // Only emit to service if topic starts with configured MQTT topic prefix
         if (topic.startsWith(this.topicPrefix)) {
           eventBus.emit('mqtt-message', { topic, payload: payload.toString() });
+          eventBus.emit('interface-log:added', {
+            timestamp: new Date().toISOString(),
+            integration: 'mqtt',
+            direction: 'out',
+            topicOrEntityId: topic,
+            payload: payload.toString(),
+            portId: this.portId,
+          });
         }
       }
     });

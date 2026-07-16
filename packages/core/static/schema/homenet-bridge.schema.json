@@ -16,6 +16,10 @@
           "$ref": "#/definitions/SerialConfig",
           "description": "Serial port settings."
         },
+        "matter": {
+          "description": "Matter integration settings.",
+          "$ref": "#/definitions/MatterConfig"
+        },
         "devices": {
           "description": "Generic devices list.",
           "type": "array",
@@ -271,6 +275,26 @@
         }
       },
       "required": ["baud_rate", "data_bits", "parity", "path", "portId", "stop_bits"]
+    },
+    "MatterConfig": {
+      "type": "object",
+      "properties": {
+        "port": {
+          "type": "number"
+        },
+        "passcode": {
+          "type": "number"
+        },
+        "discriminator": {
+          "type": "number"
+        },
+        "product_name": {
+          "type": "string"
+        },
+        "storage_path": {
+          "type": "string"
+        }
+      }
     },
     "DeviceConfig": {
       "type": "object",
@@ -1840,14 +1864,6 @@
             }
           ]
         },
-        "speed_range_min": {
-          "description": "The minimum speed value supported by the fan.",
-          "type": "integer"
-        },
-        "speed_range_max": {
-          "description": "The maximum speed value supported by the fan.",
-          "type": "integer"
-        },
         "command_speed": {
           "description": "Command schema that can be either a structured schema object or a CEL expression string.\nCEL expressions are evaluated at runtime to construct the command packet.\nFor commands, the CEL expression often constructs the raw bytes directly.",
           "anyOf": [
@@ -1858,6 +1874,12 @@
               "type": "string"
             }
           ]
+        },
+        "speed_range_min": {
+          "type": "number"
+        },
+        "speed_range_max": {
+          "type": "number"
         },
         "preset_modes": {
           "type": "array",

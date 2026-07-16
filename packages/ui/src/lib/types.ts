@@ -109,7 +109,7 @@ export interface ActivityLog {
 }
 
 export type BridgeStatus = 'idle' | 'starting' | 'started' | 'stopped' | 'error' | 'reconnecting';
-export type BridgeErrorSource = 'serial' | 'core' | 'mqtt' | 'service';
+export type BridgeErrorSource = 'serial' | 'core' | 'mqtt' | 'service' | 'integration';
 export type BridgeErrorSeverity = 'error' | 'warning';
 
 export type BridgeErrorPayload = {
@@ -138,6 +138,23 @@ export type BridgeEntry = {
   error?: string;
   errorInfo?: BridgeErrorPayload | null;
   status: 'idle' | 'starting' | 'started' | 'error' | 'stopped';
+  integrationType?: string;
+  commissioning?: {
+    isCommissioned: boolean;
+    passcode: number;
+    discriminator: number;
+    manualPairingCode: string;
+    qrPairingCode: string;
+    fabrics?: {
+      fabricIndex: number;
+      fabricId: string;
+      nodeId: string;
+      vendorId: number;
+      label: string;
+    }[];
+    deviceCount?: number;
+    productName?: string;
+  } | null;
 };
 
 export type BridgeInfo = {
@@ -343,6 +360,18 @@ export type CommandLogEntry = {
   searchText?: string;
   /** Original entity ID that triggered this command (for script-based commands) */
   sourceEntityId?: string;
+};
+
+export type InterfaceLogEntry = {
+  timestamp: string;
+  integration: 'mqtt' | 'matter';
+  direction: 'in' | 'out';
+  topicOrEntityId: string;
+  payload: string;
+  portId?: string;
+  timestampMs?: number;
+  timeLabel?: string;
+  searchText?: string;
 };
 
 export type PacketHistoryResponse<T> = {

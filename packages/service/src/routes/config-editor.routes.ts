@@ -1,5 +1,4 @@
 import { Router } from 'express';
-import path from 'node:path';
 import fs from 'node:fs/promises';
 import { resolveSecurePath } from '../utils/helpers.js';
 import yaml from 'js-yaml';

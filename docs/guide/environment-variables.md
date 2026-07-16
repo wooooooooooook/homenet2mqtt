@@ -17,6 +17,7 @@
 | `LOG_LEVEL`         | `info`                                             | 로그 레벨 (`trace`, `debug`, `info`, `warn`, `error`) | Add-on, Docker, 로컬 |
 | `TIMEZONE`          | 시스템 기본값                                      | 런타임 타임존                                         | Add-on, Docker, 로컬 |
 | `DISCOVERY_ENABLED` | `false`                                            | Home Assistant Discovery 활성화 여부                  | Docker               |
+| `INTEGRATION_TYPE`  | `mqtt`                                             | 연동 모드 결정 (`mqtt`, `matter`, `log`)              | Add-on, Docker       |
 
 ## 운영 튜닝 환경변수 (중요)
 

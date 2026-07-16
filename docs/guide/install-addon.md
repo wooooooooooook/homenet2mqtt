@@ -25,7 +25,7 @@ EW11 혹은 USB RS485 장치 세팅은 완료되었다고 가정하고 시작합
 1. `Home assistant`에서 `설정` - `애드온` - `우측 아래 Add-On store` - `우측 위 점3개` - `저장소` 클릭
 2. 다음 주소를 추가합니다.
    `https://github.com/wooooooooooook/HAaddons`
-3. 새로고침한 뒤 `Add-on store`에서 `homenet2mqtt`를 검색하여 설치하고 웹UI로 접속합니다.
+3. 새로고침한 뒤 `Add-on store`에서 `homenet2mqtt` 또는 `homenet2matter`를 검색하여 용도에 맞게 설치하고 웹UI로 접속합니다.
 
 ## 초기 설정
 

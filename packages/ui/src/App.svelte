@@ -1,3 +1,4 @@
+<!-- svelte-ignore non_reactive_update -->
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte';
   import { isLoading, locale, t } from 'svelte-i18n';
@@ -34,7 +35,9 @@
   import Dashboard from './lib/views/Dashboard.svelte';
   import Analysis from './lib/views/Analysis.svelte';
   import Gallery from './lib/views/Gallery.svelte';
+  import Matter from './lib/views/Matter.svelte';
   import Devices from './lib/views/Devices.svelte';
+  import Automations from './lib/views/Automations.svelte';
 
   import EntityDetailModal from './lib/components/EntityDetailModal.svelte';
   import ToastContainer from './lib/components/ToastContainer.svelte';
@@ -193,10 +196,10 @@
   };
 
   // -- State --
-  let activeView = $state<'dashboard' | 'devices' | 'analysis' | 'gallery' | 'settings'>(
-    'dashboard',
-  );
-  // Entity selection uses a composite key: "category:portId:entityId" to distinguish entities ports
+  let activeView = $state<
+    'dashboard' | 'devices' | 'automations' | 'analysis' | 'gallery' | 'settings' | 'matter'
+  >('dashboard');
+  // Entity selection uses a composite key: "category:portId:entityId" to distinguish entities across ports
   let selectedEntityKey = $state<string | null>(null);
   let isSidebarOpen = $state(false);
   let showInactiveEntities = $state(false);
@@ -257,7 +260,7 @@
   let packetStatsByPort = $state(new Map<string, PacketStats>());
   let hasIntervalPackets = $state(false);
   let lastRawPacketTimestamp = $state<number | null>(null);
-  let validRawPacketsOnly = $state(true);
+  let validRawPacketsOnly = $state(false);
   let toasts = $state<ToastMessage[]>([]);
   const toastTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
   const MAX_TOASTS = 4;
@@ -306,6 +309,10 @@
     return (
       bridgeInfo?.error === 'CONFIG_INITIALIZATION_REQUIRED' || bridgeInfo?.restartRequired === true
     );
+  });
+
+  const hasMatterBridge = $derived.by<boolean>(() => {
+    return bridgeInfo?.bridges?.some((b) => b.integrationType === 'matter') ?? false;
   });
 
   type StreamEvent =
@@ -501,6 +508,8 @@
   });
 
   const flushLogBuffers = () => {
+    let updated = false;
+
     if (commandLogBuffer.length > 0) {
       // Sort buffer by timestamp descending (newest first)
       commandLogBuffer.sort((a, b) => (b.timestampMs ?? 0) - (a.timestampMs ?? 0));
@@ -528,6 +537,7 @@
       }
 
       commandLogBuffer = [];
+      updated = true;
     }
 
     if (parsedLogBuffer.length > 0) {
@@ -551,6 +561,12 @@
       }
 
       parsedLogBuffer = [];
+      updated = true;
+    }
+
+    if (updated) {
+      // 버퍼가 비워지고 실제 로그 배열이 업데이트되었을 때 반응성을 트리거합니다.
+      logVersion += 1;
     }
   };
 
@@ -1359,6 +1375,14 @@
     error?: string;
     errorInfo?: BridgeErrorPayload | null;
     status?: 'idle' | 'starting' | 'started' | 'error' | 'stopped';
+    integrationType?: string;
+    commissioning?: {
+      isCommissioned: boolean;
+      passcode: number;
+      discriminator: number;
+      manualPairingCode: string;
+      qrPairingCode: string;
+    } | null;
   };
 
   const portMetadata = $derived.by(() => {
@@ -1378,6 +1402,8 @@
             error: bridge.error,
             errorInfo: bridge.errorInfo ?? null,
             status: bridge.status,
+            integrationType: bridge.integrationType,
+            commissioning: bridge.commissioning,
           },
         ]);
       }
@@ -1389,6 +1415,8 @@
             error: bridge.error,
             errorInfo: bridge.errorInfo ?? null,
             status: bridge.status,
+            integrationType: bridge.integrationType,
+            commissioning: bridge.commissioning,
           },
         ]);
       }
@@ -1687,6 +1715,14 @@
     ),
   );
 
+  const automationsEntities = $derived.by<UnifiedEntity[]>(() =>
+    allUnifiedEntities.filter(
+      (e) =>
+        (e.category === 'automation' || e.category === 'script') &&
+        (!activePortId || e.portId === activePortId),
+    ),
+  );
+
   $effect(() => {
     if (!selectedEntityKey) {
       renameError = '';
@@ -1799,6 +1835,7 @@
         bind:activeView
         isOpen={isSidebarOpen}
         disabled={isWizardActive}
+        {hasMatterBridge}
         onClose={() => (isSidebarOpen = false)}
       />
 
@@ -1830,6 +1867,7 @@
             onToggleAutomations={toggleAutomationCards}
             onToggleScripts={toggleScriptCards}
             onBrowseGallery={() => (activeView = 'gallery')}
+            onNavigateToMatter={() => (activeView = 'matter')}
           />
         {:else if activeView === 'analysis'}
           <Analysis
@@ -1869,6 +1907,14 @@
             onAutoRestartChange={(value) => updateAutoRestartSetting(value)}
             onGalleryChange={(value) => updateGallerySetting(value)}
           />
+        {:else if activeView === 'matter'}
+          <Matter {bridgeInfo} {infoLoading} onRefresh={() => loadBridgeInfo(true)} />
+        {:else if activeView === 'automations'}
+          <Automations
+            entities={automationsEntities}
+            onSelect={(entityId, portId, category) =>
+              (selectedEntityKey = makeEntityKey(portId, entityId, category))}
+          />
         {:else if activeView === 'devices'}
           <Devices
             entities={devicesEntities}
@@ -1891,6 +1937,7 @@
       {renamingEntityId}
       {renameError}
       {logVersion}
+      {bridgeInfo}
       onRename={(newName, updateObjectId) => {
         if (selectedEntityKey) {
           const parsed = parseEntityKey(selectedEntityKey);

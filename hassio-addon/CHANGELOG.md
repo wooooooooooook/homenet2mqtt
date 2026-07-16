@@ -1,8 +1,20 @@
 ** ⚠️ 업데이트 전 백업 권장 **
-- 오류가 있으면 homeasssutant [카페](https://cafe.naver.com/koreassistant), [깃헙](https://github.com/wooooooooooook/homenet2mqtt), [디스코드](https://discord.gg/kGwhUBMe5z) 등으로 알려주세요.
+- 오류가 있으면 homeassistant [카페](https://cafe.naver.com/koreassistant), [깃헙](https://github.com/wooooooooooook/homenet2mqtt), [디스코드](https://discord.gg/kGwhUBMe5z) 등으로 알려주세요.
 
-v2.15.3
-- ui: 기기목록뷰 추가 및 엔티티정보 창에 상세정보탭 추가
+v3.0.0
+- ### Homenet2Matter (beta) 출시!! 
+  - 이제 h2m은 homenet2mqtt와 homenet2matter모두를 의미합니다.
+  - **기존 h2mqtt사용지분들은 별도의 조치없이 그대로 이용할 수 있습니다.** 
+  - h2mqtt와 h2matter는 같은 코드를 공유하며 편의를 위해 별도의 앱으로 분리했습니다.
+  - h2matter를 이용하려면 별도의 h2matter 앱(애드온)을 설치하거나 도커로 설치시 integration type을 matter로 명시하면됩니다. 
+  - matter는 다양한 테스트환경을 준비하기어려워 **오류가 많을것으로 예상**됩니다..
+- feat: 분석탭에 h2m과 mqtt 혹은 matter 사이 통신을 로깅하는 인터페이스로그 추가
+- fix: `optimistic: true`인 엔티티에서 `command_*`를 비워둔경우 패킷전송 시도를 하지 않도록 수정.: 여전히 오류가 있어서 다시 수정
+- ui: 기기목록뷰 추가
+- ui: 엔티티정보 창에 상세정보탭 추가
+- ui: 분석탭 - 패킷로그(Rx/Tx)와 raw패킷로그 통합
+- chore: ha app의 TIMEZONE 기본값을 Asia/Seoul로 지정함
+
 
 v2.15.2
 - fix: `optimistic: true`인 엔티티에서 `command_*`를 비워둔경우 패킷전송 시도를 하지 않도록 수정.

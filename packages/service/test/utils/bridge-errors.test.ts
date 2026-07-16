@@ -4,8 +4,8 @@ import {
   formatBridgeErrorMessage,
   mapSerialError,
   mapConfigLoadError,
-  mapMqttError,
-  mapMqttDisconnect,
+  mapIntegrationError,
+  mapIntegrationDisconnect,
   mapBridgeStartError,
 } from '../../src/utils/bridge-errors';
 
@@ -117,18 +117,20 @@ describe('bridge-errors utils', () => {
     });
   });
 
-  describe('mapMqttError', () => {
-    it('should map various MQTT errors', () => {
-      expect(mapMqttError(new Error('Not authorized')).code).toBe('MQTT_AUTH_FAILED');
-      expect(mapMqttError({ code: 'ECONNREFUSED' }).code).toBe('MQTT_CONNECT_FAILED');
-      expect(mapMqttError('Unknown MQTT error').code).toBe('MQTT_CONNECT_FAILED');
+  describe('mapIntegrationError', () => {
+    it('should map various integration errors', () => {
+      expect(mapIntegrationError(new Error('Not authorized')).code).toBe('INTEGRATION_AUTH_FAILED');
+      expect(mapIntegrationError({ code: 'ECONNREFUSED' }).code).toBe('INTEGRATION_CONNECT_FAILED');
+      expect(mapIntegrationError('Unknown integration error').code).toBe(
+        'INTEGRATION_CONNECT_FAILED',
+      );
     });
   });
 
-  describe('mapMqttDisconnect', () => {
+  describe('mapIntegrationDisconnect', () => {
     it('should create a disconnect payload', () => {
-      const payload = mapMqttDisconnect('port1');
-      expect(payload.code).toBe('MQTT_DISCONNECTED');
+      const payload = mapIntegrationDisconnect('port1');
+      expect(payload.code).toBe('INTEGRATION_DISCONNECTED');
       expect(payload.severity).toBe('warning');
       expect(payload.portId).toBe('port1');
     });
@@ -141,9 +143,9 @@ describe('bridge-errors utils', () => {
       expect(mapBridgeStartError({ code: 'ENOENT' }).source).toBe('serial');
     });
 
-    it('should detect MQTT errors in start error', () => {
+    it('should detect integration errors in start error', () => {
       const payload = mapBridgeStartError(new Error('MQTT connection error'));
-      expect(payload.source).toBe('mqtt');
+      expect(payload.source).toBe('integration');
     });
 
     it('should return default core error for unknown start error', () => {

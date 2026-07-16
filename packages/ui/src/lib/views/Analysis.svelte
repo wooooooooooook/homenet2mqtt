@@ -14,6 +14,7 @@
   import PacketDictionaryView from '../components/PacketDictionaryView.svelte';
   import CelAnalyzerCard from '../components/analysis/CelAnalyzerCard.svelte';
   import PacketAnalyzerCard from '../components/analysis/PacketAnalyzerCard.svelte';
+  import InterfaceLogCard from '../components/analysis/InterfaceLogCard.svelte';
 
   type AnalyzerStateOption = {
     id: string;
@@ -25,10 +26,10 @@
   type VisibilityState = {
     'packet-log': boolean;
     'packet-sender': boolean;
-    'raw-packet-log': boolean;
     'packet-dictionary': boolean;
     'packet-analyzer': boolean;
     'cel-analyzer': boolean;
+    'interface-log': boolean;
   };
 
   let {
@@ -58,7 +59,7 @@
     rawPackets: RawPacketWithInterval[];
     packetDictionary: Record<string, string>;
     isStreaming: boolean;
-    portMetadata: Array<BridgeSerialInfo & { configFile: string }>;
+    portMetadata: Array<BridgeSerialInfo & { configFile: string; integrationType?: string }>;
     activePortId: string | null;
     onStart?: () => void;
     onStop?: () => void;
@@ -80,11 +81,16 @@
   let visibility = $state<VisibilityState>({
     'packet-log': true,
     'packet-sender': true,
-    'raw-packet-log': true,
     // svelte-ignore state_referenced_locally
     'packet-dictionary': Boolean(logRetentionEnabled),
     'packet-analyzer': true,
     'cel-analyzer': true,
+    'interface-log': true,
+  });
+
+  const activeIntegrationType = $derived.by<string>(() => {
+    const port = portMetadata.find((p) => p.portId === activePortId);
+    return port?.integrationType || 'mqtt';
   });
 
   // Keep packet-dictionary in sync when logRetentionEnabled changes
@@ -99,15 +105,16 @@
   const menuItems = $derived([
     { id: 'packet-log', label: $t('analysis.packet_log.title') },
     { id: 'packet-sender', label: $t('analysis.raw_log.sender.title') },
-    { id: 'raw-packet-log', label: $t('analysis.raw_log.title') },
     ...(logRetentionEnabled
       ? [{ id: 'packet-dictionary', label: $t('analysis.packet_dictionary.title') }]
       : []),
     { id: 'packet-analyzer', label: $t('analysis.packet_analyzer.title') },
     { id: 'cel-analyzer', label: $t('analysis.cel_analyzer.title') },
+    { id: 'interface-log', label: $t('analysis.interface_log.title') },
   ]);
 
   let activeSection = $state<string>('packet-log');
+  let activeLogTab = $state<'parsed' | 'raw'>('parsed');
 
   $effect(() => {
     // Watch visibility to trigger re-observe when DOM elements are toggled
@@ -147,7 +154,10 @@
 
   const handleAnchorClick = (event: MouseEvent, targetId: string) => {
     event.preventDefault();
-    const element = document.getElementById(targetId);
+
+    const scrollTargetId = targetId;
+
+    const element = document.getElementById(scrollTargetId);
     const container = document.querySelector('.main-content');
     const sidebar = document.querySelector('.analysis-sidebar');
 
@@ -289,12 +299,73 @@
 
     <div class="analysis-content">
       {#if visibility['packet-log']}
-        <div id="packet-log" class="analysis-section">
-          <PacketLog {commandLogs} {parsedLogs} {packetDictionary} />
+        <div id="packet-log" class="log-section combined-log-card">
+          <div class="card-header">
+            <h2>{$t('analysis.packet_log.title')}</h2>
+            <div class="tabs-bar">
+              <button
+                type="button"
+                class="tab-btn"
+                class:active={activeLogTab === 'parsed'}
+                onclick={() => {
+                  activeLogTab = 'parsed';
+                }}
+              >
+                Rx/Tx
+              </button>
+              <button
+                type="button"
+                class="tab-btn"
+                class:active={activeLogTab === 'raw'}
+                onclick={() => {
+                  activeLogTab = 'raw';
+                }}
+              >
+                Raw
+              </button>
+            </div>
+          </div>
+
+          <!-- 설명 영역 -->
+          <div class="tab-desc-container">
+            {#if activeLogTab === 'parsed'}
+              <p class="description">{$t('analysis.packet_log.desc')}</p>
+            {:else if activeLogTab === 'raw'}
+              <p class="description">{$t('analysis.raw_log.desc')}</p>
+            {/if}
+          </div>
+
+          <!-- 탭 콘텐츠 영역 -->
+          <div class="tab-content">
+            {#if activeLogTab === 'parsed'}
+              <div class="parsed-log-wrapper">
+                <PacketLog {commandLogs} {parsedLogs} {packetDictionary} />
+              </div>
+            {:else if activeLogTab === 'raw'}
+              <div id="raw-packet-log">
+                <RawPacketLog
+                  {rawPackets}
+                  {packetDictionary}
+                  {isStreaming}
+                  {stats}
+                  {onStart}
+                  {onStop}
+                  bind:validOnly
+                  bind:isRecording
+                  bind:recordingStartTime
+                  bind:recordedFile
+                  portId={activePortId}
+                  showSender={false}
+                  showLog={true}
+                />
+              </div>
+            {/if}
+          </div>
         </div>
       {/if}
 
-      {#if visibility['packet-sender'] || visibility['raw-packet-log']}
+      <!-- Packet Sender는 별개로 렌더링 -->
+      {#if visibility['packet-sender']}
         <RawPacketLog
           {rawPackets}
           {packetDictionary}
@@ -307,8 +378,8 @@
           bind:recordingStartTime
           bind:recordedFile
           portId={activePortId}
-          showSender={visibility['packet-sender']}
-          showLog={visibility['raw-packet-log']}
+          showSender={true}
+          showLog={false}
         />
       {/if}
 
@@ -327,6 +398,12 @@
       {#if visibility['cel-analyzer']}
         <div id="cel-analyzer" class="analysis-section">
           <CelAnalyzerCard {statesSnapshot} {stateOptions} />
+        </div>
+      {/if}
+
+      {#if visibility['interface-log']}
+        <div id="interface-log" class="analysis-section">
+          <InterfaceLogCard portId={activePortId} integrationType={activeIntegrationType} />
         </div>
       {/if}
     </div>
@@ -618,5 +695,80 @@
     :global(#raw-packet-log) {
       scroll-margin-top: 10rem;
     }
+  }
+
+  .combined-log-card {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    background: rgba(30, 41, 59, 0.4);
+    border: 1px solid rgba(148, 163, 184, 0.12);
+    border-radius: 12px;
+    padding: 1.5rem;
+  }
+
+  @media (max-width: 480px) {
+    .combined-log-card {
+      padding: 0.75rem;
+      border-radius: 8px;
+    }
+  }
+
+  .card-header {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+    padding-bottom: 0.5rem;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .card-header h2 {
+    font-size: 1.1rem;
+    margin: 0;
+    color: #e2e8f0;
+  }
+
+  .tabs-bar {
+    display: flex;
+    gap: 0.25rem;
+    background: rgba(15, 23, 42, 0.3);
+    padding: 0.25rem;
+    border-radius: 8px;
+    border: 1px solid rgba(148, 163, 184, 0.08);
+  }
+
+  .tab-btn {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+  }
+
+  .tab-btn:hover {
+    color: #e2e8f0;
+  }
+
+  .tab-btn.active {
+    color: #38bdf8;
+    background: rgba(56, 189, 248, 0.15);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  }
+
+  .tab-desc-container {
+    margin-top: -0.25rem;
+  }
+
+  .description {
+    color: #94a3b8;
+    font-size: 0.875rem;
+    margin: 0;
+    line-height: 1.4;
   }
 </style>

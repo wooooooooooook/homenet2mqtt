@@ -46,6 +46,33 @@ services:
     ports:
       - '3000:3000'
     restart: unless-stopped
+
+## Matter 연동 모드 기동 시 중요 주의사항 (Network Mode)
+
+Matter 프로토콜은 스마트홈 플랫폼(스마트싱스, 홈킷, 구글홈 등)의 로컬 기기 검색을 위해 **mDNS (멀티캐스트 DNS, UDP 5353)** 프로토콜을 사용합니다. Docker의 기본 브릿지 네트워크 모드(`ports:` 포워딩) 환경에서는 이 멀티캐스트 패킷이 중계되지 않아 외부 스마트홈 컨트롤러가 브릿지 기기를 발견할 수 없습니다.
+
+따라서 **`INTEGRATION_TYPE=matter`**로 구동하는 컨테이너는 반드시 네트워크 모드를 **`network_mode: host`** (또는 Docker CLI 실행 시 `--net=host`)로 실행해야 합니다.
+
+### Matter용 docker-compose 예시
+```yaml
+services:
+  homenet2matter:
+    image: nubiz/homenet2mqtt:latest
+    container_name: homenet2matter
+    network_mode: host            # Matter mDNS 탐색 및 페어링 연결을 위해 필수적입니다.
+    privileged: true
+    environment:
+      INTEGRATION_TYPE: matter    # Matter 모드로 실행
+      CONFIG_FILES: default.homenet_bridge.yaml,
+      PORT: '3000'                # Web UI 포트
+      LOG_LEVEL: info
+      TIMEZONE: 'Asia/Seoul'
+    # USB RS485 장치를 사용하는경우 아래 주석을 풀고 기기에 맞게 입력하세요.
+    # devices:
+    #   - /dev/ttyUSB0:/dev/ttyUSB0
+    volumes:
+      - ./h2m-config:/config
+    restart: unless-stopped
 ```
 
 > 환경변수 상세 설명은 [환경변수 레퍼런스](./environment-variables.md)를 참고하세요.

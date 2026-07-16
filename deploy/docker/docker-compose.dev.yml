@@ -93,12 +93,14 @@ services:
       CONFIG_FILES:
       LOG_LEVEL: info
       MQTT_TOPIC_PREFIX: homenet
+      INTEGRATION_TYPE: ${INTEGRATION_TYPE:-mqtt}
     volumes:
       - config_data:/config
       - /dev/pts:/dev/pts
       - ../../gallery:/app/gallery
     ports:
       - '3000:3000'
+      - '5540-5545:5540-5545'
     privileged: true
     entrypoint: [ "/sbin/tini", "--" ]
     command: >

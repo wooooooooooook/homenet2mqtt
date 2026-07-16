@@ -30,7 +30,6 @@ import type {
   BridgeErrorPayload,
   BridgeStatus,
   ConfigStatus,
-  RawPacketStreamMode,
 } from './types/index.js';
 import {
   createBridgeErrorPayload,
@@ -233,43 +232,34 @@ const latestStates = streamManager.getLatestStates();
 streamManager.registerGlobalEventHandlers();
 streamManager.registerWebSocketHandlers();
 
-eventBus.on('mqtt:status', (event: { state: string; portId?: string }) => {
+eventBus.on('integration:status', (event: { type: string; state: string; portId?: string }) => {
   if (autoRestartSuppressed) return;
 
   const portId = event.portId ?? 'default';
-  const faultKey = `mqtt:${portId}`;
+  const faultKey = `integration:${portId}`;
 
-  if (event.state === 'connected') {
-    autoRestartService.clear(faultKey);
+  if (event.state === 'connected' || event.state === 'connecting') {
+    if (event.state === 'connected') {
+      autoRestartService.clear(faultKey);
+    }
     return;
   }
 
   void autoRestartService.schedule({
     key: faultKey,
     portId,
-    reason: `mqtt ${event.state}`,
+    reason: `${event.type} ${event.state}`,
   });
 });
 
-eventBus.on('mqtt:error', (event: { portId?: string; message?: string }) => {
+eventBus.on('integration:error', (event: { type: string; portId?: string; message?: string }) => {
   if (autoRestartSuppressed) return;
 
   const portId = event.portId ?? 'default';
   void autoRestartService.schedule({
-    key: `mqtt:${portId}`,
+    key: `integration:${portId}`,
     portId,
-    reason: event.message ? `mqtt error: ${event.message}` : 'mqtt error',
-  });
-});
-
-eventBus.on('mqtt:disconnected', (event: { portId?: string }) => {
-  if (autoRestartSuppressed) return;
-
-  const portId = event.portId ?? 'default';
-  void autoRestartService.schedule({
-    key: `mqtt:${portId}`,
-    portId,
-    reason: 'mqtt disconnected',
+    reason: event.message ? `${event.type} error: ${event.message}` : `${event.type} error`,
   });
 });
 
@@ -568,6 +558,7 @@ async function instantiateBridges(
         mqttTopicPrefix: BASE_MQTT_PREFIX,
         configOverride: result.config,
         enableDiscovery: process.env.DISCOVERY_ENABLED !== 'false',
+        bridgeIndex: i,
       });
 
       // Listen for status changes from the bridge

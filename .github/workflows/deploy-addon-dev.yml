@@ -10,8 +10,29 @@ on:
       - main
     paths:
       - 'packages/**'
-      - 'hassio-addon-dev/**'
+      - 'hassio-addon/**'
   workflow_dispatch:
+    inputs:
+      deploy_mqtt:
+        description: 'Deploy Homenet2MQTT-dev (MQTT dev)'
+        type: boolean
+        required: true
+        default: true
+      deploy_matter:
+        description: 'Deploy Homenet2Matter-dev (Matter dev)'
+        type: boolean
+        required: true
+        default: true
+      arch_amd64:
+        description: 'Build Homenet2MQTT-dev for amd64'
+        type: boolean
+        required: true
+        default: true
+      arch_arm64:
+        description: 'Build Homenet2MQTT-dev for arm64'
+        type: boolean
+        required: true
+        default: false
 
 permissions:
   contents: read
@@ -28,15 +49,50 @@ jobs:
       - name: Generate Timestamp Version
         id: version
         run: |
-          VERSION="dev-$(date +'%Y%m%d-%H%M')"
+          VERSION="dev-$(TZ=Asia/Seoul date +'%Y%m%d-%H%M')"
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
           echo "Generated version: $VERSION"
 
-          # Update config.yaml with timestamp version
-          sed -i "s/^version: .*/version: \"$VERSION\"/" hassio-addon-dev/config.yaml
-
-          # Update package.json version for the app to show correct version
-          sed -i "0,/\"version\": \".*\"/s//\"version\": \"$VERSION\"/" package.json
+      - name: Determine platforms
+        id: set-platforms
+        run: |
+          # Default values for push triggers (both architectures)
+          AMD64="true"
+          ARM64="true"
+          
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            AMD64="${{ github.event.inputs.arch_amd64 }}"
+            ARM64="${{ github.event.inputs.arch_arm64 }}"
+          fi
+          
+          PLATFORMS=""
+          SMOKE_TEST=""
+          
+          if [ "$AMD64" = "true" ]; then
+            PLATFORMS="linux/amd64"
+            SMOKE_TEST="linux/amd64"
+          fi
+          
+          if [ "$ARM64" = "true" ]; then
+            if [ -n "$PLATFORMS" ]; then
+              PLATFORMS="$PLATFORMS,linux/arm64"
+              SMOKE_TEST="$SMOKE_TEST linux/arm64"
+            else
+              PLATFORMS="linux/arm64"
+              SMOKE_TEST="linux/arm64"
+            fi
+          fi
+          
+          # Fallback if none selected
+          if [ -z "$PLATFORMS" ]; then
+            echo "No platforms selected, defaulting to linux/amd64"
+            PLATFORMS="linux/amd64"
+            SMOKE_TEST="linux/amd64"
+          fi
+          
+          echo "platforms=$PLATFORMS" >> $GITHUB_OUTPUT
+          echo "smoke_test=$SMOKE_TEST" >> $GITHUB_OUTPUT
+          echo "Selected platforms: $PLATFORMS"
 
       - name: Login to Docker Hub
         uses: docker/login-action@v4
@@ -54,21 +110,23 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: .
-          file: hassio-addon-dev/Dockerfile
-          platforms: linux/amd64,linux/arm64
+          file: hassio-addon/Dockerfile
+          platforms: ${{ steps.set-platforms.outputs.platforms }}
           push: true
+          build-args: |
+            VERSION=${{ steps.version.outputs.VERSION }}
           tags: |
             nubiz/homenet2mqtt:dev
             nubiz/homenet2mqtt:${{ steps.version.outputs.VERSION }}
           secrets: |
             LOG_COLLECTOR_API_KEY=${{ secrets.LOG_COLLECTOR_API_KEY }}
             COMMENT_SECRET=${{ secrets.COMMENT_SECRET }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=${{ github.workflow }}
+          cache-to: type=gha,mode=max,scope=${{ github.workflow }}
 
       - name: Multi-arch smoke test
         run: |
-          for PLATFORM in linux/amd64 linux/arm64; do
+          for PLATFORM in ${{ steps.set-platforms.outputs.smoke_test }}; do
             echo "Testing $PLATFORM"
             docker run --rm --entrypoint node --platform $PLATFORM nubiz/homenet2mqtt:${{ steps.version.outputs.VERSION }} \
               -v || exit 1
@@ -84,12 +142,6 @@ jobs:
         with:
           path: source
 
-      - name: Update Config Version (From Build Job)
-        run: |
-          VERSION="${{ needs.build.outputs.VERSION }}"
-          echo "Using version from build: $VERSION"
-          sed -i "s/^version: .*/version: \"$VERSION\"/" source/hassio-addon-dev/config.yaml
-
       - name: Checkout Target Repo
         uses: actions/checkout@v6
         with:
@@ -97,10 +149,45 @@ jobs:
           token: ${{ secrets.ADDONS_REPO_TOKEN }}
           path: target
 
+      - name: Install js-yaml
+        run: |
+          mkdir -p npm_temp
+          cd npm_temp
+          npm install js-yaml
+          mv node_modules ../source/node_modules
+          cd ..
+          rm -rf npm_temp
+
       - name: Sync Files
         run: |
-          mkdir -p target/Homenet2MQTT-dev
-          cp -r source/hassio-addon-dev/* target/Homenet2MQTT-dev/
+          VERSION="${{ needs.build.outputs.VERSION }}"
+          
+          # Default to true for push triggers, respect inputs for manual dispatch
+          DEPLOY_MQTT="true"
+          DEPLOY_MATTER="true"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            DEPLOY_MQTT="${{ github.event.inputs.deploy_mqtt }}"
+            DEPLOY_MATTER="${{ github.event.inputs.deploy_matter }}"
+          fi
+
+          TYPES=""
+          if [ "$DEPLOY_MQTT" = "true" ]; then
+            TYPES="mqtt-dev"
+          fi
+          if [ "$DEPLOY_MATTER" = "true" ]; then
+            if [ -n "$TYPES" ]; then
+              TYPES="$TYPES,matter-dev"
+            else
+              TYPES="matter-dev"
+            fi
+          fi
+
+          if [ -z "$TYPES" ]; then
+            echo "No dev addons selected for deployment. Skipping sync."
+            exit 0
+          fi
+
+          node source/scripts/generate-addons.mjs --target target --version "$VERSION" --types "$TYPES"
 
           # Check for changes
           cd target
@@ -108,7 +195,7 @@ jobs:
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
             git add .
-            git commit -m "Update homenet2mqtt-dev addon (Build ${{ needs.build.outputs.VERSION }})"
+            git commit -m "Update dev addons ($TYPES) (Build $VERSION)"
             git pull --rebase
             git push
           else
