@@ -246,18 +246,41 @@
                     <button
                       class="mini-copy-btn"
                       onclick={() => copyText(log.topicOrEntityId, `topic-${i}`)}
-                      aria-label="Copy topic"
+                      aria-label={copiedItem === `topic-${i}`
+                        ? $t('common.copied', { default: 'Copied' })
+                        : $t('common.copy', { default: 'Copy' })}
+                      title={copiedItem === `topic-${i}`
+                        ? $t('common.copied', { default: 'Copied' })
+                        : $t('common.copy', { default: 'Copy' })}
                     >
                       {#if copiedItem === `topic-${i}`}
-                        <span class="mini-copy-success">✓</span>
-                      {:else}
                         <svg
-                          viewBox="0 0 24 24"
+                          xmlns="http://www.w3.org/2000/svg"
                           width="12"
                           height="12"
+                          viewBox="0 0 24 24"
                           fill="none"
                           stroke="currentColor"
                           stroke-width="2"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          class="success-icon"
+                          aria-hidden="true"
+                        >
+                          <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                      {:else}
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="12"
+                          height="12"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          aria-hidden="true"
                         >
                           <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                           <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
@@ -272,18 +295,41 @@
                     <button
                       class="mini-copy-btn"
                       onclick={() => copyText(log.payload, `payload-${i}`)}
-                      aria-label="Copy payload"
+                      aria-label={copiedItem === `payload-${i}`
+                        ? $t('common.copied', { default: 'Copied' })
+                        : $t('common.copy', { default: 'Copy' })}
+                      title={copiedItem === `payload-${i}`
+                        ? $t('common.copied', { default: 'Copied' })
+                        : $t('common.copy', { default: 'Copy' })}
                     >
                       {#if copiedItem === `payload-${i}`}
-                        <span class="mini-copy-success">✓</span>
-                      {:else}
                         <svg
-                          viewBox="0 0 24 24"
+                          xmlns="http://www.w3.org/2000/svg"
                           width="12"
                           height="12"
+                          viewBox="0 0 24 24"
                           fill="none"
                           stroke="currentColor"
                           stroke-width="2"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          class="success-icon"
+                          aria-hidden="true"
+                        >
+                          <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                      {:else}
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="12"
+                          height="12"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          aria-hidden="true"
                         >
                           <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                           <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
@@ -578,10 +624,8 @@
     background: rgba(148, 163, 184, 0.1);
   }
 
-  .mini-copy-success {
+  .success-icon {
     color: #34d399;
-    font-size: 0.75rem;
-    font-weight: bold;
   }
 
   .empty,

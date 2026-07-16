@@ -206,9 +206,46 @@
                     type="button"
                     class="copy-btn"
                     onclick={() => handleCopy(String(commissioning.passcode), 'passcode')}
-                    title="Copy Passcode"
+                    aria-label={copySuccess === 'passcode'
+                      ? $t('common.copied', { default: 'Copied' })
+                      : $t('common.copy', { default: 'Copy' })}
+                    title={copySuccess === 'passcode'
+                      ? $t('common.copied', { default: 'Copied' })
+                      : $t('common.copy', { default: 'Copy' })}
                   >
-                    {copySuccess === 'passcode' ? '✓' : '📋'}
+                    {#if copySuccess === 'passcode'}
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        class="success-icon"
+                        aria-hidden="true"
+                      >
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                    {:else}
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        aria-hidden="true"
+                      >
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                      </svg>
+                    {/if}
                   </button>
                 </div>
               </div>
@@ -222,9 +259,46 @@
                     type="button"
                     class="copy-btn"
                     onclick={() => handleCopy(String(commissioning.discriminator), 'discriminator')}
-                    title="Copy Discriminator"
+                    aria-label={copySuccess === 'discriminator'
+                      ? $t('common.copied', { default: 'Copied' })
+                      : $t('common.copy', { default: 'Copy' })}
+                    title={copySuccess === 'discriminator'
+                      ? $t('common.copied', { default: 'Copied' })
+                      : $t('common.copy', { default: 'Copy' })}
                   >
-                    {copySuccess === 'discriminator' ? '✓' : '📋'}
+                    {#if copySuccess === 'discriminator'}
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        class="success-icon"
+                        aria-hidden="true"
+                      >
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                    {:else}
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        aria-hidden="true"
+                      >
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                      </svg>
+                    {/if}
                   </button>
                 </div>
               </div>
@@ -239,9 +313,46 @@
                     type="button"
                     class="copy-btn"
                     onclick={() => handleCopy(commissioning.manualPairingCode, 'manualCode')}
-                    title="Copy Manual Code"
+                    aria-label={copySuccess === 'manualCode'
+                      ? $t('common.copied', { default: 'Copied' })
+                      : $t('common.copy', { default: 'Copy' })}
+                    title={copySuccess === 'manualCode'
+                      ? $t('common.copied', { default: 'Copied' })
+                      : $t('common.copy', { default: 'Copy' })}
                   >
-                    {copySuccess === 'manualCode' ? '✓' : '📋'}
+                    {#if copySuccess === 'manualCode'}
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        class="success-icon"
+                        aria-hidden="true"
+                      >
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                    {:else}
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        aria-hidden="true"
+                      >
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                      </svg>
+                    {/if}
                   </button>
                 </div>
               </div>
@@ -559,25 +670,24 @@
   .copy-btn {
     background: transparent;
     border: none;
+    color: #64748b;
     cursor: pointer;
-    font-size: 0.85rem;
-    color: #94a3b8;
     padding: 0.2rem;
+    border-radius: 4px;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition:
-      color 0.15s,
-      transform 0.1s;
+    transition: all 0.2s;
+    flex-shrink: 0;
   }
 
   .copy-btn:hover {
-    color: #f1f5f9;
-    transform: scale(1.1);
+    color: #e2e8f0;
+    background: rgba(148, 163, 184, 0.1);
   }
 
-  .copy-btn:active {
-    transform: scale(0.95);
+  .success-icon {
+    color: #34d399;
   }
 
   /* Fabrics section */
