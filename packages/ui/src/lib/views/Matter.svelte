@@ -363,6 +363,7 @@
     transition:
       transform 0.2s,
       border-color 0.2s;
+    min-width: 0;
   }
 
   .info-card:hover {
@@ -615,6 +616,7 @@
     border-collapse: collapse;
     text-align: left;
     font-size: 0.9rem;
+    white-space: nowrap;
   }
 
   .fabrics-table th {
