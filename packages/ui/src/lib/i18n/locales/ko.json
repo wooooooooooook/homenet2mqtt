@@ -566,7 +566,7 @@
       "mqtt_broker": "MQTT 브로커",
       "log_adapter": "로컬 로그 어댑터",
       "log_mode": "로컬 로그 출력 모드",
-      "homenet2mqtt": "HomeNet2MQTT",
+      "homenet2mqtt": "H2M",
       "path": "경로 (PATH)",
       "baud": "속도 (BAUD)",
       "config": "설정 (CONFIG)",
@@ -578,7 +578,9 @@
       "connected_fabrics": "연결된 플랫폼 수",
       "device_count": "공유된 기기 수",
       "pairing_needed": "연동 대기 중",
-      "setup_matter": "Matter 연동하기"
+      "setup_matter": "Matter 연동하기",
+      "matter_controller": "Matter 컨트롤러",
+      "no_pairing_info": "페어링 정보를 불러올 수 없음"
     },
     "recent_activity": {
       "title": "최근 활동",

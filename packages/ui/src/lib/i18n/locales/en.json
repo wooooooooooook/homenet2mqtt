@@ -566,7 +566,7 @@
       "mqtt_broker": "MQTT Broker",
       "log_adapter": "Log Adapter",
       "log_mode": "Local Logging Mode",
-      "homenet2mqtt": "HomeNet2MQTT",
+      "homenet2mqtt": "H2M",
       "path": "PATH",
       "baud": "BAUD",
       "config": "CONFIG",
@@ -578,7 +578,9 @@
       "connected_fabrics": "FABRICS",
       "device_count": "DEVICES",
       "pairing_needed": "PAIRING NEEDED",
-      "setup_matter": "Setup Matter"
+      "setup_matter": "Setup Matter",
+      "matter_controller": "Matter Controller",
+      "no_pairing_info": "Pairing info not available"
     },
     "recent_activity": {
       "title": "Recent Activity",

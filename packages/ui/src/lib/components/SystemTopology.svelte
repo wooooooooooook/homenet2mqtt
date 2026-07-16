@@ -175,7 +175,7 @@
           </svg>
         </div>
         <div class="node-label">
-          {$t('dashboard.topology.homenet2mqtt', { default: 'HomeNet2MQTT' })}
+          {$t('dashboard.topology.homenet2mqtt', { default: 'H2M' })}
         </div>
         {#if hasCoreError}
           <div class="error-badge" title={globalError?.message || ''}>!</div>

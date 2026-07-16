@@ -7,6 +7,8 @@ import { HomenetEntityBehavior } from './homenet-entity-behavior.js';
 const FeaturedBase = Base.with('Lighting');
 
 export class OnOffServer extends FeaturedBase {
+  private isExecuting = false;
+
   override async initialize() {
     await super.initialize();
     const homenet = await this.agent.load(HomenetEntityBehavior);
@@ -15,6 +17,11 @@ export class OnOffServer extends FeaturedBase {
   }
 
   private update(entityState: any) {
+    // Skip external updates while we are currently executing a control command
+    if (this.isExecuting) {
+      return;
+    }
+
     const stateVal = entityState?.state;
     // For valves, open state is OPEN. For switch/light/fan, it's ON.
     const isOn = stateVal === 'ON' || stateVal === 'OPEN';
@@ -41,17 +48,19 @@ export class OnOffServer extends FeaturedBase {
       return;
     }
 
+    this.isExecuting = true;
     // Set onOff immediately so the controller gets instant feedback
     applyPatchState(this.state, { onOff: true });
     const command = type === 'valve' ? 'open' : 'on';
     try {
       await homenet.executeCommand(homenet.entityId, command);
     } finally {
-      this.update(homenet.entityState);
+      this.isExecuting = false;
     }
   }
 
   override async off() {
+    this.isExecuting = true;
     // Set onOff immediately so the controller gets instant feedback
     applyPatchState(this.state, { onOff: false });
     const homenet = await this.agent.load(HomenetEntityBehavior);
@@ -59,7 +68,7 @@ export class OnOffServer extends FeaturedBase {
     try {
       await homenet.executeCommand(homenet.entityId, command);
     } finally {
-      this.update(homenet.entityState);
+      this.isExecuting = false;
     }
   }
 }

@@ -762,4 +762,35 @@
       grid-column: span 1 !important;
     }
   }
+
+  @media (max-width: 600px) {
+    .view-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+
+    .view-header .header-actions {
+      width: 100%;
+    }
+
+    :global(.view-header .header-actions button) {
+      width: 100% !important;
+    }
+
+    .flex-row {
+      flex-direction: column !important;
+      gap: 1.5rem;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .credentials-section {
+      grid-template-columns: 1fr;
+    }
+
+    .credential-item.full-width {
+      grid-column: span 1;
+    }
+  }
 </style>
