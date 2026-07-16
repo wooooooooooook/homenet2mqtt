@@ -43,11 +43,19 @@ export class FanControlServer extends FeaturedBase {
     // Prevent speedSetting exceeding speedMax
     speedSetting = Math.min(speedMax, Math.max(0, speedSetting));
 
+    let fanModeSequence = FanControl.FanModeSequence.OffLowMedHigh;
+    if (speedMax === 1) {
+      fanModeSequence = FanControl.FanModeSequence.OffHigh;
+    } else if (speedMax === 2) {
+      fanModeSequence = FanControl.FanModeSequence.OffLowHigh;
+    }
+
     applyPatchState(this.state, {
       fanMode: speedSetting > 0 ? FanControl.FanMode.On : FanControl.FanMode.Off,
       speedMax: speedMax,
       speedSetting: speedSetting,
       speedCurrent: speedSetting,
+      fanModeSequence,
     });
   }
 

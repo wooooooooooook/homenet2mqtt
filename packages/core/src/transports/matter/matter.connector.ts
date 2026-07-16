@@ -152,9 +152,29 @@ export class MatterConnector implements IntegrationConnector {
           executeCmd,
         );
 
-        this.endpoints.set(entity.id, endpoint);
-        await this.aggregator.add(endpoint);
-        logger.info({ entityId: entity.id, type }, '[MatterConnector] Registered Matter endpoint');
+        try {
+          await this.aggregator.add(endpoint);
+          await endpoint.construction.ready;
+          this.endpoints.set(entity.id, endpoint);
+          logger.info(
+            { entityId: entity.id, type },
+            '[MatterConnector] Registered Matter endpoint',
+          );
+        } catch (err) {
+          logger.error(
+            { entityId: entity.id, type, err },
+            `[MatterConnector] Failed to initialize Matter endpoint for ${entity.id}. Skipping this device.`,
+          );
+          try {
+            this.aggregator.parts.delete(endpoint);
+          } catch (deleteErr) {
+            logger.debug(
+              { deleteErr },
+              `[MatterConnector] Error removing failed endpoint ${entity.id} from aggregator`,
+            );
+          }
+          this.endpoints.delete(entity.id);
+        }
       }
     }
   }
