@@ -108,65 +108,6 @@ export class MatterConnector implements IntegrationConnector {
     // 1. Initialize Matter Environment
     this.env = new Environment(`homenet-matter-${portId}`, Environment.default);
 
-    // Hook new services added to the environment to capture the InteractionServer dynamically
-    this.env.added.on((_type: any, instance: any) => {
-      if (instance && instance.constructor && instance.constructor.name === 'InteractionServer') {
-        logger.info(
-          '[MatterConnector] Dynamically captured InteractionServer instance. Installing protocol hooks.',
-        );
-        try {
-          const originalInvoke = instance.handleInvokeRequest.bind(instance);
-          instance.handleInvokeRequest = async (
-            exchange: any,
-            request: any,
-            messenger: any,
-            message: any,
-          ) => {
-            try {
-              eventBus.emit('interface-log:added', {
-                timestamp: new Date().toISOString(),
-                integration: 'matter',
-                direction: 'in',
-                topicOrEntityId: 'Matter Bridge / Interaction (Invoke)',
-                payload: JSON.stringify(request),
-                portId,
-              });
-            } catch (e) {
-              logger.error({ err: e }, '[MatterConnector] Error logging Interaction Invoke');
-            }
-            return originalInvoke(exchange, request, messenger, message);
-          };
-
-          const originalWrite = instance.handleWriteRequest.bind(instance);
-          instance.handleWriteRequest = async (
-            exchange: any,
-            request: any,
-            messenger: any,
-            message: any,
-          ) => {
-            try {
-              eventBus.emit('interface-log:added', {
-                timestamp: new Date().toISOString(),
-                integration: 'matter',
-                direction: 'in',
-                topicOrEntityId: 'Matter Bridge / Interaction (Write)',
-                payload: JSON.stringify(request),
-                portId,
-              });
-            } catch (e) {
-              logger.error({ err: e }, '[MatterConnector] Error logging Interaction Write');
-            }
-            return originalWrite(exchange, request, messenger, message);
-          };
-        } catch (hookErr) {
-          logger.error(
-            { err: hookErr },
-            '[MatterConnector] Failed to hook handleInvokeRequest/handleWriteRequest on InteractionServer',
-          );
-        }
-      }
-    });
-
     // Set storage location and backend (always saved under configDir/.matter-storage)
     const storagePath = path.join(this.options.configDir, '.matter-storage');
     fs.mkdirSync(storagePath, { recursive: true });
@@ -202,6 +143,14 @@ export class MatterConnector implements IntegrationConnector {
 
     // 4. Find, register and add all supported entities to the aggregator
     const executeCmd = (entityId: string, cmd: string, val?: number | string) => {
+      eventBus.emit('interface-log:added', {
+        timestamp: new Date().toISOString(),
+        integration: 'matter',
+        direction: 'in',
+        topicOrEntityId: entityId,
+        payload: JSON.stringify({ command: cmd, value: val }),
+        portId,
+      });
       return this.context.executeCommand(entityId, cmd, val);
     };
 
