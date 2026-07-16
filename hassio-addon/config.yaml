@@ -21,9 +21,6 @@ auth_api: true
 uart: true
 services:
   - mqtt:need
-ports:
-  5540/tcp: 5540
-  5540/udp: 5540
 options:
   log_level: info
   mqtt_topic_prefix: homenet2mqtt
