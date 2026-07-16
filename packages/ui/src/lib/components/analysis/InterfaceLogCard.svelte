@@ -23,8 +23,11 @@
   let autoRefresh = $state(true);
   let autoRefreshTimer: ReturnType<typeof setInterval> | null = null;
 
+  let isFetching = false;
+
   async function fetchLogs() {
-    if (loading) return;
+    if (isFetching) return;
+    isFetching = true;
     try {
       const url = portId
         ? `./api/logs/interface?portId=${encodeURIComponent(portId)}`
@@ -39,6 +42,7 @@
     } catch (e) {
       error = e instanceof Error ? e.message : 'Unknown error';
     } finally {
+      isFetching = false;
       loading = false;
     }
   }
