@@ -7,16 +7,16 @@ next:
 
 > 이 섹션에서 무엇을 해결하나요?
 >
-> - Home Assistant에서 Homenet2MQTT Add-on 설치를 완료합니다.
+> - Home Assistant에서 Homenet Bridge (h2m) Add-on 설치를 완료합니다.
 > - 초기 마법사로 기본 설정을 저장합니다.
-> - 재시작 후 장치 자동 등록 여부를 확인합니다.
+> - 용도에 맞게 MQTT 또는 Matter 연동 방식으로 애드온을 준비합니다.
 
 - 예상 소요 시간: **10~15분**
 - 필수 준비물: EW11, USB RS485장치등의 주소(예: `192.168.0.100:8899`, `/dev/ttyUSB0`)가 필요합니다.
 - 완료 기준:
   - Add-on 설치 및 실행
   - Web UI에서 설정 저장
-  - Home Assistant에서 디바이스 확인
+  - Home Assistant 또는 Matter 플랫폼에서 디바이스 확인
 
 EW11 혹은 USB RS485 장치 세팅은 완료되었다고 가정하고 시작합니다.
 
@@ -25,7 +25,10 @@ EW11 혹은 USB RS485 장치 세팅은 완료되었다고 가정하고 시작합
 1. `Home assistant`에서 `설정` - `애드온` - `우측 아래 Add-On store` - `우측 위 점3개` - `저장소` 클릭
 2. 다음 주소를 추가합니다.
    `https://github.com/wooooooooooook/HAaddons`
-3. 새로고침한 뒤 `Add-on store`에서 `homenet2mqtt` 또는 `homenet2matter`를 검색하여 용도에 맞게 설치하고 웹UI로 접속합니다.
+3. 새로고침한 뒤 `Add-on store`에서 사용하려는 용도에 맞게 애드온을 검색하여 설치합니다.
+   - **MQTT 연동 모드 (h2m-mqtt)**: `homenet2mqtt` 검색 후 설치
+   - **Matter 연동 모드 (h2m-matter)**: `homenet2matter` 검색 후 설치
+4. 설치가 완료되면 애드온을 실행하고 **웹 UI 열기**로 접속합니다.
 
 ## 초기 설정
 
@@ -46,3 +49,9 @@ EW11 혹은 USB RS485 장치 세팅은 완료되었다고 가정하고 시작합
 <img width="320" alt="image" src="https://github.com/user-attachments/assets/f1abea4b-b6a2-4f3a-8c29-6a2e01c9519b" />
 
 6. 로그 공유 동의 화면을 넘어가면 끝입니다. 재시작을 눌러 초기 설정을 마무리합니다.
+
+## 다음 단계
+
+- **MQTT 연동(h2m-mqtt) 애드온**을 설치한 경우: 설정 완료 후 홈어시스턴트에서 자동으로 기기가 등록됩니다.
+- **Matter 연동(h2m-matter) 애드온**을 설치한 경우: [Matter 연결 가이드](./matter-connection.md)를 확인하여 스마트홈 허브에 페어링을 완료해 주세요.
+

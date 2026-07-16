@@ -1,8 +1,8 @@
 import { defineConfig } from "vitepress"
 
 export default defineConfig({
-  title: "Homenet2MQTT",
-  description: "RS485 HomeNet to MQTT Bridge Documentation",
+  title: "h2m",
+  description: "RS485 HomeNet to MQTT/Matter Bridge (Homenet2MQTT / Homenet2Matter) Documentation",
   lastUpdated: true,
 
   themeConfig: {
@@ -45,6 +45,7 @@ export default defineConfig({
           text: "운영 가이드",
           items: [
             { text: "UI 설명", link: "/guide/getting-started" },
+            { text: "Matter 연결 가이드", link: "/guide/matter-connection" },
             { text: "Docker 환경변수 레퍼런스", link: "/guide/environment-variables" },
             { text: "멀티브릿지 설정", link: "/guide/advanced-setup" },
             { text: "엔티티 예제", link: "/guide/entity-examples" },

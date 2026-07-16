@@ -2,13 +2,16 @@
 layout: home
 
 hero:
-  name: Homenet2MQTT
-  text: RS485 월패드를 MQTT로 연결하는 가장 빠른 방법
-  tagline: Home Assistant와 연동 가능한 한국형 Wallpad 브릿지
+  name: h2m
+  text: RS485 월패드를 MQTT또는 Matter로 연결하는 스마트 홈 브릿지
+  tagline: Homenet2MQTT(h2m-mqtt) 및 Homenet2Matter(h2m-matter)를 포괄하는 한국형 홈네트워크 연동 솔루션
   actions:
     - theme: brand
       text: 빠른 시작
       link: /guide/quick-start
+    - theme: alt
+      text: Matter 연결 가이드
+      link: /guide/matter-connection
     - theme: alt
       text: 설치 방법 보기
       link: /guide/install-addon
@@ -18,47 +21,44 @@ hero:
 
 features:
   - icon: 🚀
-    title: 빠른 설치
-    details: Add-on 또는 Docker 중 환경에 맞는 방법으로 바로 시작할 수 있습니다.
-  - icon: 🏠
-    title: Home Assistant 자동 발견
-    details: 설정 완료 후 디바이스가 Home Assistant에 자동 등록됩니다.
+    title: 쉬운 시작과 통합
+    details: HA Add-on 또는 Docker 환경에서 Homenet2MQTT와 Homenet2Matter를 모두 간편하게 구동할 수 있습니다.
+  - icon: 🔌
+    title: MQTT 연동 (h2m-mqtt)
+    details: RS485 패킷을 MQTT로 변환하여 Home Assistant의 MQTT Discovery 등을 통해 완벽하게 연동합니다.
+  - icon: 🛡️
+    title: Matter 연동 (h2m-matter)
+    details: Apple Home, Samsung SmartThings, Google Home 등 다양한 스마트홈 플랫폼에 허브를 통해 직접 Matter 기기로 노출하여 제어합니다.
   - icon: 🔍
-    title: 실시간 모니터링
-    details: Web UI에서 RS485 패킷 흐름을 확인하고 문제를 빠르게 진단할 수 있습니다.
+    title: 실시간 패킷 모니터링
+    details: 내장된 Web UI에서 RS485 패킷 흐름을 실시간으로 확인하고 간편하게 분석 및 대응할 수 있습니다.
 ---
 
-## Homenet2MQTT 란?
+## h2m (Homenet Bridge) 이란?
 
-Homenet2MQTT는 RS485 장치에서 수신된 패킷을 정해진 규칙에 따라 해석하여 MQTT로 발행하고, MQTT를 통해 다시 정해진 규칙을 따라 명령을 RS485 장치로 전송하는 강력한 브릿지입니다.
+**h2m**은 RS485 홈네트워크 장치와 스마트홈 플랫폼 간의 양방향 통신을 돕는 강력한 브릿지 솔루션입니다. 사용 환경과 목적에 따라 **MQTT 연동(Homenet2MQTT)**과 **Matter 연동(Homenet2Matter)** 두 가지 모드를 선택하여 사용할 수 있습니다.
 
-- **자유로운 규칙 커스텀**: 다양한 환경에 맞게 패킷 규칙을 자유롭게 커스텀할 수 있는 것이 이 앱의 가장 큰 강점입니다. 최대한 GUI를 통해 클릭으로 설정이 가능하도록 구성했지만, 본질적으로는 YAML 편집이 필요한 ESPHome과 유사한 성격을 가집니다. (초기 설정 마법사와 UI 상의 갤러리는 일종의 예제라고 볼 수 있습니다.)
-- **다양한 활용성**: 월패드뿐만 아니라 RS485 통신을 사용하는 시스템 에어컨 등 다양한 기기에도 활용할 수 있습니다.
+| 연동 방식 | 대상 플랫폼 | 주요 특징 | 권장 사용자 |
+| :--- | :--- | :--- | :--- |
+| **MQTT (Homenet2MQTT)** | Home Assistant (MQTT Discovery) | 세부 설정 커스텀 및 자동화에 유용하며, 오랜 기간 검증된 유연함 제공 | 이미 구축된 MQTT 기반의 HA 설정을 사용하거나 복잡한 커스텀 규칙이 필요한 사용자 |
+| **Matter (Homenet2Matter)** | Apple Home, SmartThings, Google Home, Alexa 등 | 스마트홈 표준 Matter 프로토콜을 사용해 플랫폼 허브에 직접 연동 | 복잡한 설정 없이 스마트 기기 앱에서 직접 QR 코드 스캔으로 장치를 등록하려는 사용자 |
 
-### 이 앱이 필요한 사람
-- 기존에 만들어진 애드온이 없고 **직접 패킷을 분석할 예정인 사람**
-- 제공되는 기능 외에 **더 세밀한 커스텀이 필요한 사람**
-
-> **참고**: 기존에 만들어진 월패드별 애드온이나 통합구성요소가 있고 잘 작동하는 경우 이 앱을 굳이 사용할 필요는 없습니다.
-
-## 나는 어떤 사용자?
-
-### 1) Home Assistant Add-on 사용자
-- Home Assistant OS/Supervised 환경을 쓰고 있고 가장 간단한 설치를 원한다면 Add-on이 가장 좋습니다.
-- 바로 시작: [Add-on 설치 가이드](/guide/install-addon)
-
-### 2) Docker 사용자
-- 별도 서버나 NAS에서 운용하거나, compose로 배포/백업을 관리하고 싶다면 Docker를 권장합니다.
-- 바로 시작: [Docker 설치 가이드](/guide/install-docker)
-
+### 주요 장점
+- **자유로운 규칙 커스텀**: 다양한 아파트 월패드 환경에 맞춰 패킷 규칙을 자유롭게 커스텀할 수 있습니다.
+- **다양한 활용성**: 월패드 조명, 가스, 난방, 환기팬 외에도 RS485 통신을 사용하는 시스템 에어컨 등 다양한 기기를 제어할 수 있습니다.
 
 ## 시작 전 체크리스트
 
-- RS485 연결 장치(USB Serial 또는 TCP-Serial)가 준비되어 있습니다.
-- MQTT 브로커 접속 정보(host/port/계정)를 확인했습니다.
-- Homenet2MQTT를 실행할 환경(Add-on 또는 Docker)을 결정했습니다.
-- 제조사(예: Bestin, Commax, Kocom)를 확인했습니다.
+- RS485 연결 장치(USB Serial 또는 EW11 등 TCP-Serial 변환기)가 준비되어 있습니다.
+- 연동 방식에 따라 MQTT 브로커(MQTT 사용 시) 또는 스마트홈 플랫폼 허브(Matter 사용 시)를 준비했습니다.
+- h2m을 실행할 환경(Add-on 또는 Docker)을 결정했습니다.
+- 아파트 월패드 제조사(예: Bestin, Commax, Kocom, CVnet 등)를 확인했습니다.
 
-## 막히면 바로 여기로
+## 바로 시작하기
 
-- [트러블슈팅 바로가기](/guide/troubleshooting)
+- [빠른 시작 가이드](/guide/quick-start)
+- [Home Assistant Add-on 설치](/guide/install-addon)
+- [Docker 설치](/guide/install-docker)
+- [Matter 연결 가이드](/guide/matter-connection)
+- [자주 묻는 질문 & 트러블슈팅](/guide/troubleshooting)
+
