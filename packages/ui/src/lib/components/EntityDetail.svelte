@@ -124,9 +124,13 @@
     // Dynamic state
     const isStateOn =
       payload.state === 'on' ||
+      payload.state === 'ON' ||
+      payload.state === 'OPEN' ||
+      payload.state === 'open' ||
       payload.state === true ||
       payload.on === true ||
-      payload.power === 'on';
+      payload.power === 'on' ||
+      payload.power === 'ON';
     const hasState = 'state' in payload || 'on' in payload || 'power' in payload;
     const summaryState = hasState ? (isStateOn ? 'On' : 'Off') : 'Unknown';
 
@@ -1015,6 +1019,25 @@
 
   // Matter cluster detailed dynamic definitions for expanding UI details
   const clusterDetailsData = $derived.by<Record<string, any>>(() => {
+    const payload = getPayloadObj(entity.statePayload);
+    const isStateOn =
+      payload.state === 'on' ||
+      payload.state === 'ON' ||
+      payload.state === 'OPEN' ||
+      payload.state === 'open' ||
+      payload.state === true ||
+      payload.on === true ||
+      payload.power === 'on' ||
+      payload.power === 'ON';
+
+    const brightnessVal =
+      payload.brightness !== undefined ? Math.round((payload.brightness / 100) * 254) : 254;
+
+    const temperatureVal =
+      payload.temperature !== undefined ? Math.round(payload.temperature * 100) : 2100;
+
+    const lockStateVal = payload.lock === 'locked' ? 1 : 2;
+
     return {
       groups: {
         clusterRevision: 4,
@@ -1044,6 +1067,7 @@
         ],
       },
       onOff: {
+        onOff: isStateOn,
         clusterRevision: 6,
         featureMap: { levelControl: true, lighting: true, scenes: true },
         globalSceneControl: false,
@@ -1073,6 +1097,7 @@
         generatedCommandList: [],
       },
       levelControl: {
+        currentLevel: brightnessVal,
         clusterRevision: 5,
         remainingTime: 0,
         minLevel: 1,
@@ -1139,6 +1164,7 @@
         ],
       },
       thermostat: {
+        localTemperature: temperatureVal,
         clusterRevision: 6,
         featureMap: { heating: true, cooling: true },
         attributeList: [
@@ -1163,6 +1189,7 @@
         ],
       },
       doorLock: {
+        lockState: lockStateVal,
         clusterRevision: 6,
         lockType: 0,
         featureMap: { lockState: true },
