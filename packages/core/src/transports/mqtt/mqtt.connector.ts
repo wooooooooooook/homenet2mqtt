@@ -68,7 +68,7 @@ export class MqttConnector implements IntegrationConnector {
 
     this._mqttClient = new MqttClient(this.options.mqttUrl, mqttOptions);
     this.client = this._mqttClient.client;
-    this.mqttPublisher = new MqttPublisher(this._mqttClient, this.mqttTopicPrefix);
+    this.mqttPublisher = new MqttPublisher(this._mqttClient, this.mqttTopicPrefix, portId);
 
     const emitMqttStatus = (state: 'connected' | 'connecting' | 'disconnected') => {
       eventBus.emit('mqtt:status', { state, portId });

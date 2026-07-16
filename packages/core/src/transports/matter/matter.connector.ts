@@ -142,8 +142,17 @@ export class MatterConnector implements IntegrationConnector {
     await this.aggregator.construction.ready;
 
     // 4. Find, register and add all supported entities to the aggregator
-    const executeCmd = (entityId: string, cmd: string, val?: number | string) =>
-      this.context.executeCommand(entityId, cmd, val);
+    const executeCmd = (entityId: string, cmd: string, val?: number | string) => {
+      eventBus.emit('interface-log:added', {
+        timestamp: new Date().toISOString(),
+        integration: 'matter',
+        direction: 'in',
+        topicOrEntityId: entityId,
+        payload: JSON.stringify({ command: cmd, value: val }),
+        portId,
+      });
+      return this.context.executeCommand(entityId, cmd, val);
+    };
 
     for (const type of ENTITY_TYPE_KEYS) {
       const list = config[type] as EntityConfig[] | undefined;
@@ -326,6 +335,14 @@ export class MatterConnector implements IntegrationConnector {
     if (event.portId !== this.context.portId) return;
     const endpoint = this.endpoints.get(event.entityId);
     if (endpoint) {
+      eventBus.emit('interface-log:added', {
+        timestamp: new Date().toISOString(),
+        integration: 'matter',
+        direction: 'out',
+        topicOrEntityId: event.entityId,
+        payload: JSON.stringify(event.state),
+        portId: this.context.portId,
+      });
       void endpoint.updateState(event.state);
     }
   }

@@ -362,6 +362,18 @@ export type CommandLogEntry = {
   sourceEntityId?: string;
 };
 
+export type InterfaceLogEntry = {
+  timestamp: string;
+  integration: 'mqtt' | 'matter';
+  direction: 'in' | 'out';
+  topicOrEntityId: string;
+  payload: string;
+  portId?: string;
+  timestampMs?: number;
+  timeLabel?: string;
+  searchText?: string;
+};
+
 export type PacketHistoryResponse<T> = {
   dictionary: Record<string, string>;
   logs: T[];

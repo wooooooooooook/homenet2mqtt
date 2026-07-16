@@ -15,6 +15,7 @@ import type {
   AutomationActionFailedEvent,
   ScriptActionEvent,
   EntityErrorEvent,
+  InterfaceLogEvent,
 } from './service/event-bus.js';
 import type { HomenetBridgeConfig } from './config/types.js';
 import { CommandGenerator } from './protocol/generators/command.generator.js';
@@ -50,6 +51,7 @@ export type {
   AutomationActionFailedEvent,
   ScriptActionEvent,
   EntityErrorEvent,
+  InterfaceLogEvent,
   ConnectorContext,
   IntegrationConnector,
 };

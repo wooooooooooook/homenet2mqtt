@@ -300,6 +300,21 @@
       "expression_required": "CEL 표현식을 입력하세요.",
       "request_failed": "CEL 평가 요청에 실패했습니다."
     },
+    "interface_log": {
+      "title": "인터페이스 로그",
+      "desc": "H2M과 연동 서비스(MQTT / Matter) 간에 송수신된 통신 로그입니다.",
+      "search_placeholder": "토픽, 엔티티 ID, 페이로드 검색...",
+      "empty": "표시할 인터페이스 로그가 없습니다.",
+      "direction_in": "수신 (IN)",
+      "direction_out": "송신 (OUT)",
+      "integration_mqtt": "MQTT",
+      "integration_matter": "Matter",
+      "all_integrations": "모든 연동",
+      "all_directions": "모든 방향",
+      "direction_filter": "방향",
+      "integration_filter": "연동 서비스",
+      "auto_refresh": "자동 갱신"
+    },
     "packet_analyzer": {
       "title": "패킷 해석 테스트",
       "desc": "입력한 패킷을 core 파서 경로로 해석해 유효 패킷과 매칭 결과를 확인합니다.",

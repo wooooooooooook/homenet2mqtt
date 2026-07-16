@@ -14,6 +14,7 @@
   import PacketDictionaryView from '../components/PacketDictionaryView.svelte';
   import CelAnalyzerCard from '../components/analysis/CelAnalyzerCard.svelte';
   import PacketAnalyzerCard from '../components/analysis/PacketAnalyzerCard.svelte';
+  import InterfaceLogCard from '../components/analysis/InterfaceLogCard.svelte';
 
   type AnalyzerStateOption = {
     id: string;
@@ -28,6 +29,7 @@
     'packet-dictionary': boolean;
     'packet-analyzer': boolean;
     'cel-analyzer': boolean;
+    'interface-log': boolean;
   };
 
   let {
@@ -57,7 +59,7 @@
     rawPackets: RawPacketWithInterval[];
     packetDictionary: Record<string, string>;
     isStreaming: boolean;
-    portMetadata: Array<BridgeSerialInfo & { configFile: string }>;
+    portMetadata: Array<BridgeSerialInfo & { configFile: string; integrationType?: string }>;
     activePortId: string | null;
     onStart?: () => void;
     onStop?: () => void;
@@ -83,6 +85,12 @@
     'packet-dictionary': Boolean(logRetentionEnabled),
     'packet-analyzer': true,
     'cel-analyzer': true,
+    'interface-log': true,
+  });
+
+  const activeIntegrationType = $derived.by<string>(() => {
+    const port = portMetadata.find((p) => p.portId === activePortId);
+    return port?.integrationType || 'mqtt';
   });
 
   // Keep packet-dictionary in sync when logRetentionEnabled changes
@@ -102,6 +110,7 @@
       : []),
     { id: 'packet-analyzer', label: $t('analysis.packet_analyzer.title') },
     { id: 'cel-analyzer', label: $t('analysis.cel_analyzer.title') },
+    { id: 'interface-log', label: $t('analysis.interface_log.title') },
   ]);
 
   let activeSection = $state<string>('packet-log');
@@ -389,6 +398,12 @@
       {#if visibility['cel-analyzer']}
         <div id="cel-analyzer" class="analysis-section">
           <CelAnalyzerCard {statesSnapshot} {stateOptions} />
+        </div>
+      {/if}
+
+      {#if visibility['interface-log']}
+        <div id="interface-log" class="analysis-section">
+          <InterfaceLogCard portId={activePortId} integrationType={activeIntegrationType} />
         </div>
       {/if}
     </div>

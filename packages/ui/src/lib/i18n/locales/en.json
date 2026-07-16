@@ -300,6 +300,21 @@
       "expression_required": "Enter a CEL expression.",
       "request_failed": "Failed to evaluate CEL."
     },
+    "interface_log": {
+      "title": "Interface Log",
+      "desc": "Communication logs sent/received between H2M and integration services (MQTT / Matter).",
+      "search_placeholder": "Search topic, entity ID, payload...",
+      "empty": "No interface logs to display.",
+      "direction_in": "Incoming (IN)",
+      "direction_out": "Outgoing (OUT)",
+      "integration_mqtt": "MQTT",
+      "integration_matter": "Matter",
+      "all_integrations": "All Integrations",
+      "all_directions": "All Directions",
+      "direction_filter": "Direction",
+      "integration_filter": "Integration",
+      "auto_refresh": "Auto Refresh"
+    },
     "packet_analyzer": {
       "title": "Packet Analysis Test",
       "desc": "Analyze input packets through the core parser path to inspect valid packets and matches.",

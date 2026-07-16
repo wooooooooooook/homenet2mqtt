@@ -19,6 +19,7 @@ export interface LogRetentionStats {
   packetLogCount: number;
   unparsedValidPacketCount: number;
   activityLogCount: number;
+  interfaceLogCount: number;
   memoryUsageBytes: number;
   oldestLogTimestamp: number | null;
 }
@@ -54,6 +55,15 @@ type ActivityLogEntry = {
   portId?: string;
 };
 
+export interface InterfaceLogEntry {
+  timestamp: string;
+  integration: 'mqtt' | 'matter';
+  direction: 'in' | 'out';
+  topicOrEntityId: string;
+  payload: string;
+  portId?: string;
+}
+
 export class LogRetentionService {
   private enabled: boolean = true;
   private autoSaveEnabled: boolean = false;
@@ -65,6 +75,7 @@ export class LogRetentionService {
   private parsedPacketLogs: PacketLogEntry[] = [];
   private commandPacketLogs: CommandLogEntry[] = [];
   private activityLogs: ActivityLogEntry[] = [];
+  private interfaceLogs: InterfaceLogEntry[] = [];
 
   // Dictionary for valid but unparsed packets (Map: portId -> Set<packet hex>)
   private validButUnparsedPackets = new Map<string, Set<string>>();
@@ -173,6 +184,11 @@ export class LogRetentionService {
 
   public getCommandPacketHistoryRaw(): CommandLogEntry[] {
     return this.commandPacketLogs;
+  }
+
+  public getInterfaceLogs(portId?: string): InterfaceLogEntry[] {
+    if (!portId) return this.interfaceLogs;
+    return this.interfaceLogs.filter((log) => log.portId === portId);
   }
 
   public getPacketDictionary(portId?: string): Record<string, string> {
@@ -331,6 +347,7 @@ export class LogRetentionService {
       packetLogCount: this.parsedPacketLogs.length + this.commandPacketLogs.length,
       unparsedValidPacketCount: this.validButUnparsedPackets.size,
       activityLogCount: this.activityLogs.length,
+      interfaceLogCount: this.interfaceLogs.length,
       memoryUsageBytes: memoryUsage,
       oldestLogTimestamp: oldestTimestamp,
     };
@@ -342,11 +359,12 @@ export class LogRetentionService {
     const packetLogSize = (this.parsedPacketLogs.length + this.commandPacketLogs.length) * 200; // ~200 bytes per entry
     const unparsedPacketSize = this.validButUnparsedPackets.size * 50; // ~50 bytes per unique packet
     const activityLogSize = this.activityLogs.length * 250; // ~250 bytes per entry
+    const interfaceLogSize = this.interfaceLogs.length * 200; // ~200 bytes per entry
 
     // Dictionary overhead
     const dictSize = this.packetDictionary.size * 100; // ~100 bytes per entry
 
-    return packetLogSize + unparsedPacketSize + activityLogSize + dictSize;
+    return packetLogSize + unparsedPacketSize + activityLogSize + dictSize + interfaceLogSize;
   }
 
   private getOldestLogTimestamp(): number | null {
@@ -361,6 +379,9 @@ export class LogRetentionService {
     if (this.activityLogs.length > 0) {
       timestamps.push(this.activityLogs[0].timestamp);
     }
+    if (this.interfaceLogs.length > 0) {
+      timestamps.push(new Date(this.interfaceLogs[0].timestamp).getTime());
+    }
 
     return timestamps.length > 0 ? Math.min(...timestamps) : null;
   }
@@ -370,6 +391,7 @@ export class LogRetentionService {
     this.commandPacketLogs = [];
     this.validButUnparsedPackets = new Map<string, Set<string>>();
     this.activityLogs = [];
+    this.interfaceLogs = [];
   }
 
   private getOrCreatePacketId(packet: string): string {
@@ -397,6 +419,10 @@ export class LogRetentionService {
     );
 
     this.activityLogs = this.activityLogs.filter((log) => log.timestamp >= cutoff);
+
+    this.interfaceLogs = this.interfaceLogs.filter(
+      (log) => new Date(log.timestamp).getTime() >= cutoff,
+    );
 
     this.pruneDictionary();
   }
@@ -475,6 +501,16 @@ export class LogRetentionService {
     this.activityLogs.push(log);
   };
 
+  private handleInterfaceLog = (data: unknown) => {
+    if (!this.enabled) return;
+
+    const log = data as InterfaceLogEntry;
+    this.interfaceLogs.push({
+      ...log,
+      timestamp: log.timestamp ? getLocalTimestamp(log.timestamp) : getLocalTimestamp(),
+    });
+  };
+
   private handleUnmatchedPacket = (data: unknown) => {
     if (!this.enabled) return;
 
@@ -500,6 +536,7 @@ export class LogRetentionService {
     eventBus.on('command-packet', this.handleCommandPacket);
     eventBus.on('activity-log:added', this.handleActivityLog);
     eventBus.on('unmatched-packet', this.handleUnmatchedPacket);
+    eventBus.on('interface-log:added', this.handleInterfaceLog);
   }
 
   private removeListeners() {
@@ -507,6 +544,7 @@ export class LogRetentionService {
     eventBus.off('command-packet', this.handleCommandPacket);
     eventBus.off('activity-log:added', this.handleActivityLog);
     eventBus.off('unmatched-packet', this.handleUnmatchedPacket);
+    eventBus.off('interface-log:added', this.handleInterfaceLog);
   }
 
   // Auto-save functionality
@@ -569,6 +607,7 @@ export class LogRetentionService {
       commandPacketLogs: this.commandPacketLogs,
       validButUnparsedPackets: unmatchedByPort,
       activityLogs: this.activityLogs,
+      interfaceLogs: this.interfaceLogs,
     };
 
     await fsp.writeFile(filePath, JSON.stringify(data, null, 2), 'utf-8');

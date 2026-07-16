@@ -72,4 +72,13 @@ export interface EntityErrorEvent {
   context?: Record<string, unknown>;
 }
 
+export interface InterfaceLogEvent {
+  timestamp: string;
+  integration: 'mqtt' | 'matter';
+  direction: 'in' | 'out';
+  topicOrEntityId: string;
+  payload: string;
+  portId?: string;
+}
+
 export const eventBus = new EventEmitter();
