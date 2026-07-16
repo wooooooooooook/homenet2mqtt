@@ -24,7 +24,7 @@ options:
   log_level: info
   config_files:
     - default.homenet_bridge.yaml
-  timezone: ""
+  timezone: "Asia/Seoul"
 schema:
   log_level: list(trace|debug|info|warn|error|fatal)
   config_files:

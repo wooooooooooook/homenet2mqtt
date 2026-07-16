@@ -12,6 +12,7 @@ v3.0.0
 - ui: 기기목록뷰 추가
 - ui: 엔티티정보 창에 상세정보탭 추가
 - ui: 분석탭 - 패킷로그(Rx/Tx)와 raw패킷로그 통합
+- chore: ha app의 TIMEZONE 기본값을 Asia/Seoul로 지정함
 
 
 v2.15.2
