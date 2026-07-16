@@ -14,6 +14,24 @@ import { AggregatorEndpoint } from './endpoints/aggregator-endpoint.js';
 import { BridgeServerNode } from './endpoints/bridge-server-node.js';
 import { HomenetEndpoint } from './endpoints/homenet-endpoint.js';
 import { createEndpointType } from './endpoints/device-type-factory.js';
+import { OnOffServer } from './behaviors/on-off-server.js';
+import { LevelControlServer } from './behaviors/level-control-server.js';
+import {
+  ThermostatServer,
+  ThermostatServerHeatingOnly,
+  ThermostatServerCoolingOnly,
+  ThermostatServerHeatingAndCooling,
+} from './behaviors/thermostat-server.js';
+import { LockServer } from './behaviors/lock-server.js';
+import { BooleanStateServer } from './behaviors/boolean-state-server.js';
+import { OccupancySensingServer } from './behaviors/occupancy-sensing-server.js';
+import { TemperatureMeasurementServer } from './behaviors/temperature-measurement-server.js';
+import { HumidityMeasurementServer } from './behaviors/humidity-measurement-server.js';
+import { IlluminanceMeasurementServer } from './behaviors/illuminance-measurement-server.js';
+import { FanControlServer } from './behaviors/fan-control-server.js';
+import { NumberLevelControlServer } from './behaviors/number-level-control-server.js';
+import { SelectModeServer } from './behaviors/select-mode-server.js';
+import { BasicInformationServer } from './behaviors/basic-information-server.js';
 import { ENTITY_TYPE_KEYS } from '../../utils/entities.js';
 import type { EntityConfig } from '../../domain/entities/base.entity.js';
 
@@ -314,6 +332,46 @@ export class MatterConnector implements IntegrationConnector {
 
   isConnected(): boolean {
     return this.isStarted;
+  }
+
+  getMatterDeviceState(entityId: string): Record<string, any> | null {
+    const endpoint = this.endpoints.get(entityId);
+    if (!endpoint) return null;
+
+    const stateObj: Record<string, any> = {};
+
+    const behaviorsToQuery = [
+      { name: 'onOff', behavior: OnOffServer },
+      { name: 'levelControl', behavior: LevelControlServer },
+      { name: 'thermostat', behavior: ThermostatServer },
+      { name: 'thermostatHeatingOnly', behavior: ThermostatServerHeatingOnly },
+      { name: 'thermostatCoolingOnly', behavior: ThermostatServerCoolingOnly },
+      { name: 'thermostatHeatingAndCooling', behavior: ThermostatServerHeatingAndCooling },
+      { name: 'doorLock', behavior: LockServer },
+      { name: 'booleanState', behavior: BooleanStateServer },
+      { name: 'occupancySensing', behavior: OccupancySensingServer },
+      { name: 'temperatureMeasurement', behavior: TemperatureMeasurementServer },
+      { name: 'humidityMeasurement', behavior: HumidityMeasurementServer },
+      { name: 'illuminanceMeasurement', behavior: IlluminanceMeasurementServer },
+      { name: 'fanControl', behavior: FanControlServer },
+      { name: 'numberLevelControl', behavior: NumberLevelControlServer },
+      { name: 'selectMode', behavior: SelectModeServer },
+      { name: 'basicInformation', behavior: BasicInformationServer },
+    ];
+
+    for (const item of behaviorsToQuery) {
+      try {
+        const state = endpoint.stateOf(item.behavior);
+        if (state) {
+          const keyName = item.name.startsWith('thermostat') ? 'thermostat' : item.name;
+          stateObj[keyName] = { ...stateObj[keyName], ...JSON.parse(JSON.stringify(state)) };
+        }
+      } catch (err) {
+        // Ignored if behavior is not active or fails to query
+      }
+    }
+
+    return stateObj;
   }
 
   getCommissioningInfo() {

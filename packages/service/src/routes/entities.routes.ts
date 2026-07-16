@@ -328,6 +328,24 @@ export function createEntitiesRoutes(ctx: EntitiesRoutesContext): Router {
     }
   });
 
+  router.get('/api/entities/:entityId/matter-state', (req, res) => {
+    const { entityId } = req.params;
+    if (!entityId) return res.status(400).json({ error: 'entityId required' });
+
+    const bridgeInstance = findBridgeForEntity(
+      ctx.getCurrentConfigs(),
+      ctx.getBridges(),
+      ctx.getCurrentConfigFiles(),
+      entityId,
+    );
+    if (!bridgeInstance) {
+      return res.status(404).json({ error: 'Entity not found or bridge not active' });
+    }
+
+    const state = bridgeInstance.bridge.getMatterDeviceState(entityId);
+    res.json({ state });
+  });
+
   router.delete('/api/entities/:entityId', async (req, res) => {
     if (!ctx.configRateLimiter.check(req.ip || 'unknown')) {
       logger.warn({ ip: req.ip }, '[service] Delete entity rate limit exceeded');

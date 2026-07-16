@@ -59,6 +59,9 @@
     'status' | 'config' | 'packets' | 'manage' | 'execute' | 'logs' | 'details'
   >('status');
 
+  let matterState = $state<Record<string, any> | null>(null);
+  let matterStateInterval: ReturnType<typeof setInterval> | null = null;
+
   const integrationType = $derived.by(() => {
     if (!bridgeInfo || !entity.portId) return 'mqtt';
     const br = bridgeInfo.bridges.find((b) => b.serial?.portId === entity.portId);
@@ -605,10 +608,39 @@
     }
   }
 
+  async function loadMatterState() {
+    if (!entity || !entity.id) return;
+    try {
+      const res = await fetch(`./api/entities/${entity.id}/matter-state`);
+      if (res.ok) {
+        const data = await res.json();
+        matterState = data.state || null;
+      }
+    } catch (e) {
+      console.error('Failed to load Matter state', e);
+    }
+  }
+
   $effect(() => {
     if (isOpen && entity && activeTab === 'details') {
       loadMqttInfo();
+      loadMatterState();
+
+      if (matterStateInterval) clearInterval(matterStateInterval);
+      matterStateInterval = setInterval(loadMatterState, 3000);
+    } else {
+      if (matterStateInterval) {
+        clearInterval(matterStateInterval);
+        matterStateInterval = null;
+      }
     }
+
+    return () => {
+      if (matterStateInterval) {
+        clearInterval(matterStateInterval);
+        matterStateInterval = null;
+      }
+    };
   });
 
   async function triggerSystemRestart() {
@@ -1038,6 +1070,14 @@
 
     const lockStateVal = payload.lock === 'locked' ? 1 : 2;
 
+    const groupsData = matterState?.groups || {};
+    const onOffData = matterState?.onOff || {};
+    const levelControlData = matterState?.levelControl || {};
+    const scenesManagementData = matterState?.scenesManagement || {};
+    const thermostatData = matterState?.thermostat || {};
+    const doorLockData = matterState?.doorLock || {};
+    const descriptorData = matterState?.descriptor || {};
+
     return {
       groups: {
         clusterRevision: 4,
@@ -1065,6 +1105,7 @@
           'getGroupMembershipResponse',
           'removeGroupResponse',
         ],
+        ...groupsData,
       },
       onOff: {
         onOff: isStateOn,
@@ -1095,6 +1136,7 @@
           'onWithTimedOff',
         ],
         generatedCommandList: [],
+        ...onOffData,
       },
       levelControl: {
         currentLevel: brightnessVal,
@@ -1121,6 +1163,7 @@
           'featureMap',
         ],
         acceptedCommandList: ['moveToLevel', 'move', 'step', 'stop', 'moveToLevelWithOnOff'],
+        ...levelControlData,
       },
       scenesManagement: {
         sceneTable: [],
@@ -1162,11 +1205,25 @@
           'getSceneMembershipResponse',
           'copySceneResponse',
         ],
+        ...scenesManagementData,
       },
       thermostat: {
         localTemperature: temperatureVal,
+        occupiedHeatingSetpoint:
+          payload.target_temperature !== undefined
+            ? Math.round(payload.target_temperature * 100)
+            : 2000,
+        occupiedCoolingSetpoint:
+          payload.target_temperature !== undefined
+            ? Math.round(payload.target_temperature * 100)
+            : 2400,
+        systemMode: payload.mode || 'off',
         clusterRevision: 6,
-        featureMap: { heating: true, cooling: true },
+        featureMap: {
+          heating: entity.commands?.some((c) => c.commandName.includes('heat')) ?? true,
+          cooling: entity.commands?.some((c) => c.commandName.includes('cool')) ?? false,
+          autoMode: entity.commands?.some((c) => c.commandName.includes('auto')) ?? false,
+        },
         attributeList: [
           'localTemperature',
           'occupiedCoolingSetpoint',
@@ -1187,6 +1244,7 @@
           'getWeeklySchedule',
           'clearWeeklySchedule',
         ],
+        ...thermostatData,
       },
       doorLock: {
         lockState: lockStateVal,
@@ -1204,11 +1262,12 @@
           'featureMap',
         ],
         acceptedCommandList: ['lockDoor', 'unlockDoor'],
+        ...doorLockData,
       },
       descriptor: {
         clusterRevision: 3,
         featureMap: { tagList: true },
-        deviceTypeList: ['deviceType: 0x0101', 'revision: 1'],
+        deviceTypeList: [`deviceType: ${matterDeviceDetails.deviceCode}`, 'revision: 1'],
         serverList: matterDeviceDetails.clusters,
         clientList: [],
         partsList: [],
@@ -1225,6 +1284,7 @@
         ],
         acceptedCommandList: [],
         generatedCommandList: [],
+        ...descriptorData,
       },
     };
   });

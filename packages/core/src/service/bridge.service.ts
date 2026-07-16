@@ -174,6 +174,17 @@ export class HomeNetBridge extends EventEmitter {
     return context?.integrationConnector?.getCommissioningInfo?.() ?? null;
   }
 
+  getMatterDeviceState(entityId: string) {
+    const context = this.getDefaultContext();
+    if (
+      context?.integrationConnector &&
+      typeof (context.integrationConnector as any).getMatterDeviceState === 'function'
+    ) {
+      return (context.integrationConnector as any).getMatterDeviceState(entityId);
+    }
+    return null;
+  }
+
   async clearRetainedMessages(): Promise<number> {
     const context = this.getDefaultContext();
     if (

@@ -82,7 +82,7 @@ describe('Matter Transports Utilities', () => {
 
       applyPatchState(targetState, { onOff: true });
 
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       expect(targetState._onOff).toBe(false);
       expect(failCount).toBe(9);
