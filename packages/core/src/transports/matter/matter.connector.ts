@@ -32,7 +32,7 @@ import { FanControlServer } from './behaviors/fan-control-server.js';
 import { NumberLevelControlServer } from './behaviors/number-level-control-server.js';
 import { SelectModeServer } from './behaviors/select-mode-server.js';
 import { BasicInformationServer } from './behaviors/basic-information-server.js';
-import { ENTITY_TYPE_KEYS } from '../../utils/entities.js';
+import { ENTITY_TYPE_KEYS, findEntityById } from '../../utils/entities.js';
 import type { EntityConfig } from '../../domain/entities/base.entity.js';
 
 export interface MatterConnectorOptions {
@@ -143,12 +143,15 @@ export class MatterConnector implements IntegrationConnector {
 
     // 4. Find, register and add all supported entities to the aggregator
     const executeCmd = (entityId: string, cmd: string, val?: number | string) => {
+      const entity = findEntityById(config, entityId);
+      const entityType = entity?.type || '';
+
       eventBus.emit('interface-log:added', {
         timestamp: new Date().toISOString(),
         integration: 'matter',
         direction: 'in',
         topicOrEntityId: entityId,
-        payload: JSON.stringify({ command: cmd, value: val }),
+        payload: JSON.stringify(getMatterCommandPayload(entityType, cmd, val)),
         portId,
       });
       return this.context.executeCommand(entityId, cmd, val);
@@ -467,3 +470,83 @@ const PLATFORM_LABELS: Record<number, string> = {
   0x120f: 'Home Assistant',
   0xfff1: 'Test Platform',
 };
+
+function getMatterCommandPayload(
+  entityType: string,
+  cmd: string,
+  val?: number | string,
+): Record<string, any> {
+  const lowerCmd = cmd.toLowerCase();
+  const lowerType = entityType.toLowerCase();
+
+  if (
+    lowerType === 'switch' ||
+    lowerType === 'light' ||
+    lowerType === 'outlet' ||
+    lowerType === 'button'
+  ) {
+    if (lowerCmd === 'on' || lowerCmd === 'off') {
+      return { cluster: 'OnOff', command: cmd.toUpperCase() };
+    }
+    if (lowerCmd === 'press') {
+      return { cluster: 'OnOff', command: 'Press' };
+    }
+    if (lowerCmd === 'brightness') {
+      return { cluster: 'LevelControl', attribute: 'CurrentLevel', value: val };
+    }
+  }
+
+  if (lowerType === 'valve') {
+    if (lowerCmd === 'open' || lowerCmd === 'close') {
+      return { cluster: 'OnOff', command: cmd === 'open' ? 'On (Open)' : 'Off (Close)' };
+    }
+  }
+
+  if (lowerType === 'fan') {
+    if (lowerCmd === 'off') {
+      return { cluster: 'FanControl', command: 'TurnOff' };
+    }
+    if (lowerCmd === 'percentage') {
+      return { cluster: 'FanControl', attribute: 'PercentSetting', value: val };
+    }
+    if (lowerCmd === 'speed') {
+      return { cluster: 'FanControl', attribute: 'SpeedSetting', value: val };
+    }
+  }
+
+  if (lowerType === 'lock') {
+    if (lowerCmd === 'lock' || lowerCmd === 'unlock') {
+      return { cluster: 'DoorLock', command: cmd === 'lock' ? 'LockDoor' : 'UnlockDoor' };
+    }
+  }
+
+  if (lowerType === 'climate') {
+    if (lowerCmd === 'temperature') {
+      return { cluster: 'Thermostat', attribute: 'OccupiedHeatingSetpoint', value: val };
+    }
+    if (
+      lowerCmd === 'heat' ||
+      lowerCmd === 'cool' ||
+      lowerCmd === 'auto' ||
+      lowerCmd === 'off' ||
+      lowerCmd === 'dry' ||
+      lowerCmd === 'fan_only'
+    ) {
+      return { cluster: 'Thermostat', attribute: 'SystemMode', value: cmd };
+    }
+  }
+
+  if (lowerType === 'select') {
+    if (lowerCmd === 'select') {
+      return { cluster: 'ModeSelect', command: 'ChangeToMode', value: val };
+    }
+  }
+
+  if (lowerType === 'number') {
+    if (lowerCmd === 'number') {
+      return { cluster: 'LevelControl', command: 'MoveToLevel', value: val };
+    }
+  }
+
+  return { command: cmd, value: val };
+}
