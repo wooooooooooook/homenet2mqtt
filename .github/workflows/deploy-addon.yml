@@ -30,6 +30,8 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      VERSION: ${{ steps.get_version.outputs.VERSION }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -71,6 +73,8 @@ jobs:
           if [ "$INCREMENT" != "none" ]; then
              echo "Updating config.yaml to $NEW_VERSION"
              sed -i "s/^version: .*/version: $NEW_VERSION/" hassio-addon/config.yaml
+             echo "Updating config-matter.yaml to $NEW_VERSION"
+             sed -i "s/^version: .*/version: $NEW_VERSION/" hassio-addon/config-matter.yaml
              echo "Updating package.json to $NEW_VERSION"
              npm version $NEW_VERSION --no-git-tag-version --allow-same-version
           fi
@@ -117,6 +121,8 @@ jobs:
           file: hassio-addon/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
+          build-args: |
+            VERSION=${{ steps.get_version.outputs.VERSION }}
           tags: |
             nubiz/homenet2mqtt:latest
             nubiz/homenet2mqtt:${{ steps.get_version.outputs.VERSION }}
@@ -143,7 +149,7 @@ jobs:
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add hassio-addon/config.yaml package.json packages/*/package.json
+          git add hassio-addon/config.yaml hassio-addon/config-matter.yaml package.json packages/*/package.json
           git commit -m "chore: bump addon version to $NEW_VERSION"
           git pull --rebase origin ${{ github.ref_name }}
           git push origin HEAD:${{ github.ref }}
@@ -194,7 +200,7 @@ jobs:
             exit 0
           fi
 
-          node source/scripts/generate-addons.mjs --target target --types "$TYPES"
+          node source/scripts/generate-addons.mjs --target target --types "$TYPES" --version "${{ needs.build.outputs.VERSION }}"
           
           # Check for changes
           cd target
