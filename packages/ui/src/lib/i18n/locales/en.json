@@ -315,7 +315,11 @@
       "all_directions": "All Directions",
       "direction_filter": "Direction",
       "integration_filter": "Integration",
-      "auto_refresh": "Auto Refresh"
+      "auto_refresh": "Auto Refresh",
+      "col_time": "Time",
+      "col_dir": "Dir",
+      "col_topic": "Topic / Entity",
+      "col_payload": "Payload"
     },
     "packet_analyzer": {
       "title": "Packet Analysis Test",

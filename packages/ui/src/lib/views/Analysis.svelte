@@ -415,6 +415,9 @@
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
   }
 
   .view-header {
@@ -607,10 +610,16 @@
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
   }
 
   .analysis-section {
     scroll-margin-top: 1rem;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
   }
 
   :global(#packet-sender),

@@ -1992,12 +1992,14 @@
     display: flex;
     flex: 1;
     overflow: hidden; /* Prevent body scrollbars */
+    min-width: 0;
   }
 
   .main-content {
     flex: 1;
     padding: 2rem;
     max-width: 100%;
+    min-width: 0;
     box-sizing: border-box;
     overflow-y: auto;
     height: calc(100vh - 65px); /* Header height */

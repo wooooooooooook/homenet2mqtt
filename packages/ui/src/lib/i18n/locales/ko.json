@@ -315,7 +315,11 @@
       "all_directions": "모든 방향",
       "direction_filter": "방향",
       "integration_filter": "연동 서비스",
-      "auto_refresh": "자동 갱신"
+      "auto_refresh": "자동 갱신",
+      "col_time": "시간",
+      "col_dir": "구분",
+      "col_topic": "토픽 / 엔티티",
+      "col_payload": "페이로드"
     },
     "packet_analyzer": {
       "title": "패킷 해석 테스트",

@@ -132,13 +132,67 @@
     }
   }
 
-  function formatTime(timestamp: string) {
-    try {
-      const date = new Date(timestamp);
-      return date.toLocaleTimeString(undefined, { hour12: false });
-    } catch {
-      return timestamp;
-    }
+  import { formatTime } from '../../utils/time';
+
+  const formatLogTime = (timestamp: string) => formatTime(timestamp);
+
+  // Table column resizing
+  let colWidths = $state({
+    time: 100,
+    dir: 60,
+    topic: 250,
+    payload: 320,
+  });
+
+  let resizingCol = $state<keyof typeof colWidths | null>(null);
+  let startX = 0;
+  let startWidth = 0;
+
+  function initResize(e: MouseEvent, col: keyof typeof colWidths) {
+    e.preventDefault();
+    resizingCol = col;
+    startX = e.clientX;
+    startWidth = colWidths[col];
+
+    window.addEventListener('mousemove', handleResize);
+    window.addEventListener('mouseup', stopResize);
+  }
+
+  function handleResize(e: MouseEvent) {
+    if (!resizingCol) return;
+    const diff = e.clientX - startX;
+    const newWidth = Math.max(40, startWidth + diff);
+    colWidths[resizingCol] = newWidth;
+  }
+
+  function stopResize() {
+    resizingCol = null;
+    window.removeEventListener('mousemove', handleResize);
+    window.removeEventListener('mouseup', stopResize);
+  }
+
+  function initTouchResize(e: TouchEvent, col: keyof typeof colWidths) {
+    if (e.touches.length !== 1) return;
+    resizingCol = col;
+    startX = e.touches[0].clientX;
+    startWidth = colWidths[col];
+
+    window.addEventListener('touchmove', handleTouchResize, { passive: false });
+    window.addEventListener('touchend', stopTouchResize);
+  }
+
+  function handleTouchResize(e: TouchEvent) {
+    if (!resizingCol || e.touches.length !== 1) return;
+    e.preventDefault(); // Prevent touch scroll
+    const diff = e.touches[0].clientX - startX;
+    const newWidth = Math.max(40, startWidth + diff);
+    colWidths[resizingCol] = newWidth;
+  }
+
+  function stopTouchResize() {
+    resizingCol = null;
+    window.removeEventListener('touchmove', handleTouchResize);
+    window.removeEventListener('touchend', stopTouchResize);
   }
 </script>
 
@@ -215,24 +269,60 @@
         <p class="empty">{$t('analysis.interface_log.empty')}</p>
       {:else}
         <table class="log-table">
+          <colgroup>
+            <col style="width: {colWidths.time}px;" />
+            <col style="width: {colWidths.dir}px;" />
+            <col style="width: {colWidths.topic}px;" />
+            <col style="width: {colWidths.payload}px;" />
+          </colgroup>
           <thead>
             <tr>
-              <th class="col-time">Time</th>
-              <th class="col-service">Service</th>
-              <th class="col-dir">Dir</th>
-              <th class="col-topic">Topic / Entity</th>
-              <th class="col-payload">Payload</th>
+              <th class="col-time">
+                <span class="th-content">{$t('analysis.interface_log.col_time')}</span>
+                <div
+                  class="resizer"
+                  class:active={resizingCol === 'time'}
+                  onmousedown={(e) => initResize(e, 'time')}
+                  ontouchstart={(e) => initTouchResize(e, 'time')}
+                  role="presentation"
+                ></div>
+              </th>
+              <th class="col-dir">
+                <span class="th-content">{$t('analysis.interface_log.col_dir')}</span>
+                <div
+                  class="resizer"
+                  class:active={resizingCol === 'dir'}
+                  onmousedown={(e) => initResize(e, 'dir')}
+                  ontouchstart={(e) => initTouchResize(e, 'dir')}
+                  role="presentation"
+                ></div>
+              </th>
+              <th class="col-topic">
+                <span class="th-content">{$t('analysis.interface_log.col_topic')}</span>
+                <div
+                  class="resizer"
+                  class:active={resizingCol === 'topic'}
+                  onmousedown={(e) => initResize(e, 'topic')}
+                  ontouchstart={(e) => initTouchResize(e, 'topic')}
+                  role="presentation"
+                ></div>
+              </th>
+              <th class="col-payload">
+                <span class="th-content">{$t('analysis.interface_log.col_payload')}</span>
+                <div
+                  class="resizer"
+                  class:active={resizingCol === 'payload'}
+                  onmousedown={(e) => initResize(e, 'payload')}
+                  ontouchstart={(e) => initTouchResize(e, 'payload')}
+                  role="presentation"
+                ></div>
+              </th>
             </tr>
           </thead>
           <tbody>
             {#each filteredLogs as log, i (log.timestamp + i)}
               <tr>
-                <td class="col-time font-mono">{formatTime(log.timestamp)}</td>
-                <td class="col-service">
-                  <span class="badge badge-service {log.integration}">
-                    {log.integration.toUpperCase()}
-                  </span>
-                </td>
+                <td class="col-time font-mono">{formatLogTime(log.timestamp)}</td>
                 <td class="col-dir">
                   <span class="badge badge-dir {log.direction}">
                     {log.direction.toUpperCase()}
@@ -357,6 +447,10 @@
     display: flex;
     flex-direction: column;
     gap: 1.25rem;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
   }
 
   @media (max-width: 480px) {
@@ -372,26 +466,6 @@
     .log-table th,
     .log-table td {
       padding: 0.4rem 0.5rem;
-    }
-
-    .col-time {
-      width: 70px;
-    }
-
-    .col-service {
-      width: 60px;
-    }
-
-    .col-dir {
-      width: 45px;
-    }
-
-    .col-topic {
-      min-width: 100px;
-    }
-
-    .col-payload {
-      min-width: 120px;
     }
   }
 
@@ -529,6 +603,7 @@
     border: 1px solid rgba(148, 163, 184, 0.1);
     border-radius: 8px;
     background: rgba(15, 23, 42, 0.2);
+    width: 100%;
   }
 
   .log-table {
@@ -536,6 +611,7 @@
     border-collapse: collapse;
     font-size: 0.85rem;
     text-align: left;
+    table-layout: fixed;
   }
 
   .log-table th {
@@ -547,6 +623,34 @@
     top: 0;
     z-index: 1;
     border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+    user-select: none;
+  }
+
+  .th-content {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    width: 100%;
+    padding-right: 4px;
+  }
+
+  .resizer {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 8px;
+    cursor: col-resize;
+    z-index: 2;
+    background: transparent;
+    transition: background 0.15s ease;
+  }
+
+  .resizer:hover,
+  .resizer.active {
+    background: rgba(56, 189, 248, 0.3);
+    border-right: 2px solid #38bdf8;
   }
 
   .log-table td {
@@ -565,26 +669,7 @@
   }
 
   .col-time {
-    width: 90px;
     white-space: nowrap;
-  }
-
-  .col-service {
-    width: 80px;
-  }
-
-  .col-dir {
-    width: 60px;
-  }
-
-  .col-topic {
-    width: 30%;
-    min-width: 150px;
-    max-width: 300px;
-  }
-
-  .col-payload {
-    min-width: 200px;
   }
 
   .badge {
