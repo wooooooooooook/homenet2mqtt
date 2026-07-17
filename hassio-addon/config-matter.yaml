@@ -22,8 +22,7 @@ auth_api: true
 uart: true
 options:
   log_level: info
-  config_files:
-    - default.homenet_bridge.yaml
+  config_files: []
   timezone: "Asia/Seoul"
 schema:
   log_level: list(trace|debug|info|warn|error|fatal)

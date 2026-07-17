@@ -68,10 +68,6 @@ if [ -f "$CONFIG_PATH" ]; then
     CONFIG_FILES="$LEGACY_CONFIG_FILE"
   fi
   
-  if [ -z "$CONFIG_FILES" ] || [ "$CONFIG_FILES" == "null" ]; then
-    CONFIG_FILES="default.homenet_bridge.yaml,"
-  fi
-  
   export CONFIG_FILES="$CONFIG_FILES"
   
   # Home Assistant 경로 사용
