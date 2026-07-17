@@ -27,6 +27,7 @@
     "dev:frontend": "pnpm --filter @rs485-homenet/ui dev",
     "schema:build": "pnpm --filter @rs485-homenet/core schema:generate",
     "simulate": "node packages/simulator/scripts/convert_trace.js",
+    "packets:generate": "node scripts/debug-packets-generated.cjs",
     "lint": "turbo lint",
     "build": "turbo build --filter=@rs485-homenet/service...",
     "build:simulator": "pnpm --filter @rs485-homenet/simulator build",
