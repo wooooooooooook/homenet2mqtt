@@ -364,6 +364,35 @@
       padding: 0.75rem;
       border-radius: 8px;
     }
+
+    .log-table {
+      font-size: 0.75rem;
+    }
+
+    .log-table th,
+    .log-table td {
+      padding: 0.4rem 0.5rem;
+    }
+
+    .col-time {
+      width: 70px;
+    }
+
+    .col-service {
+      width: 60px;
+    }
+
+    .col-dir {
+      width: 45px;
+    }
+
+    .col-topic {
+      min-width: 100px;
+    }
+
+    .col-payload {
+      min-width: 120px;
+    }
   }
 
   .header {
@@ -495,6 +524,8 @@
   .log-table-container {
     max-height: 500px;
     overflow-y: auto;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
     border: 1px solid rgba(148, 163, 184, 0.1);
     border-radius: 8px;
     background: rgba(15, 23, 42, 0.2);
