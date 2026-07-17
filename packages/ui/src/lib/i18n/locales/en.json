@@ -170,7 +170,8 @@
       "delete_confirm": "Are you sure you want to delete {filename}? (A backup will be created)",
       "delete_success": "Configuration file deleted.",
       "delete_last_warning": "This is the last bridge. Deleting it will restart the setup wizard.",
-      "delete_last_confirm": "Are you sure you want to delete {filename}?\n\n⚠️ This is the last bridge. Deleting it will restart the setup wizard."
+      "delete_last_confirm": "Are you sure you want to delete {filename}?\n\n⚠️ This is the last bridge. Deleting it will restart the setup wizard.",
+      "missing_file": "Missing Config"
     },
     "auto_restart": {
       "title": "Fault auto restart",

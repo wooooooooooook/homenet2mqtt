@@ -128,6 +128,7 @@ export type BridgeSerialInfo = {
   path: string;
   baudRate: number;
   topic: string;
+  isMissing?: boolean;
 };
 
 export type BridgeEntry = {

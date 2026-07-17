@@ -162,11 +162,18 @@ export function createSystemRoutes(ctx: SystemRoutesContext): Router {
 
       // Handle case where config completely failed to load (empty object or null, no serial)
       if (!config || !config.serial) {
+        const derivedPortId = configFile.replace(/\.homenet_bridge\.ya?ml$/, '');
         return {
           configFile,
-          serial: null,
+          serial: {
+            portId: derivedPortId,
+            path: 'N/A',
+            baudRate: 0,
+            topic: `${BASE_MQTT_PREFIX}/${derivedPortId}`,
+            isMissing: true,
+          },
           mqttTopicPrefix: BASE_MQTT_PREFIX,
-          topic: `${BASE_MQTT_PREFIX}/homedevice1/raw`,
+          topic: `${BASE_MQTT_PREFIX}/${derivedPortId}/raw`,
           error: resolveErrorCode(configError) || 'Config not loaded',
           errorInfo: configError ?? null,
           status: configStatus,

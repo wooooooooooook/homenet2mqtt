@@ -1000,7 +1000,15 @@
                       <span class="file-name">{bridge.configFile}</span>
                       <div class="bridge-details">
                         {#if bridge.serial}
-                          <span class="badge sm">{bridge.serial.portId}: {bridge.serial.path}</span>
+                          {#if bridge.serial.isMissing}
+                            <span class="badge sm danger"
+                              >{$t('settings.bridge_config.missing_file')}</span
+                            >
+                          {:else}
+                            <span class="badge sm"
+                              >{bridge.serial.portId}: {bridge.serial.path}</span
+                            >
+                          {/if}
                         {/if}
                       </div>
                     </div>
