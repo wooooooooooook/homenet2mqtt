@@ -26,14 +26,12 @@ export type ConfigEditorService = {
 };
 
 export const createConfigEditorService = (deps: ConfigEditorDeps): ConfigEditorService => {
-  const { defaultConfigFilename } = deps;
-
   const isValidConfigFilename = (filename: string): boolean => {
     if (!filename || filename.includes('/') || filename.includes('\\')) {
       return false;
     }
-    // Allow default config or .homenet_bridge.yaml/.yml extensions
-    return /\.homenet_bridge\.ya?ml$/.test(filename) || filename === defaultConfigFilename;
+    // Allow any .yaml or .yml file to accommodate customized filenames like homenet_bridge.yaml
+    return /\.ya?ml$/.test(filename);
   };
 
   return {
