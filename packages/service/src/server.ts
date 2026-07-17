@@ -184,6 +184,7 @@ registerRoutes(app, {
   getBridgeStatus: () => bridgeStatus,
   getBridgeError: () => bridgeError,
   isBridgeStarting: () => !!bridgeStartPromise,
+  getEnvConfigFilesSource: () => envConfigFiles.source,
 
   setCurrentConfigs: (index: number, config: HomenetBridgeConfig) => {
     currentConfigs[index] = config;

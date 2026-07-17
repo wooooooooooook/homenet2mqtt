@@ -169,6 +169,7 @@ export type BridgeInfo = {
   restartRequired?: boolean;
   timezone?: string;
   version?: string;
+  envConfigFilesSource?: string | null;
 };
 
 export type CommandInfo = {

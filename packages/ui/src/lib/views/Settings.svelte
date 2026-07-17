@@ -1028,10 +1028,13 @@
                         class="file-action-btn"
                         onclick={() => handleDeleteConfig(bridge.configFile)}
                         isLoading={deletingConfig === bridge.configFile}
+                        disabled={bridgeInfo?.envConfigFilesSource !== 'default'}
                         ariaLabel={$t('common.delete')}
-                        title={isLastBridge
-                          ? $t('settings.bridge_config.delete_last_warning')
-                          : $t('common.delete')}
+                        title={bridgeInfo?.envConfigFilesSource !== 'default'
+                          ? $t('settings.bridge_config.delete_disabled_custom_config')
+                          : isLastBridge
+                            ? $t('settings.bridge_config.delete_last_warning')
+                            : $t('common.delete')}
                       >
                         🗑
                       </Button>

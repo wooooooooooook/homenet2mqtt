@@ -48,6 +48,7 @@ export interface SystemRoutesContext {
   getBridgeStatus: () => BridgeStatus;
   getBridgeError: () => BridgeErrorPayload | null;
   isBridgeStarting: () => boolean;
+  getEnvConfigFilesSource: () => string | null;
 }
 
 export function createSystemRoutes(ctx: SystemRoutesContext): Router {
@@ -148,6 +149,7 @@ export function createSystemRoutes(ctx: SystemRoutesContext): Router {
         topic: `${BASE_MQTT_PREFIX}/homedevice1/raw`,
         timezone: timezoneOverride || undefined,
         version: await getAppVersion(),
+        envConfigFilesSource: ctx.getEnvConfigFilesSource(),
       });
     }
 
@@ -226,6 +228,7 @@ export function createSystemRoutes(ctx: SystemRoutesContext): Router {
       timezone: timezoneOverride || undefined,
       mqttConnected: anyMqttConnected,
       version: await getAppVersion(),
+      envConfigFilesSource: ctx.getEnvConfigFilesSource(),
     });
   });
 
