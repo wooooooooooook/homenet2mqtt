@@ -56,9 +56,9 @@ jobs:
       - name: Determine platforms
         id: set-platforms
         run: |
-          # Default values for push triggers (both architectures)
+          # Default values for push triggers (amd64: true, arm64: false)
           AMD64="true"
-          ARM64="true"
+          ARM64="false"
           
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             AMD64="${{ github.event.inputs.arch_amd64 }}"
