@@ -1,0 +1,74 @@
+meta:
+  name: "가상 전등 연동"
+  name_en: "Virtual Lights"
+  description: |
+    월패드에 가상 전등을 인식시킵니다. 월패드에 연동된 전등이 없을 때 사용하며, HA에서 자동화등을 통해 월패드에서 제어가능한 전등을 만드는데 쓸 수 있습니다.
+  description_en: |
+    Simulates virtual lights to be recognized by the wallpad. Used when there are no physical lights linked to the wallpad, allowing you to create wallpad-controllable lights using Home Assistant automations.
+  version: "1.0.0"
+  author: "wooooooooooook"
+  tags: ["light", "commax", "virtual"]
+
+parameters:
+  - name: light_count
+    type: integer
+    default: 3
+    min: 1
+    max: 9
+    label: "가상 전등 개수"
+    label_en: "Number of Virtual Lights"
+
+entities:
+  light:
+    - $repeat:
+        count: '{{light_count}}'
+        as: i
+        start: 1
+      id: 'light_{{i}}'
+      name: 'Light {{i}}'
+      optimistic: true
+      discovery_always: true
+      restore_mode: RESTORE_DEFAULT_OFF
+      state: {}
+      state_on: {}
+      state_off: {}
+      command_on: {}
+      command_off: {}
+
+automation:
+  - id: light_respond
+    trigger:
+      - type: packet
+        match:
+          data: [0x30, 0x00, 0x00]
+          mask: [0xFF, 0x00, 0xFF]
+          index: 0
+        guard: 'int(trigger.packet[1]) <= {{light_count}}'
+    then:
+      - action: delay
+        milliseconds: 20ms
+      - action: send_packet
+        data: "[0xB0, states['light_' + string(trigger.packet[1])]['state'] == 'ON' ? 1 : 0, int(trigger.packet[1]), 0x00, 0x00, 0x00, 0x00]"
+        checksum: true
+
+  - id: light_receive_command
+    trigger:
+      - type: packet
+        match:
+          data: [0x31, 0x00, 0x00, 0x00]
+          mask: [0xFF, 0x00, 0x00, 0xFF]
+          index: 0
+        guard: 'int(trigger.packet[1]) <= {{light_count}}'
+    then:
+      - action: update_state
+        target_id: '"light_" + string(trigger.packet[1])'
+        state:
+          state_on:
+            data: [0x01]
+            index: 2
+          state_off:
+            data: [0x00]
+            index: 2
+      - action: send_packet
+        data: "[0xB1, states['light_' + string(trigger.packet[1])]['state'] == 'ON' ? 1 : 0, int(trigger.packet[1]), 0x00, 0x00, 0x00, 0x00]"
+        checksum: true

@@ -1,0 +1,36 @@
+meta:
+  name: "난방 상태요청 자동화"
+  name_en: "Heaters State Request Automation"
+  description: |
+    월패드 대신 보일러에 상태조회패킷을 보내는 자동화입니다.
+  description_en: |
+    Automation that sends state request packets to the heaters instead of the wallpad.
+  version: "1.0.0"
+  author: "wooooooooooook"
+  tags: ["climate", "heater", "automation", "commax"]
+
+parameters:
+  - name: heater_count
+    type: integer
+    default: 4
+    min: 1
+    max: 9
+    label: "난방 개수"
+    label_en: "Number of Heaters"
+
+automation:
+  - id: request_state
+    trigger:
+      - type: schedule
+        every: 5s
+    then:
+      - $repeat:
+          count: '{{heater_count}}'
+          as: i
+          start: 1
+        $nested:
+          - action: send_packet
+            data: [0x02, '{{i}}', 0x00, 0x00, 0x00, 0x00, 0x00]
+            checksum: true
+          - action: delay
+            milliseconds: 100ms
