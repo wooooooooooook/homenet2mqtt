@@ -81,7 +81,8 @@ export type StreamEvent =
   | 'parsed-packet'
   | 'state-change'
   | 'activity-log-added'
-  | 'entity-error';
+  | 'entity-error'
+  | 'bridge-status';
 
 export type StreamMessage<T = unknown> = {
   event: StreamEvent;

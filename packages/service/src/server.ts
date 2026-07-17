@@ -579,6 +579,17 @@ async function instantiateBridges(
             reason: `serial ${event.status}`,
           });
         }
+
+        eventBus.emit('bridge:status', {
+          portId: event.portId,
+          status: event.status,
+          errorInfo:
+            event.status === 'error'
+              ? cfgIndex !== -1
+                ? currentConfigErrors[cfgIndex]
+                : null
+              : null,
+        });
       });
 
       newBridges.push({
@@ -622,27 +633,37 @@ function startBridgesInBackground(bridgesToStart: BridgeInstance[], filenames: s
     bridgesToStart.map(async (instance) => {
       // Find the original index in filenames array
       const originalIndex = filenames.indexOf(instance.configFile);
+      const portId = normalizePortId(instance.config.serial?.portId ?? 'unknown', 0);
       try {
         await instance.bridge.start();
         if (originalIndex !== -1) {
           currentConfigStatuses[originalIndex] = 'started';
         }
-        const portId = normalizePortId(instance.config.serial?.portId ?? 'unknown', 0);
         autoRestartService.clear(`serial:${portId}`);
+        eventBus.emit('bridge:status', {
+          portId,
+          status: 'started',
+        });
       } catch (err) {
         logger.error(
           { err, configFile: instance.configFile },
           '[service] Failed to start bridge instance',
         );
-        const portId = normalizePortId(instance.config.serial?.portId ?? 'unknown', 0);
+        let errorPayload: BridgeErrorPayload | null = null;
         if (originalIndex !== -1) {
           currentConfigStatuses[originalIndex] = 'error';
-          currentConfigErrors[originalIndex] = mapBridgeStartError(err, portId);
+          errorPayload = mapBridgeStartError(err, portId);
+          currentConfigErrors[originalIndex] = errorPayload;
         }
         void autoRestartService.schedule({
           key: `serial:${portId}`,
           portId,
           reason: 'serial start failed',
+        });
+        eventBus.emit('bridge:status', {
+          portId,
+          status: 'error',
+          errorInfo: errorPayload,
         });
         // Remove failed bridge from the bridges array to prevent
         // "Bridge not initialized" errors when executing commands on other bridges

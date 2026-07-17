@@ -200,6 +200,10 @@ export function createStreamManager(ctx: StreamManagerContext) {
       broadcastStreamEvent('entity-error', data);
     });
 
+    eventBus.on('bridge:status', (data: { portId: string; status: string; errorInfo?: any }) => {
+      broadcastStreamEvent('bridge-status', data);
+    });
+
     eventBus.on(
       'integration:status',
       (data: {

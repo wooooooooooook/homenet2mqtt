@@ -325,7 +325,8 @@
     | 'parsed-packet'
     | 'state-change'
     | 'activity-log-added'
-    | 'entity-error';
+    | 'entity-error'
+    | 'bridge-status';
 
   type StreamMessage<T = unknown> = {
     event: StreamEvent;
@@ -1142,6 +1143,10 @@
       entityErrorsByKey = new Map(entityErrorsByKey);
     };
 
+    const handleBridgeStatus = () => {
+      loadBridgeInfo(true);
+    };
+
     const messageHandlers: Partial<Record<StreamEvent, (data: any) => void>> = {
       status: handleStatus,
       'mqtt-message': handleDeviceStateMessage,
@@ -1153,6 +1158,7 @@
       'state-change': handleStateChange,
       'activity-log-added': handleActivityLogAdded,
       'entity-error': handleEntityError,
+      'bridge-status': handleBridgeStatus,
     };
 
     socket.addEventListener('open', () => {
