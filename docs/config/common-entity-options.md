@@ -67,7 +67,12 @@ switch:
     discovery_skip: true # Discovery 발행 안 함 (수동 설정 필요)
 ```
 
-> **참고**: 특정 엔티티가 아닌 시스템 전체의 MQTT Discovery 기능을 비활성화하려면, 애드온 설정의 `Home Assistant MQTT 통합 연동` 옵션을 꺼주세요.
+> **참고**: 특정 엔티티가 아닌 시스템 전체의 MQTT Discovery 기능을 비활성화하려면, 애드온 설정의 `디스커버리 사용` 옵션을 꺼주세요.
+
+> [!IMPORTANT]
+> **Matter 연동 (h2m-matter) 시의 동작 차이**
+> `discovery_always`, `discovery_linked_id`, `discovery_skip` 등의 `discovery_*` 옵션들은 Home Assistant의 **MQTT Auto Discovery** 메커니즘을 위한 설정으로, **Matter 연동 모드에서는 완전히 무시(Ignore)됩니다.**
+> Matter 모드에서는 수신 패킷 여부나 해당 옵션 유무와 관계없이, 브릿지 서비스가 기동하는 즉시 설정 파일에 등록된 모든 엔티티를 가상 디바이스 노드로 선언하여 연결된 컨트롤러(애플 홈, 구글 홈, 스마트싱스 등)에 일괄 노출합니다.
 
 ## 패킷 통신 설정 (`packet_parameters`)
 상위 `packet_defaults`에서 정의한 통신 설정을 개별 엔티티 수준에서 오버라이드할 수 있습니다. 특정 장치만 다른 체크섬 방식이나 타이밍을 사용할 때 유용합니다.

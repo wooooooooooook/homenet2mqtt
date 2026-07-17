@@ -15,7 +15,13 @@
 | **통신 방식** | MQTT 프로토콜 (MQTT Broker 필요) | Matter 프로토콜 (IPv6 / mDNS 기반 로컬 통신) |
 | **대상 플랫폼** | Home Assistant | Apple Home, Samsung SmartThings, Google Home 등 |
 | **등록 방식** | HA 구성요소 자동 발견 또는 YAML 작성 | 앱에서 QR 코드 스캔 또는 수동 코드 입력 |
+| **기기 노출 시점** | 최초 상태 패킷 수신 시 자동 발견 발행 (지연 발행) | 서비스 구동 즉시 설정된 모든 지원 기기 일괄 노출 |
 | **필요 장치** | MQTT Broker 서버 | 플랫폼별 Matter 호환 허브 (HomePod, SmartThings Hub 등) |
+
+> [!NOTE]
+> **기기 노출 방식의 차이점**
+> - **MQTT 연동**: 실제 가동 중인 기기 위주로 자동 발견하도록 **최초 상태 패킷 수신 시**에 Discovery 메시지를 발행합니다. (`discovery_always` 설정을 사용해 강제 발행도 가능)
+> - **Matter 연동**: 기동 즉시 설정에 등록되어 있는 모든 지원 기기들을 가상 디바이스 노드로 선언하여 스마트홈 컨트롤러에 전달합니다. 따라서 MQTT Discovery 전용 제어 옵션인 `discovery_always`, `discovery_linked_id`, `discovery_skip` 등은 **Matter 모드에서 모두 무시**됩니다.
 
 ---
 

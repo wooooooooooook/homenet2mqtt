@@ -99,6 +99,10 @@
     return frontendSettings?.activityLog?.hideAutomationScripts ?? false;
   };
 
+  const showMqttCleanup = $derived(
+    (bridgeInfo?.bridges?.[0]?.integrationType ?? 'mqtt') !== 'matter',
+  );
+
   const handleToggle = (key: ToastSettingKey, event: Event) => {
     const target = event.currentTarget as HTMLInputElement;
     onToastChange?.(key, target.checked);
@@ -1888,20 +1892,22 @@
             </Button>
           </div>
 
-          <div class="setting">
-            <div>
-              <div class="setting-title">{$t('settings.app_control.mqtt_cleanup')}</div>
-              <div class="setting-desc">{$t('settings.app_control.mqtt_cleanup_desc')}</div>
+          {#if showMqttCleanup}
+            <div class="setting">
+              <div>
+                <div class="setting-title">{$t('settings.app_control.mqtt_cleanup')}</div>
+                <div class="setting-desc">{$t('settings.app_control.mqtt_cleanup_desc')}</div>
+              </div>
+              <Button
+                onclick={handleClearMqtt}
+                variant="danger"
+                isLoading={isClearingMqtt}
+                disabled={isClearingMqtt || isRestarting}
+              >
+                {$t('settings.app_control.mqtt_cleanup')}
+              </Button>
             </div>
-            <Button
-              onclick={handleClearMqtt}
-              variant="danger"
-              isLoading={isClearingMqtt}
-              disabled={isClearingMqtt || isRestarting}
-            >
-              {$t('settings.app_control.mqtt_cleanup')}
-            </Button>
-          </div>
+          {/if}
         </div>
       </div>
     </div>

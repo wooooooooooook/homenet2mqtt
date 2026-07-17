@@ -2280,7 +2280,7 @@
               {/if}
             </div>
 
-            {#if entity.isActive}
+            {#if entity.isActive && integrationType !== 'matter'}
               <div class="section manage-card">
                 <h3>{$t('entity_detail.manage.revoke.title')}</h3>
                 <p class="subtle">
@@ -2292,7 +2292,7 @@
               </div>
             {/if}
 
-            {#if !entity.isActive || entity.discoveryAlways}
+            {#if (!entity.isActive || entity.discoveryAlways) && integrationType !== 'matter'}
               <div class="section manage-card">
                 <div class="toggle-row">
                   <div class="toggle-info">
