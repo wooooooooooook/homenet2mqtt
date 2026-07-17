@@ -7,15 +7,23 @@
     bridgeInfo,
     infoLoading = false,
     onRefresh,
+    selectedPortId = $bindable(null),
   }: {
     bridgeInfo: BridgeInfo | null;
     infoLoading?: boolean;
     onRefresh?: () => void;
+    selectedPortId?: string | null;
   } = $props();
 
-  // Find the Matter bridge config/status
+  // Find the selected Matter bridge config/status
   const matterBridge = $derived.by(() => {
-    return bridgeInfo?.bridges?.find((b) => b.integrationType === 'matter') ?? null;
+    const bridges = bridgeInfo?.bridges ?? [];
+    if (bridges.length === 0) return null;
+    if (selectedPortId) {
+      const found = bridges.find((b) => b.serial?.portId === selectedPortId);
+      if (found) return found;
+    }
+    return bridges[0];
   });
 
   const commissioning = $derived(matterBridge?.commissioning ?? null);

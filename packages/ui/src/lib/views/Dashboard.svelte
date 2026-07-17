@@ -84,7 +84,7 @@
     onToggleAutomations?: () => void;
     onToggleScripts?: () => void;
     onBrowseGallery?: () => void;
-    onNavigateToMatter?: () => void;
+    onNavigateToMatter?: (portId?: string) => void;
     hideAutomationScripts?: boolean;
     showInternal?: boolean;
   } = $props();

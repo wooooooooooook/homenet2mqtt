@@ -45,7 +45,7 @@
     mqttError?: string | null;
     serialError?: string | null;
     integrationType?: string;
-    onNavigateToMatter?: () => void;
+    onNavigateToMatter?: (portId?: string) => void;
   } = $props();
 
   // Helper to determine if a node has an error
@@ -358,7 +358,11 @@
               <span class="label" style="color: var(--status-warning, #f59e0b)">
                 {$t('dashboard.topology.pairing_needed', { default: 'PAIRING NEEDED' })}
               </span>
-              <Button variant="outline-primary" class="matter-nav-btn" onclick={onNavigateToMatter}>
+              <Button
+                variant="outline-primary"
+                class="matter-nav-btn"
+                onclick={() => onNavigateToMatter?.(portMetadata?.portId)}
+              >
                 {$t('dashboard.topology.setup_matter', { default: 'Setup Matter' })}
               </Button>
             </div>

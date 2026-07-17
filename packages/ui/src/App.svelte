@@ -1867,7 +1867,10 @@
             onToggleAutomations={toggleAutomationCards}
             onToggleScripts={toggleScriptCards}
             onBrowseGallery={() => (activeView = 'gallery')}
-            onNavigateToMatter={() => (activeView = 'matter')}
+            onNavigateToMatter={(portId) => {
+              selectedPortId = portId || null;
+              activeView = 'matter';
+            }}
           />
         {:else if activeView === 'analysis'}
           <Analysis
@@ -1908,7 +1911,12 @@
             onGalleryChange={(value) => updateGallerySetting(value)}
           />
         {:else if activeView === 'matter'}
-          <Matter {bridgeInfo} {infoLoading} onRefresh={() => loadBridgeInfo(true)} />
+          <Matter
+            {bridgeInfo}
+            {infoLoading}
+            bind:selectedPortId
+            onRefresh={() => loadBridgeInfo(true)}
+          />
         {:else if activeView === 'automations'}
           <Automations
             entities={automationsEntities}
