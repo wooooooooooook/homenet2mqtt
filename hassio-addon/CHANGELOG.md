@@ -2,6 +2,7 @@
 - 오류가 있으면 homeassistant [카페](https://cafe.naver.com/koreassistant), [깃헙](https://github.com/wooooooooooook/homenet2mqtt), [디스코드](https://discord.gg/kGwhUBMe5z) 등으로 알려주세요.
 
 - fix: 시작 직후 UI가 업데이트되지 않는 현상 수정
+- fix: matter버전에 mqtt관련 옵션이 노출되던 문제 수정
 
 v3.0.1 - v3.0.4 Hotfix
 - fix: mqtt애드온에 불필요한 포트매핑제거
