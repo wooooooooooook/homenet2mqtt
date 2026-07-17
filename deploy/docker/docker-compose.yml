@@ -3,8 +3,6 @@ services:
     image: nubiz/homenet2mqtt:latest
     container_name: homenet2mqtt
     environment:
-      # 설정 파일 목록 (쉼표로 구분)
-      CONFIG_FILES: default.homenet_bridge.yaml,
       # MQTT 브로커 URL
       MQTT_URL: mqtt://localhost:1883
       # 웹 UI 포트

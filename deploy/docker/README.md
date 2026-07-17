@@ -14,7 +14,6 @@ services:
     image: nubiz/homenet2mqtt:latest
     container_name: homenet2mqtt
     environment:
-      CONFIG_FILES: default.homenet_bridge.yaml,
       MQTT_URL: mqtt://localhost:1883
       PORT: '3000'
       LOG_LEVEL: info

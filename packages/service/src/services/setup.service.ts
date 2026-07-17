@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import yaml from 'js-yaml';
+import { discoverConfigFiles } from '../utils/helpers.js';
 import { type HomenetBridgeConfig, normalizePortId } from '@rs485-homenet/core';
 import type { SerialConfig } from '@rs485-homenet/core/config/types';
 import { createSerialPortConnection } from '@rs485-homenet/core/transports/serial/serial.factory';
@@ -311,15 +312,11 @@ export const createSetupWizardService = (deps: SetupWizardDeps): SetupWizardServ
   };
 
   const getInitializationState = async (): Promise<SetupWizardState> => {
-    const [defaultConfigName, hasInitMarker, allFiles] = await Promise.all([
+    const [defaultConfigName, hasInitMarker, configFiles] = await Promise.all([
       getDefaultConfigFilename(),
       fileExists(configInitMarker),
-      fs.readdir(configDir).catch(() => []),
+      discoverConfigFiles(configDir),
     ]);
-
-    const configFiles = allFiles.filter(
-      (file) => file === defaultConfigFilename || /\.homenet_bridge\.ya?ml$/.test(file),
-    );
 
     return {
       defaultConfigName,

@@ -30,7 +30,6 @@ services:
     container_name: homenet2mqtt
     environment:
       INTEGRATION_TYPE: mqtt      # MQTT 모드로 실행
-      CONFIG_FILES: default.homenet_bridge.yaml
       MQTT_URL: mqtt://localhost:1883
       PORT: '3000'
       LOG_LEVEL: info
@@ -67,7 +66,6 @@ services:
     privileged: true
     environment:
       INTEGRATION_TYPE: matter    # Matter 모드로 실행
-      CONFIG_FILES: default.homenet_bridge.yaml
       PORT: '3000'                # Web UI 포트
       LOG_LEVEL: info
       TIMEZONE: 'Asia/Seoul'

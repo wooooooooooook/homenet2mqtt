@@ -4,6 +4,7 @@
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import yaml from 'js-yaml';
 import { logger } from '@rs485-homenet/core';
 import { CONFIG_RESTART_FLAG, BASE_MQTT_PREFIX } from './constants.js';
 import type { FrontendSettings, RawPacketPayload, RawPacketEvent } from '../types/index.js';
@@ -356,3 +357,36 @@ export const isDefaultGallerySettings = (gallery?: {
     (gallery.path?.trim() || defaults.path) === defaults.path
   );
 };
+
+/**
+ * Scans the configuration directory for *.yaml and *.yml files
+ * that contain 'homenet_bridge' as a top-level key.
+ */
+export async function discoverConfigFiles(configDir: string): Promise<string[]> {
+  try {
+    const files = await fs.readdir(configDir);
+    const discovered: string[] = [];
+
+    for (const file of files) {
+      if (!/\.ya?ml$/.test(file)) continue;
+      const filePath = path.resolve(configDir, file);
+      try {
+        const stat = await fs.stat(filePath);
+        if (!stat.isFile()) continue;
+
+        const content = await fs.readFile(filePath, 'utf-8');
+        const parsed = yaml.load(content) as Record<string, unknown>;
+        if (parsed && typeof parsed === 'object' && 'homenet_bridge' in parsed) {
+          discovered.push(file);
+        }
+      } catch (err) {
+        logger.warn({ err, file }, `[service] Failed to verify config file during auto-discovery`);
+      }
+    }
+
+    return discovered;
+  } catch (err) {
+    logger.error({ err }, '[service] Failed to read config directory during auto-discovery');
+    return [];
+  }
+}

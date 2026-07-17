@@ -6,7 +6,7 @@
 
 | 변수                | 기본값                                             | 설명                                                  | 사용처               |
 | ------------------- | -------------------------------------------------- | ----------------------------------------------------- | -------------------- |
-| `CONFIG_FILES`      | `default.homenet_bridge.yaml,`                     | 로드할 설정 파일 목록(쉼표 구분)                      | Add-on, Docker       |
+| `CONFIG_FILES`      | (비어있음, 권장)                                     | 로드할 설정 파일 목록(쉼표 구분). 비워두면 폴더 내의 모든 `homenet_bridge` 설정 파일을 자동으로 탐색하여 로드합니다. | Add-on, Docker       |
 | `CONFIG_ROOT`       | `/config` (Docker) / `packages/core/config` (로컬) | 설정 파일 루트 경로                                   | Add-on, Docker, 로컬 |
 | `MQTT_URL`          | `mqtt://localhost:1883`                            | MQTT 브로커 주소                                      | Add-on, Docker, 로컬 |
 | `MQTT_NEED_LOGIN`   | `false`                                            | MQTT 인증 사용 여부                                   | Docker               |
@@ -33,7 +33,6 @@ services:
   homenet2mqtt:
     image: nubiz/homenet2mqtt:latest
     environment:
-      CONFIG_FILES: default.homenet_bridge.yaml,
       CONFIG_ROOT: /config
       MQTT_URL: mqtt://192.168.0.10:1883
       MQTT_NEED_LOGIN: 'true'

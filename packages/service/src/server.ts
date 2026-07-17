@@ -43,7 +43,7 @@ import {
   CONFIG_RESTART_FLAG,
   BASE_MQTT_PREFIX,
 } from './utils/constants.js';
-import { fileExists, parseEnvList, triggerRestart } from './utils/helpers.js';
+import { fileExists, parseEnvList, triggerRestart, discoverConfigFiles } from './utils/helpers.js';
 import { initializeBackupDir, saveBackup } from './services/backup.service.js';
 import { loadFrontendSettings } from './services/frontend-settings.service.js';
 import { registerRoutes } from './routes/index.js';
@@ -797,10 +797,7 @@ server.listen(port, async () => {
     }
 
     const configFilesFromEnv = envConfigFiles.values;
-    const discoveredConfigFiles = (await fs.readdir(CONFIG_DIR)).filter(
-      (file: string) =>
-        file === DEFAULT_CONFIG_FILENAME || /^default_\d+\.homenet_bridge\.ya?ml$/.test(file),
-    );
+    const discoveredConfigFiles = await discoverConfigFiles(CONFIG_DIR);
 
     const shouldPersistInitMarker =
       !initState.hasInitMarker && Boolean(initState.defaultConfigName);
