@@ -10,7 +10,7 @@ if [ -f "$CONFIG_PATH" ]; then
   export LOG_LEVEL=$(jq --raw-output '.log_level // "info"' $CONFIG_PATH)
   # options.json에 'use_supervisor_mqtt' 키가 없으면 Matter 애드온, 있으면 MQTT 애드온
   # (config-matter.yaml에는 MQTT 옵션이 없으므로 options.json에도 해당 키가 존재하지 않음)
-  if ! jq -e '.use_supervisor_mqtt' "$CONFIG_PATH" > /dev/null 2>&1; then
+  if ! jq -e 'has("use_supervisor_mqtt")' "$CONFIG_PATH" > /dev/null 2>&1; then
     export INTEGRATION_TYPE="matter"
     bashio::log.info "Matter addon detected: INTEGRATION_TYPE=matter (MQTT options skipped)"
     export USE_SUPERVISOR_MQTT="false"
