@@ -1,9 +1,10 @@
 ** ⚠️ 업데이트 전 백업 권장 **
 - 오류가 있으면 homeassistant [카페](https://cafe.naver.com/koreassistant), [깃헙](https://github.com/wooooooooooook/homenet2mqtt), [디스코드](https://discord.gg/kGwhUBMe5z) 등으로 알려주세요.
 
-v3.0.1
+v3.0.1 - v3.0.2
 - fix: mqtt애드온에 불필요한 포트매핑제거
-  - 업데이트후 mqtt애드온이 실행안되시는분은 구성에서 네트워크포트를 임의의 번호로 수정해서 쓰시기바랍니다
+  - 업데이트후 mqtt애드온이 실행안되시는분은 구성에서 네트워크설정을 기본값으로 재설정해주세요.
+- chore: 애드온의 config_files 구성 기본값을 빈칸으로 변경.
 
 v3.0.0
 - ### Homenet2Matter (beta) 출시!! 
