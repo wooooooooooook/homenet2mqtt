@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-15T01:44:40.989Z",
+  "generated_at": "2026-07-17T06:04:21.013Z",
   "vendors": [
     {
       "id": "bestin",
@@ -834,6 +834,38 @@
           }
         },
         {
+          "file": "commax/heaters_request.yaml",
+          "name": "난방 상태요청 자동화",
+          "name_en": "Heaters State Request Automation",
+          "description": "월패드 대신 보일러에 상태조회패킷을 보내는 자동화입니다.\n",
+          "description_en": "Automation that sends state request packets to the heaters instead of the wallpad.\n",
+          "version": "1.0.0",
+          "author": "wooooooooooook",
+          "tags": [
+            "climate",
+            "heater",
+            "automation",
+            "commax"
+          ],
+          "parameters": [
+            {
+              "name": "heater_count",
+              "type": "integer",
+              "default": 4,
+              "min": 1,
+              "max": 9,
+              "label": "난방 개수",
+              "label_en": "Number of Heaters"
+            }
+          ],
+          "content_summary": {
+            "entities": {},
+            "automations": 1,
+            "scripts": 0
+          },
+          "discovery": null
+        },
+        {
           "file": "commax/light_breaker.yaml",
           "name": "일괄소등",
           "name_en": "Light Breaker",
@@ -973,6 +1005,39 @@
               "strategy": "max"
             }
           }
+        },
+        {
+          "file": "commax/virtual_lights.yaml",
+          "name": "가상 전등 연동",
+          "name_en": "Virtual Lights",
+          "description": "월패드에 가상 전등을 인식시킵니다. 월패드에 연동된 전등이 없을 때 사용하며, HA에서 자동화등을 통해 월패드에서 제어가능한 전등을 만드는데 쓸 수 있습니다.\n",
+          "description_en": "Simulates virtual lights to be recognized by the wallpad. Used when there are no physical lights linked to the wallpad, allowing you to create wallpad-controllable lights using Home Assistant automations.\n",
+          "version": "1.0.0",
+          "author": "wooooooooooook",
+          "tags": [
+            "light",
+            "commax",
+            "virtual"
+          ],
+          "parameters": [
+            {
+              "name": "light_count",
+              "type": "integer",
+              "default": 3,
+              "min": 1,
+              "max": 9,
+              "label": "가상 전등 개수",
+              "label_en": "Number of Virtual Lights"
+            }
+          ],
+          "content_summary": {
+            "entities": {
+              "light": 1
+            },
+            "automations": 2,
+            "scripts": 0
+          },
+          "discovery": null
         }
       ]
     },
