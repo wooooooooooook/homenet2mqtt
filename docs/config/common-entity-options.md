@@ -20,8 +20,15 @@
 | `icon`                | string | Home Assistant에서 표시할 아이콘(MDI)입니다.                                                                                                              | `mdi:lightbulb`, `mdi:fan`        |
 | `area`                | string | 엔티티가 위치한 구역(Area)을 제안합니다.                                                                                                                  | `거실`, `안방`                    |
 | `device`              | string | 미리 정의된 `devices` 블록의 ID를 참조하여 장치 정보를 설정합니다.                                                                                        | `living_room_wallpad`             |
-| `unit_of_measurement` | string | 센서 값의 단위를 지정합니다. (`sensor` 타입 전용)                                                                                                         | `°C`, `%`, `W`                    |
-| `state_class`         | string | 통계 처리를 위한 상태 클래스입니다. (`sensor` 타입 전용)                                                                                                  | `measurement`, `total_increasing` |
+
+### 특정 엔티티 전용 HA 연동 설정
+
+아래 옵션들은 모든 엔티티가 아닌, 수치 데이터를 다루는 특정 엔티티(`sensor`, `number` 등)에서만 사용할 수 있는 설정입니다.
+
+| 옵션명 | 타입 | 설명 | 적용 가능 엔티티 | 예시 |
+| :--- | :--- | :--- | :--- | :--- |
+| `unit_of_measurement` | string | 수치 값의 단위를 지정합니다. | `sensor`, `number` | `°C`, `%`, `W` |
+| `state_class` | string | Home Assistant에서 장기 통계 처리를 위한 상태 클래스를 지정합니다. | `sensor` | `measurement`, `total_increasing` |
 
 ## Discovery 제어
 

@@ -60,7 +60,7 @@ export class GenericDevice extends Device {
       const value = entityConfig[key];
       if (typeof value !== 'string') continue;
 
-      if (key.startsWith('state_')) {
+      if (key.startsWith('state_') && key !== 'state_class') {
         // Prepare State Parsing Scripts
         const mappedKey = mapStateKey(key);
         try {

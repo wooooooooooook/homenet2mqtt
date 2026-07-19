@@ -109,4 +109,21 @@ describe('Config Normalization', () => {
     expect(normalized.automation).toHaveLength(1);
     expect(normalized.automation?.[0].id).toBe('auto1');
   });
+
+  it('should ignore state_class and not treat it as a state schema', () => {
+    const config: any = {
+      serial: { portId: 'test', path: '/dev/tty', baud_rate: 9600 },
+      sensor: [
+        {
+          id: 'sensor1',
+          name: 'Sensor 1',
+          state: { index: 1, length: 1, type: 'byte' },
+          state_class: 'measurement',
+        },
+      ],
+    };
+
+    const normalized = normalizeConfig(config);
+    expect(normalized.sensor![0].state_class).toBe('measurement');
+  });
 });

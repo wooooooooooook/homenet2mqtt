@@ -846,7 +846,7 @@ export class AutomationManager {
     const coreKeys = CORE_ALLOWED_KEYS[entity.type] ?? [];
 
     for (const key of Object.keys(entity)) {
-      if (!key.startsWith('state_')) continue;
+      if (!key.startsWith('state_') || key === 'state_class') continue;
 
       const rawKey = mapStateKey(key);
       const normalizedKey = normalizeStateKey(rawKey, entity.type);

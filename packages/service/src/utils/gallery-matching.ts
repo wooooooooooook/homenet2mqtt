@@ -100,7 +100,7 @@ export const buildEntitySignatureObject = (
 
   // Additional state_* fields (e.g., state_temperature_current, state_off, state_heat)
   for (const [key, value] of Object.entries(entity)) {
-    if (!key.startsWith('state_')) continue;
+    if (!key.startsWith('state_') || key === 'state_class') continue;
     const fieldSignature = buildSchemaSignature(value);
     if (fieldSignature !== null) {
       stateFields[key] = fieldSignature;

@@ -1,6 +1,6 @@
 # Climate 스키마 작성법
 
-난방/냉방 장치는 `climate` 엔티티를 사용합니다. `type`은 `climate`이며 공통 필드(`id`, `name`, `packet_parameters`, `device_class`, `unit_of_measurement`, `state_class`, `icon`)를 함께 지정합니다.
+난방/냉방 장치는 `climate` 엔티티를 사용합니다. `type`은 `climate`이며 공통 필드(`id`, `name`, `packet_parameters`, `device_class`, `icon`)를 함께 지정합니다.
 
 ## 필수 필드
 - `state`: 이 엔티티가 대응하는 상태 패킷을 식별하는 서명.
@@ -72,7 +72,7 @@
   - `state_topic`: `${MQTT_TOPIC_PREFIX}/${id}/state`
   - `availability`: `${MQTT_TOPIC_PREFIX}/bridge/status`
   - `device`: `devices` 설정 또는 브리지 기본 정보
-  - 선택: `suggested_area`, `device_class`, `state_class`, `icon`
+  - 선택: `suggested_area`, `device_class`, `icon`
 - 모드/온도 제어
   - `mode_command_topic`: `${MQTT_TOPIC_PREFIX}/${id}/mode/set`
   - `temperature_command_topic`: `${MQTT_TOPIC_PREFIX}/${id}/temperature/set`

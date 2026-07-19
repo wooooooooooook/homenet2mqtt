@@ -108,7 +108,11 @@ export function normalizeConfig(config: HomenetBridgeConfig) {
         // Convert null state/command schemas to empty objects {} to satisfy TypeScript types
         // while preserving their presence in the entity config object.
         Object.keys(entity).forEach((key) => {
-          if (key === 'state' || key.startsWith('state_') || key.startsWith('command_')) {
+          if (
+            key === 'state' ||
+            (key.startsWith('state_') && key !== 'state_class') ||
+            key.startsWith('command_')
+          ) {
             if (entity[key] === null) {
               entity[key] = {};
             }
@@ -605,7 +609,7 @@ export function validateConfig(
         }
 
         Object.keys(entity).forEach((key) => {
-          if (key.startsWith('state_') || key.startsWith('command_')) {
+          if ((key.startsWith('state_') && key !== 'state_class') || key.startsWith('command_')) {
             if (hasEmptySchema(entity[key])) {
               errors.push(
                 `${String(type)}[${index}] (${

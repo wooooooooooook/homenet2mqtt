@@ -1,8 +1,13 @@
 ** ⚠️ 업데이트 전 백업 권장 **
 - 오류가 있으면 homeassistant [카페](https://cafe.naver.com/koreassistant), [깃헙](https://github.com/wooooooooooook/homenet2mqtt), [디스코드](https://discord.gg/kGwhUBMe5z) 등으로 알려주세요.
 
+
+v3.0.5
 - fix: 시작 직후 UI가 업데이트되지 않는 현상 수정
 - fix: matter버전에 mqtt관련 옵션이 노출되던 문제 수정
+- fix: `state_class`옵션을 `state_*`로 보고 `stateSchema`로 해석하려는 문제 수정
+- fix: `state_class` 및 `unit_of_measurement`옵션이 sensor, number 이외의 엔티티에서도 discovery에 발행되던 문제 수정
+
 
 v3.0.1 - v3.0.4 Hotfix
 - fix: mqtt애드온에 불필요한 포트매핑제거

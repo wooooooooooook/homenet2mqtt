@@ -105,7 +105,7 @@ function getMaxOffset(deviceConfig) {
   };
 
   Object.keys(deviceConfig).forEach((key) => {
-    if (key.startsWith('state_')) {
+    if (key.startsWith('state_') && key !== 'state_class') {
       check(deviceConfig[key]);
     }
   });

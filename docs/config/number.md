@@ -1,6 +1,6 @@
 # Number 스키마 작성법
 
-임계값·단계 수치를 설정하는 장치는 `number` 엔티티를 사용합니다. `type`은 `number`이며 공통 필드(`id`, `name`, `packet_parameters`, `device_class`, `unit_of_measurement`, `state_class`, `icon`)를 함께 지정합니다.
+임계값·단계 수치를 설정하는 장치는 `number` 엔티티를 사용합니다. `type`은 `number`이며 공통 필드(`id`, `name`, `packet_parameters`, `device_class`, `unit_of_measurement`, `icon`)를 함께 지정합니다.
 
 ## 필수 필드
 - `state`: 이 숫자 값이 포함된 패킷을 식별하는 서명(생략 시 명령만 존재하는 가상 입력으로 사용 가능).
@@ -28,7 +28,7 @@
   - `state_topic`: `${MQTT_TOPIC_PREFIX}/${id}/state`
   - `availability`: `${MQTT_TOPIC_PREFIX}/bridge/status`
   - `device`: `devices` 설정 또는 브리지 기본 정보
-  - 선택: `suggested_area`, `device_class`, `unit_of_measurement`, `state_class`, `icon`
+  - 선택: `suggested_area`, `device_class`, `unit_of_measurement`, `icon`
 - 숫자 입력 전용
   - `command_topic`: `${MQTT_TOPIC_PREFIX}/${id}/set`
   - `value_template`: <code v-pre>{{ value_json.value }}</code>

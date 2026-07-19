@@ -43,7 +43,8 @@ export const STATE_KEY_1TO1_MAPPINGS: Record<string, string> = {
 };
 
 export const mapStateKey = (key: string): string => {
-  const normalized = key.startsWith('state_') ? key.replace('state_', '') : key;
+  const normalized =
+    key.startsWith('state_') && key !== 'state_class' ? key.replace('state_', '') : key;
   return STATE_KEY_1TO1_MAPPINGS[normalized] ?? normalized;
 };
 

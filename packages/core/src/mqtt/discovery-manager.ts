@@ -391,10 +391,10 @@ export class DiscoveryManager {
     if (entity.device_class) {
       payload.device_class = entity.device_class;
     }
-    if (entity.unit_of_measurement && type !== 'climate') {
+    if (entity.unit_of_measurement && ['sensor', 'number'].includes(type)) {
       payload.unit_of_measurement = entity.unit_of_measurement;
     }
-    if (entity.state_class) {
+    if (entity.state_class && type === 'sensor') {
       payload.state_class = entity.state_class;
     }
     if (entity.icon) {

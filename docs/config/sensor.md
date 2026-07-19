@@ -1,6 +1,6 @@
 # Sensor 스키마 작성법
 
-온도·층수 등 **수치** 값을 읽는 장치는 `sensor` 엔티티를 사용합니다. `type`은 `sensor`이며 공통 필드(`id`, `name`, `packet_parameters`, `device_class`, `unit_of_measurement`, `state_class`, `icon`)를 지정할 수 있습니다.
+온도·층수 등 **수치** 값을 읽는 장치는 `sensor` 엔티티를 사용합니다. `type`은 `sensor`이며 기본 필드 및 연동 옵션(`id`, `name`, `packet_parameters`, `device_class`, `unit_of_measurement`, `state_class`, `icon`)을 지정할 수 있습니다.
 
 > 💡 **텍스트 값**을 표시하려면 [`text-sensor`](./text-sensor.md)를 사용하세요.
 

@@ -1,6 +1,6 @@
 # Binary Sensor 스키마 작성법
 
-문 열림, 호출 등 두 상태만 갖는 입력은 `binary_sensor` 엔티티로 정의합니다. `type` 값은 항상 `binary_sensor`이며, 공통 필드(`id`, `name`, `packet_parameters`, `device_class`, `unit_of_measurement`, `state_class`, `icon`)를 함께 사용할 수 있습니다.
+문 열림, 호출 등 두 상태만 갖는 입력은 `binary_sensor` 엔티티로 정의합니다. `type` 값은 항상 `binary_sensor`이며, 공통 필드(`id`, `name`, `packet_parameters`, `device_class`, `icon`)를 함께 사용할 수 있습니다.
 
 ## 필수 필드
 
@@ -24,7 +24,7 @@
   - `state_topic`: `${MQTT_TOPIC_PREFIX}/${id}/state`
   - `availability`: `${MQTT_TOPIC_PREFIX}/bridge/status`
   - `device`: `devices` 설정 또는 브리지 기본 정보
-  - 선택: `suggested_area`, `device_class`, `unit_of_measurement`, `state_class`, `icon`
+  - 선택: `suggested_area`, `device_class`, `icon`
 - 바이너리 센서 전용
   - `value_template`: <code v-pre>{{ value_json.state }}</code>
   - 선택: `payload_on`, `payload_off` (설정 파일의 `payload_on/off` 값을 사용)

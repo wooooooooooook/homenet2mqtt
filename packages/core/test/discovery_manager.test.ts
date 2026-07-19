@@ -489,4 +489,38 @@ describe('DiscoveryManager', () => {
     expect(payload.speed_range_min).toBe(1);
     expect(payload.speed_range_max).toBe(100);
   });
+
+  it('sensor 이외의 엔티티에 state_class 또는 unit_of_measurement 입력 시 디스커버리 페이로드에서 제외한다', () => {
+    mockConfig.light = [
+      {
+        id: 'test_light',
+        name: 'Test Light',
+        type: 'light',
+        state: {},
+        unit_of_measurement: '°C',
+        state_class: 'measurement',
+      },
+    ] as any;
+    mockPublisher.publish.mockClear();
+
+    const mqttTopicPrefix = 'homenet2mqtt/homedevice1';
+    discoveryManager = new DiscoveryManager(
+      'main',
+      normalizeConfig(mockConfig),
+      mockPublisher,
+      mockSubscriber,
+      mqttTopicPrefix,
+    );
+    discoveryManager.setup();
+    discoveryManager.discover();
+    eventBus.emit('state:changed', { entityId: 'test_light', state: {}, portId: 'main' });
+
+    const topic = 'homeassistant/light/homenet_main_test_light/config';
+    const call = mockPublisher.publish.mock.calls.find((args: any[]) => args[0] === topic);
+    expect(call).toBeDefined();
+
+    const payload = JSON.parse(call[1]);
+    expect(payload.unit_of_measurement).toBeUndefined();
+    expect(payload.state_class).toBeUndefined();
+  });
 });
