@@ -1,6 +1,11 @@
 ** ⚠️ 업데이트 전 백업 권장 **
 - 오류가 있으면 homeassistant [카페](https://cafe.naver.com/koreassistant), [깃헙](https://github.com/wooooooooooook/homenet2mqtt), [디스코드](https://discord.gg/kGwhUBMe5z) 등으로 알려주세요.
 
+v3.0.6
+- 아래 수정으로 멀티포트환경에서 첫번째 포트에 여러포트의 엔티티가 섞이는 등 문제가 수정됩니다.
+- fix: state_cache가 multiport를 지원하지 않는 문제 수정
+- fix: state_cache복원 과정에서 삭제되거나 이름변경 등으로인해 존재하지 않는 엔티티를 강제로 생성하는 문제 수정
+
 
 v3.0.5
 - fix: 시작 직후 UI가 업데이트되지 않는 현상 수정

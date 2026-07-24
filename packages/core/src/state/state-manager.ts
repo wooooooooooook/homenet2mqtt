@@ -41,6 +41,7 @@ export class StateManager {
   private ignoredEntityId: string | null = null;
   private sharedStates?: Map<string, Record<string, any>>;
   private internalEntityIds: Set<string>;
+  private configEntityIds: Set<string>;
   private statePublisher?: StatePublisher;
   private statesCachePath: string | null = null;
   private saveTimer: NodeJS.Timeout | null = null;
@@ -76,8 +77,40 @@ export class StateManager {
     this.topicPrefix = topicPrefix;
     this.sharedStates = sharedStates;
 
+    // Build known entity ID set from config (must happen before loadLocalCache)
+    this.configEntityIds = new Set<string>();
+    for (const type of ENTITY_TYPE_KEYS) {
+      const entities = config[type] as EntityConfig[] | undefined;
+      if (entities) {
+        for (const entity of entities) {
+          if (entity.id) {
+            this.configEntityIds.add(entity.id);
+          }
+        }
+      }
+    }
+
     if (configPath) {
-      this.statesCachePath = path.join(path.dirname(configPath), 'states_cache.json');
+      const configDir = path.dirname(configPath);
+      this.statesCachePath = path.join(configDir, `states_cache_${portId}.json`);
+
+      // Migrate from legacy shared cache file if per-port cache doesn't exist yet
+      if (!fs.existsSync(this.statesCachePath)) {
+        const legacyCachePath = path.join(configDir, 'states_cache.json');
+        if (fs.existsSync(legacyCachePath)) {
+          try {
+            fs.copyFileSync(legacyCachePath, this.statesCachePath);
+            fs.unlinkSync(legacyCachePath);
+            logger.info(
+              { from: 'states_cache.json', to: `states_cache_${portId}.json` },
+              '[StateManager] Migrated and removed legacy shared cache',
+            );
+          } catch (err) {
+            logger.warn({ err }, '[StateManager] Failed to migrate legacy cache, starting fresh');
+          }
+        }
+      }
+
       this.loadLocalCache();
     }
 
@@ -382,16 +415,43 @@ export class StateManager {
       const dataStr = fs.readFileSync(this.statesCachePath, 'utf8');
       const cached = JSON.parse(dataStr) as Record<string, any>;
       if (cached && typeof cached === 'object') {
+        let restoredCount = 0;
+        let skippedCount = 0;
         for (const [entityId, state] of Object.entries(cached)) {
+          if (!this.configEntityIds.has(entityId)) {
+            skippedCount++;
+            continue;
+          }
           this.deviceStates.set(entityId, state);
           if (this.sharedStates) {
             this.sharedStates.set(entityId, state);
           }
+          restoredCount++;
         }
         logger.info(
-          { count: Object.keys(cached).length, path: this.statesCachePath },
+          { restored: restoredCount, skipped: skippedCount, path: this.statesCachePath },
           '[StateManager] Loaded states cache from disk',
         );
+        if (skippedCount > 0) {
+          logger.info(
+            { skipped: skippedCount },
+            '[StateManager] Skipped orphan entities not in current config',
+          );
+          // Rewrite cache file with only valid entities to permanently remove orphans
+          try {
+            const cleanedData = Object.fromEntries(this.deviceStates);
+            fs.writeFileSync(this.statesCachePath!, JSON.stringify(cleanedData, null, 2), 'utf8');
+            logger.info(
+              { path: this.statesCachePath },
+              '[StateManager] Cleaned orphan entities from states cache file',
+            );
+          } catch (writeErr) {
+            logger.error(
+              { err: writeErr, path: this.statesCachePath },
+              '[StateManager] Failed to clean states cache file',
+            );
+          }
+        }
       }
     } catch (err) {
       logger.error(
