@@ -1,4 +1,38 @@
 {
+  "auth": {
+    "setup": {
+      "title": "UI 비밀번호 설정",
+      "desc": "이 UI에 접속할 비밀번호를 설정하세요. 비밀번호는 해시로만 저장되며, 설정 후 이 화면에서 로그인할 수 있습니다.",
+      "hint": "8자 이상 1024자 이하로 입력하세요."
+    },
+    "login": {
+      "title": "로그인",
+      "desc": "UI에 접속하려면 비밀번호를 입력하세요."
+    },
+    "password": "비밀번호",
+    "confirm_password": "비밀번호 확인",
+    "current_password": "현재 비밀번호",
+    "new_password": "새 비밀번호",
+    "security_title": "UI 보안",
+    "change_password_desc": "UI 로그인 비밀번호를 변경합니다. 변경하면 다른 모든 세션이 로그아웃됩니다.",
+    "password_changed": "비밀번호가 변경되었습니다.",
+    "logout": "로그아웃",
+    "logout_desc": "현재 UI 세션을 종료하고 로그인 화면으로 이동합니다.",
+    "submit_setup": "비밀번호 설정",
+    "submit_login": "로그인",
+    "submit_change": "비밀번호 변경",
+    "errors": {
+      "password_mismatch": "비밀번호가 일치하지 않습니다.",
+      "password_length": "비밀번호는 8자 이상 1024자 이하여야 합니다.",
+      "invalid_password": "비밀번호가 올바르지 않습니다.",
+      "invalid_current_password": "현재 비밀번호가 올바르지 않습니다.",
+      "invalid_new_password": "새 비밀번호가 정책을 충족하지 않습니다.",
+      "rate_limited": "시도 횟수가 너무 많습니다. 잠시 후 다시 시도하세요.",
+      "already_configured": "이미 비밀번호가 설정되어 있습니다. 페이지를 새로고침하세요.",
+      "network": "서버에 연결할 수 없습니다.",
+      "unknown": "요청을 처리하지 못했습니다."
+    }
+  },
   "settings": {
     "title": "설정",
     "log": {

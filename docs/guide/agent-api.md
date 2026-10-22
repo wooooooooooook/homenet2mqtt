@@ -4,7 +4,7 @@
 
 ## 개요
 
-에이전트 API는 기존 UI용 `/api/*`와 별도로 `/api/v1/agent` 아래에 제공되는 버전 고정 REST API입니다.
+에이전트 API는 UI와 **별도 포트**(기본 `3001`, `AGENT_API_PORT`)에서 `/api/v1/agent` 아래에 제공되는 버전 고정 REST API입니다. UI 포트(기본 `3000`)에서는 `/api/v1/agent/*`가 `404`를 반환하며, Agent 포트에서는 UI 정적 파일과 UI API를 제공하지 않습니다.
 
 - OpenAPI 3.1 문서와 평문 가이드를 공개 엔드포인트로 제공합니다.
 - 나머지 모든 엔드포인트는 **Bearer 토큰 인증이 필수**입니다.
@@ -51,29 +51,34 @@ agent_allow_packet_send: false
 docker run \
   -e AGENT_API_TOKEN="충분히-긴-임의의-토큰" \
   -e AGENT_ALLOW_PACKET_SEND=false \
+  -e AGENT_API_PORT=3001 \
+  -p 3001:3001 \
   ...
 ```
 
-토큰 값은 로그에 출력되지 않습니다. `run.sh`는 `AGENT_API: enabled/disabled`만 표시합니다.
+토큰 값은 로그에 출력되지 않습니다. `run.sh`는 `AGENT_API: enabled/disabled`와 사용 중인 포트만 표시합니다.
 
 ## 노출 및 네트워크 설정
 
-에이전트 API 자체는 Bearer 토큰으로 보호되지만, **같은 포트의 기존 `/api/*`와 `/api/stream`(WebSocket)은 인증이 없습니다.** 따라서 포트 공개 범위를 최소화하고, 외부 공개가 필요하면 리버스 프록시에서 노출 경로를 제한하세요.
+에이전트 API는 전용 포트에서 Bearer 토큰으로 보호됩니다. UI는 별도 포트에서 비밀번호 인증으로 보호되므로, 포트를 분리해 외부에는 Agent 포트만 공개할 수 있습니다. 그래도 필요한 경우 포트 공개 범위를 최소화하고 방화벽/리버스 프록시로 접근 주체를 제한하세요.
 
 ### Docker
 
-`deploy/docker/docker-compose.yml`의 기본값은 호스트 루프백에만 바인딩합니다.
+`deploy/docker/docker-compose.yml`의 기본값은 UI(3000)와 Agent API(3001)를 모두 호스트 루프백에만 바인딩합니다.
 
 ```yaml
+environment:
+  AGENT_API_PORT: '3001'
 ports:
   - '127.0.0.1:3000:3000'
+  - '127.0.0.1:3001:3001'
 ```
 
 | 접근 주체                       | 주소                       | 필요한 설정                         |
 | ------------------------------- | -------------------------- | ----------------------------------- |
-| 같은 호스트의 프로세스          | `http://127.0.0.1:3000`    | 기본값                              |
-| 같은 Docker 네트워크의 컨테이너 | `http://<컨테이너명>:3000` | 포트 매핑 불필요                    |
-| 다른 호스트/LAN                 | `http://<H2M-HOST>:3000`   | 포트 바인딩 확장 또는 리버스 프록시 |
+| 같은 호스트의 프로세스          | `http://127.0.0.1:3001`    | 기본값                              |
+| 같은 Docker 네트워크의 컨테이너 | `http://<컨테이너명>:3001` | 포트 매핑 불필요                    |
+| 다른 호스트/LAN                 | `http://<H2M-HOST>:3001`   | 포트 바인딩 확장 또는 리버스 프록시 |
 
 같은 Docker 네트워크의 컨테이너에서 호출한다면 포트를 공개할 필요가 없습니다. 두 컨테이너를 사용자 정의 네트워크에 함께 연결하고 서비스 이름으로 접근하세요.
 
@@ -96,21 +101,21 @@ LAN에서 직접 접근해야 한다면 바인딩을 특정 호스트 인터페�
 ```yaml
 ports:
   # 예: 호스트 LAN IP가 192.168.0.10인 경우
-  - '192.168.0.10:3000:3000'
+  - '192.168.0.10:3001:3001'
 ```
 
-모든 인터페이스에 열려면 `'3000:3000'`을 사용하지만, UI용 무인증 API까지 함께 노출되므로 방화벽으로 허용 대역을 제한해야 합니다.
+모든 인터페이스에 열려면 `'3001:3001'`을 사용하세요. Agent API는 Bearer 토큰으로 보호되지만 토큰이 유출되면 RS485 제어가 가능하므로 방화벽으로 허용 대역을 제한하는 것을 권장합니다.
 
 ### 리버스 프록시로 에이전트 API만 노출
 
-외부 에이전트가 다른 네트워크에서 접근해야 한다면 TLS를 종료하는 리버스 프록시를 두고 `/api/v1/agent/*`만 전달하는 구성을 권장합니다.
+외부 에이전트가 다른 네트워크에서 접근해야 한다면 TLS를 종료하는 리버스 프록시를 두고 Agent 포트(3001)로 전달하는 구성을 권장합니다. Agent 포트에는 UI 라우트가 없으므로 `/api/v1/agent/*` 경로 제한은 선택 사항입니다.
 
 **Caddy**
 
 ```text
 h2m.example.com {
   handle /api/v1/agent/* {
-    reverse_proxy 127.0.0.1:3000
+    reverse_proxy 127.0.0.1:3001
   }
 
   handle {
@@ -123,7 +128,7 @@ h2m.example.com {
 
 ```nginx
 location /api/v1/agent/ {
-    proxy_pass http://127.0.0.1:3000;
+    proxy_pass http://127.0.0.1:3001;
     proxy_http_version 1.1;
     proxy_set_header Connection '';
     proxy_buffering off;
@@ -134,19 +139,19 @@ location /api/v1/agent/ {
 SSE(`/api/v1/agent/events`)를 사용한다면 응답 버퍼링을 끄고 읽기 타임아웃을 길게 설정하세요.
 
 ::: warning
-포트를 외부에 열면 에이전트 API뿐 아니라 인증이 없는 `/api/*`와 UI WebSocket도 같은 포트에서 접근할 수 있습니다. 리버스 프록시로 `/api/v1/agent/*`만 노출하거나 방화벽/네트워크 정책으로 접근 주체를 제한하세요.
+Agent 포트를 외부에 열면 Bearer 토큰을 가진 클라이언트가 RS485 버스와 설정을 제어할 수 있습니다. 토큰을 강하게 관리하고 방화벽/네트워크 정책으로 접근 주체를 제한하세요. UI 포트(3000)는 비밀번호 인증으로 보호되지만 외부 공개 시 함께 방화벽 정책을 적용하는 것이 좋습니다.
 :::
 
 ### Home Assistant Add-on
 
-| 애드온                  | 네트워크                         | 에이전트 API 접근                        |
-| ----------------------- | -------------------------------- | ---------------------------------------- |
-| Homenet2MQTT (MQTT)     | ingress 전용, 호스트 포트 미공개 | 외부 클라이언트에서 직접 접근 불가       |
-| Homenet2Matter (Matter) | `host_network: true`             | `http://<HA-IP>:3000`으로 직접 접근 가능 |
+| 애드온                  | 네트워크                                   | 에이전트 API 접근                                  |
+| ----------------------- | ------------------------------------------ | -------------------------------------------------- |
+| Homenet2MQTT (MQTT)     | ingress 전용, `3001/tcp` 선택적 공개       | 포트를 공개한 경우 `http://<HA-IP>:<공개포트>`     |
+| Homenet2Matter (Matter) | `host_network: true`                       | `http://<HA-IP>:3001`으로 직접 접근 가능           |
 
-MQTT 애드온은 Home Assistant ingress를 통해서만 UI/API에 접근할 수 있습니다. ingress는 Home Assistant 로그인 세션을 요구하므로, Bearer 토큰만 가진 외부 에이전트는 사용할 수 없습니다. 외부 에이전트가 필요하면 포트를 공개하는 Docker 배포를 사용하거나, 애드온 구성에 포트 공개를 추가하고 방화벽으로 접근을 제한해야 합니다.
+MQTT 애드온은 기본적으로 ingress를 통해서만 UI에 접근할 수 있으며, ingress는 3000(UI)만 프록시하므로 Agent API에 사용할 수 없습니다. 외부 에이전트가 필요하면 애드온 구성의 네트워크 섹션에서 `3001/tcp`를 공개하고 방화벽으로 접근을 제한하세요.
 
-Matter 애드온은 `host_network: true`이므로 호스트의 3000 포트가 그대로 열립니다. 같은 LAN의 에이전트는 `http://<HA-IP>:3000`을 사용할 수 있지만, 호스트 방화벽에서 3000 포트 접근을 신뢰할 수 있는 대역으로 제한하세요.
+Matter 애드온은 `host_network: true`이므로 호스트의 3001 포트가 그대로 열립니다. 같은 LAN의 에이전트는 `http://<HA-IP>:3001`을 사용할 수 있지만, 호스트 방화벽에서 3001 포트 접근을 신뢰할 수 있는 대역으로 제한하세요. UI(3000)는 직접 접속 시 비밀번호를 요구합니다.
 
 ## 인증
 
@@ -199,13 +204,13 @@ Authorization: Bearer <AGENT_API_TOKEN>
 
 아래 예시는 `curl` 기준입니다. `H2M`은 에이전트 API의 기본 URL이며 접근 환경에 맞게 변경하세요.
 
-- 같은 호스트: `http://127.0.0.1:3000/api/v1/agent`
-- LAN/원격: `https://<H2M-HOST>/api/v1/agent`
+- 같은 호스트: `http://127.0.0.1:3001/api/v1/agent`
+- LAN/원격: `https://<H2M-HOST>/api/v1/agent` (Agent 포트로 프록시)
 
 ### 기본 워크플로
 
 ```bash
-export H2M="http://127.0.0.1:3000/api/v1/agent"
+export H2M="http://127.0.0.1:3001/api/v1/agent"
 export TOKEN="충분히-긴-임의의-토큰"
 
 # 1. 현재 상태 관측
@@ -538,7 +543,7 @@ MCP Streamable HTTP를 지원하는 클라이언트에서 URL과 인증 헤더�
 {
   "mcpServers": {
     "homenet2mqtt": {
-      "url": "http://127.0.0.1:3000/api/v1/agent/mcp",
+      "url": "http://127.0.0.1:3001/api/v1/agent/mcp",
       "headers": {
         "Authorization": "Bearer <AGENT_API_TOKEN>"
       }
@@ -557,7 +562,7 @@ MCP Streamable HTTP를 지원하는 클라이언트에서 URL과 인증 헤더�
       "args": [
         "-y",
         "mcp-remote",
-        "http://127.0.0.1:3000/api/v1/agent/mcp",
+        "http://127.0.0.1:3001/api/v1/agent/mcp",
         "--header",
         "Authorization: Bearer <AGENT_API_TOKEN>"
       ]
@@ -568,11 +573,11 @@ MCP Streamable HTTP를 지원하는 클라이언트에서 URL과 인증 헤더�
 
 클라이언트 설정의 URL은 접근 환경에 맞게 변경하세요.
 
-- 같은 호스트: `http://127.0.0.1:3000/api/v1/agent/mcp`
-- 같은 Docker 네트워크: `http://<컨테이너명>:3000/api/v1/agent/mcp`
-- LAN/원격: `https://<H2M-HOST>/api/v1/agent/mcp` (리버스 프록시 권장)
-- Matter 애드온: `http://<HA-IP>:3000/api/v1/agent/mcp`
-- MQTT 애드온: ingress는 외부 MCP 클라이언트용이 아니므로 포트 공개 또는 리버스 프록시가 필요합니다.
+- 같은 호스트: `http://127.0.0.1:3001/api/v1/agent/mcp`
+- 같은 Docker 네트워크: `http://<컨테이너명>:3001/api/v1/agent/mcp`
+- LAN/원격: `https://<H2M-HOST>/api/v1/agent/mcp` (Agent 포트로 리버스 프록시 권장)
+- Matter 애드온: `http://<HA-IP>:3001/api/v1/agent/mcp`
+- MQTT 애드온: ingress는 외부 MCP 클라이언트용이 아니므로 `3001/tcp` 포트 공개 또는 리버스 프록시가 필요합니다.
 
 위 예시는 같은 호스트에서 실행하는 경우를 기준으로 합니다. 원격 서버라면 `127.0.0.1` 대신 실제 호스트 이름/IP를 사용하세요.
 

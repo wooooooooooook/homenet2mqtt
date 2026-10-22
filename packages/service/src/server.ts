@@ -2,7 +2,7 @@ import './utils/runtime-env.js';
 import express from 'express';
 import path from 'node:path';
 import fs from 'node:fs/promises';
-import { createServer } from 'node:http';
+import { createServer, type Server } from 'node:http';
 import { fileURLToPath } from 'node:url';
 import yaml from 'js-yaml';
 import { WebSocketServer } from 'ws';
@@ -43,17 +43,28 @@ import {
   CONFIG_INIT_MARKER,
   CONFIG_RESTART_FLAG,
   BASE_MQTT_PREFIX,
+  UI_AUTH_FILE,
 } from './utils/constants.js';
 import { fileExists, parseEnvList, triggerRestart, discoverConfigFiles } from './utils/helpers.js';
 import { initializeBackupDir, saveBackup } from './services/backup.service.js';
 import { loadFrontendSettings } from './services/frontend-settings.service.js';
-import { registerRoutes } from './routes/index.js';
+import { registerRoutes, type RoutesContext } from './routes/index.js';
 import { createStreamManager } from './websocket/stream-manager.js';
 import { globalSecurityHeaders, apiSecurityHeaders } from './middleware/security.js';
 import { loadAgentApiConfig } from './agent/agent.config.js';
 import { AgentEventHub } from './agent/agent-events.service.js';
 import { createRawStreamController } from './agent/raw-stream.controller.js';
 import { handleMcpJsonParseError } from './agent/mcp/mcp.server.js';
+import { createAgentRoutes, type AgentRoutesContext } from './agent/agent.routes.js';
+import { AGENT_API_BASE } from './agent/agent-paths.js';
+import { UiCredentialStore } from './auth/ui-credential.store.js';
+import { UiSessionStore } from './auth/ui-session.store.js';
+import { createUiAuthMiddleware, createUiWsVerifyClient } from './auth/ui-auth.middleware.js';
+import {
+  createProtectedAuthRoutes,
+  createPublicAuthRoutes,
+  type AuthRoutesContext,
+} from './routes/auth.routes.js';
 
 // --- Path Constants ---
 const __filename = fileURLToPath(import.meta.url);
@@ -69,15 +80,54 @@ const envConfigFiles = (() => {
 })();
 
 // --- Application State ---
-const app = express();
-const server = createServer(app);
+const uiApp = express();
+const uiServer = createServer(uiApp);
+const agentApp = express();
+const agentServer = createServer(agentApp);
+
+const uiCredentialStore = new UiCredentialStore(UI_AUTH_FILE);
+const uiSessionStore = new UiSessionStore();
+const uiAuthRateLimiter = new RateLimiter(15 * 60 * 1000, 10);
+const trustIngress = Boolean(process.env.SUPERVISOR_TOKEN);
+const uiAuthContext: AuthRoutesContext = {
+  credentials: uiCredentialStore,
+  sessions: uiSessionStore,
+  rateLimiter: uiAuthRateLimiter,
+  trustIngress,
+};
+
 const wss = new WebSocketServer({
-  server,
+  server: uiServer,
   path: '/api/stream',
   // Security: Limit max payload to 64KB to prevent DoS via large WebSocket frames
   maxPayload: 64 * 1024,
+  verifyClient: createUiWsVerifyClient(uiAuthContext),
 });
-const port = process.env.PORT ? Number(process.env.PORT) : 3000;
+
+const parsePort = (envName: string, fallback: number): number => {
+  const raw = process.env[envName]?.trim();
+  if (!raw) return fallback;
+
+  const value = Number(raw);
+  if (!Number.isInteger(value) || value < 1 || value > 65535) {
+    throw new Error(`${envName} must be an integer between 1 and 65535 (received "${raw}").`);
+  }
+  return value;
+};
+
+const { uiPort, agentApiPort } = (() => {
+  try {
+    const parsedUiPort = parsePort('PORT', 3000);
+    const parsedAgentPort = parsePort('AGENT_API_PORT', 3001);
+    if (parsedUiPort === parsedAgentPort) {
+      throw new Error('PORT and AGENT_API_PORT must be different.');
+    }
+    return { uiPort: parsedUiPort, agentApiPort: parsedAgentPort };
+  } catch (err) {
+    logger.error({ err }, '[service] Invalid port configuration');
+    process.exit(1);
+  }
+})();
 
 const restartProcess = () => {
   setTimeout(async () => {
@@ -179,23 +229,44 @@ const bridgeRecoveryHandler = createBridgeRecoveryHandler({
 // FrontendSettings functions are now imported from ./services/frontend-settings.service.js
 
 // --- Express Middleware & Setup ---
-app.disable('x-powered-by');
-app.use(globalSecurityHeaders);
-// Payload 크기 제한 설정 (DoS 방지)
-app.use(express.json({ limit: '1mb' }));
+const applyCommonMiddleware = (target: express.Express): void => {
+  target.disable('x-powered-by');
+  target.use(globalSecurityHeaders);
+  // Payload 크기 제한 설정 (DoS 방지)
+  target.use(express.json({ limit: '1mb' }));
+
+  // API Caching: API 응답에 대한 캐싱 비활성화 (보안 강화)
+  target.use('/api', apiSecurityHeaders);
+
+  // Global Rate Limiter Middleware
+  target.use((req, res, next) => {
+    if (!globalRateLimiter.check(req.ip || 'unknown')) {
+      res.status(429).json({ error: 'Too many requests' });
+      return;
+    }
+    next();
+  });
+};
+
+const handleRequestError: express.ErrorRequestHandler = (err, _req, res, _next) => {
+  logger.error({ err }, '[service] Request error');
+  if (res.headersSent) return;
+  res.status(500).json({ error: 'Internal Server Error' });
+};
+
+applyCommonMiddleware(uiApp);
+applyCommonMiddleware(agentApp);
 // MCP JSON-RPC requires a parse error response instead of the generic 500.
-app.use(handleMcpJsonParseError);
+agentApp.use(handleMcpJsonParseError);
 
-// API Caching: API 응답에 대한 캐싱 비활성화 (보안 강화)
-app.use('/api', apiSecurityHeaders);
-
-// Global Rate Limiter Middleware
-app.use((req, res, next) => {
-  if (!globalRateLimiter.check(req.ip || 'unknown')) {
-    return res.status(429).json({ error: 'Too many requests' });
-  }
-  next();
+// UI authentication: public auth endpoints first, then session enforcement for all other APIs.
+uiApp.use(createPublicAuthRoutes(uiAuthContext));
+// Agent API is only served on AGENT_API_PORT; never expose an auth challenge for it on the UI port.
+uiApp.use(AGENT_API_BASE, (_req, res) => {
+  res.status(404).json({ error: 'NOT_FOUND' });
 });
+uiApp.use('/api', createUiAuthMiddleware(uiAuthContext));
+uiApp.use(createProtectedAuthRoutes(uiAuthContext));
 
 // --- Service Initializations ---
 activityLogService.addLog('log.service_started');
@@ -210,7 +281,7 @@ const autoRestartService = new AutoRestartService({
 });
 
 // Register modular routes (system, packets, gallery, logs, backups, utils)
-registerRoutes(app, {
+const uiRoutesContext: RoutesContext = {
   configRateLimiter,
   commandRateLimiter,
   getBridges: () => bridges,
@@ -256,15 +327,9 @@ registerRoutes(app, {
   triggerRestart: async () => triggerRestart(),
   setupWizardService,
   configEditorService,
+};
 
-  // Agent API v1 context
-  agentApiConfig,
-  agentRateLimiter,
-  getLatestStates: () => latestStates,
-  rawStreamController,
-  agentEventHub,
-  requestRestart,
-});
+registerRoutes(uiApp, uiRoutesContext);
 
 // WebSocket handling is now in websocket/stream-manager.ts
 const streamManager = createStreamManager({
@@ -280,6 +345,23 @@ const latestStates = streamManager.getLatestStates();
 
 streamManager.registerGlobalEventHandlers();
 streamManager.registerWebSocketHandlers();
+
+// --- Agent API app (separate port, Bearer token only) ---
+const agentRoutesContext: AgentRoutesContext = {
+  ...uiRoutesContext,
+  agentApiConfig,
+  agentRateLimiter,
+  getLatestStates: () => latestStates,
+  rawStreamController,
+  agentEventHub,
+  requestRestart,
+};
+
+agentApp.use(createAgentRoutes(agentRoutesContext));
+agentApp.use((_req, res) => {
+  res.status(404).json({ error: 'NOT_FOUND' });
+});
+agentApp.use(handleRequestError);
 
 eventBus.on('integration:status', (event: { type: string; state: string; portId?: string }) => {
   if (autoRestartSuppressed) return;
@@ -312,13 +394,17 @@ eventBus.on('integration:error', (event: { type: string; portId?: string; messag
   });
 });
 
-app.get('/api/stream', (_req, res) => {
+uiApp.get('/api/stream', (_req, res) => {
   res.status(426).json({ error: '이 엔드포인트는 WebSocket 전용입니다.' });
+});
+
+uiApp.use('/api', (_req, res) => {
+  res.status(404).json({ error: 'NOT_FOUND' });
 });
 
 // --- Static Serving & Error Handling ---
 // Serve static files AFTER API routes to prevent API requests from being served as static files
-app.use(
+uiApp.use(
   express.static(path.resolve(__dirname, '../static'), {
     setHeaders: (res, filePath) => {
       if (filePath.endsWith('.js')) {
@@ -331,17 +417,11 @@ app.use(
 );
 
 // Fallback to index.html for SPA routing (must be AFTER static files and API routes)
-app.get('*', (_req, res, next) => {
+uiApp.get('*', (_req, res, next) => {
   res.sendFile(path.resolve(__dirname, '../static', 'index.html'), (err) => err && next());
 });
 
-app.use(
-  (err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-    logger.error({ err }, '[service] Request error');
-    if (res.headersSent) return;
-    res.status(500).json({ error: 'Internal Server Error' });
-  },
-);
+uiApp.use(handleRequestError);
 
 // --- Bridge Management ---
 const loadConfigFile = async (configPath: string): Promise<HomenetBridgeConfig> => {
@@ -821,8 +901,33 @@ async function loadAndStartBridges(filenames: string[]) {
 }
 
 // --- Server Initialization ---
-server.listen(port, async () => {
-  logger.info(`Service listening on port ${port}`);
+const listen = (server: Server, listenPort: number): Promise<void> =>
+  new Promise((resolve, reject) => {
+    const onError = (err: Error) => {
+      server.off('listening', onListening);
+      reject(err);
+    };
+    const onListening = () => {
+      server.off('error', onError);
+      resolve();
+    };
+    server.once('error', onError);
+    server.once('listening', onListening);
+    server.listen(listenPort);
+  });
+
+const initializeService = async () => {
+  logger.info(`Service (UI) listening on port ${uiPort}`);
+  logger.info(`Agent API listening on port ${agentApiPort}`);
+  logger.info(
+    {
+      uiPasswordConfigured: uiCredentialStore.configured,
+      uiIngressBypass: trustIngress,
+      agentApiEnabled: agentApiConfig.enabled,
+    },
+    '[service] Authentication configuration',
+  );
+
   try {
     // Initialize backup directory
     await initializeBackupDir();
@@ -957,4 +1062,19 @@ server.listen(port, async () => {
       retryable: true,
     });
   }
-});
+};
+
+const startServers = async (): Promise<void> => {
+  await uiCredentialStore.load();
+
+  try {
+    await Promise.all([listen(uiServer, uiPort), listen(agentServer, agentApiPort)]);
+  } catch (err) {
+    logger.error({ err }, '[service] Failed to start HTTP servers');
+    process.exit(1);
+  }
+
+  await initializeService();
+};
+
+void startServers();
