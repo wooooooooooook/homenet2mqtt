@@ -60,6 +60,10 @@ if [ -f "$CONFIG_PATH" ]; then
   fi
   export TIMEZONE=$(jq --raw-output '.timezone // ""' $CONFIG_PATH)
 
+  # Agent API (Bearer-authenticated REST surface for AI agents)
+  export AGENT_API_TOKEN=$(jq --raw-output '.agent_api_token // ""' $CONFIG_PATH)
+  export AGENT_ALLOW_PACKET_SEND=$(jq --raw-output '.agent_allow_packet_send // false' $CONFIG_PATH)
+
   CONFIG_FILES=$(jq --raw-output '.config_files // [] | join(",")' $CONFIG_PATH)
   LEGACY_CONFIG_FILE=$(jq --raw-output '.config_file // ""' $CONFIG_PATH)
   
@@ -85,6 +89,8 @@ else
   export DISCOVERY_ENABLED="${DISCOVERY_ENABLED:-false}"
   export CONFIG_FILES="${CONFIG_FILES:-}"
   export INTEGRATION_TYPE="${INTEGRATION_TYPE:-mqtt}"
+  export AGENT_API_TOKEN="${AGENT_API_TOKEN:-}"
+  export AGENT_ALLOW_PACKET_SEND="${AGENT_ALLOW_PACKET_SEND:-false}"
   
   # CONFIG_ROOT 환경변수 또는 기본값 /config 사용
   HA_CONFIG_DIR="${CONFIG_ROOT:-/config}"
@@ -128,6 +134,12 @@ echo "  MQTT_USER: $MQTT_USER"
 echo "  MQTT_TOPIC_PREFIX: $MQTT_TOPIC_PREFIX"
 echo "  TIMEZONE: $TIMEZONE"
 echo "  DISCOVERY_ENABLED: $DISCOVERY_ENABLED"
+if [ -n "$AGENT_API_TOKEN" ]; then
+  echo "  AGENT_API: enabled"
+else
+  echo "  AGENT_API: disabled (AGENT_API_TOKEN not set)"
+fi
+echo "  AGENT_ALLOW_PACKET_SEND: $AGENT_ALLOW_PACKET_SEND"
 
 # Run the service with restart flag support for initialization flow
 while true; do

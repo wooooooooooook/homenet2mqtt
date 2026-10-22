@@ -11,7 +11,7 @@ import {
 } from '../protocol/devices/state-normalizer.js';
 import { EntityConfig } from '../domain/entities/base.entity.js';
 
-interface DiscoveryPayload {
+export interface DiscoveryPayload {
   name: string | null;
   default_entity_id?: string;
   unique_id: string;
@@ -357,13 +357,19 @@ export class DiscoveryManager {
     }
   }
 
-  private publishDiscovery(entity: any): void {
-    // Only extract essential identification fields
-    const { id, name, type } = entity;
+  public buildDiscovery(
+    entityInput: EntityConfig & { type?: string },
+    entityType?: string,
+  ): { topic: string; payload: DiscoveryPayload } | null {
+    const type = entityType ?? entityInput.type;
+    const entity = { ...entityInput, type } as any;
 
-    if (!id) {
+    // Only extract essential identification fields
+    const { id, name } = entity;
+
+    if (!id || !type) {
       logger.error({ entity }, '[DiscoveryManager] Entity missing ID, skipping discovery');
-      return;
+      return null;
     }
 
     const uniqueId = this.ensureUniqueId(entity);
@@ -720,8 +726,20 @@ export class DiscoveryManager {
         break;
     }
 
-    this.publisher.publish(topic, JSON.stringify(payload), { retain: true });
-    logger.debug({ topic, uniqueId }, '[DiscoveryManager] Published discovery config');
+    logger.debug({ id, uniqueId, topic }, '[DiscoveryManager] Prepared discovery config');
+
+    return { topic, payload };
+  }
+
+  private publishDiscovery(entity: any): void {
+    const discovery = this.buildDiscovery(entity);
+    if (!discovery) return;
+
+    this.publisher.publish(discovery.topic, JSON.stringify(discovery.payload), { retain: true });
+    logger.debug(
+      { topic: discovery.topic, uniqueId: discovery.payload.unique_id },
+      '[DiscoveryManager] Published discovery config',
+    );
   }
 
   private resolveClimateTemperatureUnit(temperatureUnit?: string): 'C' | 'F' {

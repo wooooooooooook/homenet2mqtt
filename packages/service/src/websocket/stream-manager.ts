@@ -30,11 +30,13 @@ import type {
   StateChangeEvent,
   BridgeInstance,
 } from '../types/index.js';
+import type { RawStreamController } from '../agent/raw-stream.controller.js';
 
 export interface StreamManagerContext {
   wss: WebSocketServer;
   getBridges: () => BridgeInstance[];
   getCurrentConfigs: () => HomenetBridgeConfig[];
+  rawStreamController?: RawStreamController;
 }
 
 interface StreamManagerState {
@@ -84,10 +86,18 @@ export function createStreamManager(ctx: StreamManagerContext) {
   };
 
   const stopAllRawPacketListeners = () => {
+    if (ctx.rawStreamController) {
+      ctx.rawStreamController.release();
+      return;
+    }
     ctx.getBridges().forEach((instance) => instance.bridge.stopRawPacketListener());
   };
 
   const startAllRawPacketListeners = () => {
+    if (ctx.rawStreamController) {
+      ctx.rawStreamController.acquire();
+      return;
+    }
     ctx.getBridges().forEach((instance) => instance.bridge.startRawPacketListener());
   };
 

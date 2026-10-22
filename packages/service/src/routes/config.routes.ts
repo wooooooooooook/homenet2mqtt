@@ -6,15 +6,20 @@ import { Router } from 'express';
 import path from 'node:path';
 import fs from 'node:fs/promises';
 import yaml from 'js-yaml';
-import { logger, normalizePortId, normalizeConfig } from '@rs485-homenet/core';
-import { DiscoveryManager } from '@rs485-homenet/core/mqtt/discovery-manager';
+import { logger, normalizeConfig } from '@rs485-homenet/core';
 import { dumpConfigToYaml } from '../utils/yaml-dumper.js';
 import type { HomenetBridgeConfig } from '@rs485-homenet/core';
 import type { AutomationConfig, ScriptConfig } from '@rs485-homenet/core/config/types';
-import { BASE_MQTT_PREFIX, ENTITY_TYPE_KEYS } from '../utils/constants.js';
+import { ENTITY_TYPE_KEYS } from '../utils/constants.js';
 import type { RateLimiter } from '../utils/rate-limiter.js';
 import type { BridgeInstance, PersistableHomenetBridgeConfig } from '../types/index.js';
 import { saveBackup } from '../services/backup.service.js';
+import {
+  addConfigItems,
+  ConfigItemsError,
+  withConfigWriteLock,
+} from '../services/config-items.service.js';
+import { buildDiscoveryPreviews } from '../services/discovery-preview.service.js';
 import { resolveSecurePath } from '../utils/helpers.js';
 
 import {
@@ -332,148 +337,31 @@ export function createConfigRoutes(ctx: ConfigRoutesContext): Router {
       return res.status(404).json({ error: 'Config not found for the given portId' });
     }
 
-    const currentConfigFiles = ctx.getCurrentConfigFiles();
-    const targetConfigFile = currentConfigFiles[configIndex];
+    const targetConfigFile = ctx.getCurrentConfigFiles()[configIndex];
 
     try {
-      // 1. Parse new YAML snippet
-      let newItems: any;
-      try {
-        newItems = yaml.load(newYaml);
-      } catch (e) {
-        return res.status(400).json({ error: 'Invalid YAML format' });
-      }
-
-      if (!newItems || typeof newItems !== 'object') {
-        return res.status(400).json({ error: 'Invalid YAML content' });
-      }
-
-      // 2. Read full config
-      const configPath = resolveSecurePath(ctx.configDir, targetConfigFile);
-      if (!configPath) {
-        return res.status(404).json({ error: 'Config file not found' });
-      }
-      const fileContent = await fs.readFile(configPath, 'utf8');
-      const loadedYamlFromFile = yaml.load(fileContent) as {
-        homenet_bridge: PersistableHomenetBridgeConfig;
-      };
-
-      if (!loadedYamlFromFile.homenet_bridge) {
-        throw new Error('Invalid config file structure');
-      }
-
-      // Normalize to ensure arrays exist
-      const normalizedFullConfig = normalizeConfig(
-        loadedYamlFromFile.homenet_bridge as HomenetBridgeConfig,
+      const result = await withConfigWriteLock(targetConfigFile, () =>
+        addConfigItems({
+          configDir: ctx.configDir,
+          configFile: targetConfigFile,
+          yaml: newYaml,
+          reason: 'add_item',
+        }),
       );
 
-      const backupPath = await saveBackup(configPath, loadedYamlFromFile, 'add_item');
-
-      // 3. Merge items
-      // We iterate over the keys in the newItems and append them to the existing config arrays
-      const mergedKeys: string[] = [];
-
-      for (const key of Object.keys(newItems)) {
-        // Check if this key is one of the allowed entity types or automation/script
-        const configKey = key as keyof HomenetBridgeConfig & string;
-        if (
-          !ENTITY_TYPE_KEYS.includes(configKey) &&
-          configKey !== 'automation' &&
-          configKey !== 'scripts'
-        ) {
-          continue; // Skip unknown top-level keys
-        }
-
-        const newEntries = newItems[key];
-        if (!Array.isArray(newEntries)) {
-          // If user provided a single object instead of array (unlikely with valid schema but possible), wrap it
-          // But our schema usually defines these as arrays.
-          // If it's not an array, we might want to skip or error.
-          // Let's assume standard format matches our schema which are lists.
-          continue;
-        }
-
-        mergedKeys.push(configKey);
-
-        let existingList = normalizedFullConfig[configKey];
-        if (!Array.isArray(existingList)) {
-          existingList = [];
-          (normalizedFullConfig[configKey] as any) = existingList;
-        }
-        const targetList = existingList as any[];
-
-        // Check for duplicate IDs before appending
-        const existingTargetIds = new Set(targetList.map((e: any) => e.id).filter(Boolean));
-
-        const otherEntityIdsMaps = new Map<string, Set<any>>();
-        if (ENTITY_TYPE_KEYS.includes(configKey)) {
-          for (const otherKey of ENTITY_TYPE_KEYS) {
-            if (otherKey === configKey) continue;
-            const otherList = normalizedFullConfig[otherKey];
-            if (Array.isArray(otherList)) {
-              otherEntityIdsMaps.set(
-                otherKey,
-                new Set(otherList.map((e: any) => e.id).filter(Boolean)),
-              );
-            }
-          }
-        }
-
-        for (const newItem of newEntries) {
-          if (newItem.id) {
-            if (existingTargetIds.has(newItem.id)) {
-              return res
-                .status(409)
-                .json({ error: `ID '${newItem.id}' already exists in ${configKey}.` });
-            }
-            // Also check against global uniqueness if necessary?
-            // For now, uniqueness within the list (and usually within the whole system for entities) is expected.
-            // Let's at least check within the current file's relevant lists if it's an entity type
-
-            if (ENTITY_TYPE_KEYS.includes(configKey)) {
-              for (const [otherKey, idsSet] of otherEntityIdsMaps.entries()) {
-                if (idsSet.has(newItem.id)) {
-                  return res
-                    .status(409)
-                    .json({ error: `ID '${newItem.id}' already exists in ${String(otherKey)}.` });
-                }
-              }
-            }
-          }
-        }
-
-        targetList.push(...newEntries);
-      }
-
-      if (mergedKeys.length === 0) {
-        return res.status(400).json({
-          error:
-            'No valid items found to add. Ensure YAML structure matches root schema keys (e.g. light:, automation:)',
-        });
-      }
-
-      // 4. Update the original object structure
-      loadedYamlFromFile.homenet_bridge = normalizedFullConfig;
-
-      // 5. Write new config
-      const newFileContent = dumpConfigToYaml(loadedYamlFromFile);
-      await fs.writeFile(configPath, newFileContent, 'utf8');
-
-      // 6. Update in-memory
-      ctx.setCurrentRawConfigs(configIndex, normalizedFullConfig);
-      ctx.setCurrentConfigs(configIndex, normalizedFullConfig);
+      ctx.setCurrentRawConfigs(configIndex, result.config);
+      ctx.setCurrentConfigs(configIndex, result.config);
       ctx.rebuildPortMappings();
 
-      // We don't hot-reload individual items on "Add" usually, we request restart.
-      // But we could try?
-      // For now, consistent with requirements: "request restart".
-
       logger.info(
-        `[service] Config added items for ${mergedKeys.join(', ')} in ${portId}. Backup: ${path.basename(backupPath)}`,
+        `[service] Config added items for ${result.mergedKeys.join(', ')} in ${portId}. Backup: ${result.backup}`,
       );
 
-      res.json({ success: true, backup: path.basename(backupPath), restartRequired: true });
+      res.json({ success: true, backup: result.backup, restartRequired: true });
     } catch (err) {
+      if (err instanceof ConfigItemsError) {
+        return res.status(err.status).json({ error: err.message });
+      }
       logger.error({ err }, '[service] Failed to add config items');
       res.status(500).json({ error: err instanceof Error ? err.message : 'Add failed' });
     }
@@ -522,54 +410,17 @@ export function createConfigRoutes(ctx: ConfigRoutesContext): Router {
       }
 
       const portConfig = ctx.getCurrentConfigs()[configIndex];
-      const normalizedPortId = normalizePortId(portId, 0);
-      const mqttTopicPrefix = `${BASE_MQTT_PREFIX}/${normalizedPortId}`;
-      const published: Array<{ topic: string; payload: string }> = [];
+      const [preview] = buildDiscoveryPreviews(portId, portConfig, [
+        { entity: parsedEntity, entityType },
+      ]);
 
-      const publisherStub = {
-        publish(topic: string, payload: string) {
-          published.push({ topic, payload });
-        },
-      };
-
-      const subscriberStub = {
-        subscribe() {
-          return undefined;
-        },
-      };
-
-      const previewConfig = {
-        devices: Array.isArray(portConfig.devices) ? portConfig.devices : [],
-      } as HomenetBridgeConfig;
-
-      const manager = new DiscoveryManager(
-        normalizedPortId,
-        previewConfig,
-        publisherStub as any,
-        subscriberStub as any,
-        mqttTopicPrefix,
-      );
-
-      (manager as any).publishDiscovery({
-        ...parsedEntity,
-        type: entityType,
-      });
-
-      const latest = published.at(-1);
-      if (!latest) {
+      if (!preview) {
         return res.status(400).json({ error: 'Failed to generate discovery preview' });
       }
 
-      let payloadObj: unknown = null;
-      try {
-        payloadObj = JSON.parse(latest.payload);
-      } catch {
-        payloadObj = latest.payload;
-      }
-
       return res.json({
-        topic: latest.topic,
-        payload: payloadObj,
+        topic: preview.topic,
+        payload: preview.payload,
       });
     } catch (error) {
       logger.error({ err: error }, '[service] Failed to build discovery preview');

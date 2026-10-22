@@ -18,6 +18,8 @@
 | `TIMEZONE`          | 시스템 기본값                                      | 런타임 타임존                                         | Add-on, Docker, 로컬 |
 | `DISCOVERY_ENABLED` | `false`                                            | Home Assistant Discovery 활성화 여부                  | Docker               |
 | `INTEGRATION_TYPE`  | `mqtt`                                             | 연동 모드 결정 (`mqtt`, `matter`, `log`)              | Add-on, Docker       |
+| `AGENT_API_TOKEN`   | (비어있음)                                          | AI 에이전트 API Bearer 토큰. 16자 이상일 때만 활성화  | Add-on, Docker, 로컬 |
+| `AGENT_ALLOW_PACKET_SEND` | `false`                                      | 에이전트 API의 RS485 패킷 전송 허용 여부              | Add-on, Docker, 로컬 |
 
 ## 운영 튜닝 환경변수 (중요)
 
@@ -45,6 +47,8 @@ services:
       DISCOVERY_ENABLED: 'true'
       SERIAL_PATH_WAIT_TIMEOUT_MS: '30000'
       MQTT_CONNECT_TIMEOUT_MS: '15000'
+      AGENT_API_TOKEN: 'replace-with-a-long-random-token'
+      AGENT_ALLOW_PACKET_SEND: 'false'
 ```
 
 ## 문제 상황별 권장값

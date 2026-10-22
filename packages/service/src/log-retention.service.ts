@@ -48,6 +48,14 @@ export type CommandLogEntry = {
   portId?: string;
 };
 
+export interface UnmatchedPacketDetail {
+  packet: string;
+  portId: string;
+  count: number;
+  firstSeen: string;
+  lastSeen: string;
+}
+
 type ActivityLogEntry = {
   timestamp: number;
   code: string;
@@ -79,6 +87,9 @@ export class LogRetentionService {
 
   // Dictionary for valid but unparsed packets (Map: portId -> Set<packet hex>)
   private validButUnparsedPackets = new Map<string, Set<string>>();
+
+  // Observation details for unmatched packets (Map: portId -> Map<packet hex, detail>)
+  private unmatchedPacketDetails = new Map<string, Map<string, UnmatchedPacketDetail>>();
 
   // Timers
   private cleanupTimer: NodeJS.Timeout | null = null;
@@ -239,6 +250,27 @@ export class LogRetentionService {
     return portPackets ? Array.from(portPackets) : [];
   }
 
+  public getUnmatchedPacketDetails(portId?: string): UnmatchedPacketDetail[] {
+    const details: UnmatchedPacketDetail[] = [];
+
+    if (portId) {
+      const portDetails = this.unmatchedPacketDetails.get(portId);
+      if (portDetails) {
+        details.push(...portDetails.values());
+      }
+    } else {
+      for (const portDetails of this.unmatchedPacketDetails.values()) {
+        details.push(...portDetails.values());
+      }
+    }
+
+    return details.sort(
+      (a, b) =>
+        new Date(b.lastSeen).getTime() - new Date(a.lastSeen).getTime() ||
+        a.packet.localeCompare(b.packet),
+    );
+  }
+
   /**
    * Returns a mapping of packet hex -> array of entity IDs that parsed this packet
    * @param portId Optional port ID to filter packets by
@@ -390,6 +422,7 @@ export class LogRetentionService {
     this.parsedPacketLogs = [];
     this.commandPacketLogs = [];
     this.validButUnparsedPackets = new Map<string, Set<string>>();
+    this.unmatchedPacketDetails = new Map<string, Map<string, UnmatchedPacketDetail>>();
     this.activityLogs = [];
     this.interfaceLogs = [];
   }
@@ -423,6 +456,17 @@ export class LogRetentionService {
     this.interfaceLogs = this.interfaceLogs.filter(
       (log) => new Date(log.timestamp).getTime() >= cutoff,
     );
+
+    for (const [portId, portDetails] of this.unmatchedPacketDetails.entries()) {
+      for (const [packet, detail] of portDetails.entries()) {
+        if (new Date(detail.lastSeen).getTime() < cutoff) {
+          portDetails.delete(packet);
+        }
+      }
+      if (portDetails.size === 0) {
+        this.unmatchedPacketDetails.delete(portId);
+      }
+    }
 
     this.pruneDictionary();
   }
@@ -529,6 +573,27 @@ export class LogRetentionService {
       this.validButUnparsedPackets.set(portKey, portSet);
     }
     portSet.add(pkt.packet);
+
+    const timestamp = pkt.timestamp ? getLocalTimestamp(pkt.timestamp) : getLocalTimestamp();
+    let portDetails = this.unmatchedPacketDetails.get(portKey);
+    if (!portDetails) {
+      portDetails = new Map<string, UnmatchedPacketDetail>();
+      this.unmatchedPacketDetails.set(portKey, portDetails);
+    }
+
+    const existing = portDetails.get(pkt.packet);
+    if (existing) {
+      existing.count += 1;
+      existing.lastSeen = timestamp;
+    } else {
+      portDetails.set(pkt.packet, {
+        packet: pkt.packet,
+        portId: portKey,
+        count: 1,
+        firstSeen: timestamp,
+        lastSeen: timestamp,
+      });
+    }
   };
 
   private setupListeners() {
@@ -606,6 +671,7 @@ export class LogRetentionService {
       parsedPacketLogs: this.parsedPacketLogs,
       commandPacketLogs: this.commandPacketLogs,
       validButUnparsedPackets: unmatchedByPort,
+      unmatchedPacketDetails: this.getUnmatchedPacketDetails(),
       activityLogs: this.activityLogs,
       interfaceLogs: this.interfaceLogs,
     };

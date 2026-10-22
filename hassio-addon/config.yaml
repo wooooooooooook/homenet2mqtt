@@ -32,6 +32,8 @@ options:
   mqtt_passwd: ""
   config_files: []
   timezone: "Asia/Seoul"
+  agent_api_token: ""
+  agent_allow_packet_send: false
 schema:
   log_level: list(trace|debug|info|warn|error|fatal)
   use_supervisor_mqtt: bool
@@ -44,6 +46,8 @@ schema:
   config_files:
     - str
   timezone: str?
+  agent_api_token: password?
+  agent_allow_packet_send: bool?
 ingress: true
 ingress_port: 3000
 ingress_stream: true

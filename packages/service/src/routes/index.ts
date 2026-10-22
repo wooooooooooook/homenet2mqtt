@@ -19,6 +19,7 @@ import {
 } from './config-editor.routes.js';
 import { createSchemaRoutes } from './schema.routes.js';
 import { createQrRoutes } from './qr.routes.js';
+import { createAgentRoutes, type AgentRoutesContext } from '../agent/agent.routes.js';
 
 export interface RoutesContext
   extends SystemRoutesContext,
@@ -32,7 +33,8 @@ export interface RoutesContext
     ConfigRoutesContext,
     UtilsRoutesContext,
     SetupRoutesContext,
-    ConfigEditorRoutesContext {}
+    ConfigEditorRoutesContext,
+    AgentRoutesContext {}
 
 export function registerRoutes(app: Express, ctx: RoutesContext): void {
   // System routes (health, restart)
@@ -74,6 +76,9 @@ export function registerRoutes(app: Express, ctx: RoutesContext): void {
 
   // QR code generation routes
   app.use(createQrRoutes());
+
+  // Agent API v1 (versioned, Bearer-authenticated surface for AI agents)
+  app.use(createAgentRoutes(ctx));
 }
 
 export { createSystemRoutes } from './system.routes.js';
@@ -82,3 +87,4 @@ export { createGalleryRoutes } from './gallery.routes.js';
 export { createLogsRoutes } from './logs.routes.js';
 export { createBackupsRoutes } from './backups.routes.js';
 export { createUtilsRoutes } from './utils.routes.js';
+export { createAgentRoutes } from '../agent/agent.routes.js';

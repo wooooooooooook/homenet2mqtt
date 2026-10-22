@@ -50,6 +50,10 @@ import { loadFrontendSettings } from './services/frontend-settings.service.js';
 import { registerRoutes } from './routes/index.js';
 import { createStreamManager } from './websocket/stream-manager.js';
 import { globalSecurityHeaders, apiSecurityHeaders } from './middleware/security.js';
+import { loadAgentApiConfig } from './agent/agent.config.js';
+import { AgentEventHub } from './agent/agent-events.service.js';
+import { createRawStreamController } from './agent/raw-stream.controller.js';
+import { handleMcpJsonParseError } from './agent/mcp/mcp.server.js';
 
 // --- Path Constants ---
 const __filename = fileURLToPath(import.meta.url);
@@ -92,11 +96,20 @@ const restartProcess = () => {
   }, 500);
 };
 
+const requestRestart = async (): Promise<void> => {
+  await triggerRestart();
+  restartProcess();
+};
+
 // Security: Rate Limiters
 const globalRateLimiter = new RateLimiter(60000, 300); // 300 requests per minute (General DoS protection)
 const commandRateLimiter = new RateLimiter(10000, 20); // 20 requests per 10 seconds
 const configRateLimiter = new RateLimiter(60000, 20); // 20 requests per minute
 const serialTestRateLimiter = new RateLimiter(60000, 20); // 20 requests per minute
+const agentRateLimiter = new RateLimiter(60000, 120); // 120 requests per minute
+
+const agentApiConfig = loadAgentApiConfig();
+const agentEventHub = new AgentEventHub();
 
 const setupWizardService = createSetupWizardService({
   configDir: CONFIG_DIR,
@@ -141,6 +154,9 @@ let bridgeError: BridgeErrorPayload | null = null;
 let bridgeStartPromise: Promise<void> | null = null;
 let autoRestartSuppressed = false;
 
+const rawStreamController = createRawStreamController(() => bridges);
+agentEventHub.start();
+
 const bridgeRecoveryHandler = createBridgeRecoveryHandler({
   getBridges: () => bridges,
   getCurrentConfigFiles: () => currentConfigFiles,
@@ -167,6 +183,8 @@ app.disable('x-powered-by');
 app.use(globalSecurityHeaders);
 // Payload 크기 제한 설정 (DoS 방지)
 app.use(express.json({ limit: '1mb' }));
+// MCP JSON-RPC requires a parse error response instead of the generic 500.
+app.use(handleMcpJsonParseError);
 
 // API Caching: API 응답에 대한 캐싱 비활성화 (보안 강화)
 app.use('/api', apiSecurityHeaders);
@@ -238,6 +256,14 @@ registerRoutes(app, {
   triggerRestart: async () => triggerRestart(),
   setupWizardService,
   configEditorService,
+
+  // Agent API v1 context
+  agentApiConfig,
+  agentRateLimiter,
+  getLatestStates: () => latestStates,
+  rawStreamController,
+  agentEventHub,
+  requestRestart,
 });
 
 // WebSocket handling is now in websocket/stream-manager.ts
@@ -245,6 +271,7 @@ const streamManager = createStreamManager({
   wss,
   getBridges: () => bridges,
   getCurrentConfigs: () => currentConfigs,
+  rawStreamController,
 });
 
 // Export rebuildPortMappings from streamManager
