@@ -21,5 +21,6 @@ services:
     # devices:
     #   - /dev/ttyUSB0:/dev/ttyUSB0
     ports:
-      - '3000:3000'
+      # 호스트 내부에서만 접근 허용 (외부 공개는 리버스 프록시 사용)
+      - '127.0.0.1:3000:3000'
     restart: unless-stopped

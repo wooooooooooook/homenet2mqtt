@@ -3,6 +3,7 @@ next:
   text: 'UI 설명'
   link: '/guide/getting-started'
 ---
+
 # Docker 설치
 
 > 이 섹션에서 무엇을 해결하나요?
@@ -21,6 +22,7 @@ next:
 ## docker-compose 예시
 
 ### 1) MQTT 연동 모드 (h2m-mqtt)
+
 기존 Home Assistant에 MQTT Discovery 방식으로 연동하는 경우 아래의 `docker-compose.yml` 구조를 사용합니다.
 
 ```yaml
@@ -29,7 +31,7 @@ services:
     image: nubiz/homenet2mqtt:latest
     container_name: homenet2mqtt
     environment:
-      INTEGRATION_TYPE: mqtt      # MQTT 모드로 실행
+      INTEGRATION_TYPE: mqtt # MQTT 모드로 실행
       MQTT_URL: mqtt://localhost:1883
       PORT: '3000'
       LOG_LEVEL: info
@@ -41,13 +43,18 @@ services:
       MQTT_TOPIC_PREFIX: homenet2mqtt
       # Homeassistant에서 기기가 자동으로 추가되게하려면 true로 설정.
       DISCOVERY_ENABLED: 'false'
+      # AI 에이전트 API (선택). 16자 이상 토큰을 설정해야 활성화됩니다.
+      AGENT_API_TOKEN: ''
+      # 패킷 전송 허용 여부. 기본값 false.
+      AGENT_ALLOW_PACKET_SEND: 'false'
     # USB RS485 장치를 사용하는경우 devices를 주석해제하여 사용하세요.
     # devices:
     #   - /dev/ttyUSB0:/dev/ttyUSB0
     volumes:
       - ./h2m-config:/config
     ports:
-      - '3000:3000'
+      # 호스트 내부에서만 접근. LAN 공개는 아래 '접속 주소'를 참고하세요.
+      - '127.0.0.1:3000:3000'
     restart: unless-stopped
 ```
 
@@ -62,11 +69,11 @@ services:
   homenet2matter:
     image: nubiz/homenet2mqtt:latest
     container_name: homenet2matter
-    network_mode: host            # Matter mDNS 탐색 및 페어링 연결을 위해 필수적입니다.
+    network_mode: host # Matter mDNS 탐색 및 페어링 연결을 위해 필수적입니다.
     privileged: true
     environment:
-      INTEGRATION_TYPE: matter    # Matter 모드로 실행
-      PORT: '3000'                # Web UI 포트
+      INTEGRATION_TYPE: matter # Matter 모드로 실행
+      PORT: '3000' # Web UI 포트
       LOG_LEVEL: info
       TIMEZONE: 'Asia/Seoul'
     # USB RS485 장치를 사용하는경우 아래 주석을 풀고 기기에 맞게 입력하세요.
@@ -85,11 +92,26 @@ services:
 docker compose up -d
 ```
 
-- 브라우저에서 `http://<서버IP>:3000` 접속 후 설정 마법사를 진행합니다.
+- 같은 호스트에서는 `http://127.0.0.1:3000`으로 접속한 뒤 설정 마법사를 진행합니다.
+- 다른 기기(LAN)에서 접속하려면 포트 바인딩을 호스트 IP로 넓히거나 리버스 프록시를 사용하세요. 예: `- '192.168.0.10:3000:3000'`
+- Matter 모드는 `network_mode: host`이므로 `http://<서버IP>:3000`으로 접속할 수 있습니다. 3000 포트는 방화벽으로 접근을 제한하세요.
 - 설정 파일은 `./h2m-config`에 저장됩니다.
+
+## AI 에이전트 API
+
+`AGENT_API_TOKEN`을 16자 이상으로 설정하면 `/api/v1/agent` REST API와 MCP 엔드포인트가 활성화됩니다.
+
+```yaml
+environment:
+  AGENT_API_TOKEN: '충분히-긴-임의의-토큰'
+  AGENT_ALLOW_PACKET_SEND: 'false'
+```
+
+- 기본 포트 매핑은 호스트 루프백 전용입니다. 외부 에이전트가 접근하려면 [AI 에이전트용 API](./agent-api.md)의 '노출 및 네트워크 설정' 섹션을 따르세요.
+- 패킷 전송은 `AGENT_ALLOW_PACKET_SEND=true`일 때만 활성화됩니다.
+- 토큰이 없거나 16자 미만이면 에이전트 API는 비활성화됩니다(UI와 기존 `/api/*`는 정상 동작).
 
 ## 다음 단계
 
 - **MQTT 연동 모드 (h2m-mqtt)**: 설정 완료 후 홈어시스턴트에서 자동으로 기기가 등록됩니다.
 - **Matter 연동 모드 (h2m-matter)**: [Matter 연결 가이드](./matter-connection.md)를 참고하여 각 스마트홈 플랫폼에 연동하세요.
-
