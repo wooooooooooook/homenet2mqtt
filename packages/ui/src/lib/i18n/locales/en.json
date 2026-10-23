@@ -7,7 +7,8 @@
     },
     "login": {
       "title": "Sign in",
-      "desc": "Enter your password to access the UI."
+      "desc": "Enter your password to access the UI.",
+      "forgot_password": "Forgot your password?"
     },
     "password": "Password",
     "confirm_password": "Confirm password",

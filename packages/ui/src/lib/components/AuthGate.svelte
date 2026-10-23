@@ -13,6 +13,8 @@
 
   const MIN_LENGTH = 8;
   const MAX_LENGTH = 1024;
+  const PASSWORD_RESET_DOC_URL =
+    'https://homenet2mqtt-docs.vercel.app/guide/troubleshooting.html#ui-password-reset';
 
   let password = $state('');
   let confirmPassword = $state('');
@@ -118,6 +120,14 @@
       >
         {mode === 'setup' ? $t('auth.submit_setup') : $t('auth.submit_login')}
       </Button>
+
+      {#if mode === 'login'}
+        <p class="help">
+          <a href={PASSWORD_RESET_DOC_URL} target="_blank" rel="noopener noreferrer">
+            {$t('auth.forgot_password')}
+          </a>
+        </p>
+      {/if}
     </form>
   </div>
 </div>
@@ -209,5 +219,20 @@
     margin: 0;
     color: #f87171;
     font-size: 0.85rem;
+  }
+
+  .help {
+    margin: 0.25rem 0 0;
+    text-align: center;
+    font-size: 0.85rem;
+  }
+
+  .help a {
+    color: #60a5fa;
+    text-decoration: none;
+  }
+
+  .help a:hover {
+    text-decoration: underline;
   }
 </style>
