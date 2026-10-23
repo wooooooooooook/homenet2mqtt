@@ -264,6 +264,58 @@ curl -s -X POST -H "Authorization: Bearer $TOKEN" \
 - MQTT 접속 정보는 config가 아니라 환경변수/애드온 옵션이므로 API로 설정할 수 없습니다.
 - Home Assistant MQTT 애드온은 기본적으로 `3001/tcp`가 공개되지 않으므로, 초기 설정에 API를 사용하려면 애드온 네트워크 설정에서 포트를 공개해야 합니다.
 
+### 초기 설정 및 브릿지 추가
+
+로드된 설정이 하나도 없으면 UI 초기 설정 마법사 대신 API로 초기 설정을 완료할 수 있습니다. 이때 `/setup/apply`의 `mode`는 `init`(기본값)입니다. 이미 설정이 로드된 상태에서 새 포트(브릿지)를 추가하려면 `mode: "add"`를 사용하며, `/setup`의 `loadedPortIds`와 겹치지 않는 `portId`를 지정해야 합니다. `/setup/test-serial`은 설정 로드 여부와 관계없이 사용할 수 있습니다.
+
+```bash
+# 1. 설정 상태, 예제 목록, 사용 중인 portId 확인
+curl -s -H "Authorization: Bearer $TOKEN" "$H2M/setup"
+
+# 2. 예제의 serial 기본값과 선택 가능한 엔티티 확인
+curl -s -H "Authorization: Bearer $TOKEN" "$H2M/setup/examples/bestin.homenet_bridge.yaml"
+
+# 3. 배선 테스트 (최대 10개 패킷, 3초)
+curl -s -X POST -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "example": "bestin.homenet_bridge.yaml",
+    "serialPath": "/dev/ttyUSB0",
+    "portId": "bestin_main"
+  }' "$H2M/setup/test-serial"
+
+# 4. 초기 설정 적용 (응답 후 자동 재시작)
+curl -s -X POST -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "mode": "init",
+    "example": "bestin.homenet_bridge.yaml",
+    "serialPath": "/dev/ttyUSB0",
+    "portId": "bestin_main",
+    "selectedEntities": { "light": ["living_light"] },
+    "restart": true
+  }' "$H2M/setup/apply"
+
+# 5. 설정이 이미 로드된 상태에서 새 브릿지 추가 (새 portId)
+curl -s -X POST -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "mode": "add",
+    "example": "bestin.homenet_bridge.yaml",
+    "serialPath": "/dev/ttyUSB1",
+    "portId": "bestin_second",
+    "restart": true
+  }' "$H2M/setup/apply"
+```
+
+- `mode` 기본값은 `init`입니다. 설정이 이미 로드된 상태에서 `init`으로 호출하면 기존 설정 보호를 위해 `409 SETUP_NOT_REQUIRED`가 반환됩니다.
+- `mode: "add"`는 새 설정 파일(예: `default_2.homenet_bridge.yaml`)을 생성하고 `.initialized` 마커는 건드리지 않습니다. `portId`와 `serialPath`가 기존 포트와 중복되면 각각 `400 PORT_ID_DUPLICATE`, `400 SERIAL_PATH_DUPLICATE`가 반환됩니다.
+- `example`에 `__empty__`를 지정하면 빈 config로 시작합니다. 이 경우 `serialConfig`에 `portId`, `path`, `baud_rate`, `data_bits`, `parity`, `stop_bits`를 모두 전달해야 합니다.
+- `selectedEntities`를 생략하면 예제의 모든 엔티티를 사용합니다. 지정한 타입은 전달한 ID만 남기고, 결과가 비면 해당 타입을 제거합니다.
+- `restart` 기본값은 `true`입니다. `false`이면 `.restart-required` 플래그만 기록하고 응답 후 재시작하지 않습니다.
+- MQTT 접속 정보는 config가 아니라 환경변수/애드온 옵션이므로 API로 설정할 수 없습니다.
+- Home Assistant MQTT 애드온은 기본적으로 `3001/tcp`가 공개되지 않으므로, 초기 설정에 API를 사용하려면 애드온 네트워크 설정에서 포트를 공개해야 합니다.
+
 ### 기본 워크플로
 
 ```bash
