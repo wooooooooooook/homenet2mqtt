@@ -170,10 +170,10 @@ Agent 포트를 외부에 열면 Bearer 토큰을 가진 클라이언트가 RS48
 
 ### Home Assistant Add-on
 
-| 애드온                  | 네트워크                                   | 에이전트 API 접근                                  |
-| ----------------------- | ------------------------------------------ | -------------------------------------------------- |
-| Homenet2MQTT (MQTT)     | ingress 전용, `3001/tcp` 선택적 공개       | 포트를 공개한 경우 `http://<HA-IP>:<공개포트>`     |
-| Homenet2Matter (Matter) | `host_network: true`                       | `http://<HA-IP>:3001`으로 직접 접근 가능           |
+| 애드온                  | 네트워크                             | 에이전트 API 접근                              |
+| ----------------------- | ------------------------------------ | ---------------------------------------------- |
+| Homenet2MQTT (MQTT)     | ingress 전용, `3001/tcp` 선택적 공개 | 포트를 공개한 경우 `http://<HA-IP>:<공개포트>` |
+| Homenet2Matter (Matter) | `host_network: true`                 | `http://<HA-IP>:3001`으로 직접 접근 가능       |
 
 MQTT 애드온은 기본적으로 ingress를 통해서만 UI에 접근할 수 있으며, ingress는 3000(UI)만 프록시하므로 Agent API에 사용할 수 없습니다. 외부 에이전트가 필요하면 애드온 구성의 네트워크 섹션에서 `3001/tcp`를 공개하고 방화벽으로 접근을 제한하세요.
 
@@ -187,12 +187,12 @@ Authorization: Bearer <AGENT_TOKEN>
 
 `<AGENT_TOKEN>`은 **설정 > Agent API**(또는 첫 접속 화면)에서 발급한 평문 토큰입니다.
 
-| 상황                                | 상태 코드 | `error`              |
-| ----------------------------------- | --------- | -------------------- |
+| 상황                                    | 상태 코드 | `error`              |
+| --------------------------------------- | --------- | -------------------- |
 | 사용 토글 off / 토큰 미발급 / 파일 손상 | `503`     | `AGENT_API_DISABLED` |
-| 헤더 누락                           | `401`     | `UNAUTHORIZED`       |
-| 토큰 불일치                         | `401`     | `UNAUTHORIZED`       |
-| 요청 한도 초과                      | `429`     | `RATE_LIMITED`       |
+| 헤더 누락                               | `401`     | `UNAUTHORIZED`       |
+| 토큰 불일치                             | `401`     | `UNAUTHORIZED`       |
+| 요청 한도 초과                          | `429`     | `RATE_LIMITED`       |
 
 `503` 응답의 `reason` 필드는 `env_disabled`(토글 off), `no_token`(토큰 미발급), `store_unavailable`(설정 파일 손상) 중 하나입니다.
 
@@ -564,26 +564,26 @@ MCP 클라이언트는 일반적으로 다음 순서로 연결합니다.
 
 ### 도구 목록
 
-| 도구                                        | 설명                                                                  |
-| ------------------------------------------- | --------------------------------------------------------------------- |
-| `get_setup_state`                           | 설정 상태, 예제 목록, 사용 중인 portId                                |
-| `get_setup_example`                         | 예제의 serial/packet 기본값과 선택 엔티티                             |
-| `test_setup_serial`                         | serial 배선 테스트 (설정 로드 중에도 가능)                            |
-| `apply_initial_setup`                       | 초기 설정(`mode="init"`) 또는 브릿지 추가(`mode="add"`) + 재시작       |
-| `list_ports`                                | 로드된 포트/브리지 상태/엔티티 수                                     |
-| `get_entities`                              | 정규화된 엔티티 목록 (`portId` 선택)                                  |
-| `get_entity_state`                          | 최신 엔티티 상태 스냅샷                                               |
-| `get_packet_history`                        | parsed/command 통합 패킷 이력                                         |
-| `get_unmatched_packets`                     | 미매칭 패킷 + 횟수/최초·최근 시각                                     |
-| `analyze_packet`                            | 활성 또는 초안 설정으로 패킷 분석                                     |
-| `start_capture` / `stop_capture`            | 원시 패킷 캡처 제어                                                   |
-| `get_capture_status` / `list_capture_files` | 캡처 상태와 저장 파일 목록                                            |
-| `validate_entity_draft`                     | 저장 없이 초안 검증 + 충돌/디스커버리 미리보기                        |
-| `apply_entity_draft`                        | `draftHash`로 초안을 YAML에 적용 + 백업 + 재시작 플래그               |
-| `get_recent_events`                         | `afterId` 기반 이벤트 폴링 (최근 500건 버퍼, SSE 대체)                |
-| `list_gallery`                              | 갤러리 벤더 목록 또는 벤더별 스니펫 인덱스 (`vendor` 선택)            |
-| `get_gallery_snippet`                       | 갤러리 스니펫 원본 YAML (`file` 필수)                                 |
-| `match_gallery`                             | 관측 패킷으로 갤러리 스니펫 채점 + 파라미터 추정                     |
+| 도구                                        | 설명                                                               |
+| ------------------------------------------- | ------------------------------------------------------------------ |
+| `get_setup_state`                           | 설정 상태, 예제 목록, 사용 중인 portId                             |
+| `get_setup_example`                         | 예제의 serial/packet 기본값과 선택 엔티티                          |
+| `test_setup_serial`                         | serial 배선 테스트 (설정 로드 중에도 가능)                         |
+| `apply_initial_setup`                       | 초기 설정(`mode="init"`) 또는 브릿지 추가(`mode="add"`) + 재시작   |
+| `list_ports`                                | 로드된 포트/브리지 상태/엔티티 수                                  |
+| `get_entities`                              | 정규화된 엔티티 목록 (`portId` 선택)                               |
+| `get_entity_state`                          | 최신 엔티티 상태 스냅샷                                            |
+| `get_packet_history`                        | parsed/command 통합 패킷 이력                                      |
+| `get_unmatched_packets`                     | 미매칭 패킷 + 횟수/최초·최근 시각                                  |
+| `analyze_packet`                            | 활성 또는 초안 설정으로 패킷 분석                                  |
+| `start_capture` / `stop_capture`            | 원시 패킷 캡처 제어                                                |
+| `get_capture_status` / `list_capture_files` | 캡처 상태와 저장 파일 목록                                         |
+| `validate_entity_draft`                     | 저장 없이 초안 검증 + 충돌/디스커버리 미리보기                     |
+| `apply_entity_draft`                        | `draftHash`로 초안을 YAML에 적용 + 백업 + 재시작 플래그            |
+| `get_recent_events`                         | `afterId` 기반 이벤트 폴링 (최근 500건 버퍼, SSE 대체)             |
+| `list_gallery`                              | 갤러리 벤더 목록 또는 벤더별 스니펫 인덱스 (`vendor` 선택)         |
+| `get_gallery_snippet`                       | 갤러리 스니펫 원본 YAML (`file` 필수)                              |
+| `match_gallery`                             | 관측 패킷으로 갤러리 스니펫 채점 + 파라미터 추정                   |
 | `send_packet`                               | RS485 전송. UI에서 패킷 전송을 허용한 경우에만 `tools/list`에 노출 |
 
 `send_packet`이 비활성인 상태에서 직접 호출하면 `isError: true`와 `PACKET_SEND_DISABLED`가 반환됩니다. 적용 계열 도구는 REST와 동일하게 YAML 백업과 초안 해시 검증을 수행합니다.

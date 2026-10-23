@@ -1,6 +1,6 @@
 ---
 name: h2m-packet-entities
-description: Homenet2MQTT 에이전트 API의 원시 RS485 패킷만으로 브릿지 설정과 디바이스 엔티티(climate/light/sensor/fan)를 역산하는 방법론. 신규 환경에서는 사용자에게 시리얼 주소만 받아(벤더·모델명은 가설로 취급) raw 바이트 수집 -> 예제 자동 매칭 스코어링 -> /setup/apply 초기 설정, 확정된 벤더의 갤러리 스니펫을 대조해 미매칭 패킷이 남지 않도록 엔티티 개수를 확장, 이후 버스 캡처(무트래픽이면 월패드 조작을 사용자에게 요청) -> 바이트 레이아웃/인코딩 추론 -> 엔티티 초안 작성 -> /packets/analyze·/packets/preview 증명 -> /entities/validate·/entities/apply 적용의 가설-검증 루프를 제공한다. "패킷만 보고 엔티티를 만들어줘", "이 unmatched 패킷이 뭔지 분석해줘", "설정을 모른 채 버스 관측만으로 히터/조명 설정을 찾아줘", "처음 설치된 환경인데 어느 벤더 예제인지 확인해줘", "패킷이 안 잡히는데 어떻게 하나요", "역공학으로 커맨드 바이트를 증명해" 같은 요청에 사용.
+description: Homenet2MQTT 에이전트 API의 원시 RS485 패킷만으로 브릿지 설정과 디바이스 엔티티(climate/light/sensor/fan)를 역산하는 방법론. 신규 환경에서는 사용자에게 시리얼 주소만 받아(벤더·모델명은 가설로 취급) raw 바이트 수집 -> 예제 자동 매칭 스코어링 -> /setup/apply 초기 설정, 확정된 벤더의 갤러리 스니펫을 /gallery*로 조회·채점해 미매칭 패킷이 남지 않도록 엔티티 개수를 확장하고 validate/apply까지 적용(종료 조건=unmatched 0), 이후 버스 캡처(무트래픽이면 월패드 조작을 사용자에게 요청) -> 바이트 레이아웃/인코딩 추론 -> 엔티티 초안 작성 -> /packets/analyze·/packets/preview 증명 -> /entities/validate·/entities/apply 적용의 가설-검증 루프를 제공한다. "패킷만 보고 엔티티를 만들어줘", "이 unmatched 패킷이 뭔지 분석해줘", "설정을 모른 채 버스 관측만으로 히터/조명 설정을 찾아줘", "처음 설치된 환경인데 어느 벤더 예제인지 확인해줘", "갤러리로 미매칭 패킷을 줄여줘", "패킷이 안 잡히는데 어떻게 하나요", "역공학으로 커맨드 바이트를 증명해" 같은 요청에 사용.
 argument-hint: <portId>
 ---
 
@@ -22,6 +22,21 @@ Homenet2MQTT Agent API(전용 포트 `/api/v1/agent`)의 관측·분석 엔드�
 - **체크섬 로직도 알려진 상태**(`add` / `xor` / `add_no_header` / `xor_no_header` / `add_final_xor(..)`).
 - 범위 밖(확장 예정): 시리얼 주소·보드레이트 자동 탐색(포트 스캔, parity/stop 브루트포스), 물리 `/dev/tty*` 예제별 baud 최적화
 - 블라인드를 유지하려면 초안 완성 전 `/entities` 응답을 보지 말 것. 채점·중복 회피용으로 최종 단계에서만 참조한다.
+
+## 신규 환경 표준 절차 (예제 매칭 → 갤러리 적용)
+
+초기 설정을 받은 뒤 **미매칭이 0이 될 때까지** 아래 순서를 돈다. 각 단계의 통과 조건이 충족되기 전에는 다음 단계로 넘어가지 않는다.
+
+| #   | 호출                                                                   | 통과 조건                                                           |
+| --- | ---------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| 1   | `probe.mjs <serialPath>` → `h2m.mjs post /setup/apply {mode:"init"}`   | coverage 60%↑ · 2위와 30%p↑, 재시작 후 `/ports` status=`started`    |
+| 2   | `h2m.mjs unmatched [portId]`                                           | 0건이면 6으로(엔티티가 이미 충분)                                   |
+| 3   | `h2m.mjs gallery <vendor>` + `h2m.mjs gallery-match <portId> <vendor>` | HIT 스니펫 목록과 `params`의 채널 상한 확보 (`<vendor>`=1단계 승자) |
+| 4   | 스니펫 펼침 → `h2m.mjs analyze <portId> draft.json <hex...>`           | 대표 hex 전부 `MINE=<id>`, `UNMATCHED` 0건                          |
+| 5   | `h2m.mjs validate` → 재시작 고지·승인 → `h2m.mjs apply`                | `valid=true` · `applicable=true` · 방금 받은 `draftHash`            |
+| 6   | 재시작 후 `h2m.mjs unmatched`                                          | 0건, 또는 잔여가 `STATIC`/하트비트 잡음임을 근거로 설명             |
+
+2→6을 한 번에 끝내려 하지 말 것. 6에서 잔여가 남으면 3으로 돌아가 다른 타입 스니펫을 추가하고, 갤러리로도 설명 못 하는 프레임만 1~8단계 역산 루프로 채운다.
 
 ## 0단계 — 완전 신규 환경에서는 예제 매칭부터
 
@@ -107,6 +122,24 @@ API로 받은 스니펫을 펼칠 때는 `gallery-show <vendor>/<file>.yaml > sn
 미매칭 최소화에서 특히 놓치기 쉬운 것이 **요청/폴링 프레임이 알려주는 채널 상한**이다. `30 01`~`30 0a`처럼 인덱스 바이트만 도는 고정 프레임은 자체로 상태가 아니지만, 그 쿼리에 대한 브릿지 `TX b0 00 03` 응답은 **3번 채널 실물이 존재**한다는 증거다. RX만 보지 말고 variance 출력의 `TX|` 그룹 인덱스도 개수 파라미터에 반영한다.
 
 반대로 **긴 시간이 지나도 단 1바이트도 변하지 않고(`STATIC n=수백`), 페이로드가 0으로 채워진 프레임**은 요청·하트비트 계열 잡음일 가능성이 높다. `list`로 그 벤더 스니펫 전부의 `discovery.match`를 대조해 HIT이 없으면, 미매칭으로 남기는 것이 엔티티를 지어내는 것보다 정확하다(불변 원칙 2).
+
+### 갤러리 스니펫 적용 — 0.5단계의 종료 조건
+
+조회로 끝내면 미매칭은 줄지 않는다. HIT한 스니펫을 **엔티티로 적용**하고 `unmatched`이 0이 되는 것까지가 0.5단계다.
+
+1. **펼침**: `expand`의 `--ids`에는 `gallery-match`/`check`가 알려준 관측 채널만 넣는다. API 전용 환경에서는 스니펫을 파일로 받아 펼친다:
+
+   ```bash
+   mkdir -p /tmp/h2mg/<vendor>
+   node scripts/h2m.mjs gallery-show <vendor>/heaters_new.yaml | sed '/^# source=/d' > /tmp/h2mg/<vendor>/heaters_new.yaml
+   node scripts/gallery.mjs expand <vendor> heaters_new.yaml --ids 3,4 --dir /tmp/h2mg
+   ```
+
+   folded scalar(`script: >-` 등) 안의 스크립트 문자열은 hex 변환 대상이 아니다. 접힌 문자열이 남거나 파서가 없으면 `references/entity-schema.md`의 YAML→JSON 대응으로 필드를 직접 옮긴다(숫자 초안: `0x82` → `130`).
+
+2. **증명**: 펼친 초안으로 `analyze <portId> draft.json <OFF hex> <ON hex> <값 변경 hex>` — 전부 `MINE=<new id>`이고 `UNMATCHED`가 0이어야 통과. `OTHER=<기존 id>`가 뜨면 시그니처가 겹치는 것이니 mask를 좁히거나 ID 중복을 의심한다.
+3. **적용**: `validate` → 사용자에게 재시작 영향(전 디바이스 일시 unavailable)을 알리고 승인 → `apply <portId> draft.json <방금 받은 draftHash> --restart`. UI 포트가 열려 있는 환경이라면 `POST /api/gallery/apply`(무인증 레거시, `portId`+`yamlContent`+`parameterValues`)가 `$repeat`를 서버에서 펼쳐 한 번에 반영하지만, Agent API에 없는 경로이므로 토큰 경로를 기본으로 잡는다.
+4. **재확인**: 재시작 후 `unmatched` — 0건이면 종료, 남아 있으면 다른 타입 스니펫으로 1~3 반복(예: 난방 확장 후 조명), 갤러리로도 설명 안 되는 프레임만 1~8단계 역산으로 넘긴다.
 
 ## 방법론: 이중 캡처 가설 루프
 

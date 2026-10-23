@@ -12,7 +12,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const argv = process.argv.slice(2);
-const [cmd, vendor, target] = argv;
+// 위치 인자와 플래그를 원하는 순서로 받기 위해 --foo 와 그 값을 먼저 걷어낸다.
+const positional = argv.filter((arg, i) => !arg.startsWith('--') && !argv[i - 1]?.startsWith('--'));
+const [cmd, vendor, target] = positional;
 const flag = (n, d) => {
   const i = argv.indexOf(`--${n}`);
   return i >= 0 ? argv[i + 1] : d;
@@ -212,7 +214,9 @@ if (cmd === 'expand') {
       '# show 로 원문을 열어 중첩 반복 구조를 확인하고, 채널별로 손으로 펼쳐야 한다. 위 출력은 골자만 펼친 것이다.',
     );
   }
-  console.log('\n# 이 YAML을 JSON 초안으로 변환해 /entities/analyze·/entities/apply 에 사용한다.');
+  console.log(
+    '\n# 이 YAML을 JSON 초안으로 변환해 /packets/analyze · /entities/validate · /entities/apply 에 사용한다.',
+  );
   console.log(
     '# 접두/ack/mask 바이트가 라이브 설정의 동일 타입 엔티티(/entities --full)와 어긋나면 라이브 값을 기준으로 고친다.',
   );
