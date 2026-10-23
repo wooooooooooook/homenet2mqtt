@@ -23,7 +23,7 @@ Homenet2MQTT Agent API(전용 포트 `/api/v1/agent`)의 관측·분석 엔드�
 - 범위 밖(확장 예정): 시리얼 주소·보드레이트 자동 탐색(포트 스캔, parity/stop 브루트포스), 물리 `/dev/tty*` 예제별 baud 최적화
 - 블라인드를 유지하려면 초안 완성 전 `/entities` 응답을 보지 말 것. 채점·중복 회피용으로 최종 단계에서만 참조한다.
 
-## 신규 환경 표준 절차 (예제 매칭 → 갤러리 적용)
+## 신규 환경 표준 절차 (예제 매칭 → 갤러리 스니펫으로 엔티티 확장)
 
 초기 설정을 받은 뒤 **미매칭이 0이 될 때까지** 아래 순서를 돈다. 각 단계의 통과 조건이 충족되기 전에는 다음 단계로 넘어가지 않는다.
 
@@ -32,7 +32,7 @@ Homenet2MQTT Agent API(전용 포트 `/api/v1/agent`)의 관측·분석 엔드�
 | 1   | `probe.mjs <serialPath>` → `h2m.mjs post /setup/apply {mode:"init"}`   | coverage 60%↑ · 2위와 30%p↑, 재시작 후 `/ports` status=`started`    |
 | 2   | `h2m.mjs unmatched [portId]`                                           | 0건이면 6으로(엔티티가 이미 충분)                                   |
 | 3   | `h2m.mjs gallery <vendor>` + `h2m.mjs gallery-match <portId> <vendor>` | HIT 스니펫 목록과 `params`의 채널 상한 확보 (`<vendor>`=1단계 승자) |
-| 4   | 스니펫 펼침 → `h2m.mjs analyze <portId> draft.json <hex...>`           | 대표 hex 전부 `MINE=<id>`, `UNMATCHED` 0건                          |
+| 4   | 스니펫을 읽고 `$repeat`를 펼쳐 JSON 초안 작성 → `h2m.mjs analyze`      | 대표 hex 전부 `MINE=<id>`, `UNMATCHED` 0건                          |
 | 5   | `h2m.mjs validate` → 재시작 고지·승인 → `h2m.mjs apply`                | `valid=true` · `applicable=true` · 방금 받은 `draftHash`            |
 | 6   | 재시작 후 `h2m.mjs unmatched`                                          | 0건, 또는 잔여가 `STATIC`/하트비트 잡음임을 근거로 설명             |
 
@@ -117,15 +117,15 @@ node scripts/gallery.mjs expand <vendor> lights_new.yaml --ids 3 | tail -n +2 >>
 
 `--ids`는 `gallery-match`/`check`가 알려준 **관측 채널만** 지정한다(빈 채널을 미리 만들어 두면 미매칭이 줄지 않고 경고만 늘어난다). YAML→JSON 변환에는 환경의 YAML 파서를 쓰고, 파서가 없으면 필드값을 직접 JSON으로 옮긴다.
 
-API로 받은 스니펫을 펼칠 때는 `gallery-show <vendor>/<file>.yaml > snippet.yaml`로 저장한 뒤 같은 `expand`를 그 파일에 적용하면 된다. API 응답이 갤러리 원본 YAML이므로 `--dir`을 그 파일이 있는 경로로 바꿔 주는 것과 동일하다. 서버에 UI 포트가 열려 있는 환경이라면 레거시 `GET /api/gallery/discovery`(무인증)도 같은 채점을 하지만, Agent API `/gallery/match`가 토큰으로 보호되는 정상이므로 UI 포트를 일부러 열 필요는 없다.
+API로 받은 스니펫을 펼칠 때는 `gallery-show <vendor>/<file>.yaml > snippet.yaml`로 저장한 뒤 같은 `expand`를 그 파일에 적용하면 된다. API 응답이 갤러리 원본 YAML이므로 `--dir`을 그 파일이 있는 경로로 바꿔 주는 것과 동일하다.
 
 미매칭 최소화에서 특히 놓치기 쉬운 것이 **요청/폴링 프레임이 알려주는 채널 상한**이다. `30 01`~`30 0a`처럼 인덱스 바이트만 도는 고정 프레임은 자체로 상태가 아니지만, 그 쿼리에 대한 브릿지 `TX b0 00 03` 응답은 **3번 채널 실물이 존재**한다는 증거다. RX만 보지 말고 variance 출력의 `TX|` 그룹 인덱스도 개수 파라미터에 반영한다.
 
 반대로 **긴 시간이 지나도 단 1바이트도 변하지 않고(`STATIC n=수백`), 페이로드가 0으로 채워진 프레임**은 요청·하트비트 계열 잡음일 가능성이 높다. `list`로 그 벤더 스니펫 전부의 `discovery.match`를 대조해 HIT이 없으면, 미매칭으로 남기는 것이 엔티티를 지어내는 것보다 정확하다(불변 원칙 2).
 
-### 갤러리 스니펫 적용 — 0.5단계의 종료 조건
+### 갤러리 스니펫을 엔티티로 바꿔 적용 — 0.5단계의 종료 조건
 
-조회로 끝내면 미매칭은 줄지 않는다. HIT한 스니펫을 **엔티티로 적용**하고 `unmatched`이 0이 되는 것까지가 0.5단계다.
+조회로 끝나면 미매칭은 줄지 않는다. Agent API의 `/gallery*`는 읽기 전용이므로, **HIT한 스니펫을 근거로 엔티티를 직접 만들어** `/entities/validate`·`/entities/apply`로 반영하고 `unmatched`이 0이 되는 것까지가 0.5단계다.
 
 1. **펼침**: `expand`의 `--ids`에는 `gallery-match`/`check`가 알려준 관측 채널만 넣는다. API 전용 환경에서는 스니펫을 파일로 받아 펼친다:
 
@@ -138,7 +138,7 @@ API로 받은 스니펫을 펼칠 때는 `gallery-show <vendor>/<file>.yaml > sn
    folded scalar(`script: >-` 등) 안의 스크립트 문자열은 hex 변환 대상이 아니다. 접힌 문자열이 남거나 파서가 없으면 `references/entity-schema.md`의 YAML→JSON 대응으로 필드를 직접 옮긴다(숫자 초안: `0x82` → `130`).
 
 2. **증명**: 펼친 초안으로 `analyze <portId> draft.json <OFF hex> <ON hex> <값 변경 hex>` — 전부 `MINE=<new id>`이고 `UNMATCHED`가 0이어야 통과. `OTHER=<기존 id>`가 뜨면 시그니처가 겹치는 것이니 mask를 좁히거나 ID 중복을 의심한다.
-3. **적용**: `validate` → 사용자에게 재시작 영향(전 디바이스 일시 unavailable)을 알리고 승인 → `apply <portId> draft.json <방금 받은 draftHash> --restart`. UI 포트가 열려 있는 환경이라면 `POST /api/gallery/apply`(무인증 레거시, `portId`+`yamlContent`+`parameterValues`)가 `$repeat`를 서버에서 펼쳐 한 번에 반영하지만, Agent API에 없는 경로이므로 토큰 경로를 기본으로 잡는다.
+3. **적용**: Agent API에는 갤러리 스니펫을 설정에 반영하는 엔드포인트가 없다(반영 경로는 일반 초안과 같은 `POST /entities/validate` → `POST /entities/apply`뿐이다). `validate` → 사용자에게 재시작 영향(전 디바이스 일시 unavailable)을 알리고 승인 → `apply <portId> draft.json <방금 받은 draftHash> --restart`.
 4. **재확인**: 재시작 후 `unmatched` — 0건이면 종료, 남아 있으면 다른 타입 스니펫으로 1~3 반복(예: 난방 확장 후 조명), 갤러리로도 설명 안 되는 프레임만 1~8단계 역산으로 넘긴다.
 
 ## 방법론: 이중 캡처 가설 루프
