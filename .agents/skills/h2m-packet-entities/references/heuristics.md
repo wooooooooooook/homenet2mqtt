@@ -74,5 +74,32 @@ node scripts/h2m.mjs preview <portId> 04010481000000
 1. `validate` → `valid=true`, `applicable=true`, `errors=[]`, `conflicts=[]`
 2. 대표 hex 3개(상태 OFF / ON / 값변경)로 `analyze` → `MINE`이 관측 사실과 일치
 3. 커맨드 전부 `preview`로 실측 TX와 일치
-4. `discoveryPreview`로 나온 topic/unique_id가 기존 장치와 중복되지 않는지 확인 (`unique_id`는 `homenet_<portId>_<id>`)
+4. `discoveryPreview`로 나온 topic/unique*id가 기존 장치와 중복되지 않는지 확인 (`unique_id`는 `homenet*<portId>\_<id>`)
 5. 사용자에게 재시작 영향(전 디바이스 briefly unavailable)을 알리고 승인
+
+## 11. 사용자가 말한 벤더·모델명은 입력값이 아니라 가설
+
+동일 벤더 내부에도 프로토콜 세대가 여러 개이고, 혼선 배선·파생 모델 때문에 **모델명과 실제 버스 프로토콜이 어긋나는** 사례가 있다. 시리얼 주소만 받고 예제 선택은 관측 바이트로 한다.
+
+- 사용자가 지목한 예제가 `probe.mjs` 순위에서 2위 이하로 밀리면 적용하지 않고 coverage 수치를 보여준 뒤 확인을 요청한다
+- 반대도 성립: coverage 100%라도 프레임 길이가 짧은(4바이트 등) 예제가 이기면 우연일 수 있다. 체크섬 검증 실패 사례가 0이어야 하고, 2위와 격차가 30%p 이상이어야 확정
+- 예제 확정 후에도 `/packets/unmatched`에 다른 벤더 계열 접두가 다수 남으면 혼선·복수 버스 가능성을 다시 의심한다
+
+## 12. 초기 설정의 미매칭은 대개 "예제가 스니펫보다 적게 펼쳤다"
+
+`/setup/apply`가 쓰는 `packages/core/config/examples/<vendor>.homenet_bridge.yaml`은 대표 엔티티만 축약해 넣은 파일이라, 갤러리 스니펫(`gallery/<vendor>/*.yaml`)의 `discovery.match`+개수 파라미터로 확장하면 미매칭이 한 번에 사라지는 경우가 많다.
+
+- `gallery.mjs check <vendor> --length <rx_length> --packets "<unmatched>"`가 `채널값=0x03,0x04 → max=4`를 돌려주면 `heater_count`를 4로 채우는 근거
+- 폴링형에서는 **RX가 아니라 브리지 TX의 인덱스**가 채널 상한을 먼저 알려준다. `TX b0 00 03`이 관측됐다면 3번 조명 실물이 존재하지만 `RX b0 …`는 아직 안 나온 상태 — 이때도 확장 대상
+- 단, 스니펫의 `discovery.match`에 HIT하지 않는 고정 프레임(`STATIC n=수백`, 페이로드 0 채움)은 요청/하트비트 잡음이다. 벤더 갤러리 전체와 대조해 HIT이 없으면 미매칭으로 남긴다
+- 예제 파일과 갤러리 스니펫의 프로토콜 리비전이 어긋날 수 있다. 필드 조합은 갤러리에서, mask/ack/버튼값 같은 구체 바이트는 `/entities --full`로 읽은 **라이브 동일 타입 엔티티**에서 복사하고 채널 인덱스만 바꾼다
+
+## 13. 무트래픽: 폴링형 vs 이벤트형(월패드) 구분
+
+일부 제조사는 월패드 화면을 켜거나 물리 스위치를 조작할 때만 송수신이 발생한다. 일정 시간 캡처에도 아무 안 잡히면 "배선 문제"가 아니라 "조작 안 함"일 수 있다.
+
+- 판정은 **원시 프레임 기준**: `h2m.mjs capture wait <portId> 60 5`는 `/capture`의 `packetCount`를 본다. `TRAFFIC`이면 폴링형, `NO_TRAFFIC`(exit 3)면 이벤트형으로 취급
+- 함정: `/packets/history`는 매칭된 패킷만 담는다. 설정이 없는 신규 환경에서 history로 판단하면 미매칭 프레임이 계속 들어오는데도 조용한 버스로 오인한다
+- 이벤트형으로 판정되면 대기하지 말고 즉시 사용자에게 요청: "월패드 화면을 켜서 전등 ON/OFF, 난방 목표온도 변경, 환기팬 모드 변경 등을 1~2분간 조작해 주세요"
+- `NO_TRAFFIC`은 RX/TX 모두 0건이라는 뜻이다. `/ports` status가 `error`/`stopped`면 프레이밍·경로 문제이고, `started`인데 계속 0건이어야 이벤트형(조작 대기)으로 본다
+- 이벤트형 버스는 사용자 조작 1회가 곧 1차·2차 캡처를 겸한다. 조작 직전에 캡처를 켜고 조작 순서를 메모해 두면 `--base` 대조 없이도 시간순으로 필드가 전개된다

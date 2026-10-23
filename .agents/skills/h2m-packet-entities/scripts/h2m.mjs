@@ -90,9 +90,59 @@ switch (cmd) {
     } else if (sub === 'delete') {
       if (!portId) usage('h2m.mjs capture delete <filename>');
       printJson(await req('DELETE', `/capture/files/${encodeURIComponent(portId)}`));
+    } else if (sub === 'wait') {
+      if (!portId) usage('h2m.mjs capture wait <portId> [timeoutSec=60] [intervalSec=5]');
+      const timeoutMs = (Number(extra) || 60) * 1000;
+      const intervalMs = (Number(a[3]) || 5) * 1000;
+      // /packets/history 는 매칭된 패킷만 담는다. 무트래픽 판정은 capture(원시 프레임) 카운터로 해야 한다.
+      let st = (await req('GET', `/capture${q({ portId })}`)).status;
+      let owned = false;
+      if (!st.isLogging) {
+        owned = true;
+        st = (await req('POST', '/capture/start', { body: { portId, mode: 'all' } })).status;
+      }
+      const base = st.packetCount ?? 0;
+      console.log(
+        `capture=${st.filename} 기준 패킷수=${base} — ${Math.round(timeoutMs / 1000)}초간 원시 프레임 수신 대기`,
+      );
+      const poll = async () => (await req('GET', `/capture${q({ portId })}`)).status;
+      const stop = async () => {
+        if (owned) await req('POST', '/capture/stop', { body: { portId } });
+      };
+      const tail = async (file) => {
+        const buf = await req('GET', `/capture/files/${encodeURIComponent(file)}`, { raw: true });
+        return buf
+          .toString('utf8')
+          .split('\n')
+          .filter((l) => l.trim())
+          .slice(-12);
+      };
+      let lastLog = Date.now();
+      const until = Date.now() + timeoutMs;
+      while (Date.now() < until) {
+        await new Promise((r) => setTimeout(r, intervalMs));
+        const now = await poll();
+        if ((now.packetCount ?? 0) > base) {
+          console.log(
+            `TRAFFIC +${now.packetCount - base}패킷 (총 ${now.packetCount}) — 폴링형 버스: 레코딩만으로도 수집됩니다`,
+          );
+          for (const l of await tail(now.filename ?? st.filename)) console.log('  ' + l);
+          await stop();
+          process.exit(0);
+        }
+        if (Date.now() - lastLog >= 20000) {
+          lastLog = Date.now();
+          console.log(`  … 원시 프레임 0건 (${Math.round((until - Date.now()) / 1000)}초 남음)`);
+        }
+      }
+      await stop();
+      console.log(
+        'NO_TRAFFIC — RX/TX 원시 프레임이 0건입니다. /ports status가 started라면 이 버스는 이벤트형(월패드·스위치 조작 시에만 송수신)일 가능성이 높습니다. 사용자에게 요청: "월패드 화면을 켜서 전등 ON/OFF, 난방 목표온도 변경, 환기팬 모드 변경 등을 1~2분간 직접 조작해 주세요" → 조작 직전에 이 명령을 다시 실행하면 상태 프레임과 TX/ACK까지 함께 기록됩니다. status가 error/stopped이거나 계속 0건이면 배선·브리지 경로부터 확인하세요.',
+      );
+      process.exit(3);
     } else
       usage(
-        'h2m.mjs capture <start|stop|status|files|get|delete> [portId] [mode|filename] [outfile]',
+        'h2m.mjs capture <start|stop|status|wait|files|get|delete> [portId] [mode|filename|timeoutSec] [outfile|intervalSec]',
       );
     break;
   }

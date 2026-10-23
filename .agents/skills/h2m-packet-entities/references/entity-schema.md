@@ -15,14 +15,14 @@
 
 ## StateSchema (시그니처 / 조건)
 
-| 필드 | 의미 |
-|---|---|
-| `data` | 기대 바이트 배열 |
-| `mask` | number 또는 number[]. `패킷바이트 & mask == data & mask` 로 비교. 좁은 mask = 여러 패킷형을 하나의 엔티티로 흡수 |
-| `index` | 비교 시작 바이트. `offset`은 deprecated 별칭 |
-| `inverted` | 매칭 결과 반전 |
-| `guard` | CEL 표현식 (`data`, `state` 컨텍스트) |
-| `except` | 제외 조건(배열) |
+| 필드       | 의미                                                                                                             |
+| ---------- | ---------------------------------------------------------------------------------------------------------------- |
+| `data`     | 기대 바이트 배열                                                                                                 |
+| `mask`     | number 또는 number[]. `패킷바이트 & mask == data & mask` 로 비교. 좁은 mask = 여러 패킷형을 하나의 엔티티로 흡수 |
+| `index`    | 비교 시작 바이트. `offset`은 deprecated 별칭                                                                     |
+| `inverted` | 매칭 결과 반전                                                                                                   |
+| `guard`    | CEL 표현식 (`data`, `state` 컨텍스트)                                                                            |
+| `except`   | 제외 조건(배열)                                                                                                  |
 
 **`state: {}` 는 절대 매칭되지 않는다.** optimistic 전용 placeholder일 뿐이므로 미매칭 패킷의 원인이 된다.
 
@@ -36,14 +36,14 @@
 
 ## CommandSchema
 
-| 필드 | 의미 |
-|---|---|
-| `data` | 커맨드 접두 바이트(값 자리를 0x00으로 두고 채움) |
-| `ack` | `number[]` 또는 `StateSchema` — 응답 판정 |
-| `value_index` | 값이 들어갈 바이트 위치 (0부터) |
-| `value_encode` | 위 `DecodeEncodeType` |
-| `length`, `signed`, `endian`, `multiply_factor` | 값 인코딩 보조 |
-| `low_priority`, `script` | 전송 스케줄/스크립트 참조 |
+| 필드                                            | 의미                                             |
+| ----------------------------------------------- | ------------------------------------------------ |
+| `data`                                          | 커맨드 접두 바이트(값 자리를 0x00으로 두고 채움) |
+| `ack`                                           | `number[]` 또는 `StateSchema` — 응답 판정        |
+| `value_index`                                   | 값이 들어갈 바이트 위치 (0부터)                  |
+| `value_encode`                                  | 위 `DecodeEncodeType`                            |
+| `length`, `signed`, `endian`, `multiply_factor` | 값 인코딩 보조                                   |
+| `low_priority`, `script`                        | 전송 스케줄/스크립트 참조                        |
 
 ## 타입별 주요 필드
 
