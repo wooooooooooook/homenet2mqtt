@@ -1,0 +1,150 @@
+# h2m 시스템 지도와 인터페이스 (REST · MCP)
+
+"무엇을 어떤 문으로 할 수 있는가"를 매번 추측하지 않기 위한 지도다. 엔티티 필드 규칙은 `entity-schema.md`, 패킷 판정 규칙은 `heuristics.md`에 있고, 이 문서는 **표면(surface)과 한계**만 다룬다.
+
+## 1. 무엇이 어디서 도는가
+
+| 구성                 | 역할                                                                                         | 스킬에서 쓰는 것                                                                 |
+| -------------------- | -------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `packages/core`      | RS485 ↔ MQTT 브리지 엔진. 엔티티 파싱/매칭/커맨드, 설정 스키마                              | `config/examples/*.homenet_bridge.yaml`, `static/schema/homenet-bridge.schema.json` |
+| `packages/service`   | API + 빌드된 UI 정적 서빙. UI API(`/api/*`, 세션 쿠키)와 Agent API(`/api/v1/agent`, Bearer)  | REST·MCP 호출 대상                                                               |
+| `packages/ui`        | Svelte UI. 토큰 발급, 패킷 전송 허용, 로그는 여기서만                                        | 사람이 직접 해야 하는 단계의 위치                                                |
+| `packages/simulator` | 디버깅용 RS485 엔드포인트(가상 버스)                                                         | 하드웨어 없이 배선/프레이밍 연습. 실기기 검증을 대체하지 않는다                   |
+| `gallery`            | 벤더별 프리셋 YAML (`list.json`/`list_new.json`은 배포 시 생성)                              | `gallery/*.yaml` 원본 스니펫                                                     |
+| `docs`               | VitePress 문서                                                                               | `docs/guide/agent-api.md`가 해당 버전 API의 정본                                |
+
+- Agent API는 **UI와 다른 포트**(기본 3001)다. UI 포트(3000)의 `/api/v1/agent/*`는 `404`이고, Agent 포트는 UI 정적 파일을 서빙하지 않는다. 포트는 UI **설정 > Agent API**에서 바뀐다.
+- Agent API 토글(`AGENT_API_ENABLED` / 애드온 `agent_api_enabled`)이 꺼져 있으면 **포트 자체가 열리지 않는다**. 이때는 API가 아니라 "사용자가 UI에서 켜야 하는 상태"다.
+- `/api/*`(UI API)와 `/api/stream`(WebSocket)은 번들 UI 전용 표면이다. **UI 세션 쿠키**(또는 신뢰된 HA ingress 요청)가 필요하고 스키마 보장이 없으므로 **스킬은 `/api/*`를 쓰지 않는다.** 같은 정보가 필요한 경우 Agent API에 같은 목적의 엔드포인트가 있는지 먼저 본다(예: 설정 스키마는 `/api/schema/homenet-bridge`가 아니라 `/api/v1/agent/schema/homenet-bridge`).
+
+## 2. 두 문: REST와 MCP
+
+둘은 같은 `agent/services/*` 도메인 로직을 호출한다. MCP는 REST 위의 얇은 어댑터이므로 **어느 쪽을 써도 결과와 제약(rate limit, `draftHash`, 재시작 요구)은 같다.** 검증한 초안 해시를 다른 표면에서 그대로 써도 된다(같은 파일·같은 초안 기준).
+
+| 상황                                       | 쓸 표면                                                       |
+| ------------------------------------------ | ------------------------------------------------------------- |
+| 에이전트 클라이언트에 MCP 도구가 연결됨    | MCP — `tools/list`로 시작, `tools/call`로 실행                |
+| 셸만 있음 / MCP 미지원 클라이언트 / CI     | REST — `scripts/h2m.mjs`                                      |
+| MCP에 없는 기능(§5)                        | REST                                                          |
+| 설정 스키마(필드명·enum)                   | MCP `get_config_schema`(통째) 또는 REST `GET /schema*`             |
+| 실시간 대기                                | REST `GET /events`(SSE) 또는 MCP `get_recent_events` 폴링     |
+
+MCP 연결 정보다:
+
+- 엔드포인트 `POST $H2M_URL/mcp`, JSON-RPC 2.0, **stateless**(세션 ID 없음, `GET`/`DELETE`는 `405`)
+- 지원 버전 `2025-06-18` / `2025-03-26` / `2024-11-05`, 메서드 `initialize`·`notifications/initialized`(202)·`ping`·`tools/list`·`tools/call`
+- 인증은 REST와 같은 `Authorization: Bearer <token>`, `Content-Type: application/json` 필수
+- 도구 실행 실패는 JSON-RPC 오류가 아니라 `result.isError=true` + `{ error, message }`로 온다. 프로토콜 오류(`-32602` 등)와 구분해서 읽는다
+- `send_packet`은 UI에서 패킷 전송을 허용했을 때만 `tools/list`에 나타난다 → **도구 목록 자체가 기능 토글 상태**다
+
+## 3. 시작할 때 능력부터 확인한다
+
+1. `GET /capabilities` — `serviceVersion`, `features`(`observation`, `packetAnalysis`, `packetPreview`, `packetSend`, `capture`, `events`, `draftEntities`, `setup`, `gallery`, `schema`, `mcp`), `limits`(분당 120회, history 1,000건, 이벤트 버퍼 500건), `mcp.endpoint`, `links`(`openapi`, `llms`, `schema`, `mcp`)
+2. MCP 클라이언트면 `tools/list` — 이 배포에서 실제로 가능한 작업 목록
+3. 세부 스키마 — `GET /openapi.json`, `GET /llms.txt`(둘 다 공개, 토큰 불필요), 각 도구의 `inputSchema`
+4. `node scripts/h2m.mjs info`가 `capabilities` + 포트 요약을 한 번에 출력한다
+
+`features`에 없는 키나 `404`는 그 배포에 기능이 없다는 뜻이다. 다른 경로를 찔러보며 추측하지 말고 `serviceVersion`을 보고 §7로 내려간다.
+
+## 4. REST 표면
+
+`$H2M_URL` = `http://<host>:3001/api/v1/agent` (UI 포트 아님)
+
+| 목적                | 엔드포인트                                                          | `h2m.mjs`                                       |
+| ------------------- | ------------------------------------------------------------------- | ----------------------------------------------- |
+| 공개 문서           | `GET /openapi.json`, `GET /llms.txt`                                | `get /llms.txt`                                 |
+| 능력/한도           | `GET /capabilities`                                                 | `info`                                          |
+| 초기 설정 상태      | `GET /setup`                                                        | `setup`                                         |
+| 예제 원문           | `GET /setup/examples/:filename`                                     | `get /setup/examples/<file>`                    |
+| 배선 테스트         | `POST /setup/test-serial`                                           | `post /setup/test-serial '<json>'`              |
+| 설정 생성/브릿지    | `POST /setup/apply` (`mode=init\|add`)                              | `post /setup/apply '<json>'`                    |
+| 포트/브리지         | `GET /ports`                                                        | `info`                                          |
+| 엔티티 목록         | `GET /entities?portId=`                                             | `entities <portId> [--full]`                    |
+| 엔티티 단건         | `GET /entities/:entityId`                                           | `get "/entities/<id>"`                          |
+| 상태 스냅샷         | `GET /state?portId=`                                                | `get /state`                                    |
+| 패킷 이력           | `GET /packets/history?portId=&limit=`                               | `history <portId> [limit]`                      |
+| 미매칭              | `GET /packets/unmatched?portId=`                                    | `unmatched <portId>`                            |
+| 패킷 분석(초안 포함) | `POST /packets/analyze`                                             | `analyze <portId> <draft.json> <hex...>`        |
+| TX hex 미리보기     | `POST /packets/preview`                                             | `preview <portId> <hex>`                        |
+| 패킷 전송(옵트인)   | `POST /packets/send`                                                | `post /packets/send '<json>'`                   |
+| 캡처 상태           | `GET /capture`                                                      | `capture status`                                |
+| 캡처 시작/중지      | `POST /capture/start`, `POST /capture/stop`                          | `capture start\|stop <portId> [mode]`           |
+| 캡처 파일           | `GET /capture/files`, `GET\|DELETE /capture/files/:filename`         | `capture files\|get\|delete`                    |
+| 갤러리              | `GET /gallery[?vendor=]`, `/gallery/snippet?file=`, `/gallery/match` | `gallery`, `gallery-show`, `gallery-match`      |
+| 설정 스키마         | `GET /schema`, `GET /schema/:schemaName`                            | `schema.mjs list`, `schema.mjs fields <type>`   |
+| 이벤트(SSE)         | `GET /events?types=&portId=&sinceId=`                               | (스크립트 없음 — curl 또는 MCP)                 |
+| 초안 검증           | `POST /entities/validate`                                           | `validate <portId> <draft.json>`                |
+| 초안 적용           | `POST /entities/apply`                                              | `apply <portId> <draft.json> <draftHash> [--restart]` |
+| MCP                 | `POST /mcp`                                                         | `scripts/mcp.mjs`                               |
+
+## 5. MCP 도구 (23개, `*` = 필수)
+
+| 그룹   | 도구                                                                      | 인자                                                                                                              |
+| ------ | ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| 설정   | `get_setup_state`                                                         | –                                                                                                                 |
+|        | `get_setup_example`                                                       | `example*`                                                                                                        |
+|        | `test_setup_serial`                                                       | `example*`, `serialPath`, `serialConfig`                                                                          |
+|        | `apply_initial_setup`                                                     | `example*`, `mode`(`init\|add`), `portId`, `serialPath`, `serialConfig`, `entityIds`, `restart`                    |
+| 관측   | `list_ports`                                                              | –                                                                                                                 |
+|        | `get_entities` / `get_entity_state`                                        | `portId`                                                                                                          |
+|        | `get_packet_history`                                                      | `portId`, `limit`, `since`                                                                                        |
+|        | `get_unmatched_packets`                                                   | `portId`, `limit`                                                                                                 |
+| 패킷   | `analyze_packet`                                                          | `input*`(hex 또는 int 배열), `portId`, `draft`, `similarityThreshold`                                             |
+|        | `send_packet`                                                             | `hex*`, `confirm*=true`, `portId`, `header`, `footer`, `checksum`, `count`(≤10), `interval`                        |
+| 캡처   | `start_capture`                                                           | `mode`(`all\|valid`)                                                                                              |
+|        | `stop_capture` / `get_capture_status` / `list_capture_files`               | –                                                                                                                 |
+| 갤러리 | `list_gallery`                                                            | `vendor`                                                                                                |
+|        | `get_gallery_snippet`                                                     | `file*` (`vendor/name.yaml`)                                                                            |
+|        | `match_gallery`                                                           | `portId`, `vendor`                                                                                                |
+| 스키마 | `list_config_schemas`                                                     | –                                                                                                                 |
+|        | `get_config_schema`                                                       | `name` (기본 `homenet-bridge`)                                                                               |
+| 엔티티 | `validate_entity_draft`                                                   | `entities`, `automations`, `scripts`, `packetDefaults`, `portId`, `discoveryPreview`, `similarityThreshold`       |
+|        | `apply_entity_draft`                                                      | `draftHash*`, 위 초안 필드, `portId`, `resolutions`, `renames`, `restart`                                         |
+| 이벤트 | `get_recent_events`                                                       | `afterId`, `limit`, `types`, `portId`, `rawMode`                                                                  |
+
+### MCP에 없어서 REST로 내려와야 하는 것
+
+- **캡처 파일 다운로드/삭제** — MCP는 목록만 준다. `variance.mjs` 분석에는 로컬 파일이 필요하므로 `h2m.mjs capture get`
+- **TX 미리보기** (`POST /packets/preview`) — MCP에 preview 도구가 없다. `analyze_packet`은 RX 파싱 검증이고 커맨드 hex 생성 검증이 아니다
+- **`GET /events` SSE** — MCP는 `get_recent_events` 폴링(최근 500건, `afterId` 기반)
+- **원문 문서** — `openapi.json`, `llms.txt`, `GET /setup/examples/:filename` 전체 YAML
+- **스키마 잘라 읽기** — MCP `get_config_schema`는 스키마 **문서 전체**(약 120KB)를 준다. 필드명·enum만 빠르게 확인하려면 REST `schema.mjs fields <type>`(정의 단위 절단)이 낫다
+- **엔티티 단건 조회** — MCP `get_entities`는 목록. 단건은 REST `GET /entities/:entityId`
+
+> 캡처는 **포트별 기능이 아니다**. 두 표면 모두 서비스 전역 `rawPacketLogger` 하나를 쓰고, `h2m.mjs capture start <portId>`가 보내는 `portId`는 서버가 무시한다(파일 메타에는 첫 포트의 serial만 기록). 멀티포트에서 포트를 골라 찍는 방법은 없다.
+
+## 6. API로 할 수 없는 것 — 사용자에게 요청한다
+
+| 원하는 것                                       | 왜 안 되나                                                            | 대신                                                                     |
+| ----------------------------------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| Agent API 켜기 / 토큰 발급 / 포트 변경 / 전송 허용 | UI **설정 > Agent API**에서만. 토큰 평문은 발급 화면에서 1회만 표시   | 사용자에게 발급·전달 요청. 받은 토큰을 문서·로그·커밋에 남기지 않는다     |
+| MQTT 브로커 주소·계정                           | config가 아니라 환경변수/애드온 옵션                                  | 사용자에게 환경변수·애드온 옵션 수정 요청                                |
+| 애드온 포트 매핑(`3001/tcp`)                    | 애드온 네트워크 설정                                                  | HA 애드온 설정에서 매핑 변경 요청                                        |
+| 서비스 로그 라인                                | Agent API에 로그 조회가 없다(`/events`는 패킷·상태·브리지 이벤트)     | UI 로그 화면 확인 요청                                                   |
+| 설정 백업 목록/복원                             | `apply`가 백업 생성만 하고 조회·복원 API가 없다                       | 로컬 체크아웃이면 파일시스템, 아니면 사용자                               |
+| 설정 파일 직접 편집                             | 파일 쓰기는 `entities/apply`·`setup/apply` 경로만                     | 초안으로 표현 가능한 것만 API로, 나머지는 로컬 편집 후 사용자에게 적용 안내 |
+| 실기기 조작(월패드·스위치·리모컨)               | 물리 행위                                                             | SKILL.md "트래픽 확보" 절의 조작 요청                                     |
+
+## 7. 배포 버전 차이
+
+- `/capabilities.features`에 없는 키 = 그 배포에 없는 기능. `mcp: false`/`404`면 REST만 쓴다
+- 갤러리 응답의 `source=local`은 GitHub 조회 실패로 동봉 프리셋을 쓴 것이다 → 리비전이 낮을 수 있으니 바이트는 라이브 설정에서 복사
+- `/gallery` 자체가 없으면 `scripts/gallery.mjs`로 로컬 `gallery/`를 읽는다
+- `/schema`가 `404`면 그 버전에는 스키마 노출이 없다. `references/entity-schema.md`의 요약으로 초안을 만들고 `validate`의 오류 메시지로 필드명을 교정한다
+- 개발 체크아웃에서는 `docs/guide/agent-api.md`가 그 버전의 정본이다. 문서와 라이브 `capabilities`가 어긋나면 **라이브가 우선**이고, 문서를 고칠 대상으로 보고한다
+
+## 8. 요청 유형 → 첫 호출
+
+| 사용자 요청                   | 첫 호출                                  | 이어서                                          |
+| ----------------------------- | ---------------------------------------- | ----------------------------------------------- |
+| "지금 상태 알려줘"            | `capabilities` + `ports` / `list_ports`  | `state` / `get_entity_state`, `packets/history` |
+| "이 엔티티 왜 안 보여"        | `entities --full`                        | `unmatched` → `analyze`                         |
+| "엔티티 추가해줘"             | `gallery-match`                          | `analyze` → `validate` → 승인 → `apply`         |
+| "패킷이 안 잡혀"              | `capture wait`                           | 조작 요청 → `capture`                           |
+| "설정이 비어 있어"            | `setup`                                  | `setup/examples` → `test-serial` → `setup/apply` |
+| "포트/브릿지 하나 더 붙여줘"  | `setup` (`loadedPortIds`)                | `test-serial` → `setup/apply mode=add`          |
+| "커맨드가 이상해"             | `packets/preview`(REST 전용)             | `history`의 TX hex와 대조                       |
+| "갤러리에 뭐가 있어"          | `gallery`                                | `gallery <vendor>` → `gallery-show`             |
+| "이 필드명/값이 맞나"         | `schema.mjs fields <type>`               | `--desc` → `def <Def>` → `validate`. MCP면 `get_config_schema` |
+| "방금 무슨 일 있었어"         | `get_recent_events` / `events`           | `packets/history`                               |
+| "MQTT/토큰/포트 설정 바꿔줘"  | §6                                       | 사용자 요청 또는 UI 안내                        |

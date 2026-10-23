@@ -1,12 +1,26 @@
 # 엔티티 초안 필드 레퍼런스
 
-소스 정의(변경 시 확인 위치):
+**정본은 라이브 스키마다.** 필드명·enum·required가 기억나지 않으면 추측하지 말고 먼저 확인한다(Agent API, Bearer 토큰):
+
+```bash
+node scripts/schema.mjs fields climate          # 필드명·타입·required
+node scripts/schema.mjs fields light --desc     # 설명 포함
+node scripts/schema.mjs def StateNumSchema      # 제약 원문(JSON)
+```
+
+MCP 클라이언트면 `get_config_schema`가 같은 문서를 준다(기본 `homenet-bridge`, 이름 목록은 `list_config_schemas`). 다만 MCP 결과는 **문서 전체**(약 120KB)라 필드 단위로 잘려 있지 않으니, 위 스크립트가 없다는 이유로 무비교로 통째로 올리지 말 것.
+
+스키마는 이 빌드의 Zod 정의에서 생성되므로 저장소 사본과 어긋날 일이 없다. 아래 표는 그 스키마의 **요약**이며, `/schema`가 없는 구버전·오프라인에서 쓰는 폴백이다. 최종 판정은 언제나 `validate`다.
+
+체크섬(`rx_checksum`/`tx_checksum`)처럼 스키마에서 `string`으로 느슨하게 표현된 항목은 스키마만으로 값 목록을 알 수 없다 — `heuristics.md`의 실측 규칙과 기존 엔티티의 실제 값을 함께 본다.
+
+개발 체크아웃에서만 유효한 좌표(단독 배포에는 이 파일들이 없다):
 
 - `packages/core/src/protocol/types.ts` — `StateSchema`(~206), `StateNumSchema`(~247), `PacketDefaults`(~102), `ChecksumType`(~32), `DecodeEncodeType`(~88)
 - `packages/core/src/domain/entities/base.entity.ts` — `EntityConfig`, `CommandSchema`
 - `packages/core/src/domain/entities/{light,climate,sensor,fan,switch}.entity.ts` — 타입별 필드
 - `packages/core/src/utils/packet-matching.ts:13` — `matchesPacket()` (시그니처 매칭 로직)
-- JSON 스키마: `packages/core/static/schema/homenet-bridge.schema.json`
+- JSON 스키마 파일: `packages/core/static/schema/homenet-bridge.schema.json` (= `GET /schema/homenet-bridge` 응답과 같은 파일)
 - 벤더 프리셋(필드 사용 예): `gallery/<vendor>/*.yaml`
 
 ## 공통 (EntityConfig)
