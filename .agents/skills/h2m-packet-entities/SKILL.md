@@ -1,6 +1,6 @@
 ---
 name: h2m-packet-entities
-description: Homenet2MQTT 에이전트 API의 원시 RS485 패킷만으로 디바이스 엔티티(climate/light/sensor/fan) 설정을 역산하는 방법론. 버스 캡처 → 바이트 레이아웃/인코딩 추론 → 엔티티 초안 작성 → `/packets/analyze`·`/packets/preview`로 증명 → `/entities/validate`·`/entities/apply` 적용의 가설-검증 루프를 제공한다. "패킷만 보고 엔티티를 만들어줘", "이 unmatched 패킷이 뭔지 분석해줘", "설정을 모른 채 버스 관측만으로 히터/조명 설정을 찾아줘", "역공학으로 커맨드 바이트를 증명해" 같은 요청에 사용.
+description: Homenet2MQTT 에이전트 API의 원시 RS485 패킷만으로 브릿지 설정과 디바이스 엔티티(climate/light/sensor/fan)를 역산하는 방법론. 신규 환경에서는 raw 바이트 수집 -> 예제(벤더) 자동 매칭 스코어링 -> /setup/apply 초기 설정, 이후 버스 캡처 -> 바이트 레이아웃/인코딩 추론 -> 엔티티 초안 작성 -> /packets/analyze·/packets/preview 증명 -> /entities/validate·/entities/apply 적용의 가설-검증 루프를 제공한다. "패킷만 보고 엔티티를 만들어줘", "이 unmatched 패킷이 뭔지 분석해줘", "설정을 모른 채 버스 관측만으로 히터/조명 설정을 찾아줘", "처음 설치된 환경인데 어느 벤더 예제인지 확인해줘", "역공학으로 커맨드 바이트를 증명해" 같은 요청에 사용.
 argument-hint: <portId>
 ---
 
@@ -20,8 +20,38 @@ Homenet2MQTT Agent API(전용 포트 `/api/v1/agent`)의 관측·분석 엔드�
 
 - **시리얼 프레이밍은 알려진 상태**에서 시작한다: `/ports`의 `serial`(path/baudRate/parity/stopBits)과 `packetDefaults`(`rx_length`, `rx_checksum`, `rx_header`, `tx_header`, footer)를 그대로 쓴다.
 - **체크섬 로직도 알려진 상태**(`add` / `xor` / `add_no_header` / `xor_no_header` / `add_final_xor(..)`).
-- 범위 밖(확장 예정): 시리얼 주소·보드레이트 자동 탐색, 체크섬 알고리즘 탐색, gallery 예제와 관측 패킷의 자동 대입, `/setup` 초기 마법사 대체.
+- 범위 밖(확장 예정): 시리얼 주소·보드레이트 자동 탐색(포트 스캔, parity/stop 브루트포스), 물리 `/dev/tty*` 예제별 baud 최적화
 - 블라인드를 유지하려면 초안 완성 전 `/entities` 응답을 보지 말 것. 채점·중복 회피용으로 최종 단계에서만 참조한다.
+
+## 0단계 — 완전 신규 환경에서는 예제 매칭부터
+
+`/setup`의 `setupRequired: true`(설정 0개)라면 엔티티 역산 전에 브릿지 설정을 잡는다.
+
+```bash
+node scripts/probe.mjs <serialPath> [--baud 9600] [--parity none] [--stop 1] [--rounds 3]
+```
+
+`probe.mjs`의 판정 원리:
+
+1. `POST /setup/test-serial`을 `example:"__empty__"` + 명시적 `serialConfig`으로 호출해 **벤더 편향 없는 raw 바이트**를 수집한다
+2. `GET /setup/examples/<file>`로 13종 예제의 `rx_header`/`rx_footer`/`rx_length`/`rx_checksum`을 읽고
+3. 수집 바이트에 대해 예제별 프레이밍 + 체크섬 검증을 자체 수행해 **coverage(설명된 바이트 비율)**로 순위화한다
+4. 체크섬을 검증할 수 없는 예제(`none`, `bestin_sum`, `samsung_xor`, crc8 계열)은 순위에서 분리해 "판정 불가"로 별도 표시한다 — 길이 무제약 예제는 아무 바이트에서도 100%가 나오므로 추천 근거가 될 수 없다
+
+::: warning `test-serial`은 벤더 판별 능력이 없다
+`testSerial`은 예제의 serial 설정으로 포트만 열어 **data 이벤트 hex를 그대로** 돌려준다(`collectSerialPackets`는 `rx_checksum`/`rx_length`를 전혀 보지 않는다). TCP 브리지(`ip:port`)에서는 예제별 baud/parity가 socket에 영향 없는 경우가 많아 응답이 예제마다 동일하니, 판별은 반드시 `probe.mjs` 같은 자체 스코어링으로 해야 한다. 실제 물리 `/dev/tty*`에서는 baud/parity가 응답 자체를 바꾸므로 예제별 결과가 달라질 수 있다.
+:::
+
+후보 확정은 coverage 60% 이상 + 2위와 격차 30%p 이상을 기준으로 하고, 부족하면 `--rounds`를 늘리거나 상태 변동을 만든 뒤 재시행한다. 확정 후 적용:
+
+```bash
+node scripts/h2m.mjs post "/setup/apply" '{"mode":"init","example":"<winner>.homenet_bridge.yaml","serialPath":"<path>","portId":"<portId>","restart":true}'
+```
+
+- `mode:"init"`은 설정이 0개일 때만(`409 SETUP_NOT_REQUIRED` 방지). 이미 로드된 환경의 신규 포트는 `mode:"add"` + 미사용 `portId`
+- 재시작 후 `/ports`(status=started), `/state`, `/packets/history`, `/packets/unmatched`를 확인한다
+- **예제 수는 실제 디바이스 수와 무관하다.** 예: commax 예제는 climate 2개지만 버스에 4대가 있으면 `8280 04 …`가 unmatched로 남는다 → 1단계부터 7단계 역산 루프로 잔여를 채운다
+- MQTT 접속 정보(브로커 주소/계정)는 config가 아니라 환경변수/애드온 옵션이므로 API로 설정 불가
 
 ## 방법론: 이중 캡처 가설 루프
 
@@ -126,6 +156,7 @@ node scripts/h2m.mjs info
 ```
 
 - `scripts/h2m.mjs` — API 래퍼. `info|setup|get|post|entities|unmatched|history|capture|analyze|validate|apply|preview`
+- `scripts/probe.mjs` — 신규 환경 예제 자동 매칭. raw 수집 → 예제별 프레이밍/체크섬 자체 검증 → coverage 순위화
 - `scripts/variance.mjs` — 캡처 로그 그룹별 변동 분석(`--base`, `--length`, `--prefix`, `--show`)
 - 순수 ESM, 외부 의존성 없음, node 18+ 필요(`fetch` 내장). `node`가 PATH에 없는 환경에선 해당 런타임 경로를 직접 지정한다
 - rate limit 분당 120회 — 캡처 대기 중 `capture status`를 난사하지 말 것
