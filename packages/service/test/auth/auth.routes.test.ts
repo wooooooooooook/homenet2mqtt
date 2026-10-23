@@ -57,9 +57,20 @@ describe('UI auth routes', () => {
       trustIngress?: boolean;
       maxRequests?: number;
       trustedIngressAddresses?: ReadonlySet<string>;
+      corruptAuthFile?: boolean;
+      setupWindowMs?: number;
+      now?: () => number;
     } = {},
   ): Promise<Harness> => {
-    const credentials = new UiCredentialStore(filePath);
+    if (options.corruptAuthFile) {
+      await fs.mkdir(path.dirname(filePath), { recursive: true });
+      await fs.writeFile(filePath, '{not json', 'utf8');
+    }
+
+    const credentials = new UiCredentialStore(filePath, {
+      setupWindowMs: options.setupWindowMs ?? null,
+      now: options.now,
+    });
     await credentials.load();
     const sessions = new UiSessionStore({ cleanupIntervalMs: 0 });
     const rateLimiter = new RateLimiter(15 * 60 * 1000, options.maxRequests ?? 100);
@@ -94,7 +105,163 @@ describe('UI auth routes', () => {
       configured: false,
       authenticated: false,
       ingress: false,
+      unavailable: false,
+      setupExpired: false,
     });
+  });
+
+  it('reports auth as unavailable when the credential file is corrupt', async () => {
+    const { app } = await buildHarness({ corruptAuthFile: true });
+
+    const response = await request(app).get('/api/auth/status');
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      authEnabled: true,
+      configured: false,
+      authenticated: false,
+      ingress: false,
+      unavailable: true,
+      setupExpired: false,
+    });
+  });
+
+  it('keeps ingress access while reporting auth as unavailable', async () => {
+    const { app } = await buildHarness({ trustIngress: true, corruptAuthFile: true });
+
+    const response = await request(app).get('/api/auth/status').set(INGRESS_HEADER);
+
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({
+      authenticated: true,
+      ingress: true,
+      unavailable: true,
+    });
+  });
+
+  it('rejects setup while auth is unavailable', async () => {
+    const { app, credentials } = await buildHarness({ corruptAuthFile: true });
+
+    const response = await request(app).post('/api/auth/setup').send({ password: 'password123' });
+
+    expect(response.status).toBe(503);
+    expect(response.body).toEqual({ error: 'UI_AUTH_UNAVAILABLE' });
+    expect(credentials.configured).toBe(false);
+    expect(credentials.unavailable).toBe(true);
+  });
+
+  it('rejects login while auth is unavailable', async () => {
+    const { app } = await buildHarness({ corruptAuthFile: true });
+
+    const response = await request(app).post('/api/auth/login').send({ password: 'password123' });
+
+    expect(response.status).toBe(503);
+    expect(response.body).toEqual({ error: 'UI_AUTH_UNAVAILABLE' });
+  });
+
+  it('rejects password changes while auth is unavailable, even on ingress', async () => {
+    const { app, credentials } = await buildHarness({
+      trustIngress: true,
+      corruptAuthFile: true,
+    });
+
+    const response = await request(app)
+      .post('/api/auth/password')
+      .set(INGRESS_HEADER)
+      .send({ newPassword: 'password123' });
+
+    expect(response.status).toBe(503);
+    expect(response.body).toEqual({ error: 'UI_AUTH_UNAVAILABLE' });
+    expect(credentials.configured).toBe(false);
+    expect(credentials.unavailable).toBe(true);
+  });
+
+  it('reports setupExpired after the setup window elapses', async () => {
+    let now = 0;
+    const { app } = await buildHarness({ setupWindowMs: 1_000, now: () => now });
+    now = 1_000;
+
+    const response = await request(app).get('/api/auth/status');
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      authEnabled: true,
+      configured: false,
+      authenticated: false,
+      ingress: false,
+      unavailable: false,
+      setupExpired: true,
+    });
+  });
+
+  it('rejects setup after the setup window elapses', async () => {
+    let now = 0;
+    const { app, credentials } = await buildHarness({
+      setupWindowMs: 1_000,
+      now: () => now,
+    });
+    now = 1_000;
+
+    const response = await request(app).post('/api/auth/setup').send({ password: 'password123' });
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({ error: 'UI_SETUP_EXPIRED' });
+    expect(credentials.configured).toBe(false);
+    await expect(fs.access(filePath)).rejects.toMatchObject({ code: 'ENOENT' });
+  });
+
+  it('rejects login after the setup window elapses', async () => {
+    let now = 0;
+    const { app } = await buildHarness({ setupWindowMs: 1_000, now: () => now });
+    now = 1_000;
+
+    const response = await request(app).post('/api/auth/login').send({ password: 'password123' });
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({ error: 'UI_SETUP_EXPIRED' });
+  });
+
+  it('rejects the initial password change after the setup window elapses', async () => {
+    let now = 0;
+    const { app, credentials } = await buildHarness({
+      trustIngress: true,
+      setupWindowMs: 1_000,
+      now: () => now,
+    });
+    now = 1_000;
+
+    const response = await request(app)
+      .post('/api/auth/password')
+      .set(INGRESS_HEADER)
+      .send({ newPassword: 'password123' });
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({ error: 'UI_SETUP_EXPIRED' });
+    expect(credentials.configured).toBe(false);
+  });
+
+  it('still allows login and password changes after the setup window once configured', async () => {
+    let now = 0;
+    const { app, credentials } = await buildHarness({
+      setupWindowMs: 1_000,
+      now: () => now,
+    });
+    await credentials.setPassword('password123');
+    now = 5_000;
+
+    const login = await request(app).post('/api/auth/login').send({ password: 'password123' });
+    expect(login.status).toBe(200);
+    const cookie = readSessionCookie(login);
+
+    const change = await request(app).post('/api/auth/password').set('Cookie', cookie).send({
+      currentPassword: 'password123',
+      newPassword: 'password456',
+    });
+    expect(change.status).toBe(200);
+
+    const setup = await request(app).post('/api/auth/setup').send({ password: 'password789' });
+    expect(setup.status).toBe(409);
+    expect(setup.body).toEqual({ error: 'UI_PASSWORD_ALREADY_CONFIGURED' });
   });
 
   it('reports ingress requests as authenticated', async () => {

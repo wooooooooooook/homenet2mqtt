@@ -5,6 +5,12 @@ import { logger } from '@rs485-homenet/core';
 
 export const MIN_UI_PASSWORD_LENGTH = 8;
 export const MAX_UI_PASSWORD_LENGTH = 1024;
+export const UI_SETUP_WINDOW_MS = 15 * 60 * 1000;
+
+export interface UiCredentialStoreOptions {
+  setupWindowMs?: number | null;
+  now?: () => number;
+}
 
 const SCRYPT_N = 16384;
 const SCRYPT_R = 8;
@@ -63,23 +69,50 @@ function parseRecord(value: unknown): UiCredentialRecord | null {
 
 export class UiCredentialStore {
   private record: UiCredentialRecord | null = null;
+  private unavailableState = false;
+  private setupDeadline: number | null;
+  private readonly setupWindowMs: number | null;
+  private readonly now: () => number;
 
-  constructor(private readonly filePath: string) {}
+  constructor(
+    private readonly filePath: string,
+    options: UiCredentialStoreOptions = {},
+  ) {
+    this.setupWindowMs = options.setupWindowMs ?? null;
+    this.now = options.now ?? Date.now;
+    this.setupDeadline = this.setupWindowMs === null ? null : this.now() + this.setupWindowMs;
+  }
 
   get configured(): boolean {
     return this.record !== null;
   }
 
+  get unavailable(): boolean {
+    return this.unavailableState;
+  }
+
+  get setupExpired(): boolean {
+    return (
+      this.record === null &&
+      !this.unavailableState &&
+      this.setupDeadline !== null &&
+      this.now() >= this.setupDeadline
+    );
+  }
+
   async load(): Promise<void> {
     this.record = null;
+    this.unavailableState = false;
     let content: string;
     try {
       content = await fs.readFile(this.filePath, 'utf8');
     } catch (err) {
       if ((err as NodeJS.ErrnoException).code === 'ENOENT') return;
-      logger.warn(
+      this.unavailableState = true;
+      this.setupDeadline = null;
+      logger.error(
         { err, filePath: this.filePath },
-        '[service] Failed to read UI auth file. UI password is treated as unconfigured.',
+        '[service] Failed to read UI auth file. Authentication fails closed until the file is repaired or removed.',
       );
       return;
     }
@@ -90,10 +123,13 @@ export class UiCredentialStore {
         throw new Error('Invalid UI auth file structure');
       }
       this.record = parsed;
+      this.setupDeadline = null;
     } catch (err) {
-      logger.warn(
+      this.unavailableState = true;
+      this.setupDeadline = null;
+      logger.error(
         { err, filePath: this.filePath },
-        '[service] Failed to parse UI auth file. UI password is treated as unconfigured.',
+        '[service] Failed to parse UI auth file. Authentication fails closed until the file is repaired or removed.',
       );
     }
   }
@@ -101,6 +137,9 @@ export class UiCredentialStore {
   async setPassword(password: string): Promise<void> {
     if (!isValidUiPassword(password)) {
       throw new Error('UI password does not meet the required policy.');
+    }
+    if (this.record === null && this.setupExpired) {
+      throw new Error('The UI password setup window has expired.');
     }
 
     const salt = randomBytes(SALT_LENGTH);
@@ -131,6 +170,8 @@ export class UiCredentialStore {
     }
 
     this.record = record;
+    this.unavailableState = false;
+    this.setupDeadline = null;
   }
 
   async verifyPassword(password: unknown): Promise<boolean> {

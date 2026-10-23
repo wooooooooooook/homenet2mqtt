@@ -45,7 +45,13 @@ import {
   BASE_MQTT_PREFIX,
   UI_AUTH_FILE,
 } from './utils/constants.js';
-import { fileExists, parseEnvList, triggerRestart, discoverConfigFiles } from './utils/helpers.js';
+import {
+  fileExists,
+  parseEnvList,
+  triggerRestart,
+  discoverConfigFiles,
+  isDockerEnvironment,
+} from './utils/helpers.js';
 import { initializeBackupDir, saveBackup } from './services/backup.service.js';
 import { loadFrontendSettings } from './services/frontend-settings.service.js';
 import { registerRoutes, type RoutesContext } from './routes/index.js';
@@ -57,7 +63,7 @@ import { createRawStreamController } from './agent/raw-stream.controller.js';
 import { handleMcpJsonParseError } from './agent/mcp/mcp.server.js';
 import { createAgentRoutes, type AgentRoutesContext } from './agent/agent.routes.js';
 import { AGENT_API_BASE } from './agent/agent-paths.js';
-import { UiCredentialStore } from './auth/ui-credential.store.js';
+import { UI_SETUP_WINDOW_MS, UiCredentialStore } from './auth/ui-credential.store.js';
 import { UiSessionStore } from './auth/ui-session.store.js';
 import {
   createUiAuthMiddleware,
@@ -89,11 +95,14 @@ const uiServer = createServer(uiApp);
 const agentApp = express();
 const agentServer = createServer(agentApp);
 
-const uiCredentialStore = new UiCredentialStore(UI_AUTH_FILE);
-const uiSessionStore = new UiSessionStore();
-const uiAuthRateLimiter = new RateLimiter(15 * 60 * 1000, 10);
 const trustIngress = Boolean(process.env.SUPERVISOR_TOKEN);
 const trustedIngressAddresses = new Set<string>();
+const uiSetupWindowMs = !trustIngress && isDockerEnvironment() ? UI_SETUP_WINDOW_MS : null;
+const uiCredentialStore = new UiCredentialStore(UI_AUTH_FILE, {
+  setupWindowMs: uiSetupWindowMs,
+});
+const uiSessionStore = new UiSessionStore();
+const uiAuthRateLimiter = new RateLimiter(15 * 60 * 1000, 10);
 const uiAuthContext: AuthRoutesContext = {
   credentials: uiCredentialStore,
   sessions: uiSessionStore,
@@ -928,6 +937,9 @@ const initializeService = async () => {
   logger.info(
     {
       uiPasswordConfigured: uiCredentialStore.configured,
+      uiAuthUnavailable: uiCredentialStore.unavailable,
+      uiSetupWindowMinutes: uiSetupWindowMs === null ? null : uiSetupWindowMs / 60_000,
+      uiSetupExpired: uiCredentialStore.setupExpired,
       uiIngressBypass: trustIngress,
       uiIngressProxyAddresses: trustIngress ? [...trustedIngressAddresses] : [],
       agentApiEnabled: agentApiConfig.enabled,

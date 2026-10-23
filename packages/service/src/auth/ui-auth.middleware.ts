@@ -146,6 +146,16 @@ export function createUiAuthMiddleware(ctx: UiAuthGuardContext): RequestHandler 
       return;
     }
 
+    if (ctx.credentials.unavailable) {
+      res.status(503).json({ error: 'UI_AUTH_UNAVAILABLE' });
+      return;
+    }
+
+    if (ctx.credentials.setupExpired) {
+      res.status(403).json({ error: 'UI_SETUP_EXPIRED' });
+      return;
+    }
+
     const token = getUiSessionToken(req);
     if (token && ctx.sessions.validate(token)) {
       next();
@@ -174,6 +184,16 @@ export function createUiWsVerifyClient(ctx: UiAuthGuardContext): UiWsVerifyClien
   return (info, callback) => {
     if (isTrustedIngress(info.req, ctx.trustIngress, ctx.trustedIngressAddresses)) {
       callback(true);
+      return;
+    }
+
+    if (ctx.credentials.unavailable) {
+      callback(false, 503, 'UI_AUTH_UNAVAILABLE');
+      return;
+    }
+
+    if (ctx.credentials.setupExpired) {
+      callback(false, 403, 'UI_SETUP_EXPIRED');
       return;
     }
 

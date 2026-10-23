@@ -3,6 +3,8 @@ export interface UiAuthStatus {
   configured: boolean;
   authenticated: boolean;
   ingress: boolean;
+  unavailable: boolean;
+  setupExpired: boolean;
 }
 
 export class UiAuthError extends Error {

@@ -40,6 +40,14 @@ describe('createUiWsVerifyClient', () => {
     await fs.rm(tempDir, { recursive: true, force: true });
   });
 
+  const loadCorruptCredentials = async (): Promise<UiCredentialStore> => {
+    const filePath = path.join(tempDir, 'ui-auth.json');
+    await fs.writeFile(filePath, '{not json', 'utf8');
+    const store = new UiCredentialStore(filePath);
+    await store.load();
+    return store;
+  };
+
   it('accepts a request with a valid session cookie', async () => {
     await credentials.setPassword('password123');
     const sessions = new UiSessionStore({ cleanupIntervalMs: 0 });
@@ -83,6 +91,82 @@ describe('createUiWsVerifyClient', () => {
     const result = await verify(verifyClient, {});
 
     expect(result).toEqual({ accepted: false, code: 401, message: 'UI_SETUP_REQUIRED' });
+  });
+
+  it('rejects connections with 503 when the credential file is unavailable', async () => {
+    const corruptCredentials = await loadCorruptCredentials();
+    const sessions = new UiSessionStore({ cleanupIntervalMs: 0 });
+    const verifyClient = createUiWsVerifyClient({
+      credentials: corruptCredentials,
+      sessions,
+      trustIngress: false,
+      trustedIngressAddresses: LOOPBACK_ADDRESSES,
+    });
+
+    const result = await verify(verifyClient, {});
+
+    expect(result).toEqual({ accepted: false, code: 503, message: 'UI_AUTH_UNAVAILABLE' });
+  });
+
+  it('rejects connections with 403 after the setup window elapses', async () => {
+    let now = 0;
+    const windowed = new UiCredentialStore(path.join(tempDir, 'ui-auth.json'), {
+      setupWindowMs: 1_000,
+      now: () => now,
+    });
+    await windowed.load();
+    now = 1_000;
+
+    const sessions = new UiSessionStore({ cleanupIntervalMs: 0 });
+    const verifyClient = createUiWsVerifyClient({
+      credentials: windowed,
+      sessions,
+      trustIngress: false,
+      trustedIngressAddresses: LOOPBACK_ADDRESSES,
+    });
+
+    const result = await verify(verifyClient, {});
+
+    expect(result).toEqual({ accepted: false, code: 403, message: 'UI_SETUP_EXPIRED' });
+  });
+
+  it('accepts trusted ingress after the setup window elapses', async () => {
+    let now = 0;
+    const windowed = new UiCredentialStore(path.join(tempDir, 'ui-auth.json'), {
+      setupWindowMs: 1_000,
+      now: () => now,
+    });
+    await windowed.load();
+    now = 1_000;
+
+    const sessions = new UiSessionStore({ cleanupIntervalMs: 0 });
+    const verifyClient = createUiWsVerifyClient({
+      credentials: windowed,
+      sessions,
+      trustIngress: true,
+      trustedIngressAddresses: LOOPBACK_ADDRESSES,
+    });
+
+    const result = await verify(verifyClient, { 'x-ingress-path': '/api/hassio_ingress/token' });
+
+    expect(result).toEqual({ accepted: true, code: undefined, message: undefined });
+  });
+
+  it('accepts trusted ingress when the credential file is unavailable', async () => {
+    const corruptCredentials = await loadCorruptCredentials();
+    const sessions = new UiSessionStore({ cleanupIntervalMs: 0 });
+    const verifyClient = createUiWsVerifyClient({
+      credentials: corruptCredentials,
+      sessions,
+      trustIngress: true,
+      trustedIngressAddresses: LOOPBACK_ADDRESSES,
+    });
+
+    const result = await verify(verifyClient, {
+      'x-ingress-path': '/api/hassio_ingress/token',
+    });
+
+    expect(result).toEqual({ accepted: true, code: undefined, message: undefined });
   });
 
   it('rejects expired sessions', async () => {

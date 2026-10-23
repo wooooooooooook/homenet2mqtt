@@ -210,7 +210,7 @@
   let showAutomationCards = $state(true);
   let showScriptCards = $state(true);
 
-  type AuthState = 'checking' | 'setup' | 'login' | 'ready';
+  type AuthState = 'checking' | 'setup' | 'login' | 'unavailable' | 'expired' | 'ready';
   let authState = $state<AuthState>('checking');
   let authStatus = $state<UiAuthStatus | null>(null);
   let authPollTimer: ReturnType<typeof setInterval> | null = null;
@@ -531,7 +531,7 @@
     }
   };
 
-  const handleAuthRequired = (next: 'login' | 'setup') => {
+  const handleAuthRequired = (next: 'login' | 'setup' | 'unavailable' | 'expired') => {
     if (authState !== 'ready' && authState !== 'checking') return;
     authState = next;
     stopAuthPolling();
@@ -547,7 +547,15 @@
           const status = await getUiAuthStatus();
           authStatus = status;
           if (!status.authenticated && !status.ingress && authState === 'ready') {
-            handleAuthRequired(status.configured ? 'login' : 'setup');
+            handleAuthRequired(
+              status.unavailable
+                ? 'unavailable'
+                : status.configured
+                  ? 'login'
+                  : status.setupExpired
+                    ? 'expired'
+                    : 'setup',
+            );
           }
         } catch {
           // Ignore transient polling failures.
@@ -568,7 +576,17 @@
         return;
       }
 
-      authState = status.configured ? 'login' : 'setup';
+      if (status.unavailable) {
+        authState = 'unavailable';
+        return;
+      }
+
+      if (status.configured) {
+        authState = 'login';
+        return;
+      }
+
+      authState = status.setupExpired ? 'expired' : 'setup';
     } catch {
       authState = 'login';
     }
@@ -1940,7 +1958,7 @@
 
 {#if $isLoading || authState === 'checking'}
   <div class="loading-screen">Loading resources...</div>
-{:else if authState === 'setup' || authState === 'login'}
+{:else if authState === 'setup' || authState === 'login' || authState === 'unavailable' || authState === 'expired'}
   <AuthGate mode={authState} onSuccess={handleAuthSuccess} />
 {:else}
   <a href="#main-content" class="skip-link">{$t('header.skip_to_content')}</a>

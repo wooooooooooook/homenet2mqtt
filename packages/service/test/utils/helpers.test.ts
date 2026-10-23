@@ -19,6 +19,7 @@ import {
   getLocalTimestamp,
   isDefaultGallerySettings,
   discoverConfigFiles,
+  isDockerEnvironment,
 } from '../../src/utils/helpers.js';
 import { CONFIG_RESTART_FLAG, BASE_MQTT_PREFIX } from '../../src/utils/constants.js';
 
@@ -327,6 +328,15 @@ describe('helpers.ts', () => {
       const files = await discoverConfigFiles('/mock/dir');
       expect(files).toEqual([]);
       expect(logger.error).toHaveBeenCalled();
+    });
+  });
+
+  describe('isDockerEnvironment', () => {
+    it('detects Docker and OCI container markers', () => {
+      expect(isDockerEnvironment(() => true)).toBe(true);
+      expect(isDockerEnvironment((targetPath) => targetPath === '/.dockerenv')).toBe(true);
+      expect(isDockerEnvironment((targetPath) => targetPath === '/run/.containerenv')).toBe(true);
+      expect(isDockerEnvironment(() => false)).toBe(false);
     });
   });
 });

@@ -39,19 +39,33 @@ export function createPublicAuthRoutes(ctx: AuthRoutesContext): Router {
 
   router.get('/api/auth/status', (req, res) => {
     const ingress = isTrustedIngress(req, ctx.trustIngress, ctx.trustedIngressAddresses);
+    const unavailable = ctx.credentials.unavailable;
     const token = getUiSessionToken(req);
-    const authenticated = ingress || (token !== null && ctx.sessions.validate(token));
+    const authenticated =
+      ingress || (!unavailable && token !== null && ctx.sessions.validate(token));
 
     res.json({
       authEnabled: true,
       configured: ctx.credentials.configured,
       authenticated,
       ingress,
+      unavailable,
+      setupExpired: ctx.credentials.setupExpired,
     });
   });
 
   router.post('/api/auth/setup', async (req, res, next) => {
     try {
+      if (ctx.credentials.unavailable) {
+        res.status(503).json({ error: 'UI_AUTH_UNAVAILABLE' });
+        return;
+      }
+
+      if (ctx.credentials.setupExpired) {
+        res.status(403).json({ error: 'UI_SETUP_EXPIRED' });
+        return;
+      }
+
       if (!ctx.rateLimiter.check(req.ip || 'unknown')) {
         res.status(429).json({ error: 'RATE_LIMITED' });
         return;
@@ -85,6 +99,16 @@ export function createPublicAuthRoutes(ctx: AuthRoutesContext): Router {
 
   router.post('/api/auth/login', async (req, res, next) => {
     try {
+      if (ctx.credentials.unavailable) {
+        res.status(503).json({ error: 'UI_AUTH_UNAVAILABLE' });
+        return;
+      }
+
+      if (ctx.credentials.setupExpired) {
+        res.status(403).json({ error: 'UI_SETUP_EXPIRED' });
+        return;
+      }
+
       if (!ctx.rateLimiter.check(req.ip || 'unknown')) {
         res.status(429).json({ error: 'RATE_LIMITED' });
         return;
@@ -133,6 +157,16 @@ export function createProtectedAuthRoutes(ctx: AuthRoutesContext): Router {
 
   router.post('/api/auth/password', async (req: Request, res: Response, next: NextFunction) => {
     try {
+      if (ctx.credentials.unavailable) {
+        res.status(503).json({ error: 'UI_AUTH_UNAVAILABLE' });
+        return;
+      }
+
+      if (!ctx.credentials.configured && ctx.credentials.setupExpired) {
+        res.status(403).json({ error: 'UI_SETUP_EXPIRED' });
+        return;
+      }
+
       if (!ctx.rateLimiter.check(req.ip || 'unknown')) {
         res.status(429).json({ error: 'RATE_LIMITED' });
         return;

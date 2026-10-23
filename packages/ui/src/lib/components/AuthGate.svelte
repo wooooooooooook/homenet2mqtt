@@ -7,7 +7,7 @@
     mode,
     onSuccess,
   }: {
-    mode: 'setup' | 'login';
+    mode: 'setup' | 'login' | 'unavailable' | 'expired';
     onSuccess: () => void;
   } = $props();
 
@@ -32,6 +32,8 @@
           return 'auth.errors.rate_limited';
         case 'UI_PASSWORD_ALREADY_CONFIGURED':
           return 'auth.errors.already_configured';
+        case 'UI_SETUP_EXPIRED':
+          return 'auth.errors.setup_expired';
         case 'NETWORK_ERROR':
           return 'auth.errors.network';
         default:
@@ -78,57 +80,83 @@
 <div class="auth-gate">
   <div class="auth-card">
     <div class="brand">Homenet2MQTT</div>
-    <h1>{mode === 'setup' ? $t('auth.setup.title') : $t('auth.login.title')}</h1>
+    <h1>
+      {#if mode === 'setup'}
+        {$t('auth.setup.title')}
+      {:else if mode === 'login'}
+        {$t('auth.login.title')}
+      {:else if mode === 'unavailable'}
+        {$t('auth.unavailable.title')}
+      {:else}
+        {$t('auth.expired.title')}
+      {/if}
+    </h1>
     <p class="desc">
-      {mode === 'setup' ? $t('auth.setup.desc') : $t('auth.login.desc')}
+      {#if mode === 'setup'}
+        {$t('auth.setup.desc')}
+      {:else if mode === 'login'}
+        {$t('auth.login.desc')}
+      {:else if mode === 'unavailable'}
+        {$t('auth.unavailable.desc')}
+      {:else}
+        {$t('auth.expired.desc')}
+      {/if}
     </p>
 
-    <form onsubmit={handleSubmit}>
-      <label class="field">
-        <span>{$t('auth.password')}</span>
-        <input
-          type="password"
-          bind:value={password}
-          autocomplete={mode === 'setup' ? 'new-password' : 'current-password'}
-          disabled={submitting}
-        />
-      </label>
-
-      {#if mode === 'setup'}
+    {#if mode === 'unavailable' || mode === 'expired'}
+      <p class="help">
+        <a href={PASSWORD_RESET_DOC_URL} target="_blank" rel="noopener noreferrer">
+          {$t(mode === 'unavailable' ? 'auth.unavailable.docs' : 'auth.expired.docs')}
+        </a>
+      </p>
+    {:else}
+      <form onsubmit={handleSubmit}>
         <label class="field">
-          <span>{$t('auth.confirm_password')}</span>
+          <span>{$t('auth.password')}</span>
           <input
             type="password"
-            bind:value={confirmPassword}
-            autocomplete="new-password"
+            bind:value={password}
+            autocomplete={mode === 'setup' ? 'new-password' : 'current-password'}
             disabled={submitting}
           />
         </label>
-        <p class="hint">{$t('auth.setup.hint')}</p>
-      {/if}
 
-      {#if errorKey}
-        <p class="error" role="alert">{$t(errorKey)}</p>
-      {/if}
+        {#if mode === 'setup'}
+          <label class="field">
+            <span>{$t('auth.confirm_password')}</span>
+            <input
+              type="password"
+              bind:value={confirmPassword}
+              autocomplete="new-password"
+              disabled={submitting}
+            />
+          </label>
+          <p class="hint">{$t('auth.setup.hint')}</p>
+        {/if}
 
-      <Button
-        type="submit"
-        variant="primary"
-        fullWidth
-        isLoading={submitting}
-        disabled={submitting}
-      >
-        {mode === 'setup' ? $t('auth.submit_setup') : $t('auth.submit_login')}
-      </Button>
+        {#if errorKey}
+          <p class="error" role="alert">{$t(errorKey)}</p>
+        {/if}
 
-      {#if mode === 'login'}
-        <p class="help">
-          <a href={PASSWORD_RESET_DOC_URL} target="_blank" rel="noopener noreferrer">
-            {$t('auth.forgot_password')}
-          </a>
-        </p>
-      {/if}
-    </form>
+        <Button
+          type="submit"
+          variant="primary"
+          fullWidth
+          isLoading={submitting}
+          disabled={submitting}
+        >
+          {mode === 'setup' ? $t('auth.submit_setup') : $t('auth.submit_login')}
+        </Button>
+
+        {#if mode === 'login'}
+          <p class="help">
+            <a href={PASSWORD_RESET_DOC_URL} target="_blank" rel="noopener noreferrer">
+              {$t('auth.forgot_password')}
+            </a>
+          </p>
+        {/if}
+      </form>
+    {/if}
   </div>
 </div>
 

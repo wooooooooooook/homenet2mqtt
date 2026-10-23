@@ -10,6 +10,16 @@
       "desc": "Enter your password to access the UI.",
       "forgot_password": "Forgot your password?"
     },
+    "unavailable": {
+      "title": "UI authentication unavailable",
+      "desc": "The stored UI credential file is unreadable or corrupted, so sign-in and password setup are blocked. Repair or delete the credential file and restart the service.",
+      "docs": "View recovery instructions"
+    },
+    "expired": {
+      "title": "Password setup window expired",
+      "desc": "For security, the initial password can only be set within 15 minutes of the container starting. Restart the service to start a new 15-minute setup window.",
+      "docs": "View recovery instructions"
+    },
     "password": "Password",
     "confirm_password": "Confirm password",
     "current_password": "Current password",
@@ -30,6 +40,7 @@
       "invalid_new_password": "The new password does not meet the requirements.",
       "rate_limited": "Too many attempts. Please try again later.",
       "already_configured": "A password is already configured. Please reload the page.",
+      "setup_expired": "The password setup window has expired. Restart the service and try again.",
       "network": "Unable to reach the server.",
       "unknown": "The request could not be completed."
     }

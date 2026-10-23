@@ -4,7 +4,10 @@ import request from 'supertest';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { UiCredentialStore } from '../../src/auth/ui-credential.store.js';
+import {
+  UiCredentialStore,
+  type UiCredentialStoreOptions,
+} from '../../src/auth/ui-credential.store.js';
 import { UiSessionStore } from '../../src/auth/ui-session.store.js';
 import {
   SUPERVISOR_FALLBACK_ADDRESS,
@@ -44,8 +47,15 @@ describe('UI auth middleware', () => {
     trustIngress: boolean,
     sessionOptions: { ttlMs?: number; now?: () => number } = {},
     trustedIngressAddresses: ReadonlySet<string> = LOOPBACK_ADDRESSES,
+    corruptAuthFile = false,
+    credentialOptions: UiCredentialStoreOptions = {},
   ): Promise<Harness> => {
-    const credentials = new UiCredentialStore(filePath);
+    if (corruptAuthFile) {
+      await fs.mkdir(path.dirname(filePath), { recursive: true });
+      await fs.writeFile(filePath, '{not json', 'utf8');
+    }
+
+    const credentials = new UiCredentialStore(filePath, credentialOptions);
     await credentials.load();
     const sessions = new UiSessionStore({ cleanupIntervalMs: 0, ...sessionOptions });
 
@@ -158,6 +168,54 @@ describe('UI auth middleware', () => {
 
     expect(response.status).toBe(401);
     expect(response.body).toEqual({ error: 'UI_SETUP_REQUIRED' });
+  });
+
+  it('fails closed with 503 when the credential file is unavailable', async () => {
+    const { app } = await buildHarness(false, {}, LOOPBACK_ADDRESSES, true);
+
+    const response = await request(app).get('/api/protected');
+
+    expect(response.status).toBe(503);
+    expect(response.body).toEqual({ error: 'UI_AUTH_UNAVAILABLE' });
+  });
+
+  it('still allows trusted ingress when the credential file is unavailable', async () => {
+    const { app } = await buildHarness(true, {}, LOOPBACK_ADDRESSES, true);
+
+    const response = await request(app)
+      .get('/api/protected')
+      .set('X-Ingress-Path', '/api/hassio_ingress/token');
+
+    expect(response.status).toBe(200);
+  });
+
+  it('returns UI_SETUP_EXPIRED after the setup window elapses', async () => {
+    let now = 0;
+    const { app } = await buildHarness(false, {}, LOOPBACK_ADDRESSES, false, {
+      setupWindowMs: 1_000,
+      now: () => now,
+    });
+    now = 1_000;
+
+    const response = await request(app).get('/api/protected');
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({ error: 'UI_SETUP_EXPIRED' });
+  });
+
+  it('still allows trusted ingress after the setup window elapses', async () => {
+    let now = 0;
+    const { app } = await buildHarness(true, {}, LOOPBACK_ADDRESSES, false, {
+      setupWindowMs: 1_000,
+      now: () => now,
+    });
+    now = 1_000;
+
+    const response = await request(app)
+      .get('/api/protected')
+      .set('X-Ingress-Path', '/api/hassio_ingress/token');
+
+    expect(response.status).toBe(200);
   });
 
   it('does not trust ingress requests without the ingress path header', async () => {

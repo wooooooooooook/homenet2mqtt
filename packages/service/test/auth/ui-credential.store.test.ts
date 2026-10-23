@@ -5,6 +5,7 @@ import path from 'node:path';
 import {
   MAX_UI_PASSWORD_LENGTH,
   MIN_UI_PASSWORD_LENGTH,
+  UI_SETUP_WINDOW_MS,
   UiCredentialStore,
   isValidUiPassword,
 } from '../../src/auth/ui-credential.store.js';
@@ -27,7 +28,96 @@ describe('UiCredentialStore', () => {
     await store.load();
 
     expect(store.configured).toBe(false);
+    expect(store.unavailable).toBe(false);
     await expect(store.verifyPassword('password123')).resolves.toBe(false);
+  });
+
+  it('expires the initial setup window after the configured duration', async () => {
+    let now = 1_000;
+    const store = new UiCredentialStore(filePath, {
+      setupWindowMs: 60_000,
+      now: () => now,
+    });
+    await store.load();
+
+    expect(store.setupExpired).toBe(false);
+
+    now += 59_999;
+    expect(store.setupExpired).toBe(false);
+
+    now += 1;
+    expect(store.setupExpired).toBe(true);
+    await expect(store.setPassword('password123')).rejects.toThrow(/expired/);
+    expect(store.configured).toBe(false);
+    await expect(fs.access(filePath)).rejects.toMatchObject({ code: 'ENOENT' });
+  });
+
+  it('uses the 15 minute default setup window constant', () => {
+    expect(UI_SETUP_WINDOW_MS).toBe(15 * 60 * 1000);
+  });
+
+  it('allows setup indefinitely when no window is configured', async () => {
+    let now = 0;
+    const store = new UiCredentialStore(filePath, { now: () => now });
+    await store.load();
+
+    now = 10 * UI_SETUP_WINDOW_MS;
+    expect(store.setupExpired).toBe(false);
+    await store.setPassword('password123');
+    expect(store.configured).toBe(true);
+  });
+
+  it('does not expire once a password is configured', async () => {
+    let now = 0;
+    const store = new UiCredentialStore(filePath, {
+      setupWindowMs: 1_000,
+      now: () => now,
+    });
+    await store.load();
+    await store.setPassword('password123');
+
+    now = 5_000;
+    expect(store.setupExpired).toBe(false);
+    await expect(store.setPassword('password456')).resolves.toBeUndefined();
+    await expect(store.verifyPassword('password456')).resolves.toBe(true);
+  });
+
+  it('does not expire when an existing credential file is loaded', async () => {
+    const writer = new UiCredentialStore(filePath);
+    await writer.load();
+    await writer.setPassword('password123');
+
+    let now = 0;
+    const store = new UiCredentialStore(filePath, {
+      setupWindowMs: 1_000,
+      now: () => now,
+    });
+    await store.load();
+    now = 10_000;
+
+    expect(store.configured).toBe(true);
+    expect(store.setupExpired).toBe(false);
+  });
+
+  it('starts a new setup window when the store is recreated', async () => {
+    let now = 0;
+    const first = new UiCredentialStore(filePath, {
+      setupWindowMs: 1_000,
+      now: () => now,
+    });
+    await first.load();
+
+    now = 1_000;
+    expect(first.setupExpired).toBe(true);
+
+    const restarted = new UiCredentialStore(filePath, {
+      setupWindowMs: 1_000,
+      now: () => now,
+    });
+    await restarted.load();
+
+    expect(restarted.setupExpired).toBe(false);
+    await expect(restarted.setPassword('password123')).resolves.toBeUndefined();
   });
 
   it('stores a scrypt hash without the plaintext password', async () => {
@@ -105,7 +195,7 @@ describe('UiCredentialStore', () => {
     await expect(fs.access(filePath)).rejects.toMatchObject({ code: 'ENOENT' });
   });
 
-  it('treats a corrupt file as unconfigured', async () => {
+  it('fails closed when the file is corrupt', async () => {
     await fs.mkdir(path.dirname(filePath), { recursive: true });
     await fs.writeFile(filePath, '{not json', 'utf8');
 
@@ -113,10 +203,27 @@ describe('UiCredentialStore', () => {
     await store.load();
 
     expect(store.configured).toBe(false);
+    expect(store.unavailable).toBe(true);
     await expect(store.verifyPassword('password123')).resolves.toBe(false);
   });
 
-  it('treats a structurally invalid file as unconfigured', async () => {
+  it('reports unavailable rather than expired when the file is corrupt', async () => {
+    await fs.mkdir(path.dirname(filePath), { recursive: true });
+    await fs.writeFile(filePath, '{not json', 'utf8');
+
+    let now = 0;
+    const store = new UiCredentialStore(filePath, {
+      setupWindowMs: 1_000,
+      now: () => now,
+    });
+    await store.load();
+    now = 2_000;
+
+    expect(store.unavailable).toBe(true);
+    expect(store.setupExpired).toBe(false);
+  });
+
+  it('fails closed when the file is structurally invalid', async () => {
     await fs.mkdir(path.dirname(filePath), { recursive: true });
     await fs.writeFile(
       filePath,
@@ -128,9 +235,23 @@ describe('UiCredentialStore', () => {
     await store.load();
 
     expect(store.configured).toBe(false);
+    expect(store.unavailable).toBe(true);
   });
 
-  it.skipIf(process.getuid?.() === 0)('treats an unreadable file as unconfigured', async () => {
+  it('recovers after a successful password save', async () => {
+    await fs.mkdir(path.dirname(filePath), { recursive: true });
+    await fs.writeFile(filePath, '{not json', 'utf8');
+
+    const store = new UiCredentialStore(filePath);
+    await store.load();
+    await store.setPassword('password123');
+
+    expect(store.configured).toBe(true);
+    expect(store.unavailable).toBe(false);
+    await expect(store.verifyPassword('password123')).resolves.toBe(true);
+  });
+
+  it.skipIf(process.getuid?.() === 0)('fails closed when the file is unreadable', async () => {
     await fs.mkdir(path.dirname(filePath), { recursive: true });
     await fs.writeFile(filePath, JSON.stringify({ version: 1 }), 'utf8');
     await fs.chmod(filePath, 0o000);
@@ -140,6 +261,7 @@ describe('UiCredentialStore', () => {
       await store.load();
 
       expect(store.configured).toBe(false);
+      expect(store.unavailable).toBe(true);
     } finally {
       await fs.chmod(filePath, 0o600);
     }
