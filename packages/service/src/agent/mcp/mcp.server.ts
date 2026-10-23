@@ -22,6 +22,8 @@ const INVALID_PARAMS = -32602;
 const INTERNAL_ERROR = -32603;
 
 const MCP_INSTRUCTIONS = `homenet2mqtt bridges RS485 devices to MQTT / Home Assistant.
+If no configuration is loaded yet, call get_setup_state, inspect an example with get_setup_example, test wiring with test_setup_serial, then complete provisioning with apply_initial_setup (mode="init").
+To add another bridge while configurations are loaded, call get_setup_state for loadedPortIds, test the new port with test_setup_serial, then call apply_initial_setup with mode="add" and a portId that is not in loadedPortIds.
 Use get_entities and get_entity_state to inspect the loaded configuration and live state.
 Use get_packet_history and get_unmatched_packets to observe traffic, and analyze_packet to test a packet against the active configuration or an unsaved draft.
 Use start_capture / stop_capture / list_capture_files to collect raw bytes.

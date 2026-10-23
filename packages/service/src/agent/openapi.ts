@@ -37,6 +37,7 @@ export function buildOpenApiDocument(options: OpenApiOptions): Record<string, un
     security: [{ bearerAuth: [] }],
     tags: [
       { name: 'meta' },
+      { name: 'setup' },
       { name: 'observation' },
       { name: 'packets' },
       { name: 'capture' },
@@ -66,6 +67,74 @@ export function buildOpenApiDocument(options: OpenApiOptions): Record<string, un
           tags: ['meta'],
           summary: 'API capabilities and limits',
           responses: { '200': jsonResponse('Capabilities', { type: 'object' }) },
+        },
+      },
+      [AGENT_PATHS.setup]: {
+        get: {
+          tags: ['setup'],
+          summary: 'Setup state, bundled examples, and loaded port ids',
+          description:
+            'setupRequired is true only while no configuration is loaded. loadedPortIds lists portIds already in use when adding a bridge.',
+          responses: { '200': jsonResponse('Setup state', { type: 'object' }) },
+        },
+      },
+      [openApiPath(AGENT_PATHS.setupExample)]: {
+        get: {
+          tags: ['setup'],
+          summary: 'Inspect a setup example',
+          description:
+            'Returns serial defaults (without path), packet defaults, and selectable entity ids. Use "__empty__" for a blank configuration.',
+          parameters: [
+            { name: 'filename', in: 'path', required: true, schema: { type: 'string' } },
+          ],
+          responses: {
+            '200': jsonResponse('Example details', { type: 'object' }),
+            '404': errorResponse('Example not found'),
+          },
+        },
+      },
+      [AGENT_PATHS.setupTestSerial]: {
+        post: {
+          tags: ['setup'],
+          summary: 'Test a serial port during setup or bridge addition',
+          description:
+            'Available regardless of loaded configuration, but the port must not already be held by a running bridge.',
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/SetupSelectionRequest' },
+              },
+            },
+          },
+          responses: {
+            '200': jsonResponse('Captured packets', { type: 'object' }),
+            '400': errorResponse('Invalid serial configuration'),
+            '409': errorResponse('A serial test is already running'),
+          },
+        },
+      },
+      [AGENT_PATHS.setupApply]: {
+        post: {
+          tags: ['setup'],
+          summary: 'Apply initial setup or add another bridge',
+          description:
+            'mode="init" (default) seeds the default config from an example or "__empty__", writes a backup, marks initialization complete, and requires that no configuration is loaded. mode="add" writes a new config file while configurations are loaded and rejects duplicate portId or serialPath values. Restarts after responding unless restart=false.',
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/SetupSelectionRequest' },
+              },
+            },
+          },
+          responses: {
+            '200': jsonResponse('Configuration applied', { type: 'object' }),
+            '400': errorResponse(
+              'Invalid example, serial path, serial configuration, or duplicate portId/serialPath',
+            ),
+            '409': errorResponse('A configuration is already loaded and mode is not "add"'),
+          },
         },
       },
       [AGENT_PATHS.ports]: {
@@ -465,6 +534,40 @@ export function buildOpenApiDocument(options: OpenApiOptions): Record<string, un
             checksum: { type: 'boolean', description: 'Append the configured checksum' },
           },
         },
+        SetupSelectionRequest: {
+          type: 'object',
+          required: ['example'],
+          properties: {
+            example: {
+              type: 'string',
+              description: 'Example filename from GET /setup, or "__empty__" for a blank config.',
+            },
+            mode: {
+              type: 'string',
+              enum: ['init', 'add'],
+              default: 'init',
+              description:
+                'Use "init" for first-time setup, or "add" to add another bridge with a unique portId.',
+            },
+            serialPath: {
+              type: 'string',
+              description: 'Device path or host:port. Required for example configurations.',
+            },
+            portId: { type: 'string' },
+            serialConfig: {
+              type: 'object',
+              additionalProperties: true,
+              description:
+                'Full serial settings for "__empty__": portId, path, baud_rate, data_bits, parity, stop_bits.',
+            },
+            packetDefaults: { type: 'object', additionalProperties: true },
+            selectedEntities: {
+              type: 'object',
+              additionalProperties: { type: 'array', items: { type: 'string' } },
+            },
+            restart: { type: 'boolean', default: true },
+          },
+        },
         JsonRpcRequest: {
           type: 'object',
           required: ['jsonrpc', 'method'],
@@ -487,6 +590,8 @@ Auth: Authorization: Bearer <AGENT_API_TOKEN> (required for every endpoint excep
 OpenAPI: ${AGENT_API_BASE}${AGENT_PATHS.openapi}
 
 ## Workflow
+0. If no configuration is loaded yet, call GET /setup. Inspect an example with GET /setup/examples/<filename>, optionally POST /setup/test-serial, then POST /setup/apply { mode: "init", example, serialPath, portId?, packetDefaults?, selectedEntities?, restart }.
+   To add another bridge while configurations are loaded, read loadedPortIds from GET /setup, optionally POST /setup/test-serial, then POST /setup/apply { mode: "add", example, serialPath, portId, ... } with a portId not already in loadedPortIds.
 1. GET /ports and GET /entities to inspect the loaded configuration.
 2. GET /state, GET /packets/history, and GET /packets/unmatched to observe traffic.
 3. POST /packets/analyze with \`input\` (hex or int array) and an optional \`draft\` config.
@@ -496,6 +601,9 @@ OpenAPI: ${AGENT_API_BASE}${AGENT_PATHS.openapi}
 7. The service writes YAML, creates a backup, and marks a restart as required.
 
 ## Notes
+- /setup/apply with mode "init" (default) requires that no configuration is loaded; mode "add" writes a new config file while configurations are loaded and requires a unique portId and serialPath. Use "__empty__" as the example to start from a blank config; then serialConfig { portId, path, baud_rate, data_bits, parity, stop_bits } is required.
+- /setup/test-serial is available with or without loaded configurations, but the port must not already be held by a running bridge.
+- POST /setup/apply restarts the service after responding unless restart=false.
 - Draft ids must match ^[A-Za-z0-9_-]+$.
 - \`applicable\` is false when exact ID conflicts remain. Use resolutions { "<id>": "overwrite" | "skip" } or renames { "<id>": "<new_id>" } when applying.
 - Packet sending is disabled unless AGENT_ALLOW_PACKET_SEND=true. Sending also requires confirm=true and count <= 10.
@@ -506,7 +614,7 @@ OpenAPI: ${AGENT_API_BASE}${AGENT_PATHS.openapi}
 Endpoint: POST ${AGENT_API_BASE}${AGENT_PATHS.mcp} (MCP Streamable HTTP, JSON-RPC 2.0, stateless)
 Auth: same Authorization: Bearer header. Send Content-Type: application/json.
 Methods: initialize, notifications/initialized (202, no body), ping, tools/list, tools/call.
-Tools: list_ports, get_entities, get_entity_state, get_packet_history, get_unmatched_packets, analyze_packet,
+Tools: get_setup_state, get_setup_example, test_setup_serial, apply_initial_setup, list_ports, get_entities, get_entity_state, get_packet_history, get_unmatched_packets, analyze_packet,
 start_capture, stop_capture, get_capture_status, list_capture_files, validate_entity_draft, apply_entity_draft,
 get_recent_events (poll with afterId), and send_packet when AGENT_ALLOW_PACKET_SEND=true.
 Tool failures are returned as tool results with isError=true and { error, message }; protocol errors use JSON-RPC error codes.

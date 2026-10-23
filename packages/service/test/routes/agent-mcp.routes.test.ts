@@ -182,6 +182,7 @@ describe('agent MCP routes', () => {
         subscribe: () => () => undefined,
       } as any,
       configDir,
+      setupWizardService: {} as any,
       setCurrentConfigs: vi.fn(),
       setCurrentRawConfigs: vi.fn(),
       rebuildPortMappings: vi.fn(),

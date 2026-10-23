@@ -179,6 +179,7 @@ describe('agent routes', () => {
         subscribe: () => () => undefined,
       } as any,
       configDir,
+      setupWizardService: {} as any,
       setCurrentConfigs,
       setCurrentRawConfigs: vi.fn(),
       rebuildPortMappings: vi.fn(),
@@ -221,6 +222,7 @@ describe('agent routes', () => {
       expect(response.status).toBe(200);
       expect(response.body.openapi).toBe('3.1.0');
       expect(response.body.paths).toHaveProperty('/capabilities');
+      expect(response.body.paths).toHaveProperty('/setup');
       expect(response.body.paths).toHaveProperty('/mcp');
     });
 
@@ -273,6 +275,7 @@ describe('agent routes', () => {
       expect(response.status).toBe(200);
       expect(response.body.apiVersion).toBe('v1');
       expect(response.body.features.packetSend).toBe(false);
+      expect(response.body.features.setup).toBe(true);
       expect(response.body.features.mcp).toBe(true);
       expect(response.body.mcp).toMatchObject({
         endpoint: '/api/v1/agent/mcp',

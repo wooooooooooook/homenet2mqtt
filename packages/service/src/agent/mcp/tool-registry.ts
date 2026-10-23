@@ -4,8 +4,10 @@ import { entityTools } from './tools/entity.tools.js';
 import { eventTools } from './tools/event.tools.js';
 import { observationTools } from './tools/observation.tools.js';
 import { packetTools } from './tools/packet.tools.js';
+import { setupTools } from './tools/setup.tools.js';
 
 export const MCP_TOOLS: McpTool[] = [
+  ...setupTools,
   ...observationTools,
   ...packetTools,
   ...captureTools,

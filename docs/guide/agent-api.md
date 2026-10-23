@@ -10,6 +10,7 @@
 - 나머지 모든 엔드포인트는 **Bearer 토큰 인증이 필수**입니다.
 - 응답은 JSON이며, 오류는 `{ "error": "...", "message"?: "...", "details"?: ... }` 형식입니다.
 - 패킷 관측/분석, 캡처 제어, 엔티티 초안 검증·적용, 실시간 이벤트 스트림을 지원합니다.
+- 초기 설정(예제 선택, serial 테스트, config 생성)과 설정 로드 중 새 브릿지 추가를 API로 수행할 수 있습니다.
 - 같은 기능을 MCP Streamable HTTP 도구로도 제공합니다(`POST /api/v1/agent/mcp`).
 - 엔티티는 **초안 작성 → 검증 → 적용** 순서로만 등록할 수 있으며, 적용 후 재시작이 필요합니다.
 
@@ -178,6 +179,10 @@ Authorization: Bearer <AGENT_API_TOKEN>
 | Method | Path                                     | 설명                                          |
 | ------ | ---------------------------------------- | --------------------------------------------- |
 | GET    | `/capabilities`                          | 버전, 지원 기능, 제한, 문서 링크              |
+| GET    | `/setup`                                 | 설정 상태, 번들 예제 목록, 사용 중인 portId   |
+| GET    | `/setup/examples/:filename`              | 예제의 serial/packet 기본값과 선택 엔티티     |
+| POST   | `/setup/test-serial`                     | serial 배선 테스트 (설정 로드 중에도 가능)    |
+| POST   | `/setup/apply`                           | 초기 설정(`init`) 또는 브릿지 추가(`add`)     |
 | GET    | `/ports`                                 | 포트별 serial 설정, 브리지 상태, 엔티티 수    |
 | GET    | `/entities?portId=`                      | 정규화된 엔티티 목록                          |
 | GET    | `/entities/:entityId?portId=`            | 단일 엔티티 설정                              |
@@ -206,6 +211,58 @@ Authorization: Bearer <AGENT_API_TOKEN>
 
 - 같은 호스트: `http://127.0.0.1:3001/api/v1/agent`
 - LAN/원격: `https://<H2M-HOST>/api/v1/agent` (Agent 포트로 프록시)
+
+### 초기 설정 및 브릿지 추가
+
+로드된 설정이 하나도 없으면 UI 초기 설정 마법사 대신 API로 초기 설정을 완료할 수 있습니다. 이때 `/setup/apply`의 `mode`는 `init`(기본값)입니다. 이미 설정이 로드된 상태에서 새 포트(브릿지)를 추가하려면 `mode: "add"`를 사용하며, `/setup`의 `loadedPortIds`와 겹치지 않는 `portId`를 지정해야 합니다. `/setup/test-serial`은 설정 로드 여부와 관계없이 사용할 수 있습니다.
+
+```bash
+# 1. 설정 상태, 예제 목록, 사용 중인 portId 확인
+curl -s -H "Authorization: Bearer $TOKEN" "$H2M/setup"
+
+# 2. 예제의 serial 기본값과 선택 가능한 엔티티 확인
+curl -s -H "Authorization: Bearer $TOKEN" "$H2M/setup/examples/bestin.homenet_bridge.yaml"
+
+# 3. 배선 테스트 (최대 10개 패킷, 3초)
+curl -s -X POST -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "example": "bestin.homenet_bridge.yaml",
+    "serialPath": "/dev/ttyUSB0",
+    "portId": "bestin_main"
+  }' "$H2M/setup/test-serial"
+
+# 4. 초기 설정 적용 (응답 후 자동 재시작)
+curl -s -X POST -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "mode": "init",
+    "example": "bestin.homenet_bridge.yaml",
+    "serialPath": "/dev/ttyUSB0",
+    "portId": "bestin_main",
+    "selectedEntities": { "light": ["living_light"] },
+    "restart": true
+  }' "$H2M/setup/apply"
+
+# 5. 설정이 이미 로드된 상태에서 새 브릿지 추가 (새 portId)
+curl -s -X POST -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "mode": "add",
+    "example": "bestin.homenet_bridge.yaml",
+    "serialPath": "/dev/ttyUSB1",
+    "portId": "bestin_second",
+    "restart": true
+  }' "$H2M/setup/apply"
+```
+
+- `mode` 기본값은 `init`입니다. 설정이 이미 로드된 상태에서 `init`으로 호출하면 기존 설정 보호를 위해 `409 SETUP_NOT_REQUIRED`가 반환됩니다.
+- `mode: "add"`는 새 설정 파일(예: `default_2.homenet_bridge.yaml`)을 생성하고 `.initialized` 마커는 건드리지 않습니다. `portId`와 `serialPath`가 기존 포트와 중복되면 각각 `400 PORT_ID_DUPLICATE`, `400 SERIAL_PATH_DUPLICATE`가 반환됩니다.
+- `example`에 `__empty__`를 지정하면 빈 config로 시작합니다. 이 경우 `serialConfig`에 `portId`, `path`, `baud_rate`, `data_bits`, `parity`, `stop_bits`를 모두 전달해야 합니다.
+- `selectedEntities`를 생략하면 예제의 모든 엔티티를 사용합니다. 지정한 타입은 전달한 ID만 남기고, 결과가 비면 해당 타입을 제거합니다.
+- `restart` 기본값은 `true`입니다. `false`이면 `.restart-required` 플래그만 기록하고 응답 후 재시작하지 않습니다.
+- MQTT 접속 정보는 config가 아니라 환경변수/애드온 옵션이므로 API로 설정할 수 없습니다.
+- Home Assistant MQTT 애드온은 기본적으로 `3001/tcp`가 공개되지 않으므로, 초기 설정에 API를 사용하려면 애드온 네트워크 설정에서 포트를 공개해야 합니다.
 
 ### 기본 워크플로
 
@@ -448,6 +505,10 @@ MCP 클라이언트는 일반적으로 다음 순서로 연결합니다.
 
 | 도구                                        | 설명                                                                  |
 | ------------------------------------------- | --------------------------------------------------------------------- |
+| `get_setup_state`                           | 설정 상태, 예제 목록, 사용 중인 portId                                |
+| `get_setup_example`                         | 예제의 serial/packet 기본값과 선택 엔티티                             |
+| `test_setup_serial`                         | serial 배선 테스트 (설정 로드 중에도 가능)                            |
+| `apply_initial_setup`                       | 초기 설정(`mode="init"`) 또는 브릿지 추가(`mode="add"`) + 재시작       |
 | `list_ports`                                | 로드된 포트/브리지 상태/엔티티 수                                     |
 | `get_entities`                              | 정규화된 엔티티 목록 (`portId` 선택)                                  |
 | `get_entity_state`                          | 최신 엔티티 상태 스냅샷                                               |
@@ -462,6 +523,8 @@ MCP 클라이언트는 일반적으로 다음 순서로 연결합니다.
 | `send_packet`                               | RS485 전송. `AGENT_ALLOW_PACKET_SEND=true`일 때만 `tools/list`에 노출 |
 
 `send_packet`이 비활성인 상태에서 직접 호출하면 `isError: true`와 `PACKET_SEND_DISABLED`가 반환됩니다. 적용 계열 도구는 REST와 동일하게 YAML 백업과 초안 해시 검증을 수행합니다.
+
+`apply_initial_setup`은 설정이 이미 로드된 상태에서 `mode="init"`이면 `isError: true`와 `SETUP_NOT_REQUIRED`를 반환합니다. 새 브릿지는 `mode="add"`와 `get_setup_state`의 `loadedPortIds`에 없는 `portId`로 추가하세요. `test_setup_serial`은 설정 로드 여부와 관계없이 동작합니다.
 
 캡처 파일 다운로드/삭제와 전송 패킷 미리보기는 MCP 도구로 제공되지 않으므로 REST를 사용하세요.
 
