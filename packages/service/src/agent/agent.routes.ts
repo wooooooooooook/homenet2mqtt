@@ -45,8 +45,14 @@ import {
   sendAgentPacket,
 } from './services/packet.service.js';
 import { applyAgentEntityDraft, validateAgentEntityDraft } from './services/entities.service.js';
-import { isPlainObject, readDraftInput, toInteger } from './services/input.js';
+import { isPlainObject, readDraftInput, readOptionalString, toInteger } from './services/input.js';
 import { isAgentPortError, resolveAgentPort } from './services/port.service.js';
+import {
+  getGallerySnippet,
+  getGalleryVendorIndex,
+  listGalleryVendors,
+  matchGallerySnippets,
+} from './services/gallery.service.js';
 import {
   applyAgentInitialSetup,
   getAgentSetupExample,
@@ -110,17 +116,8 @@ const handleRouteError = (res: Response, error: unknown): void => {
   sendError(res, 500, 'INTERNAL_ERROR', 'Unexpected error while handling the request.');
 };
 
-const firstQueryValue = (value: unknown): string | undefined => {
-  if (typeof value === 'string') {
-    const trimmed = value.trim();
-    return trimmed || undefined;
-  }
-  if (Array.isArray(value) && typeof value[0] === 'string') {
-    const trimmed = value[0].trim();
-    return trimmed || undefined;
-  }
-  return undefined;
-};
+const firstQueryValue = (value: unknown): string | undefined =>
+  readOptionalString(Array.isArray(value) ? value[0] : value);
 
 const resolvePort = (ctx: AgentRoutesContext, portIdInput: unknown) =>
   resolveAgentPort(
@@ -185,6 +182,7 @@ export function createAgentRoutes(ctx: AgentRoutesContext): Router {
           events: true,
           draftEntities: true,
           setup: true,
+          gallery: true,
           mcp: true,
         },
         limits: {
@@ -446,6 +444,51 @@ export function createAgentRoutes(ctx: AgentRoutesContext): Router {
       return sendError(res, 404, 'CAPTURE_FILE_NOT_FOUND', 'Capture file not found.');
     }
     res.json({ success: true, filename: req.params.filename });
+  });
+
+  // --- Gallery (vendor entity presets, GitHub-first with packaged fallback) ---
+  router.get(`${AGENT_API_BASE}${AGENT_PATHS.gallery}`, async (req, res) => {
+    const vendor = firstQueryValue(req.query.vendor);
+    try {
+      res.json(vendor ? await getGalleryVendorIndex(vendor) : await listGalleryVendors());
+    } catch (error) {
+      handleRouteError(res, error);
+    }
+  });
+
+  router.get(`${AGENT_API_BASE}${AGENT_PATHS.gallerySnippet}`, async (req, res) => {
+    const file = firstQueryValue(req.query.file);
+    try {
+      if (!file) {
+        return sendError(
+          res,
+          400,
+          'GALLERY_FILE_INVALID',
+          'file must be a gallery-relative YAML path such as "commax/heaters_new.yaml".',
+        );
+      }
+      res.json(await getGallerySnippet(file));
+    } catch (error) {
+      handleRouteError(res, error);
+    }
+  });
+
+  router.get(`${AGENT_API_BASE}${AGENT_PATHS.galleryMatch}`, async (req, res) => {
+    const portId = firstQueryValue(req.query.portId);
+    if (portId) {
+      const port = resolvePortOrRespond(ctx, res, portId);
+      if (!port) return;
+    }
+    try {
+      res.json(
+        await matchGallerySnippets(ctx, {
+          portId,
+          vendor: firstQueryValue(req.query.vendor),
+        }),
+      );
+    } catch (error) {
+      handleRouteError(res, error);
+    }
   });
 
   // --- Server-Sent Events ---

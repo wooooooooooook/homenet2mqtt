@@ -1,11 +1,7 @@
-import { toInteger } from '../../services/input.js';
+import { readOptionalString, toInteger } from '../../services/input.js';
 
-export const readStringArg = (args: Record<string, unknown>, key: string): string | undefined => {
-  const value = args[key];
-  if (typeof value !== 'string') return undefined;
-  const trimmed = value.trim();
-  return trimmed || undefined;
-};
+export const readStringArg = (args: Record<string, unknown>, key: string): string | undefined =>
+  readOptionalString(args[key]);
 
 export const readIntegerArg = (
   args: Record<string, unknown>,

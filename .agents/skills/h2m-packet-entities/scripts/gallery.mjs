@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 // 갤러리(엔티티 스니펫 저장소) 탐색: 예제 확정 후 미매칭 패킷을 줄일 스니펫을 고른다.
+// Agent API가 있으면 우선적으로 h2m.mjs gallery|gallery-match|gallery-show 를 쓴다(GitHub 우선 조회).
+// 이 스크립트는 로컬 체크아웃/구버전 배포용 폴백이며, expand(템플릿 펼침)는 API에도 없다.
 // Usage:
 //   node gallery.mjs list <vendor> [--dir gallery]
 //   node gallery.mjs show <vendor> <snippet.yaml>

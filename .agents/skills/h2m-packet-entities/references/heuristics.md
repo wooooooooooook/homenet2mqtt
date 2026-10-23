@@ -89,7 +89,8 @@ node scripts/h2m.mjs preview <portId> 04010481000000
 
 `/setup/apply`가 쓰는 `packages/core/config/examples/<vendor>.homenet_bridge.yaml`은 대표 엔티티만 축약해 넣은 파일이라, 갤러리 스니펫(`gallery/<vendor>/*.yaml`)의 `discovery.match`+개수 파라미터로 확장하면 미매칭이 한 번에 사라지는 경우가 많다.
 
-- `gallery.mjs check <vendor> --length <rx_length> --packets "<unmatched>"`가 `채널값=0x03,0x04 → max=4`를 돌려주면 `heater_count`를 4로 채우는 근거
+- `h2m.mjs gallery-match <portId|-> [vendor]`(또는 폴백 `gallery.mjs check <vendor> --length <rx_length> --packets "<unmatched>"`)가 `params={"heater_count":4}` / `채널값=0x03,0x04 → max=4`를 돌려주면 `heater_count`를 4로 채우는 근거
+- `/gallery*`는 GitHub을 우선 읽고 동봉 `gallery/`는 폴백이므로, 응답의 `source=local`이면 프리셋이 배포본 사본(구버전 리비전)일 수 있다. 아래 리비전 어긋남 규칙을 특히 주의
 - 폴링형에서는 **RX가 아니라 브리지 TX의 인덱스**가 채널 상한을 먼저 알려준다. `TX b0 00 03`이 관측됐다면 3번 조명 실물이 존재하지만 `RX b0 …`는 아직 안 나온 상태 — 이때도 확장 대상
 - 단, 스니펫의 `discovery.match`에 HIT하지 않는 고정 프레임(`STATIC n=수백`, 페이로드 0 채움)은 요청/하트비트 잡음이다. 벤더 갤러리 전체와 대조해 HIT이 없으면 미매칭으로 남긴다
 - 예제 파일과 갤러리 스니펫의 프로토콜 리비전이 어긋날 수 있다. 필드 조합은 갤러리에서, mask/ack/버튼값 같은 구체 바이트는 `/entities --full`로 읽은 **라이브 동일 타입 엔티티**에서 복사하고 채널 인덱스만 바꾼다

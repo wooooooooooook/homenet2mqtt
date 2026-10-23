@@ -41,6 +41,7 @@ export function buildOpenApiDocument(options: OpenApiOptions): Record<string, un
       { name: 'observation' },
       { name: 'packets' },
       { name: 'capture' },
+      { name: 'gallery' },
       { name: 'draft' },
       { name: 'events' },
       { name: 'mcp' },
@@ -441,6 +442,63 @@ export function buildOpenApiDocument(options: OpenApiOptions): Record<string, un
           },
         },
       },
+      [AGENT_PATHS.gallery]: {
+        get: {
+          tags: ['gallery'],
+          summary: 'List gallery vendors, or the snippet index for one vendor',
+          description:
+            "Without `vendor`, lists every vendor id, its requirements, snippet count and entity types. With `vendor`, returns that vendor's snippets including parameters, content summary and the discovery block used to score them against observed packets. Resolved from GitHub first, then the packaged gallery directory.",
+          parameters: [
+            {
+              name: 'vendor',
+              in: 'query',
+              schema: { type: 'string' },
+              description: 'Vendor id such as "commax".',
+            },
+          ],
+          responses: {
+            '200': jsonResponse('Gallery index', { type: 'object' }),
+            '404': errorResponse('Vendor not found'),
+            '503': errorResponse('Gallery list unavailable'),
+          },
+        },
+      },
+      [AGENT_PATHS.gallerySnippet]: {
+        get: {
+          tags: ['gallery'],
+          summary: 'Read one gallery snippet as raw YAML',
+          parameters: [
+            {
+              name: 'file',
+              in: 'query',
+              required: true,
+              schema: { type: 'string' },
+              description: 'Gallery-relative path, e.g. "commax/heaters_new.yaml".',
+            },
+          ],
+          responses: {
+            '200': jsonResponse('Snippet YAML', { type: 'object' }),
+            '400': errorResponse('Invalid file path'),
+            '404': errorResponse('Snippet not found'),
+          },
+        },
+      },
+      [AGENT_PATHS.galleryMatch]: {
+        get: {
+          tags: ['gallery'],
+          summary: 'Score gallery snippets against observed packets',
+          description:
+            "Runs each snippet's discovery block against the packet dictionary and unmatched packets, then returns matches sorted by matched packet count with the inferred parameter values (e.g. channel counts). Requires log retention to be enabled.",
+          parameters: [
+            { $ref: '#/components/parameters/PortId' },
+            { name: 'vendor', in: 'query', schema: { type: 'string' } },
+          ],
+          responses: {
+            '200': jsonResponse('Match report', { type: 'object' }),
+            '404': errorResponse('Port or vendor not found'),
+          },
+        },
+      },
       [AGENT_PATHS.mcp]: {
         post: {
           tags: ['mcp'],
@@ -602,6 +660,7 @@ OpenAPI: ${AGENT_API_BASE}${AGENT_PATHS.openapi}
 7. The service writes YAML, creates a backup, and marks a restart as required.
 
 ## Notes
+- Gallery presets: GET /gallery lists vendors (id, requirements, snippetCount, entityTypes); GET /gallery?vendor=<id> returns that vendor's snippets with parameters, content summary and discovery block; GET /gallery/snippet?file=<vendor>/<name>.yaml returns the raw YAML; GET /gallery/match?portId=&vendor= scores every snippet's discovery against observed packets and returns inferred parameter values (channel counts). GitHub is read first and the packaged gallery directory is the offline fallback, so \`source\` in the response tells you which one served the data. Use these to extend entities until /packets/unmatched is empty.
 - /setup/apply with mode "init" (default) requires that no configuration is loaded; mode "add" writes a new config file while configurations are loaded and requires a unique portId and serialPath. Use "__empty__" as the example to start from a blank config; then serialConfig { portId, path, baud_rate, data_bits, parity, stop_bits } is required.
 - /setup/test-serial is available with or without loaded configurations, but the port must not already be held by a running bridge.
 - POST /setup/apply restarts the service after responding unless restart=false.
@@ -617,6 +676,6 @@ Auth: same Authorization: Bearer header. Send Content-Type: application/json.
 Methods: initialize, notifications/initialized (202, no body), ping, tools/list, tools/call.
 Tools: get_setup_state, get_setup_example, test_setup_serial, apply_initial_setup, list_ports, get_entities, get_entity_state, get_packet_history, get_unmatched_packets, analyze_packet,
 start_capture, stop_capture, get_capture_status, list_capture_files, validate_entity_draft, apply_entity_draft,
-get_recent_events (poll with afterId), and send_packet when packet sending is enabled in Settings > Agent API.
+get_recent_events (poll with afterId), list_gallery, get_gallery_snippet, match_gallery, and send_packet when packet sending is enabled in Settings > Agent API.
 Tool failures are returned as tool results with isError=true and { error, message }; protocol errors use JSON-RPC error codes.
 `;

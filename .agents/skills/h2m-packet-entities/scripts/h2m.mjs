@@ -146,6 +146,46 @@ switch (cmd) {
       );
     break;
   }
+  case 'gallery': {
+    // h2m.mjs gallery [vendor] — 갤러리 벤더 목록(원격 우선) 또는 벤더별 스니펫 인덱스
+    const r = await req('GET', `/gallery${q({ vendor: a[0] })}`);
+    if (!a[0]) {
+      for (const v of r.vendors)
+        console.log(
+          `${v.id}\tsnippets=${v.snippetCount}\ttypes=${v.entityTypes.join(',')}\treq=${JSON.stringify(v.requirements ?? {})}`,
+        );
+    } else {
+      for (const s of r.snippets)
+        console.log(
+          `${s.file}\t${s.name_en ?? s.name ?? ''}\t${(s.parameters ?? [])
+            .map((p) => `${p.name}(${p.type}${p.min !== undefined ? `:${p.min}..${p.max}` : ''})`)
+            .join(' ')}\tmatch=${s.discovery ? JSON.stringify(s.discovery.match) : '-'}`,
+        );
+    }
+    console.log(`# source=${r.source}${r.generatedAt ? ` generated=${r.generatedAt}` : ''}`);
+    break;
+  }
+  case 'gallery-show': {
+    if (!a[0]) usage('h2m.mjs gallery-show <vendor/file.yaml>');
+    const r = await req('GET', `/gallery/snippet${q({ file: a[0] })}`);
+    process.stdout.write(r.yaml);
+    console.log(`# source=${r.source} bytes=${r.bytes}`);
+    break;
+  }
+  case 'gallery-match': {
+    // h2m.mjs gallery-match <portId|-> [vendor] — 관측 패킷으로 스니펫 채점(채널 수 추정)
+    const portId = a[0] === '-' ? undefined : a[0];
+    const r = await req('GET', `/gallery/match${q({ portId, vendor: a[1] })}`);
+    if (!r.available) {
+      console.log(`UNAVAILABLE: ${r.reason}`);
+      break;
+    }
+    console.log(`# source=${r.source} packets=${r.packetCount} evaluated=${r.evaluatedCount}`);
+    for (const m of r.results ?? [])
+      if (m.matched)
+        console.log(`HIT ${m.file} n=${m.matchedPacketCount} params=${JSON.stringify(m.parameterValues)}`);
+    break;
+  }
   case 'analyze': {
     if (!a[1]) usage('h2m.mjs analyze <portId> <draft.json> <hex...>');
     const draft = readDraft(a[1]);
@@ -219,5 +259,7 @@ switch (cmd) {
     break;
   }
   default:
-    usage('info|setup|get|post|entities|unmatched|history|capture|analyze|validate|apply|preview');
+    usage(
+      'info|setup|get|post|entities|unmatched|history|capture|gallery|gallery-show|gallery-match|analyze|validate|apply|preview',
+    );
 }

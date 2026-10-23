@@ -64,21 +64,32 @@ node scripts/h2m.mjs post "/setup/apply" '{"mode":"init","example":"<winner>.hom
 `/setup/apply`로 잡은 예제는 **대표 엔티티 몇 개만** 펼친 축약본이다. 같은 벤더의 갤러리(`gallery/<vendor>/*.yaml`)에는 디바이스 타입별 스니펫과 개수 파라미터가 있어, 관측 패킷과 대조하면 "예제에 없어서 unmatched로 남은" 잔여를 한 번에 채울 수 있다.
 
 ```bash
+node scripts/h2m.mjs gallery                              # 벤더 목록: 스니펫 수/엔티티 타입/requirements
+node scripts/h2m.mjs gallery <vendor>                     # 스니펫 인덱스: 파라미터 범위 + discovery.match
+node scripts/h2m.mjs gallery-match <portId|-> [vendor]    # 관측 패킷으로 채점 → HIT + 개수 파라미터 추정치
+node scripts/h2m.mjs gallery-show <vendor>/heaters_new.yaml   # 스니펫 원본 YAML
+```
+
+Agent API는 갤러리를 **GitHub을 우선**으로 읽고, 도달 불가일 때만 컨테이너에 동봉된 `gallery/`를 폴백으로 쓴다. 출력 마지막 줄의 `# source=`가 `local`이면 프리셋 리비전이 구버전일 수 있으니 아래 "라이브 설정에서 복사" 규칙으로 교정한다. `gallery-match`은 로그 리텐션이 켜져 있어야 채점되고, 꺼져 있으면 `UNAVAILABLE: …`을 돌려준다(에러가 아니라 안내). MCP를 쓰는 에이전트에는 `list_gallery` / `match_gallery` / `get_gallery_snippet`이 같은 기능이다 — 코드베이스 체크아웃 없이 API만으로 작업한다면 이 셋이 유일한 갤러리 소스다.
+
+로컬 체크아웃이 있거나 `/gallery`가 없는 구버전 배포(`capabilities`의 `features.gallery`가 없는 경우)에서는 파일로 훑는다:
+
+```bash
 node scripts/gallery.mjs list <vendor>                 # 스니펫/타입/개수 파라미터/discovery.match 전체 목록
 node scripts/gallery.mjs check <vendor> --length <rx_length> --packets "<unmatched hex 목록>"
 node scripts/gallery.mjs show <vendor> <hit>.yaml      # meta 프로토콜 표 + entities 템플릿
 ```
 
-`check`의 해석:
+`gallery-match`(API)와 `check`(파일)의 해석은 같다:
 
-- `HIT … n=…` — 그 스니펫의 `discovery.match`(data/mask)가 관측 프레임을 설명한다 → **초안에 반드시 반영**
-- `채널값=0x03,0x04 → max=4 (허용 1..9, 기본 4)` — `$repeat` 인덱스(`dimensions.index`)에서 관측된 최대 채널. **개수 파라미터를 정하는 근거**를 직접 계산한 값이다. 예제가 2개, 갤러리 기본값이 4인데 버스에 4번 채널이 보이면 4로 채운다
+- `HIT <file> n=<패킷수>` — 그 스니펫의 `discovery.match`(data/mask)가 관측 프레임을 설명한다 → **초안에 반드시 반영**
+- `params={"heater_count":4}` / `채널값=0x03,0x04 → max=4 (허용 1..9, 기본 4)` — `$repeat` 인덱스(`dimensions.index`)에서 관측된 최대 채널. **개수 파라미터를 정하는 근거**를 직접 계산한 값이다. 예제가 2개, 갤러리 기본값이 4인데 버스에 4번 채널이 보이면 4로 채운다
 - HIT 없는 프레임은 0.5단계 범위가 아니다 → 1~8단계 역산 대상
 
 gallery가 있는 로컬 체크아웃에서는 `--dir` 생략(기본 `gallery`), 배포본에서만 보이는 환경이면 `--dir /<컨테이너 갤러리 경로>`로 지정한다. 배포본 갤러리는 버전이 달라질 수 있으므로 `list`의 `v<version>`을 적용 설정의 메타와 대조한다.
 
 ::: warning 새 엔티티의 바이트 원본은 "라이브 설정"에서 복사
-같은 벤더라도 `packages/core/config/examples/<vendor>.homenet_bridge.yaml`(setup이 적용한 파일)과 `gallery/<vendor>/*.yaml` 스니펫의 프로토콜 리비전이 다를 수 있다. `gallery.mjs show`로 **구조(필드 조합)**를 잡고, mask/ack/버튼값 같은 **구체 바이트는 `/entities --full`의 기존 동일 타입 엔티티**에서 복사해 채널 인덱스만 바꾼다. 두 소스가 어긋나면 라이브 설정이 정답이다(그 설정으로 이미 다른 채널이 정상 파싱되고 있다).
+같은 벤더라도 `packages/core/config/examples/<vendor>.homenet_bridge.yaml`(setup이 적용한 파일)과 `gallery/<vendor>/*.yaml` 스니펫의 프로토콜 리비전이 다를 수 있다. `gallery-show`(API) 또는 `gallery.mjs show`로 **구조(필드 조합)**를 잡고, mask/ack/버튼값 같은 **구체 바이트는 `/entities --full`의 기존 동일 타입 엔티티**에서 복사해 채널 인덱스만 바꾼다. 두 소스가 어긋나면 라이브 설정이 정답이다(그 설정으로 이미 다른 채널이 정상 파싱되고 있다).
 :::
 
 `expand`는 위 주의사항을 지킨 초안을 빠르게 뽑기 위한 도구다. `$repeat`를 채널 목록으로 펼치고 `0xNN`→10진으로 바꿔 YAML을 출력한다(`{{i}}` 치환, folded scalar 안의 스크립트 문자열은 손대지 않는다):
@@ -89,9 +100,9 @@ node scripts/gallery.mjs expand <vendor> lights_new.yaml --ids 3 | tail -n +2 >>
 # YAML → JSON(숫자 배열) 변환 후 h2m.mjs analyze/validate/apply 에 전달
 ```
 
-`--ids`는 `check`가 알려준 **관측 채널만** 지정한다(빈 채널을 미리 만들어 두면 미매칭이 줄지 않고 경고만 늘어난다). YAML→JSON 변환에는 환경의 YAML 파서를 쓰고, 파서가 없으면 필드값을 직접 JSON으로 옮긴다.
+`--ids`는 `gallery-match`/`check`가 알려준 **관측 채널만** 지정한다(빈 채널을 미리 만들어 두면 미매칭이 줄지 않고 경고만 늘어난다). YAML→JSON 변환에는 환경의 YAML 파서를 쓰고, 파서가 없으면 필드값을 직접 JSON으로 옮긴다.
 
-서버 측 자동 판정도 있다. Agent API에는 갤러리 엔드포인트가 없지만, 서비스 UI 포트의 `GET /api/gallery/discovery`(무인증 레거시, 로그 리텐션이 켜져 있어야 함)가 패킷 딕셔너리·미매칭 목록으로 벤더 스니펫의 `discovery`를 자체 평가해 파일별로 채널 수를 돌려주고, `POST /api/gallery/apply`는 스니펫을 파라미터와 함께 설정에 반영한다. UI 포트가 열린 환경이라면 `gallery.mjs check`보다 이쪽을 우선하고, Agent API 전용 환경에서는 `gallery.mjs`가 유일한 경로다.
+API로 받은 스니펫을 펼칠 때는 `gallery-show <vendor>/<file>.yaml > snippet.yaml`로 저장한 뒤 같은 `expand`를 그 파일에 적용하면 된다. API 응답이 갤러리 원본 YAML이므로 `--dir`을 그 파일이 있는 경로로 바꿔 주는 것과 동일하다. 서버에 UI 포트가 열려 있는 환경이라면 레거시 `GET /api/gallery/discovery`(무인증)도 같은 채점을 하지만, Agent API `/gallery/match`가 토큰으로 보호되는 정상이므로 UI 포트를 일부러 열 필요는 없다.
 
 미매칭 최소화에서 특히 놓치기 쉬운 것이 **요청/폴링 프레임이 알려주는 채널 상한**이다. `30 01`~`30 0a`처럼 인덱스 바이트만 도는 고정 프레임은 자체로 상태가 아니지만, 그 쿼리에 대한 브릿지 `TX b0 00 03` 응답은 **3번 채널 실물이 존재**한다는 증거다. RX만 보지 말고 variance 출력의 `TX|` 그룹 인덱스도 개수 파라미터에 반영한다.
 
@@ -214,9 +225,9 @@ cd .agents/skills/h2m-packet-entities
 node scripts/h2m.mjs info
 ```
 
-- `scripts/h2m.mjs` — API 래퍼. `info|setup|get|post|entities|unmatched|history|capture(start|stop|status|wait|files|get|delete)|analyze|validate|apply|preview`
+- `scripts/h2m.mjs` — API 래퍼. `info|setup|get|post|entities|unmatched|history|capture(start|stop|status|wait|files|get|delete)|gallery|gallery-show|gallery-match|analyze|validate|apply|preview`
 - `scripts/probe.mjs` — 신규 환경 예제 자동 매칭. raw 수집 → 예제별 프레이밍/체크섬 자체 검증 → coverage 순위화
-- `scripts/gallery.mjs` — 벤더 갤러리 스니펫 탐색. `list`(스니펫/파라미터 전체 목록) · `check`(discovery.match로 관측 프레임 설명 + 채널 max) · `show`(스니펫 원문)
+- `scripts/gallery.mjs` — **폴백**(API에 `/gallery`가 없는 구버전 배포 또는 로컬 스니펫 편집 시). `list`(스니펫/파라미터 전체 목록) · `check`(discovery.match로 관측 프레임 설명 + 채널 max) · `show`(스니펫 원문) · `expand`(`$repeat` 펼침)
 - `scripts/variance.mjs` — 캡처 로그 그룹별 변동 분석(`--base`, `--length`, `--prefix`, `--show`)
 - 순수 ESM, 외부 의존성 없음, node 18+ 필요(`fetch` 내장). `node`가 PATH에 없는 환경에선 해당 런타임 경로를 직접 지정한다
 - rate limit 분당 120회 — `capture wait`의 폴링 간격은 5초 이상 유지하고 `capture status`를 난사하지 말 것
