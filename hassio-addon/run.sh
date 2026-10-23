@@ -97,6 +97,7 @@ else
 fi
 
 export PORT="${PORT:-3000}"
+export AGENT_API_PORT="${AGENT_API_PORT:-3001}"
 
 # Setup configuration directory
 DEFAULT_CONFIG_DIR="packages/core/config"
@@ -123,8 +124,17 @@ fi
 
 export CONFIG_ROOT="$HA_CONFIG_DIR"
 
+if [ -f "$HA_CONFIG_DIR/ui-auth.json" ]; then
+  UI_AUTH_STATE="password configured"
+else
+  UI_AUTH_STATE="not configured (set it on first UI access)"
+fi
+
 echo "Starting homenet2mqtt..."
 echo "Configuration:"
+echo "  PORT: $PORT"
+echo "  AGENT_API_PORT: $AGENT_API_PORT"
+echo "  UI_AUTH: $UI_AUTH_STATE"
 echo "  LOG_LEVEL: $LOG_LEVEL"
 echo "  MQTT_URL: $MQTT_URL"
 echo "  CONFIG_FILES: $CONFIG_FILES"

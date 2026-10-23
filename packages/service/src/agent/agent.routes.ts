@@ -47,6 +47,13 @@ import {
 import { applyAgentEntityDraft, validateAgentEntityDraft } from './services/entities.service.js';
 import { isPlainObject, readDraftInput, toInteger } from './services/input.js';
 import { isAgentPortError, resolveAgentPort } from './services/port.service.js';
+import {
+  applyAgentInitialSetup,
+  getAgentSetupExample,
+  getAgentSetupState,
+  testAgentSetupSerial,
+} from './services/setup.service.js';
+import type { SetupWizardService } from '../services/setup.service.js';
 
 export const MAX_AGENT_EVENT_STREAMS = 8;
 
@@ -74,6 +81,7 @@ export interface AgentRoutesContext {
   rawStreamController: RawStreamController;
   agentEventHub: AgentEventHub;
   configDir: string;
+  setupWizardService: SetupWizardService;
   setCurrentConfigs: (index: number, config: HomenetBridgeConfig) => void;
   setCurrentRawConfigs: (index: number, config: HomenetBridgeConfig) => void;
   rebuildPortMappings: () => void;
@@ -176,6 +184,7 @@ export function createAgentRoutes(ctx: AgentRoutesContext): Router {
           capture: true,
           events: true,
           draftEntities: true,
+          setup: true,
           mcp: true,
         },
         limits: {
@@ -197,6 +206,50 @@ export function createAgentRoutes(ctx: AgentRoutesContext): Router {
           mcp: `${AGENT_API_BASE}${AGENT_PATHS.mcp}`,
         },
       });
+    } catch (error) {
+      handleRouteError(res, error);
+    }
+  });
+
+  // --- Initial setup ---
+  router.get(`${AGENT_API_BASE}${AGENT_PATHS.setup}`, async (_req, res) => {
+    try {
+      res.json(await getAgentSetupState(ctx));
+    } catch (error) {
+      handleRouteError(res, error);
+    }
+  });
+
+  router.get(`${AGENT_API_BASE}${AGENT_PATHS.setupExample}`, async (req, res) => {
+    try {
+      res.json(await getAgentSetupExample(ctx, req.params.filename));
+    } catch (error) {
+      handleRouteError(res, error);
+    }
+  });
+
+  router.post(`${AGENT_API_BASE}${AGENT_PATHS.setupTestSerial}`, async (req, res) => {
+    const body = isPlainObject(req.body) ? req.body : {};
+    try {
+      res.json(await testAgentSetupSerial(ctx, body));
+    } catch (error) {
+      handleRouteError(res, error);
+    }
+  });
+
+  router.post(`${AGENT_API_BASE}${AGENT_PATHS.setupApply}`, async (req, res) => {
+    const body = isPlainObject(req.body) ? req.body : {};
+    try {
+      const result = await applyAgentInitialSetup(ctx, body);
+      const restartInitiated = body.restart !== false;
+
+      if (restartInitiated) {
+        res.on('finish', () => {
+          void ctx.requestRestart();
+        });
+      }
+
+      res.json({ success: true, ...result, restartInitiated });
     } catch (error) {
       handleRouteError(res, error);
     }

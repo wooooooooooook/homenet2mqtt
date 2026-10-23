@@ -4,12 +4,13 @@
 
 ## 개요
 
-에이전트 API는 기존 UI용 `/api/*`와 별도로 `/api/v1/agent` 아래에 제공되는 버전 고정 REST API입니다.
+에이전트 API는 UI와 **별도 포트**(기본 `3001`, `AGENT_API_PORT`)에서 `/api/v1/agent` 아래에 제공되는 버전 고정 REST API입니다. UI 포트(기본 `3000`)에서는 `/api/v1/agent/*`가 `404`를 반환하며, Agent 포트에서는 UI 정적 파일과 UI API를 제공하지 않습니다.
 
 - OpenAPI 3.1 문서와 평문 가이드를 공개 엔드포인트로 제공합니다.
 - 나머지 모든 엔드포인트는 **Bearer 토큰 인증이 필수**입니다.
 - 응답은 JSON이며, 오류는 `{ "error": "...", "message"?: "...", "details"?: ... }` 형식입니다.
 - 패킷 관측/분석, 캡처 제어, 엔티티 초안 검증·적용, 실시간 이벤트 스트림을 지원합니다.
+- 초기 설정(예제 선택, serial 테스트, config 생성)과 설정 로드 중 새 브릿지 추가를 API로 수행할 수 있습니다.
 - 같은 기능을 MCP Streamable HTTP 도구로도 제공합니다(`POST /api/v1/agent/mcp`).
 - 엔티티는 **초안 작성 → 검증 → 적용** 순서로만 등록할 수 있으며, 적용 후 재시작이 필요합니다.
 
@@ -51,29 +52,34 @@ agent_allow_packet_send: false
 docker run \
   -e AGENT_API_TOKEN="충분히-긴-임의의-토큰" \
   -e AGENT_ALLOW_PACKET_SEND=false \
+  -e AGENT_API_PORT=3001 \
+  -p 3001:3001 \
   ...
 ```
 
-토큰 값은 로그에 출력되지 않습니다. `run.sh`는 `AGENT_API: enabled/disabled`만 표시합니다.
+토큰 값은 로그에 출력되지 않습니다. `run.sh`는 `AGENT_API: enabled/disabled`와 사용 중인 포트만 표시합니다.
 
 ## 노출 및 네트워크 설정
 
-에이전트 API 자체는 Bearer 토큰으로 보호되지만, **같은 포트의 기존 `/api/*`와 `/api/stream`(WebSocket)은 인증이 없습니다.** 따라서 포트 공개 범위를 최소화하고, 외부 공개가 필요하면 리버스 프록시에서 노출 경로를 제한하세요.
+에이전트 API는 전용 포트에서 Bearer 토큰으로 보호됩니다. UI는 별도 포트에서 비밀번호 인증으로 보호되므로, 포트를 분리해 외부에는 Agent 포트만 공개할 수 있습니다. 그래도 필요한 경우 포트 공개 범위를 최소화하고 방화벽/리버스 프록시로 접근 주체를 제한하세요.
 
 ### Docker
 
-`deploy/docker/docker-compose.yml`의 기본값은 호스트 루프백에만 바인딩합니다.
+`deploy/docker/docker-compose.yml`의 기본값은 UI(3000)와 Agent API(3001)를 모두 호스트 루프백에만 바인딩합니다.
 
 ```yaml
+environment:
+  AGENT_API_PORT: '3001'
 ports:
   - '127.0.0.1:3000:3000'
+  - '127.0.0.1:3001:3001'
 ```
 
 | 접근 주체                       | 주소                       | 필요한 설정                         |
 | ------------------------------- | -------------------------- | ----------------------------------- |
-| 같은 호스트의 프로세스          | `http://127.0.0.1:3000`    | 기본값                              |
-| 같은 Docker 네트워크의 컨테이너 | `http://<컨테이너명>:3000` | 포트 매핑 불필요                    |
-| 다른 호스트/LAN                 | `http://<H2M-HOST>:3000`   | 포트 바인딩 확장 또는 리버스 프록시 |
+| 같은 호스트의 프로세스          | `http://127.0.0.1:3001`    | 기본값                              |
+| 같은 Docker 네트워크의 컨테이너 | `http://<컨테이너명>:3001` | 포트 매핑 불필요                    |
+| 다른 호스트/LAN                 | `http://<H2M-HOST>:3001`   | 포트 바인딩 확장 또는 리버스 프록시 |
 
 같은 Docker 네트워크의 컨테이너에서 호출한다면 포트를 공개할 필요가 없습니다. 두 컨테이너를 사용자 정의 네트워크에 함께 연결하고 서비스 이름으로 접근하세요.
 
@@ -96,21 +102,21 @@ LAN에서 직접 접근해야 한다면 바인딩을 특정 호스트 인터페�
 ```yaml
 ports:
   # 예: 호스트 LAN IP가 192.168.0.10인 경우
-  - '192.168.0.10:3000:3000'
+  - '192.168.0.10:3001:3001'
 ```
 
-모든 인터페이스에 열려면 `'3000:3000'`을 사용하지만, UI용 무인증 API까지 함께 노출되므로 방화벽으로 허용 대역을 제한해야 합니다.
+모든 인터페이스에 열려면 `'3001:3001'`을 사용하세요. Agent API는 Bearer 토큰으로 보호되지만 토큰이 유출되면 RS485 제어가 가능하므로 방화벽으로 허용 대역을 제한하는 것을 권장합니다.
 
 ### 리버스 프록시로 에이전트 API만 노출
 
-외부 에이전트가 다른 네트워크에서 접근해야 한다면 TLS를 종료하는 리버스 프록시를 두고 `/api/v1/agent/*`만 전달하는 구성을 권장합니다.
+외부 에이전트가 다른 네트워크에서 접근해야 한다면 TLS를 종료하는 리버스 프록시를 두고 Agent 포트(3001)로 전달하는 구성을 권장합니다. Agent 포트에는 UI 라우트가 없으므로 `/api/v1/agent/*` 경로 제한은 선택 사항입니다.
 
 **Caddy**
 
 ```text
 h2m.example.com {
   handle /api/v1/agent/* {
-    reverse_proxy 127.0.0.1:3000
+    reverse_proxy 127.0.0.1:3001
   }
 
   handle {
@@ -123,7 +129,7 @@ h2m.example.com {
 
 ```nginx
 location /api/v1/agent/ {
-    proxy_pass http://127.0.0.1:3000;
+    proxy_pass http://127.0.0.1:3001;
     proxy_http_version 1.1;
     proxy_set_header Connection '';
     proxy_buffering off;
@@ -134,19 +140,19 @@ location /api/v1/agent/ {
 SSE(`/api/v1/agent/events`)를 사용한다면 응답 버퍼링을 끄고 읽기 타임아웃을 길게 설정하세요.
 
 ::: warning
-포트를 외부에 열면 에이전트 API뿐 아니라 인증이 없는 `/api/*`와 UI WebSocket도 같은 포트에서 접근할 수 있습니다. 리버스 프록시로 `/api/v1/agent/*`만 노출하거나 방화벽/네트워크 정책으로 접근 주체를 제한하세요.
+Agent 포트를 외부에 열면 Bearer 토큰을 가진 클라이언트가 RS485 버스와 설정을 제어할 수 있습니다. 토큰을 강하게 관리하고 방화벽/네트워크 정책으로 접근 주체를 제한하세요. UI 포트(3000)는 비밀번호 인증으로 보호되지만 외부 공개 시 함께 방화벽 정책을 적용하는 것이 좋습니다.
 :::
 
 ### Home Assistant Add-on
 
-| 애드온                  | 네트워크                         | 에이전트 API 접근                        |
-| ----------------------- | -------------------------------- | ---------------------------------------- |
-| Homenet2MQTT (MQTT)     | ingress 전용, 호스트 포트 미공개 | 외부 클라이언트에서 직접 접근 불가       |
-| Homenet2Matter (Matter) | `host_network: true`             | `http://<HA-IP>:3000`으로 직접 접근 가능 |
+| 애드온                  | 네트워크                                   | 에이전트 API 접근                                  |
+| ----------------------- | ------------------------------------------ | -------------------------------------------------- |
+| Homenet2MQTT (MQTT)     | ingress 전용, `3001/tcp` 선택적 공개       | 포트를 공개한 경우 `http://<HA-IP>:<공개포트>`     |
+| Homenet2Matter (Matter) | `host_network: true`                       | `http://<HA-IP>:3001`으로 직접 접근 가능           |
 
-MQTT 애드온은 Home Assistant ingress를 통해서만 UI/API에 접근할 수 있습니다. ingress는 Home Assistant 로그인 세션을 요구하므로, Bearer 토큰만 가진 외부 에이전트는 사용할 수 없습니다. 외부 에이전트가 필요하면 포트를 공개하는 Docker 배포를 사용하거나, 애드온 구성에 포트 공개를 추가하고 방화벽으로 접근을 제한해야 합니다.
+MQTT 애드온은 기본적으로 ingress를 통해서만 UI에 접근할 수 있으며, ingress는 3000(UI)만 프록시하므로 Agent API에 사용할 수 없습니다. 외부 에이전트가 필요하면 애드온 구성의 네트워크 섹션에서 `3001/tcp`를 공개하고 방화벽으로 접근을 제한하세요.
 
-Matter 애드온은 `host_network: true`이므로 호스트의 3000 포트가 그대로 열립니다. 같은 LAN의 에이전트는 `http://<HA-IP>:3000`을 사용할 수 있지만, 호스트 방화벽에서 3000 포트 접근을 신뢰할 수 있는 대역으로 제한하세요.
+Matter 애드온은 `host_network: true`이므로 호스트의 3001 포트가 그대로 열립니다. 같은 LAN의 에이전트는 `http://<HA-IP>:3001`을 사용할 수 있지만, 호스트 방화벽에서 3001 포트 접근을 신뢰할 수 있는 대역으로 제한하세요. UI(3000)는 직접 접속 시 비밀번호를 요구합니다.
 
 ## 인증
 
@@ -173,6 +179,10 @@ Authorization: Bearer <AGENT_API_TOKEN>
 | Method | Path                                     | 설명                                          |
 | ------ | ---------------------------------------- | --------------------------------------------- |
 | GET    | `/capabilities`                          | 버전, 지원 기능, 제한, 문서 링크              |
+| GET    | `/setup`                                 | 설정 상태, 번들 예제 목록, 사용 중인 portId   |
+| GET    | `/setup/examples/:filename`              | 예제의 serial/packet 기본값과 선택 엔티티     |
+| POST   | `/setup/test-serial`                     | serial 배선 테스트 (설정 로드 중에도 가능)    |
+| POST   | `/setup/apply`                           | 초기 설정(`init`) 또는 브릿지 추가(`add`)     |
 | GET    | `/ports`                                 | 포트별 serial 설정, 브리지 상태, 엔티티 수    |
 | GET    | `/entities?portId=`                      | 정규화된 엔티티 목록                          |
 | GET    | `/entities/:entityId?portId=`            | 단일 엔티티 설정                              |
@@ -199,13 +209,65 @@ Authorization: Bearer <AGENT_API_TOKEN>
 
 아래 예시는 `curl` 기준입니다. `H2M`은 에이전트 API의 기본 URL이며 접근 환경에 맞게 변경하세요.
 
-- 같은 호스트: `http://127.0.0.1:3000/api/v1/agent`
-- LAN/원격: `https://<H2M-HOST>/api/v1/agent`
+- 같은 호스트: `http://127.0.0.1:3001/api/v1/agent`
+- LAN/원격: `https://<H2M-HOST>/api/v1/agent` (Agent 포트로 프록시)
+
+### 초기 설정 및 브릿지 추가
+
+로드된 설정이 하나도 없으면 UI 초기 설정 마법사 대신 API로 초기 설정을 완료할 수 있습니다. 이때 `/setup/apply`의 `mode`는 `init`(기본값)입니다. 이미 설정이 로드된 상태에서 새 포트(브릿지)를 추가하려면 `mode: "add"`를 사용하며, `/setup`의 `loadedPortIds`와 겹치지 않는 `portId`를 지정해야 합니다. `/setup/test-serial`은 설정 로드 여부와 관계없이 사용할 수 있습니다.
+
+```bash
+# 1. 설정 상태, 예제 목록, 사용 중인 portId 확인
+curl -s -H "Authorization: Bearer $TOKEN" "$H2M/setup"
+
+# 2. 예제의 serial 기본값과 선택 가능한 엔티티 확인
+curl -s -H "Authorization: Bearer $TOKEN" "$H2M/setup/examples/bestin.homenet_bridge.yaml"
+
+# 3. 배선 테스트 (최대 10개 패킷, 3초)
+curl -s -X POST -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "example": "bestin.homenet_bridge.yaml",
+    "serialPath": "/dev/ttyUSB0",
+    "portId": "bestin_main"
+  }' "$H2M/setup/test-serial"
+
+# 4. 초기 설정 적용 (응답 후 자동 재시작)
+curl -s -X POST -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "mode": "init",
+    "example": "bestin.homenet_bridge.yaml",
+    "serialPath": "/dev/ttyUSB0",
+    "portId": "bestin_main",
+    "selectedEntities": { "light": ["living_light"] },
+    "restart": true
+  }' "$H2M/setup/apply"
+
+# 5. 설정이 이미 로드된 상태에서 새 브릿지 추가 (새 portId)
+curl -s -X POST -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "mode": "add",
+    "example": "bestin.homenet_bridge.yaml",
+    "serialPath": "/dev/ttyUSB1",
+    "portId": "bestin_second",
+    "restart": true
+  }' "$H2M/setup/apply"
+```
+
+- `mode` 기본값은 `init`입니다. 설정이 이미 로드된 상태에서 `init`으로 호출하면 기존 설정 보호를 위해 `409 SETUP_NOT_REQUIRED`가 반환됩니다.
+- `mode: "add"`는 새 설정 파일(예: `default_2.homenet_bridge.yaml`)을 생성하고 `.initialized` 마커는 건드리지 않습니다. `portId`와 `serialPath`가 기존 포트와 중복되면 각각 `400 PORT_ID_DUPLICATE`, `400 SERIAL_PATH_DUPLICATE`가 반환됩니다.
+- `example`에 `__empty__`를 지정하면 빈 config로 시작합니다. 이 경우 `serialConfig`에 `portId`, `path`, `baud_rate`, `data_bits`, `parity`, `stop_bits`를 모두 전달해야 합니다.
+- `selectedEntities`를 생략하면 예제의 모든 엔티티를 사용합니다. 지정한 타입은 전달한 ID만 남기고, 결과가 비면 해당 타입을 제거합니다.
+- `restart` 기본값은 `true`입니다. `false`이면 `.restart-required` 플래그만 기록하고 응답 후 재시작하지 않습니다.
+- MQTT 접속 정보는 config가 아니라 환경변수/애드온 옵션이므로 API로 설정할 수 없습니다.
+- Home Assistant MQTT 애드온은 기본적으로 `3001/tcp`가 공개되지 않으므로, 초기 설정에 API를 사용하려면 애드온 네트워크 설정에서 포트를 공개해야 합니다.
 
 ### 기본 워크플로
 
 ```bash
-export H2M="http://127.0.0.1:3000/api/v1/agent"
+export H2M="http://127.0.0.1:3001/api/v1/agent"
 export TOKEN="충분히-긴-임의의-토큰"
 
 # 1. 현재 상태 관측
@@ -443,6 +505,10 @@ MCP 클라이언트는 일반적으로 다음 순서로 연결합니다.
 
 | 도구                                        | 설명                                                                  |
 | ------------------------------------------- | --------------------------------------------------------------------- |
+| `get_setup_state`                           | 설정 상태, 예제 목록, 사용 중인 portId                                |
+| `get_setup_example`                         | 예제의 serial/packet 기본값과 선택 엔티티                             |
+| `test_setup_serial`                         | serial 배선 테스트 (설정 로드 중에도 가능)                            |
+| `apply_initial_setup`                       | 초기 설정(`mode="init"`) 또는 브릿지 추가(`mode="add"`) + 재시작       |
 | `list_ports`                                | 로드된 포트/브리지 상태/엔티티 수                                     |
 | `get_entities`                              | 정규화된 엔티티 목록 (`portId` 선택)                                  |
 | `get_entity_state`                          | 최신 엔티티 상태 스냅샷                                               |
@@ -457,6 +523,8 @@ MCP 클라이언트는 일반적으로 다음 순서로 연결합니다.
 | `send_packet`                               | RS485 전송. `AGENT_ALLOW_PACKET_SEND=true`일 때만 `tools/list`에 노출 |
 
 `send_packet`이 비활성인 상태에서 직접 호출하면 `isError: true`와 `PACKET_SEND_DISABLED`가 반환됩니다. 적용 계열 도구는 REST와 동일하게 YAML 백업과 초안 해시 검증을 수행합니다.
+
+`apply_initial_setup`은 설정이 이미 로드된 상태에서 `mode="init"`이면 `isError: true`와 `SETUP_NOT_REQUIRED`를 반환합니다. 새 브릿지는 `mode="add"`와 `get_setup_state`의 `loadedPortIds`에 없는 `portId`로 추가하세요. `test_setup_serial`은 설정 로드 여부와 관계없이 동작합니다.
 
 캡처 파일 다운로드/삭제와 전송 패킷 미리보기는 MCP 도구로 제공되지 않으므로 REST를 사용하세요.
 
@@ -538,7 +606,7 @@ MCP Streamable HTTP를 지원하는 클라이언트에서 URL과 인증 헤더�
 {
   "mcpServers": {
     "homenet2mqtt": {
-      "url": "http://127.0.0.1:3000/api/v1/agent/mcp",
+      "url": "http://127.0.0.1:3001/api/v1/agent/mcp",
       "headers": {
         "Authorization": "Bearer <AGENT_API_TOKEN>"
       }
@@ -557,7 +625,7 @@ MCP Streamable HTTP를 지원하는 클라이언트에서 URL과 인증 헤더�
       "args": [
         "-y",
         "mcp-remote",
-        "http://127.0.0.1:3000/api/v1/agent/mcp",
+        "http://127.0.0.1:3001/api/v1/agent/mcp",
         "--header",
         "Authorization: Bearer <AGENT_API_TOKEN>"
       ]
@@ -568,11 +636,11 @@ MCP Streamable HTTP를 지원하는 클라이언트에서 URL과 인증 헤더�
 
 클라이언트 설정의 URL은 접근 환경에 맞게 변경하세요.
 
-- 같은 호스트: `http://127.0.0.1:3000/api/v1/agent/mcp`
-- 같은 Docker 네트워크: `http://<컨테이너명>:3000/api/v1/agent/mcp`
-- LAN/원격: `https://<H2M-HOST>/api/v1/agent/mcp` (리버스 프록시 권장)
-- Matter 애드온: `http://<HA-IP>:3000/api/v1/agent/mcp`
-- MQTT 애드온: ingress는 외부 MCP 클라이언트용이 아니므로 포트 공개 또는 리버스 프록시가 필요합니다.
+- 같은 호스트: `http://127.0.0.1:3001/api/v1/agent/mcp`
+- 같은 Docker 네트워크: `http://<컨테이너명>:3001/api/v1/agent/mcp`
+- LAN/원격: `https://<H2M-HOST>/api/v1/agent/mcp` (Agent 포트로 리버스 프록시 권장)
+- Matter 애드온: `http://<HA-IP>:3001/api/v1/agent/mcp`
+- MQTT 애드온: ingress는 외부 MCP 클라이언트용이 아니므로 `3001/tcp` 포트 공개 또는 리버스 프록시가 필요합니다.
 
 위 예시는 같은 호스트에서 실행하는 경우를 기준으로 합니다. 원격 서버라면 `127.0.0.1` 대신 실제 호스트 이름/IP를 사용하세요.
 

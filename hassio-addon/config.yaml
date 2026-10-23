@@ -51,4 +51,9 @@ schema:
 ingress: true
 ingress_port: 3000
 ingress_stream: true
+# Agent API port is optional; leave it unmapped unless an AI agent needs direct access.
+ports:
+  "3001/tcp": null
+ports_description:
+  "3001/tcp": Agent API (optional)
 panel_icon: mdi:crop-landscape

@@ -43,7 +43,9 @@
   import EntityDetailModal from './lib/components/EntityDetailModal.svelte';
   import ToastContainer from './lib/components/ToastContainer.svelte';
   import SetupWizard from './lib/components/SetupWizard.svelte';
+  import AuthGate from './lib/components/AuthGate.svelte';
   import SettingsView from './lib/views/Settings.svelte';
+  import { getUiAuthStatus, logoutUi, type UiAuthStatus } from './lib/api/auth';
   import { makeEntityKey, parseEntityKey } from './lib/utils/entity';
   import { getTimeZone, setTimeZone, withTimeZone } from './lib/utils/time';
 
@@ -207,6 +209,12 @@
   let showEntityCards = $state(true);
   let showAutomationCards = $state(true);
   let showScriptCards = $state(true);
+
+  type AuthState = 'checking' | 'setup' | 'login' | 'unavailable' | 'expired' | 'ready';
+  let authState = $state<AuthState>('checking');
+  let authStatus = $state<UiAuthStatus | null>(null);
+  let authPollTimer: ReturnType<typeof setInterval> | null = null;
+  let appInitialized = false;
 
   let bridgeInfo = $state<BridgeInfo | null>(null);
   let infoLoading = $state(false);
@@ -499,6 +507,13 @@
         persistDashboardFilterVisibility(showEntityCards, showAutomationCards, showScriptCards);
       }
     }
+    void bootstrapAuth();
+  });
+
+  const initializeApp = () => {
+    if (appInitialized) return;
+    appInitialized = true;
+
     loadBridgeInfo(true);
     loadFrontendSettings();
     loadActivityLogs();
@@ -507,7 +522,90 @@
 
     // Start log flush timer
     logFlushTimer = setInterval(flushLogBuffers, LOG_FLUSH_INTERVAL);
-  });
+  };
+
+  const stopAuthPolling = () => {
+    if (authPollTimer) {
+      clearInterval(authPollTimer);
+      authPollTimer = null;
+    }
+  };
+
+  const handleAuthRequired = (next: 'login' | 'setup' | 'unavailable' | 'expired') => {
+    if (authState !== 'ready' && authState !== 'checking') return;
+    authState = next;
+    stopAuthPolling();
+    closeStream();
+  };
+
+  const startAuthPolling = () => {
+    if (authPollTimer || authStatus?.ingress) return;
+
+    authPollTimer = setInterval(() => {
+      void (async () => {
+        try {
+          const status = await getUiAuthStatus();
+          authStatus = status;
+          if (!status.authenticated && !status.ingress && authState === 'ready') {
+            handleAuthRequired(
+              status.unavailable
+                ? 'unavailable'
+                : status.configured
+                  ? 'login'
+                  : status.setupExpired
+                    ? 'expired'
+                    : 'setup',
+            );
+          }
+        } catch {
+          // Ignore transient polling failures.
+        }
+      })();
+    }, 60_000);
+  };
+
+  const bootstrapAuth = async () => {
+    try {
+      const status = await getUiAuthStatus();
+      authStatus = status;
+
+      if (status.ingress || status.authenticated) {
+        authState = 'ready';
+        startAuthPolling();
+        initializeApp();
+        return;
+      }
+
+      if (status.unavailable) {
+        authState = 'unavailable';
+        return;
+      }
+
+      if (status.configured) {
+        authState = 'login';
+        return;
+      }
+
+      authState = status.setupExpired ? 'expired' : 'setup';
+    } catch {
+      authState = 'login';
+    }
+  };
+
+  const handleAuthSuccess = () => {
+    window.location.reload();
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logoutUi();
+    } catch {
+      // The session may already be invalid; show the login screen anyway.
+    }
+    stopAuthPolling();
+    closeStream();
+    authState = 'login';
+  };
 
   const flushLogBuffers = () => {
     let updated = false;
@@ -638,10 +736,12 @@
     if (!response.ok) {
       // 에러 메시지를 서버에서 받거나 기본 메시지 사용
       let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+      let errorCode = '';
       try {
         const errorData = await response.json();
         if (errorData.error) {
           errorMessage = errorData.error;
+          errorCode = errorData.error;
         }
       } catch {
         // JSON 파싱 실패 시 응답 텍스트 시도
@@ -652,6 +752,15 @@
           // 텍스트 읽기도 실패 시 기본 메시지 사용
         }
       }
+
+      if (response.status === 401) {
+        if (errorCode === 'UI_AUTH_REQUIRED') {
+          handleAuthRequired('login');
+        } else if (errorCode === 'UI_SETUP_REQUIRED') {
+          handleAuthRequired('setup');
+        }
+      }
+
       throw new Error(errorMessage);
     }
 
@@ -952,7 +1061,7 @@
   let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
   function connectWebSocket() {
-    if (typeof window === 'undefined' || !bridgeInfo) return;
+    if (typeof window === 'undefined' || !bridgeInfo || authState !== 'ready') return;
 
     closeStream();
 
@@ -1214,7 +1323,9 @@
 
       if (reconnectTimer) clearTimeout(reconnectTimer);
       reconnectTimer = setTimeout(() => {
-        connectWebSocket();
+        if (authState === 'ready') {
+          connectWebSocket();
+        }
       }, 3000);
     };
 
@@ -1270,6 +1381,7 @@
 
   onDestroy(() => {
     closeStream();
+    stopAuthPolling();
     toastTimeouts.forEach((timeout) => clearTimeout(timeout));
     toastTimeouts.clear();
     if (logFlushTimer) clearInterval(logFlushTimer);
@@ -1844,8 +1956,10 @@
   });
 </script>
 
-{#if $isLoading}
+{#if $isLoading || authState === 'checking'}
   <div class="loading-screen">Loading resources...</div>
+{:else if authState === 'setup' || authState === 'login' || authState === 'unavailable' || authState === 'expired'}
+  <AuthGate mode={authState} onSuccess={handleAuthSuccess} />
 {:else}
   <a href="#main-content" class="skip-link">{$t('header.skip_to_content')}</a>
   <main class="app-container">
@@ -1943,6 +2057,12 @@
             onDashboardChange={(value) => updateDashboardSetting('showInternal', value)}
             onAutoRestartChange={(value) => updateAutoRestartSetting(value)}
             onGalleryChange={(value) => updateGallerySetting(value)}
+            passwordConfigured={authStatus?.configured ?? true}
+            ingress={authStatus?.ingress ?? false}
+            onPasswordChanged={() => {
+              if (authStatus) authStatus = { ...authStatus, configured: true };
+            }}
+            onLogout={handleLogout}
           />
         {:else if activeView === 'matter'}
           <Matter

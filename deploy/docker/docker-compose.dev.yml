@@ -89,6 +89,7 @@ services:
       MQTT_URL: mqtt://mq:1883
       SERIAL_PATH_WAIT_TIMEOUT_MS: '10000'
       PORT: '3000'
+      AGENT_API_PORT: '3001'
       CONFIG_ROOT: /config
       CONFIG_FILES:
       LOG_LEVEL: info
@@ -100,6 +101,7 @@ services:
       - ../../gallery:/app/gallery
     ports:
       - '3000:3000'
+      - '3001:3001'
       - '5540-5545:5540-5545'
     privileged: true
     entrypoint: [ "/sbin/tini", "--" ]

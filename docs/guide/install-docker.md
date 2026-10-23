@@ -34,6 +34,7 @@ services:
       INTEGRATION_TYPE: mqtt # MQTT 모드로 실행
       MQTT_URL: mqtt://localhost:1883
       PORT: '3000'
+      AGENT_API_PORT: '3001'
       LOG_LEVEL: info
       TIMEZONE: 'Asia/Seoul'
       # MQTT에 로그인 정보가 필요하다면 true로 설정하고 MQTT_USER, MQTT_PASSWD에 정보를 입력하세요.
@@ -54,7 +55,10 @@ services:
       - ./h2m-config:/config
     ports:
       # 호스트 내부에서만 접근. LAN 공개는 아래 '접속 주소'를 참고하세요.
+      # UI는 첫 접속 시 비밀번호를 설정해야 합니다.
       - '127.0.0.1:3000:3000'
+      # Agent API 전용 포트 (Bearer 토큰 인증)
+      - '127.0.0.1:3001:3001'
     restart: unless-stopped
 ```
 
@@ -73,7 +77,8 @@ services:
     privileged: true
     environment:
       INTEGRATION_TYPE: matter # Matter 모드로 실행
-      PORT: '3000' # Web UI 포트
+      PORT: '3000' # UI 포트
+      AGENT_API_PORT: '3001' # AI 에이전트 API 전용 포트
       LOG_LEVEL: info
       TIMEZONE: 'Asia/Seoul'
     # USB RS485 장치를 사용하는경우 아래 주석을 풀고 기기에 맞게 입력하세요.
@@ -97,19 +102,45 @@ docker compose up -d
 - Matter 모드는 `network_mode: host`이므로 `http://<서버IP>:3000`으로 접속할 수 있습니다. 3000 포트는 방화벽으로 접근을 제한하세요.
 - 설정 파일은 `./h2m-config`에 저장됩니다.
 
+### UI 비밀번호
+
+UI는 직접 접속 시 항상 비밀번호 인증을 요구합니다.
+
+1. 처음 `http://127.0.0.1:3000`에 접속하면 **비밀번호 설정** 화면이 표시됩니다. 8자 이상의 비밀번호를 입력하세요.
+2. 설정 후 자동으로 로그인되며, 이후 접속부터는 로그인 화면이 표시됩니다.
+3. **설정 → 애플리케이션 관리 → UI 보안**에서 언제든 비밀번호를 변경하거나 로그아웃할 수 있습니다.
+
+::: warning 최초 비밀번호 설정 제한 시간
+Docker 환경에서는 컨테이너 시작 후 **15분 이내**에 최초 비밀번호를 설정해야 합니다. 15분이 지나면 비밀번호 설정이 차단되고 UI에 만료 안내가 표시됩니다. 이때는 `docker compose restart`로 컨테이너를 재시작하면 새 15분 설정 시간이 시작됩니다.
+
+3000 포트에 접근할 수 있는 사람은 누구나 비밀번호를 먼저 선점할 수 있으므로, 첫 실행 직후 비밀번호를 설정하고 직접 접속 포트는 신뢰할 수 있는 네트워크에만 노출하세요.
+:::
+
+비밀번호는 `./h2m-config/ui-auth.json`에 scrypt 해시로 저장되며(파일 모드 `0600`), 평문은 저장되지 않습니다. 이 파일을 백업하면 비밀번호 설정을 유지할 수 있습니다.
+
+비밀번호를 분실했다면 서비스를 중지한 뒤 `./h2m-config/ui-auth.json`을 삭제하고 다시 시작하세요. 재시작 후 첫 접속에서 새 비밀번호를 설정할 수 있습니다(Docker는 재시작 후 15분 이내). 삭제 시 기존 세션도 모두 무효화됩니다.
+
+::: tip
+Home Assistant ingress로 접속하는 애드온 환경은 Home Assistant 로그인으로 인증되므로 UI 비밀번호를 묻지 않습니다. Docker 직접 접속과 Matter 애드온의 직접 포트 접근에만 비밀번호가 필요합니다.
+:::
+
 ## AI 에이전트 API
 
-`AGENT_API_TOKEN`을 16자 이상으로 설정하면 `/api/v1/agent` REST API와 MCP 엔드포인트가 활성화됩니다.
+`AGENT_API_TOKEN`을 16자 이상으로 설정하면 `/api/v1/agent` REST API와 MCP 엔드포인트가 **Agent API 전용 포트(기본 3001)** 에서 활성화됩니다.
 
 ```yaml
 environment:
   AGENT_API_TOKEN: '충분히-긴-임의의-토큰'
   AGENT_ALLOW_PACKET_SEND: 'false'
+  AGENT_API_PORT: '3001'
+ports:
+  - '127.0.0.1:3001:3001'
 ```
 
+- Agent API는 UI 포트(3000)에서 제공되지 않습니다. 기존 `:3000/api/v1/agent` 사용자는 `:3001`로 변경하세요.
 - 기본 포트 매핑은 호스트 루프백 전용입니다. 외부 에이전트가 접근하려면 [AI 에이전트용 API](./agent-api.md)의 '노출 및 네트워크 설정' 섹션을 따르세요.
 - 패킷 전송은 `AGENT_ALLOW_PACKET_SEND=true`일 때만 활성화됩니다.
-- 토큰이 없거나 16자 미만이면 에이전트 API는 비활성화됩니다(UI와 기존 `/api/*`는 정상 동작).
+- 토큰이 없거나 16자 미만이면 에이전트 API는 비활성화됩니다(UI는 정상 동작).
 
 ## 다음 단계
 

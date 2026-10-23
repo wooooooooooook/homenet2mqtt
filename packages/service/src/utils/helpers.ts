@@ -2,6 +2,7 @@
  * Shared helper functions for the service package
  */
 
+import { existsSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import yaml from 'js-yaml';
@@ -110,6 +111,14 @@ export const parseEnvList = (
 };
 
 // --- System Helpers ---
+
+/**
+ * Detects a plain Docker/OCI container. Home Assistant add-ons also match this,
+ * so callers must check for a Supervisor token first.
+ */
+export const isDockerEnvironment = (
+  exists: (targetPath: string) => boolean = existsSync,
+): boolean => exists('/.dockerenv') || exists('/run/.containerenv');
 
 /**
  * Creates a restart flag file to signal that a restart is required.

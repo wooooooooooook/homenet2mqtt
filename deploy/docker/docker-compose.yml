@@ -7,6 +7,8 @@ services:
       MQTT_URL: mqtt://localhost:1883
       # 웹 UI 포트
       PORT: '3000'
+      # Agent API 포트 (UI와 분리, Bearer 토큰 인증)
+      AGENT_API_PORT: '3001'
       # 로그 레벨 (debug, info, warn, error)
       LOG_LEVEL: info
       # MQTT 인증 설정
@@ -15,12 +17,15 @@ services:
       MQTT_PASSWD: ''
       MQTT_TOPIC_PREFIX: homenet2mqtt
     volumes:
-      # 설정 파일 볼륨
+      # 설정 파일 볼륨 (UI 비밀번호 해시는 ./h2m-config/ui-auth.json 에 저장됨)
       - ./h2m-config:/config
     # 시리얼 포트 장치 (필요한 경우 주석 해제)
     # devices:
     #   - /dev/ttyUSB0:/dev/ttyUSB0
     ports:
       # 호스트 내부에서만 접근 허용 (외부 공개는 리버스 프록시 사용)
+      # UI 최초 접속 시 비밀번호를 설정해야 합니다.
       - '127.0.0.1:3000:3000'
+      # Agent API (Bearer 토큰 인증). AGENT_API_TOKEN이 없으면 503을 반환합니다.
+      - '127.0.0.1:3001:3001'
     restart: unless-stopped

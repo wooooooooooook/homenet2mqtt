@@ -13,13 +13,18 @@
 | `MQTT_USER`         | `''`                                               | MQTT 사용자명                                         | Docker               |
 | `MQTT_PASSWD`       | `''`                                               | MQTT 비밀번호                                         | Docker               |
 | `MQTT_TOPIC_PREFIX` | `homenet2mqtt`                                     | MQTT 토픽 접두사                                      | Add-on, Docker, 로컬 |
-| `PORT`              | `3000`                                             | Web UI 포트                                           | Add-on, Docker, 로컬 |
+| `PORT`              | `3000`                                             | UI 포트 (정적 파일, UI API, WebSocket)                | Add-on, Docker, 로컬 |
+| `AGENT_API_PORT`    | `3001`                                             | AI 에이전트 API 전용 포트 (UI 포트와 분리)            | Add-on, Docker, 로컬 |
 | `LOG_LEVEL`         | `info`                                             | 로그 레벨 (`trace`, `debug`, `info`, `warn`, `error`) | Add-on, Docker, 로컬 |
 | `TIMEZONE`          | 시스템 기본값                                      | 런타임 타임존                                         | Add-on, Docker, 로컬 |
 | `DISCOVERY_ENABLED` | `false`                                            | Home Assistant Discovery 활성화 여부                  | Docker               |
 | `INTEGRATION_TYPE`  | `mqtt`                                             | 연동 모드 결정 (`mqtt`, `matter`, `log`)              | Add-on, Docker       |
 | `AGENT_API_TOKEN`   | (비어있음)                                          | AI 에이전트 API Bearer 토큰. 16자 이상일 때만 활성화  | Add-on, Docker, 로컬 |
 | `AGENT_ALLOW_PACKET_SEND` | `false`                                      | 에이전트 API의 RS485 패킷 전송 허용 여부              | Add-on, Docker, 로컬 |
+
+::: info UI 비밀번호는 환경변수가 아닙니다
+UI 비밀번호는 `UI_PASSWORD` 같은 환경변수로 설정하지 않습니다. 직접 접속(예: Docker, Matter 애드온의 3000 포트)에서는 첫 UI 접속 시 화면에서 설정하며, `CONFIG_ROOT/ui-auth.json`에 scrypt 해시로만 저장됩니다. Home Assistant ingress로 접속하면 Home Assistant 로그인 세션이 사용되므로 별도 비밀번호를 묻지 않고, 설정 화면의 UI 보안 섹션도 표시되지 않습니다.
+:::
 
 ## 운영 튜닝 환경변수 (중요)
 
@@ -43,6 +48,7 @@ services:
       MQTT_TOPIC_PREFIX: homenet2mqtt
       LOG_LEVEL: info
       PORT: '3000'
+      AGENT_API_PORT: '3001'
       TIMEZONE: Asia/Seoul
       DISCOVERY_ENABLED: 'true'
       SERIAL_PATH_WAIT_TIMEOUT_MS: '30000'

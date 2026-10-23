@@ -5,6 +5,7 @@
   import BridgeConfigEditorModal from '../components/BridgeConfigEditorModal.svelte';
   import Button from '../components/Button.svelte';
   import Dialog from '../components/Dialog.svelte';
+  import PasswordChangeForm from '../components/PasswordChangeForm.svelte';
   import Toggle from '$lib/components/Toggle.svelte';
   import type {
     FrontendSettings,
@@ -30,6 +31,10 @@
     onDashboardChange,
     onAutoRestartChange,
     onGalleryChange,
+    passwordConfigured = false,
+    ingress = false,
+    onPasswordChanged,
+    onLogout,
   }: {
     frontendSettings?: FrontendSettings | null;
     bridgeInfo?: BridgeInfo | null;
@@ -47,6 +52,10 @@
       processFallback?: boolean;
     }) => void;
     onGalleryChange?: (value: { githubUrl: string; branch: string; path: string }) => void;
+    passwordConfigured?: boolean;
+    ingress?: boolean;
+    onPasswordChanged?: () => void;
+    onLogout?: () => void;
   } = $props();
 
   let galleryGithubUrl = $state('');
@@ -1807,6 +1816,28 @@
               </option>
             </select>
           </div>
+
+          {#if !ingress}
+            <!-- UI Security Sub-section -->
+            <div class="subsection-header" id="ui-security">
+              <div>
+                <h3>{$t('auth.security_title')}</h3>
+                <p>{$t('auth.change_password_desc')}</p>
+              </div>
+            </div>
+            <div class="setting-subsection">
+              <PasswordChangeForm {passwordConfigured} onChanged={onPasswordChanged} />
+              <div class="setting">
+                <div>
+                  <div class="setting-title">{$t('auth.logout')}</div>
+                  <div class="setting-desc">{$t('auth.logout_desc')}</div>
+                </div>
+                <Button variant="secondary" onclick={onLogout}>
+                  {$t('auth.logout')}
+                </Button>
+              </div>
+            </div>
+          {/if}
 
           <!-- Auto Restart Sub-section -->
           <div class="subsection-header">

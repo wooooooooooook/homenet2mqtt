@@ -28,6 +28,7 @@ export const resolveConfigRoot = (): string => {
 
 export const CONFIG_DIR = resolveConfigRoot();
 export const FRONTEND_SETTINGS_FILE = path.join(CONFIG_DIR, 'frontend-setting.json');
+export const UI_AUTH_FILE = path.join(CONFIG_DIR, 'ui-auth.json');
 export const DEFAULT_CONFIG_FILENAME = 'default.homenet_bridge.yaml';
 export const CONFIG_INIT_MARKER = path.join(CONFIG_DIR, '.initialized');
 export const CONFIG_RESTART_FLAG = path.join(CONFIG_DIR, '.restart-required');
