@@ -1,0 +1,54 @@
+{
+  "entities": {
+    "climate": [
+      {
+        "id": "draft_climate_1",
+        "name": "Draft Climate 1",
+        "area": "zone_1",
+        "state": { "data": [130, 128, 1], "mask": [255, 240, 255] },
+        "state_temperature_current": { "index": 3, "decode": "bcd" },
+        "state_temperature_target": { "index": 4, "decode": "bcd" },
+        "state_off": { "index": 1, "data": [128] },
+        "state_heat": { "index": 1, "data": [129], "mask": [1] },
+        "command_off": {
+          "data": [4, 1, 4, 0, 0, 0, 0],
+          "ack": { "data": [132, 128, 1], "mask": [255, 240, 255] }
+        },
+        "command_heat": {
+          "data": [4, 1, 4, 129, 0, 0, 0],
+          "ack": { "data": [132, 129, 1], "mask": [255, 240, 255] }
+        },
+        "command_temperature": {
+          "data": [4, 1, 3, 0, 0, 0, 0],
+          "value_index": 3,
+          "value_encode": "bcd",
+          "ack": { "data": [132, 0, 1], "mask": [255, 240, 255] }
+        }
+      },
+      {
+        "id": "draft_climate_2",
+        "name": "Draft Climate 2",
+        "area": "zone_2",
+        "state": { "data": [130, 128, 2], "mask": [255, 240, 255] },
+        "state_temperature_current": { "index": 3, "decode": "bcd" },
+        "state_temperature_target": { "index": 4, "decode": "bcd" },
+        "state_off": { "index": 1, "data": [128] },
+        "state_heat": { "index": 1, "data": [129], "mask": [1] },
+        "command_off": {
+          "data": [4, 2, 4, 0, 0, 0, 0],
+          "ack": { "data": [132, 128, 2], "mask": [255, 240, 255] }
+        },
+        "command_heat": {
+          "data": [4, 2, 4, 129, 0, 0, 0],
+          "ack": { "data": [132, 129, 2], "mask": [255, 240, 255] }
+        },
+        "command_temperature": {
+          "data": [4, 2, 3, 0, 0, 0, 0],
+          "value_index": 3,
+          "value_encode": "bcd",
+          "ack": { "data": [132, 0, 2], "mask": [255, 240, 255] }
+        }
+      }
+    ]
+  }
+}
