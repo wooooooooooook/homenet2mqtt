@@ -59,6 +59,7 @@ import {
   getAgentSetupState,
   testAgentSetupSerial,
 } from './services/setup.service.js';
+import { listAgentSchemas, readAgentSchema } from './services/schema.service.js';
 import type { SetupWizardService } from '../services/setup.service.js';
 
 export const MAX_AGENT_EVENT_STREAMS = 8;
@@ -183,6 +184,7 @@ export function createAgentRoutes(ctx: AgentRoutesContext): Router {
           draftEntities: true,
           setup: true,
           gallery: true,
+          schema: true,
           mcp: true,
         },
         limits: {
@@ -201,6 +203,7 @@ export function createAgentRoutes(ctx: AgentRoutesContext): Router {
         links: {
           openapi: `${AGENT_API_BASE}${AGENT_PATHS.openapi}`,
           llms: `${AGENT_API_BASE}${AGENT_PATHS.llms}`,
+          schema: `${AGENT_API_BASE}${AGENT_PATHS.schema}`,
           mcp: `${AGENT_API_BASE}${AGENT_PATHS.mcp}`,
         },
       });
@@ -486,6 +489,23 @@ export function createAgentRoutes(ctx: AgentRoutesContext): Router {
           vendor: firstQueryValue(req.query.vendor),
         }),
       );
+    } catch (error) {
+      handleRouteError(res, error);
+    }
+  });
+
+  // --- Bundled configuration schemas (field names, enums, required flags) ---
+  router.get(`${AGENT_API_BASE}${AGENT_PATHS.schema}`, async (_req, res) => {
+    try {
+      res.json(await listAgentSchemas());
+    } catch (error) {
+      handleRouteError(res, error);
+    }
+  });
+
+  router.get(`${AGENT_API_BASE}${AGENT_PATHS.schemaFile}`, async (req, res) => {
+    try {
+      res.json(await readAgentSchema(req.params.schemaName));
     } catch (error) {
       handleRouteError(res, error);
     }

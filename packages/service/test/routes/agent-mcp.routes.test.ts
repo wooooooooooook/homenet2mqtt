@@ -338,6 +338,38 @@ describe('agent MCP routes', () => {
     });
   });
 
+  describe('schema tools', () => {
+    it('exposes list_config_schemas and get_config_schema in tools/list', async () => {
+      const response = await callMcp({ jsonrpc: '2.0', id: 1, method: 'tools/list' });
+      const names = response.body.result.tools.map((tool: { name: string }) => tool.name);
+      expect(names).toContain('list_config_schemas');
+      expect(names).toContain('get_config_schema');
+    });
+
+    it('lists bundled schema names', async () => {
+      const response = await toolCall('list_config_schemas');
+      expect(response.status).toBe(200);
+      expect(response.body.result.isError).toBeUndefined();
+      expect(response.body.result.structuredContent.schemas).toContain('homenet-bridge');
+    });
+
+    it('returns the config schema with entity definitions by default', async () => {
+      const response = await toolCall('get_config_schema');
+      expect(response.body.result.isError).toBeUndefined();
+      const definitions = response.body.result.structuredContent.definitions;
+      expect(Object.keys(definitions).length).toBeGreaterThan(40);
+      expect(definitions.ClimateEntity.properties.temperature_unit.enum).toEqual(['C', 'F']);
+      expect(definitions.StateSchema.properties.data.type).toBe('array');
+    });
+
+    it('reports available names when the schema is unknown', async () => {
+      const response = await toolCall('get_config_schema', { name: 'homenet' });
+      expect(response.body.result.isError).toBe(true);
+      expect(response.body.result.structuredContent.error).toBe('SCHEMA_NOT_FOUND');
+      expect(response.body.result.structuredContent.details.available).toContain('homenet-bridge');
+    });
+  });
+
   describe('observation tools', () => {
     it('lists ports', async () => {
       const response = await toolCall('list_ports');

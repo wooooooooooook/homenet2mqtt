@@ -5,6 +5,7 @@ import { eventTools } from './tools/event.tools.js';
 import { galleryTools } from './tools/gallery.tools.js';
 import { observationTools } from './tools/observation.tools.js';
 import { packetTools } from './tools/packet.tools.js';
+import { schemaTools } from './tools/schema.tools.js';
 import { setupTools } from './tools/setup.tools.js';
 
 export const MCP_TOOLS: McpTool[] = [
@@ -13,6 +14,7 @@ export const MCP_TOOLS: McpTool[] = [
   ...packetTools,
   ...captureTools,
   ...galleryTools,
+  ...schemaTools,
   ...entityTools,
   ...eventTools,
 ];

@@ -42,6 +42,7 @@ export function buildOpenApiDocument(options: OpenApiOptions): Record<string, un
       { name: 'packets' },
       { name: 'capture' },
       { name: 'gallery' },
+      { name: 'schema' },
       { name: 'draft' },
       { name: 'events' },
       { name: 'mcp' },
@@ -499,6 +500,39 @@ export function buildOpenApiDocument(options: OpenApiOptions): Record<string, un
           },
         },
       },
+      [AGENT_PATHS.schema]: {
+        get: {
+          tags: ['schema'],
+          summary: 'List bundled configuration schemas',
+          description:
+            'Lists the JSON Schema files shipped with this build. Use the config schema (homenet-bridge) to look up entity field names, enums and required flags instead of guessing them.',
+          responses: {
+            '200': jsonResponse('Schema names', { type: 'object' }),
+          },
+        },
+      },
+      [openApiPath(AGENT_PATHS.schemaFile)]: {
+        get: {
+          tags: ['schema'],
+          summary: 'Get one bundled JSON Schema',
+          description:
+            'Returns the JSON Schema used by the YAML editor for this version. The document is large (about 120KB), so request it only when you need exact field names, enum values or constraints for an entity draft.',
+          parameters: [
+            {
+              name: 'schemaName',
+              in: 'path',
+              required: true,
+              schema: { type: 'string', pattern: '^[a-z0-9-]+$' },
+              description: 'Schema name such as "homenet-bridge".',
+            },
+          ],
+          responses: {
+            '200': jsonResponse('JSON Schema', { type: 'object' }),
+            '400': errorResponse('Invalid schema name'),
+            '404': errorResponse('Schema not found'),
+          },
+        },
+      },
       [AGENT_PATHS.mcp]: {
         post: {
           tags: ['mcp'],
@@ -660,6 +694,7 @@ OpenAPI: ${AGENT_API_BASE}${AGENT_PATHS.openapi}
 7. The service writes YAML, creates a backup, and marks a restart as required.
 
 ## Notes
+- Config schema: GET /schema lists the bundled JSON Schema names; GET /schema/homenet-bridge returns the config schema for this build (entity fields, enums, required flags). The same schema is available over MCP as list_config_schemas and get_config_schema. Look up exact field names there instead of guessing them.
 - Gallery presets: GET /gallery lists vendors (id, requirements, snippetCount, entityTypes); GET /gallery?vendor=<id> returns that vendor's snippets with parameters, content summary and discovery block; GET /gallery/snippet?file=<vendor>/<name>.yaml returns the raw YAML; GET /gallery/match?portId=&vendor= scores every snippet's discovery against observed packets and returns inferred parameter values (channel counts). GitHub is read first and the packaged gallery directory is the offline fallback, so \`source\` in the response tells you which one served the data. Use these to extend entities until /packets/unmatched is empty.
 - /setup/apply with mode "init" (default) requires that no configuration is loaded; mode "add" writes a new config file while configurations are loaded and requires a unique portId and serialPath. Use "__empty__" as the example to start from a blank config; then serialConfig { portId, path, baud_rate, data_bits, parity, stop_bits } is required.
 - /setup/test-serial is available with or without loaded configurations, but the port must not already be held by a running bridge.
@@ -668,7 +703,7 @@ OpenAPI: ${AGENT_API_BASE}${AGENT_PATHS.openapi}
 - \`applicable\` is false when exact ID conflicts remain. Use resolutions { "<id>": "overwrite" | "skip" } or renames { "<id>": "<new_id>" } when applying.
 - Packet sending is disabled unless it is enabled in Settings > Agent API. Sending also requires confirm=true and count <= 10.
 - GET /events is an SSE stream. Optional query: types, portId, raw=all|valid, sinceId. Send Last-Event-ID to replay buffered events (max 500).
-- Legacy /api/* endpoints remain unauthenticated for the bundled UI.
+- Legacy /api/* endpoints belong to the bundled UI and require the UI session cookie (or a trusted Home Assistant ingress request); they are not part of this API.
 
 ## MCP
 Endpoint: POST ${AGENT_API_BASE}${AGENT_PATHS.mcp} (MCP Streamable HTTP, JSON-RPC 2.0, stateless)
@@ -676,6 +711,6 @@ Auth: same Authorization: Bearer header. Send Content-Type: application/json.
 Methods: initialize, notifications/initialized (202, no body), ping, tools/list, tools/call.
 Tools: get_setup_state, get_setup_example, test_setup_serial, apply_initial_setup, list_ports, get_entities, get_entity_state, get_packet_history, get_unmatched_packets, analyze_packet,
 start_capture, stop_capture, get_capture_status, list_capture_files, validate_entity_draft, apply_entity_draft,
-get_recent_events (poll with afterId), list_gallery, get_gallery_snippet, match_gallery, and send_packet when packet sending is enabled in Settings > Agent API.
+get_recent_events (poll with afterId), list_gallery, get_gallery_snippet, match_gallery, list_config_schemas, get_config_schema, and send_packet when packet sending is enabled in Settings > Agent API.
 Tool failures are returned as tool results with isError=true and { error, message }; protocol errors use JSON-RPC error codes.
 `;

@@ -25,6 +25,8 @@ export const AGENT_PATHS = {
   gallery: '/gallery',
   gallerySnippet: '/gallery/snippet',
   galleryMatch: '/gallery/match',
+  schema: '/schema',
+  schemaFile: '/schema/:schemaName',
   events: '/events',
   entitiesValidate: '/entities/validate',
   entitiesApply: '/entities/apply',

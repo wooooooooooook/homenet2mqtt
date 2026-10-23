@@ -230,6 +230,8 @@ Authorization: Bearer <AGENT_TOKEN>
 | GET    | `/gallery?vendor=`                       | 갤러리 벤더 목록, 또는 벤더별 스니펫 인덱스   |
 | GET    | `/gallery/snippet?file=`                 | 갤러리 스니펫 원본 YAML                       |
 | GET    | `/gallery/match?portId=&vendor=`         | 관측 패킷 대비 갤러리 스니펫 점수화           |
+| GET    | `/schema`                                | 번들된 JSON 스키마 이름 목록                  |
+| GET    | `/schema/:schemaName`                    | 설정 JSON 스키마(엔티티 필드·enum·제약)       |
 | GET    | `/events`                                | SSE 실시간 이벤트 스트림                      |
 | POST   | `/entities/validate`                     | 저장 없이 초안 검증/충돌/디스커버리 미리보기  |
 | POST   | `/entities/apply`                        | 초안을 YAML에 적용 + 백업 + 재시작 플래그     |
@@ -499,6 +501,23 @@ curl -s -H "Authorization: Bearer $TOKEN" \
 - `/gallery/match`는 벤더의 `requirements`(serial/checksum 등)를 만족하는 포트만 대상으로 하며, `discovery`가 있는 스니펫만 채점합니다. 결과는 `matched`, `matchedPacketCount` 내림차순입니다.
 - 스니펫의 `$repeat`/`{{i}}` 템플릿은 펼치지 않고 원본 그대로 반환합니다. 채널 수를 정했으면 `{{i}}`를 실제 인덱스로 치환해 엔티티 초안을 만듭니다.
 
+### 설정 스키마 조회
+
+엔티티 필드명·enum·required 여부를 추측하지 않도록, 이 빌드에 동봉된 JSON 스키마를 그대로 제공합니다. 편집기(YAML 자동완성)가 쓰는 파일과 같은 원본입니다.
+
+```bash
+# 1. 사용 가능한 스키마 이름
+curl -s -H "Authorization: Bearer $TOKEN" "$H2M/schema"
+
+# 2. 설정 스키마 (약 120KB)
+curl -s -H "Authorization: Bearer $TOKEN" "$H2M/schema/homenet-bridge"
+```
+
+- `homenet-bridge` 스키마의 `definitions`에 엔티티 타입별 정의(`ClimateEntity`, `LightEntity`, `StateSchema`, `PacketDefaults` 등)가 있습니다.
+- 응답이 크므로 필요한 정의만 골라 읽으세요. 전체를 컨텍스트에 올리는 것은 권장하지 않습니다.
+- 스키마는 Zod 정의에서 자동 생성되므로 필드 이름·enum의 정본이지만, 체크섬 알고리즘처럼 스키마에서 `string`으로 느슨하게 표현된 항목은 `docs`의 설명과 실제 동작을 함께 확인해야 합니다.
+- 저장은 하지 않는 읽기 전용 엔드포인트입니다. 최종 검증은 항상 `/entities/validate`가 담당합니다.
+
 ### 실시간 이벤트 (SSE)
 
 ```bash
@@ -537,11 +556,12 @@ curl -N -H "Authorization: Bearer $TOKEN" \
 - `GALLERY_UNAVAILABLE` (`503`): GitHub와 동봉 `gallery/` 모두에서 갤러리 목록을 읽지 못함
 - `GALLERY_VENDOR_NOT_FOUND` (`404`): 갤러리에 없는 벤더 id
 - `GALLERY_FILE_INVALID` (`400`) / `GALLERY_FILE_NOT_FOUND` (`404`): 스니펫 경로 오류
+- `SCHEMA_NAME_INVALID` (`400`) / `SCHEMA_NOT_FOUND` (`404`): 스키마 이름 오류(`^[a-z0-9-]+$`만 허용)
 
 ## 기존 API와의 관계
 
 - 기존 `/api/*`와 `/api/stream`(WebSocket)은 번들 UI를 위해 그대로 유지됩니다.
-- **기존 `/api/*`는 여전히 인증이 없습니다.** 에이전트 API만 Bearer 토큰으로 보호됩니다. 외부 네트워크에 서비스를 노출하는 경우 리버스 프록시 등으로 접근을 제한하세요.
+- `/api/*`는 **UI 세션 쿠키**(또는 신뢰된 Home Assistant ingress 요청)로 보호됩니다. 예전처럼 무인증이 아니므로, `/api/schema` 같은 UI 경로를 에이전트가 직접 호출할 수는 없습니다. 에이전트는 같은 정보를 `/api/v1/agent/schema`에서 Bearer 토큰으로 받습니다.
 - 에이전트 API는 기존 UI API와 같은 서비스/설정 로직을 공유하므로, 두 경로에서 동시에 설정을 수정하면 포트별 쓰기 락으로 직렬화됩니다.
 
 ## MCP 사용법
@@ -584,6 +604,8 @@ MCP 클라이언트는 일반적으로 다음 순서로 연결합니다.
 | `list_gallery`                              | 갤러리 벤더 목록 또는 벤더별 스니펫 인덱스 (`vendor` 선택)         |
 | `get_gallery_snippet`                       | 갤러리 스니펫 원본 YAML (`file` 필수)                              |
 | `match_gallery`                             | 관측 패킷으로 갤러리 스니펫 채점 + 파라미터 추정                   |
+| `list_config_schemas`                       | 동봉된 설정 스키마 이름 목록                                       |
+| `get_config_schema`                         | 설정 JSON 스키마 (엔티티 필드·enum·required, 약 120KB)             |
 | `send_packet`                               | RS485 전송. UI에서 패킷 전송을 허용한 경우에만 `tools/list`에 노출 |
 
 `send_packet`이 비활성인 상태에서 직접 호출하면 `isError: true`와 `PACKET_SEND_DISABLED`가 반환됩니다. 적용 계열 도구는 REST와 동일하게 YAML 백업과 초안 해시 검증을 수행합니다.
