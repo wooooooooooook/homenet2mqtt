@@ -19,6 +19,19 @@
       "token_once_hint": "You cannot view it again. Regenerate it under Settings > Agent API if lost.",
       "continue": "Continue"
     },
+    "agent_setup": {
+      "title": "Configure the AI Agent API",
+      "desc": "An AI agent can run the initial wizard for you with the token issued here. You can manage it later under Settings > Agent API.",
+      "disabled_desc": "This add-on has no first-run password screen, so the Agent API is configured here. To use it, follow these steps:",
+      "step_enable": "In the add-on's Configuration tab, turn on the AI Agent API option (agent_api_enabled).",
+      "step_port": "In the Network tab, tap the greyed-out 3001 entry, enter the port to use (3001 by default) and save.",
+      "step_restart": "Restart the add-on. This screen then shows the token options.",
+      "later_hint": "You can skip this for now and issue a token later under Settings > Agent API.",
+      "port_in_settings": "You can change the port under Settings > Agent API.",
+      "docs": "Read the Agent API guide",
+      "submit": "Save and continue",
+      "continue": "Skip for now"
+    },
     "login": {
       "title": "Sign in",
       "desc": "Enter your password to access the UI.",

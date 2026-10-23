@@ -62,6 +62,11 @@ export function issueAgentApiToken(): Promise<{ ok: boolean; rotated: boolean; t
   });
 }
 
+/** Marks the first-run Agent API screen as shown so it is not repeated. */
+export function ackAgentApiSetup(): Promise<{ ok: boolean }> {
+  return request<{ ok: boolean }>('./api/agent-api/setup-ack', { method: 'POST' });
+}
+
 export function updateAgentApiSettings(payload: {
   port?: number;
   allowPacketSend?: boolean;

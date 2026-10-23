@@ -119,7 +119,11 @@ describe('UI auth routes', () => {
       ingress: false,
       unavailable: false,
       setupExpired: false,
-      agentApi: { enabled: false, portEditable: true },
+      agentApi: {
+        enabled: false,
+        portEditable: true,
+        setupPending: true,
+      },
     });
   });
 
@@ -136,7 +140,11 @@ describe('UI auth routes', () => {
       ingress: false,
       unavailable: true,
       setupExpired: false,
-      agentApi: { enabled: false, portEditable: true },
+      agentApi: {
+        enabled: false,
+        portEditable: true,
+        setupPending: true,
+      },
     });
   });
 
@@ -205,7 +213,11 @@ describe('UI auth routes', () => {
       ingress: false,
       unavailable: false,
       setupExpired: true,
-      agentApi: { enabled: false, portEditable: true },
+      agentApi: {
+        enabled: false,
+        portEditable: true,
+        setupPending: true,
+      },
     });
   });
 
@@ -342,6 +354,7 @@ describe('UI auth routes', () => {
     expect(agentApi.hasToken()).toBe(true);
     expect(agentApi.getDesiredPort()).toBe(3120);
     expect(agentApi.getAllowPacketSend()).toBe(true);
+    expect(agentApi.isSetupPending()).toBe(false);
     await expect(agentApi.load()).resolves.toBeUndefined();
     expect(agentApi.getDesiredPort()).toBe(3120);
 
@@ -358,6 +371,7 @@ describe('UI auth routes', () => {
     expect(setup.body).toEqual({ ok: true, agentToken: null });
     expect(agentApi.hasToken()).toBe(false);
     expect(agentApi.getDesiredPort()).toBe(DEFAULT_AGENT_API_PORT);
+    expect(agentApi.isSetupPending()).toBe(true);
   });
 
   it('does not persist the password when the requested agent port is invalid', async () => {
@@ -443,7 +457,11 @@ describe('UI auth routes', () => {
     const response = await request(app).get('/api/auth/status');
 
     expect(response.status).toBe(200);
-    expect(response.body.agentApi).toEqual({ enabled: true, portEditable: false });
+    expect(response.body.agentApi).toEqual({
+      enabled: true,
+      portEditable: false,
+      setupPending: true,
+    });
   });
 
   it('rejects setup with a password that violates the policy', async () => {

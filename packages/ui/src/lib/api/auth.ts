@@ -8,6 +8,7 @@ export interface UiAuthStatus {
   agentApi?: {
     enabled: boolean;
     portEditable: boolean;
+    setupPending: boolean;
   };
 }
 

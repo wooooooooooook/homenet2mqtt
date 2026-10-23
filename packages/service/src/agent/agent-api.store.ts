@@ -31,6 +31,10 @@ interface AgentApiRecord {
   tokenHash: string | null;
   port: number;
   allowPacketSend: boolean;
+  /** Set once the user completes the first-run Agent API screen while enabled. */
+  setupAcked: boolean;
+  /** Set once the user dismisses the "disabled by add-on option" guidance screen. */
+  noticeAcked: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -51,6 +55,8 @@ function parseRecord(value: unknown, portMin: number, portMax: number): AgentApi
   const record = value as Partial<AgentApiRecord>;
   if (record.version !== 1 || record.mode !== 'sha256') return null;
   if (typeof record.allowPacketSend !== 'boolean') return null;
+  if (record.setupAcked !== undefined && typeof record.setupAcked !== 'boolean') return null;
+  if (record.noticeAcked !== undefined && typeof record.noticeAcked !== 'boolean') return null;
   if (typeof record.createdAt !== 'string' || typeof record.updatedAt !== 'string') return null;
   if (!isValidPort(record.port, portMin, portMax)) return null;
 
@@ -60,7 +66,11 @@ function parseRecord(value: unknown, portMin: number, portMax: number): AgentApi
     if (digest.length !== AGENT_TOKEN_DIGEST_LENGTH) return null;
   }
 
-  return record as AgentApiRecord;
+  return {
+    ...record,
+    setupAcked: record.setupAcked ?? false,
+    noticeAcked: record.noticeAcked ?? false,
+  } as AgentApiRecord;
 }
 
 export class AgentApiStore implements AgentApiState {
@@ -114,6 +124,25 @@ export class AgentApiStore implements AgentApiState {
 
   getAllowPacketSend(): boolean {
     return this.record?.allowPacketSend ?? false;
+  }
+
+  isSetupAcked(): boolean {
+    return this.record?.setupAcked ?? false;
+  }
+
+  isNoticeAcked(): boolean {
+    return this.record?.noticeAcked ?? false;
+  }
+
+  /**
+   * The add-on has no first-run password screen, so the Agent API settings need
+   * their own first-run screen: while enabled until the token exists, while
+   * disabled until the "turn it on in the add-on options" guidance is dismissed.
+   */
+  isSetupPending(): boolean {
+    if (this.unavailableState) return false;
+    if (!this.envEnabled) return !this.isNoticeAcked();
+    return !this.hasToken() && !this.isSetupAcked();
   }
 
   getDesiredPort(): number {
@@ -184,6 +213,20 @@ export class AgentApiStore implements AgentApiState {
     await this.persist({ allowPacketSend: allow });
   }
 
+  /**
+   * Records that the user has already been shown the first-run Agent API screen.
+   * The flag follows the current env state so enabling the option later surfaces
+   * the settings screen again.
+   */
+  async ackFirstRun(): Promise<void> {
+    this.ensureWritable();
+    if (this.envEnabled) {
+      if (!this.isSetupAcked()) await this.persist({ setupAcked: true });
+      return;
+    }
+    if (!this.isNoticeAcked()) await this.persist({ noticeAcked: true });
+  }
+
   private ensureWritable(): void {
     if (this.unavailableState) {
       throw new Error(
@@ -200,6 +243,8 @@ export class AgentApiStore implements AgentApiState {
       tokenHash: null,
       port: DEFAULT_AGENT_API_PORT,
       allowPacketSend: false,
+      setupAcked: false,
+      noticeAcked: false,
       createdAt: now,
       updatedAt: now,
     };

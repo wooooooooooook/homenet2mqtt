@@ -59,6 +59,20 @@ export function createAgentApiRoutes(ctx: AgentApiRoutesContext): Router {
     }
   });
 
+  router.post('/api/agent-api/setup-ack', guard, async (_req, res, next) => {
+    if (ctx.agentApi.unavailable()) {
+      res.status(503).json({ error: 'AGENT_API_UNAVAILABLE' });
+      return;
+    }
+
+    try {
+      await ctx.agentApi.ackFirstRun();
+      res.json({ ok: true });
+    } catch (err) {
+      next(err);
+    }
+  });
+
   router.put('/api/agent-api/settings', guard, async (req, res, next) => {
     if (ctx.agentApi.unavailable()) {
       res.status(503).json({ error: 'AGENT_API_UNAVAILABLE' });

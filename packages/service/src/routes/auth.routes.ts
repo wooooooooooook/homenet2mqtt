@@ -102,6 +102,7 @@ export function createPublicAuthRoutes(ctx: AuthRoutesContext): Router {
       agentApi: {
         enabled: ctx.agentApi.isEnvEnabled(),
         portEditable: !ctx.portLocked,
+        setupPending: ctx.agentApi.isSetupPending(),
       },
     });
   });
@@ -168,6 +169,9 @@ export function createPublicAuthRoutes(ctx: AuthRoutesContext): Router {
           if (agentSetup.generateToken) {
             issuedAgentToken = await ctx.agentApi.generateToken();
           }
+          // The Agent API was part of this screen, so the standalone first-run
+          // screen is no longer pending.
+          await ctx.agentApi.ackFirstRun();
         }
       } finally {
         setupInProgress = false;

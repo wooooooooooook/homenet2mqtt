@@ -2,6 +2,12 @@
   import { t } from 'svelte-i18n';
   import Button from './Button.svelte';
   import { UiAuthError, loginUi, setupUiPassword } from '../api/auth';
+  import {
+    AgentApiError,
+    ackAgentApiSetup,
+    issueAgentApiToken,
+    updateAgentApiSettings,
+  } from '../api/agent-api';
   import { copyToClipboard } from '../utils/clipboard';
 
   let {
@@ -9,7 +15,7 @@
     agentApi = { enabled: false, portEditable: true },
     onSuccess,
   }: {
-    mode: 'setup' | 'login' | 'unavailable' | 'expired';
+    mode: 'setup' | 'login' | 'unavailable' | 'expired' | 'agent-setup';
     agentApi?: { enabled: boolean; portEditable: boolean };
     onSuccess: () => void;
   } = $props();
@@ -18,6 +24,7 @@
   const MAX_LENGTH = 1024;
   const PASSWORD_RESET_DOC_URL =
     'https://homenet2mqtt-docs.vercel.app/guide/troubleshooting.html#ui-password-reset';
+  const AGENT_API_DOC_URL = 'https://homenet2mqtt-docs.vercel.app/guide/agent-api.html';
 
   let password = $state('');
   let confirmPassword = $state('');
@@ -35,6 +42,18 @@
   );
 
   function resolveErrorKey(err: unknown): string {
+    if (err instanceof AgentApiError) {
+      switch (err.code) {
+        case 'AGENT_API_UNAVAILABLE':
+          return 'settings.agent_api.errors.unavailable';
+        case 'RATE_LIMITED':
+          return 'auth.errors.rate_limited';
+        case 'NETWORK_ERROR':
+          return 'auth.errors.network';
+        default:
+          return 'auth.errors.unknown';
+      }
+    }
     if (err instanceof UiAuthError) {
       switch (err.code) {
         case 'INVALID_PASSWORD':
@@ -79,7 +98,7 @@
         errorKey = 'auth.errors.invalid_port';
         return;
       }
-    } else if (password.length === 0) {
+    } else if (mode === 'login' && password.length === 0) {
       errorKey = 'auth.errors.invalid_password';
       return;
     }
@@ -96,6 +115,19 @@
           issuedToken = result.agentToken;
           return;
         }
+      } else if (mode === 'agent-setup') {
+        // The add-on has no first-run password screen, so the Agent API options are
+        // applied directly through the settings endpoints here.
+        if (agentApi.enabled) {
+          if (allowPacketSend) await updateAgentApiSettings({ allowPacketSend: true });
+          if (issueToken) {
+            const result = await issueAgentApiToken();
+            issuedToken = result.token;
+          }
+        }
+        await ackAgentApiSetup();
+        if (!issuedToken) onSuccess();
+        return;
       } else {
         await loginUi(password);
       }
@@ -132,6 +164,8 @@
       <h1>
         {#if mode === 'setup'}
           {$t('auth.setup.title')}
+        {:else if mode === 'agent-setup'}
+          {$t('auth.agent_setup.title')}
         {:else if mode === 'login'}
           {$t('auth.login.title')}
         {:else if mode === 'unavailable'}
@@ -143,6 +177,8 @@
       <p class="desc">
         {#if mode === 'setup'}
           {$t('auth.setup.desc')}
+        {:else if mode === 'agent-setup'}
+          {$t(agentApi.enabled ? 'auth.agent_setup.desc' : 'auth.agent_setup.disabled_desc')}
         {:else if mode === 'login'}
           {$t('auth.login.desc')}
         {:else if mode === 'unavailable'}
@@ -160,15 +196,17 @@
         </p>
       {:else}
         <form onsubmit={handleSubmit}>
-          <label class="field">
-            <span>{$t('auth.password')}</span>
-            <input
-              type="password"
-              bind:value={password}
-              autocomplete={mode === 'setup' ? 'new-password' : 'current-password'}
-              disabled={submitting}
-            />
-          </label>
+          {#if mode === 'setup' || mode === 'login'}
+            <label class="field">
+              <span>{$t('auth.password')}</span>
+              <input
+                type="password"
+                bind:value={password}
+                autocomplete={mode === 'setup' ? 'new-password' : 'current-password'}
+                disabled={submitting}
+              />
+            </label>
+          {/if}
 
           {#if mode === 'setup'}
             <label class="field">
@@ -181,42 +219,65 @@
               />
             </label>
             <p class="hint">{$t('auth.setup.hint')}</p>
+          {/if}
 
-            <!-- Agent API settings are configured together with the first password. -->
-            <div class="agent-section">
-              <div class="agent-header">
-                <span class="agent-title">{$t('auth.setup.agent_title')}</span>
-                <span class="agent-badge" class:active={agentApi.enabled}>
-                  {$t(agentApi.enabled ? 'auth.setup.agent_enabled' : 'auth.setup.agent_disabled')}
-                </span>
+          {#if mode === 'setup' || mode === 'agent-setup'}
+            {#if mode === 'agent-setup' && !agentApi.enabled}
+              <div class="notice">
+                <ol class="steps">
+                  <li>{$t('auth.agent_setup.step_enable')}</li>
+                  {#if !agentApi.portEditable}
+                    <li>{$t('auth.agent_setup.step_port')}</li>
+                  {/if}
+                  <li>{$t('auth.agent_setup.step_restart')}</li>
+                </ol>
+                <p class="hint">{$t('auth.agent_setup.later_hint')}</p>
               </div>
-              <p class="hint">{$t('auth.setup.agent_desc')}</p>
+              <p class="help">
+                <a href={AGENT_API_DOC_URL} target="_blank" rel="noopener noreferrer">
+                  {$t('auth.agent_setup.docs')}
+                </a>
+              </p>
+            {:else}
+              <div class="agent-section">
+                <div class="agent-header">
+                  <span class="agent-title">{$t('auth.setup.agent_title')}</span>
+                  <span class="agent-badge" class:active={agentApi.enabled}>
+                    {$t(
+                      agentApi.enabled ? 'auth.setup.agent_enabled' : 'auth.setup.agent_disabled',
+                    )}
+                  </span>
+                </div>
+                <p class="hint">{$t('auth.setup.agent_desc')}</p>
 
-              <label class="checkbox-field">
-                <input type="checkbox" bind:checked={issueToken} disabled={submitting} />
-                <span>{$t('auth.setup.agent_issue_token')}</span>
-              </label>
-
-              <label class="checkbox-field">
-                <input type="checkbox" bind:checked={allowPacketSend} disabled={submitting} />
-                <span>{$t('auth.setup.agent_allow_packet_send')}</span>
-              </label>
-
-              {#if agentApi.portEditable}
-                <label class="field">
-                  <span>{$t('auth.setup.agent_port')}</span>
-                  <input
-                    type="number"
-                    min="1"
-                    max="65535"
-                    bind:value={portInput}
-                    disabled={submitting}
-                  />
+                <label class="checkbox-field">
+                  <input type="checkbox" bind:checked={issueToken} disabled={submitting} />
+                  <span>{$t('auth.setup.agent_issue_token')}</span>
                 </label>
-              {:else}
-                <p class="hint">{$t('auth.setup.agent_port_locked')}</p>
-              {/if}
-            </div>
+
+                <label class="checkbox-field">
+                  <input type="checkbox" bind:checked={allowPacketSend} disabled={submitting} />
+                  <span>{$t('auth.setup.agent_allow_packet_send')}</span>
+                </label>
+
+                {#if mode === 'setup' && agentApi.portEditable}
+                  <label class="field">
+                    <span>{$t('auth.setup.agent_port')}</span>
+                    <input
+                      type="number"
+                      min="1"
+                      max="65535"
+                      bind:value={portInput}
+                      disabled={submitting}
+                    />
+                  </label>
+                {:else if !agentApi.portEditable}
+                  <p class="hint">{$t('auth.setup.agent_port_locked')}</p>
+                {:else}
+                  <p class="hint">{$t('auth.agent_setup.port_in_settings')}</p>
+                {/if}
+              </div>
+            {/if}
           {/if}
 
           {#if errorKey}
@@ -230,7 +291,13 @@
             isLoading={submitting}
             disabled={submitting}
           >
-            {mode === 'setup' ? $t('auth.submit_setup') : $t('auth.submit_login')}
+            {#if mode === 'agent-setup'}
+              {$t(agentApi.enabled ? 'auth.agent_setup.submit' : 'auth.agent_setup.continue')}
+            {:else if mode === 'setup'}
+              {$t('auth.submit_setup')}
+            {:else}
+              {$t('auth.submit_login')}
+            {/if}
           </Button>
 
           {#if mode === 'login'}
@@ -327,6 +394,31 @@
     margin: -0.35rem 0 0;
     color: #64748b;
     font-size: 0.8rem;
+  }
+
+  .notice {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    padding: 1rem;
+    border: 1px solid rgba(251, 191, 36, 0.35);
+    border-radius: 10px;
+    background: rgba(251, 191, 36, 0.08);
+  }
+
+  .steps {
+    margin: 0;
+    padding-left: 1.2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    color: #cbd5e1;
+    font-size: 0.85rem;
+    line-height: 1.5;
+  }
+
+  .notice .hint {
+    margin: 0;
   }
 
   .agent-section {

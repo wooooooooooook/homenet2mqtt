@@ -210,7 +210,14 @@
   let showAutomationCards = $state(true);
   let showScriptCards = $state(true);
 
-  type AuthState = 'checking' | 'setup' | 'login' | 'unavailable' | 'expired' | 'ready';
+  type AuthState =
+    | 'checking'
+    | 'setup'
+    | 'login'
+    | 'unavailable'
+    | 'expired'
+    | 'agent-setup'
+    | 'ready';
   let authState = $state<AuthState>('checking');
   let authStatus = $state<UiAuthStatus | null>(null);
   let authPollTimer: ReturnType<typeof setInterval> | null = null;
@@ -570,6 +577,12 @@
       authStatus = status;
 
       if (status.ingress || status.authenticated) {
+        // The add-on skips the password screen, so the Agent API gets its own
+        // first-run screen instead.
+        if (status.agentApi?.setupPending) {
+          authState = 'agent-setup';
+          return;
+        }
         authState = 'ready';
         startAuthPolling();
         initializeApp();
@@ -1958,7 +1971,7 @@
 
 {#if $isLoading || authState === 'checking'}
   <div class="loading-screen">Loading resources...</div>
-{:else if authState === 'setup' || authState === 'login' || authState === 'unavailable' || authState === 'expired'}
+{:else if authState === 'setup' || authState === 'login' || authState === 'unavailable' || authState === 'expired' || authState === 'agent-setup'}
   <AuthGate mode={authState} agentApi={authStatus?.agentApi} onSuccess={handleAuthSuccess} />
 {:else}
   <a href="#main-content" class="skip-link">{$t('header.skip_to_content')}</a>

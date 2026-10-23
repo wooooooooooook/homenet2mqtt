@@ -115,4 +115,63 @@ describe('agent api store', () => {
       store.getTokenHash()?.toString('base64'),
     );
   });
+
+  it('keeps the first-run screen pending until a token exists while enabled', async () => {
+    const store = new AgentApiStore(filePath, { envEnabled: true });
+    await store.load();
+    expect(store.isSetupPending()).toBe(true);
+
+    await store.ackFirstRun();
+    expect(store.isSetupPending()).toBe(false);
+
+    await store.generateToken();
+    const withToken = new AgentApiStore(filePath, { envEnabled: true });
+    await withToken.load();
+    expect(withToken.isSetupPending()).toBe(false);
+  });
+
+  it('reopens the first-run screen when the option is enabled after a notice ack', async () => {
+    const disabled = new AgentApiStore(filePath, { envEnabled: false });
+    await disabled.load();
+    expect(disabled.isSetupPending()).toBe(true);
+
+    await disabled.ackFirstRun();
+    expect(disabled.isSetupPending()).toBe(false);
+
+    const enabled = new AgentApiStore(filePath, { envEnabled: true });
+    await enabled.load();
+    expect(enabled.isSetupPending()).toBe(true);
+
+    await enabled.ackFirstRun();
+    await enabled.generateToken();
+    expect(enabled.isSetupPending()).toBe(false);
+  });
+
+  it('treats a legacy record without ack fields as unacknowledged', async () => {
+    await fs.writeFile(
+      filePath,
+      JSON.stringify({
+        version: 1,
+        mode: 'sha256',
+        tokenHash: null,
+        port: 3001,
+        allowPacketSend: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }),
+      'utf8',
+    );
+
+    const store = new AgentApiStore(filePath, { envEnabled: true });
+    await store.load();
+    expect(store.unavailable()).toBe(false);
+    expect(store.isSetupPending()).toBe(true);
+
+    await store.ackFirstRun();
+    expect(store.isSetupPending()).toBe(false);
+
+    const reloaded = new AgentApiStore(filePath, { envEnabled: true });
+    await reloaded.load();
+    expect(reloaded.isSetupPending()).toBe(false);
+  });
 });

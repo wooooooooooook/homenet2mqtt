@@ -219,6 +219,19 @@ describe('agent api settings routes', () => {
     expect(status.body.disabledReason).toBe('store_unavailable');
   });
 
+  it('acks the first-run screen without touching token or port', async () => {
+    const { app, store, triggerRestart } = await buildHarness();
+
+    const response = await request(app).post('/api/agent-api/setup-ack');
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ ok: true });
+    expect(store.isSetupPending()).toBe(false);
+    expect(store.hasToken()).toBe(false);
+    expect(store.getDesiredPort()).toBe(3001);
+    expect(triggerRestart).not.toHaveBeenCalled();
+  });
+
   it('rate limits token and settings mutations', async () => {
     const { app } = await buildHarness({ maxRequests: 1 });
 
