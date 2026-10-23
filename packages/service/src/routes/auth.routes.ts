@@ -12,13 +12,13 @@ import {
   getUiSessionToken,
   isSecureRequest,
   isTrustedIngress,
+  type IngressTrustContext,
 } from '../auth/ui-auth.middleware.js';
 
-export interface AuthRoutesContext {
+export interface AuthRoutesContext extends IngressTrustContext {
   credentials: UiCredentialStore;
   sessions: UiSessionStore;
   rateLimiter: RateLimiter;
-  trustIngress: boolean;
 }
 
 function readBody(body: unknown): Record<string, unknown> {
@@ -38,7 +38,7 @@ export function createPublicAuthRoutes(ctx: AuthRoutesContext): Router {
   let setupInProgress = false;
 
   router.get('/api/auth/status', (req, res) => {
-    const ingress = isTrustedIngress(req, ctx.trustIngress);
+    const ingress = isTrustedIngress(req, ctx.trustIngress, ctx.trustedIngressAddresses);
     const token = getUiSessionToken(req);
     const authenticated = ingress || (token !== null && ctx.sessions.validate(token));
 

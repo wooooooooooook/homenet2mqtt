@@ -7,12 +7,18 @@ import path from 'node:path';
 import { UiCredentialStore } from '../../src/auth/ui-credential.store.js';
 import { UiSessionStore } from '../../src/auth/ui-session.store.js';
 import {
+  SUPERVISOR_FALLBACK_ADDRESS,
   UI_SESSION_COOKIE,
   createUiAuthMiddleware,
   getUiSessionToken,
   isTrustedIngress,
+  normalizeRemoteAddress,
   parseCookieHeader,
+  resolveIngressProxyAddresses,
 } from '../../src/auth/ui-auth.middleware.js';
+
+const SUPERVISOR_ADDRESS = '172.30.32.2';
+const LOOPBACK_ADDRESSES = new Set(['127.0.0.1', '::1']);
 
 interface Harness {
   app: Express;
@@ -37,6 +43,7 @@ describe('UI auth middleware', () => {
   const buildHarness = async (
     trustIngress: boolean,
     sessionOptions: { ttlMs?: number; now?: () => number } = {},
+    trustedIngressAddresses: ReadonlySet<string> = LOOPBACK_ADDRESSES,
   ): Promise<Harness> => {
     const credentials = new UiCredentialStore(filePath);
     await credentials.load();
@@ -44,7 +51,10 @@ describe('UI auth middleware', () => {
 
     const app = express();
     app.use(express.json());
-    app.use('/api', createUiAuthMiddleware({ credentials, sessions, trustIngress }));
+    app.use(
+      '/api',
+      createUiAuthMiddleware({ credentials, sessions, trustIngress, trustedIngressAddresses }),
+    );
     app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
     app.get('/api/protected', (_req, res) => res.json({ ok: true }));
 
@@ -139,6 +149,17 @@ describe('UI auth middleware', () => {
     expect(response.body).toEqual({ error: 'UI_SETUP_REQUIRED' });
   });
 
+  it('does not trust the ingress header from an untrusted source address', async () => {
+    const { app } = await buildHarness(true, {}, new Set([SUPERVISOR_ADDRESS]));
+
+    const response = await request(app)
+      .get('/api/protected')
+      .set('X-Ingress-Path', '/api/hassio_ingress/token');
+
+    expect(response.status).toBe(401);
+    expect(response.body).toEqual({ error: 'UI_SETUP_REQUIRED' });
+  });
+
   it('does not trust ingress requests without the ingress path header', async () => {
     const { app } = await buildHarness(true);
 
@@ -147,14 +168,47 @@ describe('UI auth middleware', () => {
     expect(response.status).toBe(401);
   });
 
-  it('requires a non-empty ingress path header', async () => {
-    expect(isTrustedIngress({ headers: { 'x-ingress-path': '   ' } }, true)).toBe(false);
-    expect(isTrustedIngress({ headers: { 'x-ingress-path': '/api/hassio_ingress/x' } }, true)).toBe(
-      true,
-    );
-    expect(
-      isTrustedIngress({ headers: { 'x-ingress-path': '/api/hassio_ingress/x' } }, false),
-    ).toBe(false);
+  it('only trusts requests from the configured ingress proxy address', () => {
+    const trusted = new Set([SUPERVISOR_ADDRESS]);
+    const request = (remoteAddress: string | undefined, path = '/api/hassio_ingress/x') => ({
+      headers: { 'x-ingress-path': path },
+      socket: remoteAddress ? { remoteAddress } : undefined,
+    });
+
+    expect(isTrustedIngress(request(SUPERVISOR_ADDRESS), true, trusted)).toBe(true);
+    expect(isTrustedIngress(request('::ffff:172.30.32.2'), true, trusted)).toBe(true);
+    expect(isTrustedIngress(request('192.168.0.10'), true, trusted)).toBe(false);
+    expect(isTrustedIngress(request(undefined), true, trusted)).toBe(false);
+    expect(isTrustedIngress(request(SUPERVISOR_ADDRESS), true, new Set())).toBe(false);
+    expect(isTrustedIngress(request(SUPERVISOR_ADDRESS), false, trusted)).toBe(false);
+    expect(isTrustedIngress(request(SUPERVISOR_ADDRESS, '   '), true, trusted)).toBe(false);
+    expect(isTrustedIngress(request(SUPERVISOR_ADDRESS, ''), true, trusted)).toBe(false);
+  });
+
+  it('normalizes IPv4-mapped and zoned remote addresses', () => {
+    expect(normalizeRemoteAddress('::ffff:172.30.32.2')).toBe('172.30.32.2');
+    expect(normalizeRemoteAddress('fe80::1%eth0')).toBe('fe80::1');
+    expect(normalizeRemoteAddress('  127.0.0.1  ')).toBe('127.0.0.1');
+    expect(normalizeRemoteAddress('')).toBeNull();
+    expect(normalizeRemoteAddress(null)).toBeNull();
+  });
+
+  it('resolves ingress proxy addresses with a Supervisor fallback', async () => {
+    const resolved = await resolveIngressProxyAddresses(async () => [
+      '172.30.32.2',
+      '::ffff:10.0.0.5',
+    ]);
+
+    expect(resolved).toContain(SUPERVISOR_FALLBACK_ADDRESS);
+    expect(resolved).toContain('10.0.0.5');
+  });
+
+  it('keeps the Supervisor fallback when address resolution fails', async () => {
+    const resolved = await resolveIngressProxyAddresses(async () => {
+      throw new Error('dns unavailable');
+    });
+
+    expect(resolved).toEqual(new Set([SUPERVISOR_FALLBACK_ADDRESS]));
   });
 
   it('parses cookie headers', () => {

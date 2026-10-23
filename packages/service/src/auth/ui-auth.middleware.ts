@@ -1,3 +1,4 @@
+import { lookup } from 'node:dns/promises';
 import type { Request, RequestHandler } from 'express';
 import type { IncomingHttpHeaders, IncomingMessage } from 'node:http';
 import type { UiCredentialStore } from './ui-credential.store.js';
@@ -6,20 +7,70 @@ import type { UiSessionStore } from './ui-session.store.js';
 export const UI_SESSION_COOKIE = 'h2m_ui_session';
 export const UI_SESSION_MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
 
-export interface UiAuthGuardContext {
+export const SUPERVISOR_HOSTNAME = 'supervisor';
+export const SUPERVISOR_FALLBACK_ADDRESS = '172.30.32.2';
+
+export interface IngressTrustContext {
+  trustIngress: boolean;
+  trustedIngressAddresses: ReadonlySet<string>;
+}
+
+export interface UiAuthGuardContext extends IngressTrustContext {
   sessions: UiSessionStore;
   credentials: UiCredentialStore;
-  trustIngress: boolean;
 }
 
 interface HeaderCarrier {
   headers: IncomingHttpHeaders;
+  socket?: { remoteAddress?: string | null };
 }
 
-export function isTrustedIngress(req: HeaderCarrier, trustIngress: boolean): boolean {
+export function normalizeRemoteAddress(address: string | null | undefined): string | null {
+  const trimmed = address?.trim();
+  if (!trimmed) return null;
+
+  const withoutZone = trimmed.split('%')[0];
+  return withoutZone.startsWith('::ffff:') ? withoutZone.slice(7) : withoutZone;
+}
+
+export function isTrustedIngress(
+  req: HeaderCarrier,
+  trustIngress: boolean,
+  trustedIngressAddresses: ReadonlySet<string>,
+): boolean {
   if (!trustIngress) return false;
+
   const header = req.headers['x-ingress-path'];
-  return typeof header === 'string' && header.trim().length > 0;
+  if (typeof header !== 'string' || header.trim().length === 0) return false;
+
+  const remoteAddress = normalizeRemoteAddress(req.socket?.remoteAddress);
+  return remoteAddress !== null && trustedIngressAddresses.has(remoteAddress);
+}
+
+export type SupervisorAddressResolver = () => Promise<readonly string[]>;
+
+const resolveSupervisorAddresses: SupervisorAddressResolver = async () => {
+  const records = await lookup(SUPERVISOR_HOSTNAME, { all: true });
+  return records.map((record) => record.address);
+};
+
+export async function resolveIngressProxyAddresses(
+  resolveAddresses: SupervisorAddressResolver = resolveSupervisorAddresses,
+): Promise<ReadonlySet<string>> {
+  // The Supervisor always owns this address on the hassio network; keep it as a
+  // fallback so ingress keeps working when the "supervisor" DNS entry is unavailable.
+  const addresses = new Set<string>([SUPERVISOR_FALLBACK_ADDRESS]);
+
+  try {
+    for (const rawAddress of await resolveAddresses()) {
+      const address = normalizeRemoteAddress(rawAddress);
+      if (address) addresses.add(address);
+    }
+  } catch {
+    // Fallback address still allows ingress from the standard Supervisor network.
+  }
+
+  return addresses;
 }
 
 export function parseCookieHeader(header: string | undefined): Record<string, string> {
@@ -90,7 +141,7 @@ export function createUiAuthMiddleware(ctx: UiAuthGuardContext): RequestHandler 
       return;
     }
 
-    if (isTrustedIngress(req, ctx.trustIngress)) {
+    if (isTrustedIngress(req, ctx.trustIngress, ctx.trustedIngressAddresses)) {
       next();
       return;
     }
@@ -121,7 +172,7 @@ export type UiWsVerifyClient = (
 
 export function createUiWsVerifyClient(ctx: UiAuthGuardContext): UiWsVerifyClient {
   return (info, callback) => {
-    if (isTrustedIngress(info.req, ctx.trustIngress)) {
+    if (isTrustedIngress(info.req, ctx.trustIngress, ctx.trustedIngressAddresses)) {
       callback(true);
       return;
     }

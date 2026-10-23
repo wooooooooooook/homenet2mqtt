@@ -59,7 +59,11 @@ import { createAgentRoutes, type AgentRoutesContext } from './agent/agent.routes
 import { AGENT_API_BASE } from './agent/agent-paths.js';
 import { UiCredentialStore } from './auth/ui-credential.store.js';
 import { UiSessionStore } from './auth/ui-session.store.js';
-import { createUiAuthMiddleware, createUiWsVerifyClient } from './auth/ui-auth.middleware.js';
+import {
+  createUiAuthMiddleware,
+  createUiWsVerifyClient,
+  resolveIngressProxyAddresses,
+} from './auth/ui-auth.middleware.js';
 import {
   createProtectedAuthRoutes,
   createPublicAuthRoutes,
@@ -89,11 +93,13 @@ const uiCredentialStore = new UiCredentialStore(UI_AUTH_FILE);
 const uiSessionStore = new UiSessionStore();
 const uiAuthRateLimiter = new RateLimiter(15 * 60 * 1000, 10);
 const trustIngress = Boolean(process.env.SUPERVISOR_TOKEN);
+const trustedIngressAddresses = new Set<string>();
 const uiAuthContext: AuthRoutesContext = {
   credentials: uiCredentialStore,
   sessions: uiSessionStore,
   rateLimiter: uiAuthRateLimiter,
   trustIngress,
+  trustedIngressAddresses,
 };
 
 const wss = new WebSocketServer({
@@ -923,6 +929,7 @@ const initializeService = async () => {
     {
       uiPasswordConfigured: uiCredentialStore.configured,
       uiIngressBypass: trustIngress,
+      uiIngressProxyAddresses: trustIngress ? [...trustedIngressAddresses] : [],
       agentApiEnabled: agentApiConfig.enabled,
     },
     '[service] Authentication configuration',
@@ -1066,6 +1073,12 @@ const initializeService = async () => {
 
 const startServers = async (): Promise<void> => {
   await uiCredentialStore.load();
+
+  if (trustIngress) {
+    for (const address of await resolveIngressProxyAddresses()) {
+      trustedIngressAddresses.add(address);
+    }
+  }
 
   try {
     await Promise.all([listen(uiServer, uiPort), listen(agentServer, agentApiPort)]);

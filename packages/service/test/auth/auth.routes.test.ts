@@ -22,6 +22,8 @@ interface Harness {
 }
 
 const INGRESS_HEADER = { 'X-Ingress-Path': '/api/hassio_ingress/token' };
+const SUPERVISOR_ADDRESS = '172.30.32.2';
+const LOOPBACK_ADDRESSES = new Set(['127.0.0.1', '::1']);
 
 const setCookieHeaders = (response: request.Response): string[] => {
   const raw = response.headers['set-cookie'];
@@ -51,14 +53,25 @@ describe('UI auth routes', () => {
   });
 
   const buildHarness = async (
-    options: { trustIngress?: boolean; maxRequests?: number } = {},
+    options: {
+      trustIngress?: boolean;
+      maxRequests?: number;
+      trustedIngressAddresses?: ReadonlySet<string>;
+    } = {},
   ): Promise<Harness> => {
     const credentials = new UiCredentialStore(filePath);
     await credentials.load();
     const sessions = new UiSessionStore({ cleanupIntervalMs: 0 });
     const rateLimiter = new RateLimiter(15 * 60 * 1000, options.maxRequests ?? 100);
     const trustIngress = options.trustIngress ?? false;
-    const ctx: AuthRoutesContext = { credentials, sessions, rateLimiter, trustIngress };
+    const trustedIngressAddresses = options.trustedIngressAddresses ?? LOOPBACK_ADDRESSES;
+    const ctx: AuthRoutesContext = {
+      credentials,
+      sessions,
+      rateLimiter,
+      trustIngress,
+      trustedIngressAddresses,
+    };
 
     const app = express();
     app.use(express.json());
@@ -91,6 +104,18 @@ describe('UI auth routes', () => {
 
     expect(response.status).toBe(200);
     expect(response.body).toMatchObject({ configured: false, authenticated: true, ingress: true });
+  });
+
+  it('does not report a forged ingress header from an untrusted address as ingress', async () => {
+    const { app } = await buildHarness({
+      trustIngress: true,
+      trustedIngressAddresses: new Set([SUPERVISOR_ADDRESS]),
+    });
+
+    const response = await request(app).get('/api/auth/status').set(INGRESS_HEADER);
+
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({ authenticated: false, ingress: false });
   });
 
   it('sets up the initial password and creates a session', async () => {
