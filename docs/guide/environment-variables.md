@@ -23,7 +23,7 @@
 | `AGENT_ALLOW_PACKET_SEND` | `false`                                      | 에이전트 API의 RS485 패킷 전송 허용 여부              | Add-on, Docker, 로컬 |
 
 ::: info UI 비밀번호는 환경변수가 아닙니다
-UI 비밀번호는 `UI_PASSWORD` 같은 환경변수로 설정하지 않습니다. 첫 UI 접속 시 화면에서 설정하며, `CONFIG_ROOT/ui-auth.json`에 scrypt 해시로만 저장됩니다. Home Assistant ingress로 접속하면 Home Assistant 로그인 세션이 사용되므로 별도 비밀번호를 묻지 않습니다.
+UI 비밀번호는 `UI_PASSWORD` 같은 환경변수로 설정하지 않습니다. 직접 접속(예: Docker, Matter 애드온의 3000 포트)에서는 첫 UI 접속 시 화면에서 설정하며, `CONFIG_ROOT/ui-auth.json`에 scrypt 해시로만 저장됩니다. Home Assistant ingress로 접속하면 Home Assistant 로그인 세션이 사용되므로 별도 비밀번호를 묻지 않고, 설정 화면의 UI 보안 섹션도 표시되지 않습니다.
 :::
 
 ## 운영 튜닝 환경변수 (중요)

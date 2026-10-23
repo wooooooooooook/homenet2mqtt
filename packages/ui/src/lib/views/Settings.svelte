@@ -1817,16 +1817,16 @@
             </select>
           </div>
 
-          <!-- UI Security Sub-section -->
-          <div class="subsection-header" id="ui-security">
-            <div>
-              <h3>{$t('auth.security_title')}</h3>
-              <p>{$t('auth.change_password_desc')}</p>
+          {#if !ingress}
+            <!-- UI Security Sub-section -->
+            <div class="subsection-header" id="ui-security">
+              <div>
+                <h3>{$t('auth.security_title')}</h3>
+                <p>{$t('auth.change_password_desc')}</p>
+              </div>
             </div>
-          </div>
-          <div class="setting-subsection">
-            <PasswordChangeForm {passwordConfigured} onChanged={onPasswordChanged} />
-            {#if !ingress}
+            <div class="setting-subsection">
+              <PasswordChangeForm {passwordConfigured} onChanged={onPasswordChanged} />
               <div class="setting">
                 <div>
                   <div class="setting-title">{$t('auth.logout')}</div>
@@ -1836,8 +1836,8 @@
                   {$t('auth.logout')}
                 </Button>
               </div>
-            {/if}
-          </div>
+            </div>
+          {/if}
 
           <!-- Auto Restart Sub-section -->
           <div class="subsection-header">
