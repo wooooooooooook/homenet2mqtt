@@ -63,7 +63,7 @@ export const packetTools: McpTool[] = [
     name: 'send_packet',
     title: 'Send a raw packet',
     description:
-      'Send raw bytes on the RS485 bus. Disabled unless AGENT_ALLOW_PACKET_SEND=true. Requires confirm=true and is rate limited.',
+      'Send raw bytes on the RS485 bus. Disabled unless packet sending is enabled in Settings > Agent API. Requires confirm=true and is rate limited.',
     inputSchema: {
       type: 'object',
       required: ['hex', 'confirm'],

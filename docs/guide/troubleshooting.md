@@ -83,7 +83,11 @@
 - **`429 RATE_LIMITED`**: 로그인/비밀번호 변경 시도가 15분에 10회를 초과했습니다. 15분 후 다시 시도하세요.
 - **`401 UI_AUTH_REQUIRED` / `UI_SETUP_REQUIRED`**: UI API가 인증을 요구하는 정상 응답입니다. 페이지를 새로고침하면 로그인 또는 최초 비밀번호 설정 화면이 표시됩니다.
 - **Home Assistant ingress에서는 비밀번호를 묻지 않음**: ingress 접속은 Home Assistant 로그인으로 인증되므로 정상 동작입니다. 직접 URL(`http://<HA-IP>:3000`)로 접속할 때만 비밀번호가 필요합니다.
-- **Agent API가 404**: Agent API는 UI 포트(3000)가 아니라 `AGENT_API_PORT`(기본 3001)에서 제공됩니다. 주소를 `http://<호스트>:3001/api/v1/agent/...`로 변경하세요.
+- **Agent API가 404**: Agent API는 UI 포트(3000)가 아니라 전용 포트(기본 3001)에서 제공됩니다. 주소를 `http://<호스트>:3001/api/v1/agent/...`로 변경하세요. 실제 포트는 UI의 **설정 → 애플리케이션 관리 → Agent API**와 기동 로그에서 확인할 수 있습니다.
+- **`503 AGENT_API_DISABLED`**: 응답의 `reason`을 확인하세요. `env_disabled`는 애드온 옵션/Docker의 `AGENT_API_ENABLED`가 꺼진 상태, `no_token`은 아직 UI에서 토큰을 발급하지 않은 상태, `store_unavailable`은 `agent-api.json`이 손상되어 에이전트 API만 fail-closed로 차단된 상태입니다. 포트가 열려 있는데 `ECONNREFUSED`라면 토글이 꺼져 포트 자체가 닫혀 있는지 확인하세요.
+- **포트가 이미 사용 중**: 에이전트 API는 다음 빈 포트(최대 +9)로 자동 이동하고 UI와 Matter 브리지는 그대로 동작합니다. 설정 화면에 요청 포트와 실제 바인딩 포트가 다르면 경고가 표시됩니다. Docker에서 컨테이너 내부 포트가 바뀌었다면 `ports:` 매핑도 함께 수정하세요.
+- **MQTT 애드온에서 포트가 변경되지 않음**: 정상입니다. MQTT 애드온의 에이전트 포트는 애드온 **네트워크(Network)** 섹션의 `3001/tcp` 매핑으로 결정되며 UI 입력란은 숨겨집니다.
+- **`agent-api.json` 손상**: 이 파일을 삭제하면 토큰이 사라집니다. 서비스를 재시작한 뒤 **설정 → Agent API**에서 토큰을 재발급해야 하고, 이전 토큰으로 접속하던 에이전트는 모두 갱신해야 합니다.
 
 ## 7. 명령은 잘 되는데 상태 반영이 안 됨
 

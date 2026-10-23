@@ -3,7 +3,21 @@
     "setup": {
       "title": "UI 비밀번호 설정",
       "desc": "이 UI에 접속할 비밀번호를 설정하세요. 비밀번호는 해시로만 저장되며, 설정 후 이 화면에서 로그인할 수 있습니다.",
-      "hint": "8자 이상 1024자 이하로 입력하세요."
+      "hint": "8자 이상 1024자 이하로 입력하세요.",
+      "agent_title": "AI 에이전트 API",
+      "agent_desc": "에이전트가 이 화면에서 발급한 토큰으로 초기 마법사를 대신 진행할 수 있습니다. 나중에 설정 → Agent API에서도 관리할 수 있습니다.",
+      "agent_enabled": "활성화됨",
+      "agent_disabled": "옵션에서 비활성",
+      "agent_issue_token": "에이전트 API 토큰 자동 발급",
+      "agent_allow_packet_send": "에이전트의 패킷 전송 허용",
+      "agent_port": "에이전트 API 포트",
+      "agent_port_locked": "포트는 HA 애드온의 네트워크 설정에서 변경합니다.",
+      "token_title": "에이전트 API 토큰 발급 완료",
+      "token_desc": "이 토큰으로 에이전트가 Agent API에 접근합니다. 지금만 표시되므로 반드시 복사하세요.",
+      "token_copy": "복사",
+      "token_copied": "복사됨",
+      "token_once_hint": "화면을 떠나면 다시 볼 수 없습니다. 잃어버리면 설정 → Agent API에서 재발급하세요.",
+      "continue": "계속"
     },
     "login": {
       "title": "로그인",
@@ -42,7 +56,10 @@
       "already_configured": "이미 비밀번호가 설정되어 있습니다. 페이지를 새로고침하세요.",
       "setup_expired": "비밀번호 설정 시간이 만료되었습니다. 서비스를 재시작한 뒤 다시 시도하세요.",
       "network": "서버에 연결할 수 없습니다.",
-      "unknown": "요청을 처리하지 못했습니다."
+      "unknown": "요청을 처리하지 못했습니다.",
+      "invalid_port": "포트는 1 이상 65535 이하의 정수여야 합니다.",
+      "port_conflict": "UI 포트와 같은 포트는 사용할 수 없습니다.",
+      "port_managed_by_addon": "이 환경에서는 포트를 변경할 수 없습니다. HA 애드온 네트워크 설정을 사용하세요."
     }
   },
   "settings": {
@@ -234,6 +251,45 @@
       "process_fallback": {
         "title": "전체 프로세스 재시작 폴백",
         "desc": "개별 브리지 복구가 3회 연속 실패했을 때 서비스 전체(Node.js 프로세스)를 재시작합니다. 비활성화 시 해당 브리지는 오류 상태로 유지되고 전체 프로세스는 계속 실행됩니다."
+      }
+    },
+    "agent_api": {
+      "title": "Agent API",
+      "desc": "AI 에이전트용 REST/MCP API의 토큰, 포트, 패킷 전송 권한을 관리합니다.",
+      "state_title": "현재 상태",
+      "state_env_disabled": "애드온 옵션(agent_api_enabled)에서 비활성화되어 있습니다. 포트는 열리지 않습니다.",
+      "state_unavailable": "agent-api.json을 읽을 수 없어 안전하게 비활성화되었습니다. 파일을 복구하거나 삭제하세요.",
+      "state_no_token": "토큰이 없습니다. 발급하면 바로 사용할 수 있습니다.",
+      "state_ready": "토큰이 발급되어 에이전트 API가 동작 중입니다.",
+      "state_not_ready": "에이전트 API가 시작되지 않았습니다. 포트 충돌 여부를 확인하세요.",
+      "badge_active": "동작 중",
+      "badge_inactive": "중지됨",
+      "port_fallback_notice": "요청한 포트가 사용 중이라 실제 포트는 {port}입니다.",
+      "token_title": "접근 토큰",
+      "token_create_desc": "토큰을 발급하면 평문이 한 번만 표시됩니다.",
+      "token_reissue_desc": "재발급하면 기존 토큰은 즉시 만료됩니다.",
+      "token_generate": "토큰 발급",
+      "token_regenerate": "토큰 재발급",
+      "token_copy": "복사",
+      "token_copied": "복사됨",
+      "token_once_hint": "이 토큰은 다시 표시되지 않습니다.",
+      "packet_send_title": "패킷 전송 허용",
+      "packet_send_desc": "에이전트가 RS485 버스로 원시 패킷을 전송할 수 있게 합니다.",
+      "port_title": "에이전트 API 포트",
+      "port_desc": "에이전트 전용 포트입니다. 변경하면 재시작이 필요하며 UI 포트와 중복될 수 없습니다.",
+      "port_save": "포트 적용",
+      "port_locked": "포트는 HA 애드온의 네트워크 설정(3001/tcp 매핑)에서 변경합니다.",
+      "restart_required": "저장되었습니다. 포트를 적용하려면 서비스를 재시작하세요.",
+      "saved": "저장되었습니다.",
+      "errors": {
+        "unavailable": "에이전트 설정 파일을 읽을 수 없습니다.",
+        "invalid_port": "유효한 포트가 아닙니다.",
+        "port_conflict": "UI 포트와 중복됩니다.",
+        "port_managed_by_addon": "애드온 포트 매핑에서 변경해야 합니다.",
+        "rate_limited": "시도 횟수가 너무 많습니다. 잠시 후 다시 시도하세요.",
+        "network": "서버에 연결할 수 없습니다.",
+        "load_failed": "에이전트 API 설정을 불러오지 못했습니다.",
+        "unknown": "요청을 처리하지 못했습니다."
       }
     }
   },

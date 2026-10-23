@@ -2,7 +2,7 @@ import './utils/runtime-env.js';
 import express from 'express';
 import path from 'node:path';
 import fs from 'node:fs/promises';
-import { createServer, type Server } from 'node:http';
+import { createServer } from 'node:http';
 import { fileURLToPath } from 'node:url';
 import yaml from 'js-yaml';
 import { WebSocketServer } from 'ws';
@@ -44,6 +44,7 @@ import {
   CONFIG_RESTART_FLAG,
   BASE_MQTT_PREFIX,
   UI_AUTH_FILE,
+  AGENT_API_FILE,
 } from './utils/constants.js';
 import {
   fileExists,
@@ -52,12 +53,13 @@ import {
   discoverConfigFiles,
   isDockerEnvironment,
 } from './utils/helpers.js';
+import { listen, listenWithFallback } from './utils/port-bind.js';
 import { initializeBackupDir, saveBackup } from './services/backup.service.js';
 import { loadFrontendSettings } from './services/frontend-settings.service.js';
 import { registerRoutes, type RoutesContext } from './routes/index.js';
 import { createStreamManager } from './websocket/stream-manager.js';
 import { globalSecurityHeaders, apiSecurityHeaders } from './middleware/security.js';
-import { loadAgentApiConfig } from './agent/agent.config.js';
+import { AgentApiStore } from './agent/agent-api.store.js';
 import { AgentEventHub } from './agent/agent-events.service.js';
 import { createRawStreamController } from './agent/raw-stream.controller.js';
 import { handleMcpJsonParseError } from './agent/mcp/mcp.server.js';
@@ -75,6 +77,7 @@ import {
   createPublicAuthRoutes,
   type AuthRoutesContext,
 } from './routes/auth.routes.js';
+import { createAgentApiRoutes } from './routes/agent-api.routes.js';
 
 // --- Path Constants ---
 const __filename = fileURLToPath(import.meta.url);
@@ -101,14 +104,23 @@ const uiSetupWindowMs = !trustIngress && isDockerEnvironment() ? UI_SETUP_WINDOW
 const uiCredentialStore = new UiCredentialStore(UI_AUTH_FILE, {
   setupWindowMs: uiSetupWindowMs,
 });
+const agentApiEnabled = process.env.AGENT_API_ENABLED?.trim().toLowerCase() === 'true';
+const agentApiStore = new AgentApiStore(AGENT_API_FILE, { envEnabled: agentApiEnabled });
+// The MQTT add-on runs bridge-networked with a static "3001/tcp" mapping, so its agent
+// port is owned by the HA Network settings. The Matter add-on uses host_network instead.
+const agentPortLocked = trustIngress && process.env.INTEGRATION_TYPE === 'mqtt';
 const uiSessionStore = new UiSessionStore();
 const uiAuthRateLimiter = new RateLimiter(15 * 60 * 1000, 10);
+const agentApiSettingsRateLimiter = new RateLimiter(60000, 10);
 const uiAuthContext: AuthRoutesContext = {
   credentials: uiCredentialStore,
   sessions: uiSessionStore,
   rateLimiter: uiAuthRateLimiter,
   trustIngress,
   trustedIngressAddresses,
+  agentApi: agentApiStore,
+  getUiPort: () => uiPort,
+  portLocked: agentPortLocked,
 };
 
 const wss = new WebSocketServer({
@@ -130,14 +142,9 @@ const parsePort = (envName: string, fallback: number): number => {
   return value;
 };
 
-const { uiPort, agentApiPort } = (() => {
+const uiPort = (() => {
   try {
-    const parsedUiPort = parsePort('PORT', 3000);
-    const parsedAgentPort = parsePort('AGENT_API_PORT', 3001);
-    if (parsedUiPort === parsedAgentPort) {
-      throw new Error('PORT and AGENT_API_PORT must be different.');
-    }
-    return { uiPort: parsedUiPort, agentApiPort: parsedAgentPort };
+    return parsePort('PORT', 3000);
   } catch (err) {
     logger.error({ err }, '[service] Invalid port configuration');
     process.exit(1);
@@ -173,7 +180,6 @@ const configRateLimiter = new RateLimiter(60000, 20); // 20 requests per minute
 const serialTestRateLimiter = new RateLimiter(60000, 20); // 20 requests per minute
 const agentRateLimiter = new RateLimiter(60000, 120); // 120 requests per minute
 
-const agentApiConfig = loadAgentApiConfig();
 const agentEventHub = new AgentEventHub();
 
 const setupWizardService = createSetupWizardService({
@@ -276,12 +282,21 @@ agentApp.use(handleMcpJsonParseError);
 
 // UI authentication: public auth endpoints first, then session enforcement for all other APIs.
 uiApp.use(createPublicAuthRoutes(uiAuthContext));
-// Agent API is only served on AGENT_API_PORT; never expose an auth challenge for it on the UI port.
+// The Agent API is only served on its own port; never expose an auth challenge for it on the UI port.
 uiApp.use(AGENT_API_BASE, (_req, res) => {
   res.status(404).json({ error: 'NOT_FOUND' });
 });
 uiApp.use('/api', createUiAuthMiddleware(uiAuthContext));
 uiApp.use(createProtectedAuthRoutes(uiAuthContext));
+uiApp.use(
+  createAgentApiRoutes({
+    agentApi: agentApiStore,
+    rateLimiter: agentApiSettingsRateLimiter,
+    getUiPort: () => uiPort,
+    portLocked: agentPortLocked,
+    triggerRestart: async () => triggerRestart(),
+  }),
+);
 
 // --- Service Initializations ---
 activityLogService.addLog('log.service_started');
@@ -364,7 +379,7 @@ streamManager.registerWebSocketHandlers();
 // --- Agent API app (separate port, Bearer token only) ---
 const agentRoutesContext: AgentRoutesContext = {
   ...uiRoutesContext,
-  agentApiConfig,
+  agentApi: agentApiStore,
   agentRateLimiter,
   getLatestStates: () => latestStates,
   rawStreamController,
@@ -916,24 +931,13 @@ async function loadAndStartBridges(filenames: string[]) {
 }
 
 // --- Server Initialization ---
-const listen = (server: Server, listenPort: number): Promise<void> =>
-  new Promise((resolve, reject) => {
-    const onError = (err: Error) => {
-      server.off('listening', onListening);
-      reject(err);
-    };
-    const onListening = () => {
-      server.off('error', onError);
-      resolve();
-    };
-    server.once('error', onError);
-    server.once('listening', onListening);
-    server.listen(listenPort);
-  });
-
 const initializeService = async () => {
   logger.info(`Service (UI) listening on port ${uiPort}`);
-  logger.info(`Agent API listening on port ${agentApiPort}`);
+  if (agentApiStore.getActualPort() !== null) {
+    logger.info(
+      `Agent API listening on port ${agentApiStore.getActualPort()} (requested ${agentApiStore.getDesiredPort()})`,
+    );
+  }
   logger.info(
     {
       uiPasswordConfigured: uiCredentialStore.configured,
@@ -942,7 +946,12 @@ const initializeService = async () => {
       uiSetupExpired: uiCredentialStore.setupExpired,
       uiIngressBypass: trustIngress,
       uiIngressProxyAddresses: trustIngress ? [...trustedIngressAddresses] : [],
-      agentApiEnabled: agentApiConfig.enabled,
+      agentApiEnabled: agentApiStore.isEnvEnabled(),
+      agentApiReady: agentApiStore.isReady(),
+      agentApiDisabledReason: agentApiStore.disabledReason(),
+      agentApiPort: agentApiStore.getDesiredPort(),
+      agentApiActualPort: agentApiStore.getActualPort(),
+      agentApiUnavailable: agentApiStore.unavailable(),
     },
     '[service] Authentication configuration',
   );
@@ -1085,6 +1094,7 @@ const initializeService = async () => {
 
 const startServers = async (): Promise<void> => {
   await uiCredentialStore.load();
+  await agentApiStore.load();
 
   if (trustIngress) {
     for (const address of await resolveIngressProxyAddresses()) {
@@ -1093,10 +1103,30 @@ const startServers = async (): Promise<void> => {
   }
 
   try {
-    await Promise.all([listen(uiServer, uiPort), listen(agentServer, agentApiPort)]);
+    await listen(uiServer, uiPort);
   } catch (err) {
-    logger.error({ err }, '[service] Failed to start HTTP servers');
+    logger.error({ err }, '[service] Failed to start the UI server');
     process.exit(1);
+  }
+
+  // Security: keep the agent port closed entirely while the feature is off.
+  if (!agentApiStore.isEnvEnabled()) {
+    logger.info('[service] Agent API is disabled. Its port is not opened.');
+  } else {
+    try {
+      const boundPort = await listenWithFallback(
+        agentServer,
+        agentApiStore.getDesiredPort(),
+        undefined,
+        'Agent API',
+      );
+      agentApiStore.setActualPort(boundPort);
+    } catch (err) {
+      logger.error(
+        { err },
+        '[service] Failed to start the Agent API. The UI and bridges keep running.',
+      );
+    }
   }
 
   await initializeService();

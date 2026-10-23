@@ -10,6 +10,7 @@ import type { HomenetBridgeConfig } from '@rs485-homenet/core';
 import { createAgentRoutes, type AgentRoutesContext } from '../../src/agent/agent.routes.js';
 import { handleMcpJsonParseError } from '../../src/agent/mcp/mcp.server.js';
 import { RateLimiter } from '../../src/utils/rate-limiter.js';
+import { FakeAgentApiState } from '../utils/agent-api-state.js';
 import type { LogRetentionService } from '../../src/log-retention.service.js';
 import type { AgentEvent } from '../../src/agent/agent-events.service.js';
 
@@ -110,12 +111,11 @@ describe('agent MCP routes', () => {
     };
 
     const ctx: AgentRoutesContext = {
-      agentApiConfig: {
-        enabled,
-        token: enabled ? TOKEN : null,
+      agentApi: new FakeAgentApiState({
+        envEnabled: enabled,
+        token: TOKEN,
         allowPacketSend: options.allowPacketSend ?? false,
-        disabledReason: enabled ? null : 'missing_token',
-      },
+      }),
       agentRateLimiter: new RateLimiter(60_000, 1000),
       commandRateLimiter: new RateLimiter(60_000, 1000),
       getBridges: () =>

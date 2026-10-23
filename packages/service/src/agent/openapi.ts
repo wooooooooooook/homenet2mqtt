@@ -257,7 +257,8 @@ export function buildOpenApiDocument(options: OpenApiOptions): Record<string, un
         post: {
           tags: ['packets'],
           summary: 'Send raw bytes on the RS485 bus (opt-in)',
-          description: 'Requires AGENT_ALLOW_PACKET_SEND=true and confirm=true.',
+          description:
+            'Requires packet sending to be enabled in Settings > Agent API, and confirm=true.',
           requestBody: {
             required: true,
             content: {
@@ -486,7 +487,7 @@ export function buildOpenApiDocument(options: OpenApiOptions): Record<string, un
         bearerAuth: {
           type: 'http',
           scheme: 'bearer',
-          description: 'Set Authorization: Bearer <AGENT_API_TOKEN>',
+          description: 'Set Authorization: Bearer <agent API token issued in Settings > Agent API>',
         },
       },
       parameters: {
@@ -586,7 +587,7 @@ export function buildOpenApiDocument(options: OpenApiOptions): Record<string, un
 export const AGENT_LLMS_TXT = `# homenet2mqtt Agent API
 
 Base URL: ${AGENT_API_BASE}
-Auth: Authorization: Bearer <AGENT_API_TOKEN> (required for every endpoint except openapi.json and llms.txt)
+Auth: Authorization: Bearer <agent API token> (required for every endpoint except openapi.json and llms.txt)
 OpenAPI: ${AGENT_API_BASE}${AGENT_PATHS.openapi}
 
 ## Workflow
@@ -606,7 +607,7 @@ OpenAPI: ${AGENT_API_BASE}${AGENT_PATHS.openapi}
 - POST /setup/apply restarts the service after responding unless restart=false.
 - Draft ids must match ^[A-Za-z0-9_-]+$.
 - \`applicable\` is false when exact ID conflicts remain. Use resolutions { "<id>": "overwrite" | "skip" } or renames { "<id>": "<new_id>" } when applying.
-- Packet sending is disabled unless AGENT_ALLOW_PACKET_SEND=true. Sending also requires confirm=true and count <= 10.
+- Packet sending is disabled unless it is enabled in Settings > Agent API. Sending also requires confirm=true and count <= 10.
 - GET /events is an SSE stream. Optional query: types, portId, raw=all|valid, sinceId. Send Last-Event-ID to replay buffered events (max 500).
 - Legacy /api/* endpoints remain unauthenticated for the bundled UI.
 
@@ -616,6 +617,6 @@ Auth: same Authorization: Bearer header. Send Content-Type: application/json.
 Methods: initialize, notifications/initialized (202, no body), ping, tools/list, tools/call.
 Tools: get_setup_state, get_setup_example, test_setup_serial, apply_initial_setup, list_ports, get_entities, get_entity_state, get_packet_history, get_unmatched_packets, analyze_packet,
 start_capture, stop_capture, get_capture_status, list_capture_files, validate_entity_draft, apply_entity_draft,
-get_recent_events (poll with afterId), and send_packet when AGENT_ALLOW_PACKET_SEND=true.
+get_recent_events (poll with afterId), and send_packet when packet sending is enabled in Settings > Agent API.
 Tool failures are returned as tool results with isError=true and { error, message }; protocol errors use JSON-RPC error codes.
 `;

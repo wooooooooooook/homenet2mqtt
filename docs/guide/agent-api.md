@@ -4,7 +4,7 @@
 
 ## 개요
 
-에이전트 API는 UI와 **별도 포트**(기본 `3001`, `AGENT_API_PORT`)에서 `/api/v1/agent` 아래에 제공되는 버전 고정 REST API입니다. UI 포트(기본 `3000`)에서는 `/api/v1/agent/*`가 `404`를 반환하며, Agent 포트에서는 UI 정적 파일과 UI API를 제공하지 않습니다.
+에이전트 API는 UI와 **별도 포트**(기본 `3001`, UI의 **설정 > Agent API**에서 변경)에서 `/api/v1/agent` 아래에 제공되는 버전 고정 REST API입니다. UI 포트(기본 `3000`)에서는 `/api/v1/agent/*`가 `404`를 반환하며, Agent 포트에서는 UI 정적 파일과 UI API를 제공하지 않습니다. 사용 토글(`AGENT_API_ENABLED`)이 꺼져 있으면 포트 자체가 열리지 않습니다.
 
 - OpenAPI 3.1 문서와 평문 가이드를 공개 엔드포인트로 제공합니다.
 - 나머지 모든 엔드포인트는 **Bearer 토큰 인증이 필수**입니다.
@@ -35,25 +35,35 @@
 
 ## 토큰 설정
 
-에이전트 API는 `AGENT_API_TOKEN`이 16자 이상으로 설정된 경우에만 활성화됩니다. 토큰이 없거나 너무 짧으면 모든 인증 엔드포인트가 `503 AGENT_API_DISABLED`를 반환합니다(OpenAPI/llms.txt는 계속 공개).
+에이전트 API는 `AGENT_API_ENABLED=true`(애드온 옵션 `agent_api_enabled`)로 활성화하고, Bearer 토큰은 **웹 UI에서 자동 생성**합니다. 환경변수로 토큰을 지정하지는 않습니다.
+
+토큰이 아직 없거나 파일이 손상되면 모든 인증 엔드포인트가 OpenAPI/llms.txt를 계속 공개한 채 `503 AGENT_API_DISABLED`를 반환합니다.
+
+1. 애드온/Docker에서 에이전트 API를 켭니다.
+2. 브라우저로 UI에 처음 접속합니다. 첫 화면에서 **UI 비밀번호와 에이전트 API 설정(토큰 자동 생성, 포트, 패킷 전송 허용)을 함께** 입력하면 응답으로 토큰 평문이 **한 번만** 표시됩니다.
+3. 이후에는 **설정 > Agent API** 화면에서 토큰을 새로 발급(재발급 시 이전 토큰 즉시 무효)하거나 포트·패킷 전송 허용을 바꿉니다.
+
+::: warning 토큰은 다시 볼 수 없습니다
+`CONFIG_ROOT/agent-api.json`에는 SHA-256 해시만 저장되고 파일 권한은 0600입니다. 평문은 발급 화면에서 한 번만 표시되므로 즉시 안전한 곳으로 복사하세요.
+:::
 
 ### Home Assistant Add-on
 
-애드온 설정에서 다음 옵션을 사용합니다.
+애드온 설정에는 사용 토글만 있습니다.
 
 ```yaml
-agent_api_token: '충분히-긴-임의의-토큰'
-agent_allow_packet_send: false
+agent_api_enabled: true
 ```
+
+MQTT 애드온은 에이전트 포트가 애드온의 **네트워크 포트 매핑**(`3001/tcp`)으로 결정되므로 UI에서 변경할 수 없습니다. Home Assistant의 애드온 설정 → 네트워크에서 매핑을 바꾸세요. `host_network`를 쓰는 Matter 애드온은 **설정 > Agent API**에서 포트를 변경할 수 있습니다.
 
 ### Docker
 
 ```bash
 docker run \
-  -e AGENT_API_TOKEN="충분히-긴-임의의-토큰" \
-  -e AGENT_ALLOW_PACKET_SEND=false \
-  -e AGENT_API_PORT=3001 \
-  -p 3001:3001 \
+  -e AGENT_API_ENABLED=true \
+  -p 127.0.0.1:3000:3000 \
+  -p 127.0.0.1:3001:3001 \
   ...
 ```
 
@@ -69,11 +79,15 @@ docker run \
 
 ```yaml
 environment:
-  AGENT_API_PORT: '3001'
+  AGENT_API_ENABLED: 'true'
 ports:
   - '127.0.0.1:3000:3000'
   - '127.0.0.1:3001:3001'
 ```
+
+::: tip 포트가 이미 사용 중이라면
+지정된 에이전트 포트가 이미 쓰이면 서비스는 **최대 9번까지 다음 포트로 자동 이동**하고, UI와 Matter 브리지는 그대로 동작합니다. 실제로 바인딩된 포트는 **설정 > Agent API** 화면과 기동 로그에 표시됩니다. Docker에서 컨테이너 내부 포트가 바뀌었다면 `ports:`의 컨테이너 쪽 숫자도 함께 수정하세요.
+:::
 
 | 접근 주체                       | 주소                       | 필요한 설정                         |
 | ------------------------------- | -------------------------- | ----------------------------------- |
@@ -157,15 +171,19 @@ Matter 애드온은 `host_network: true`이므로 호스트의 3001 포트가 �
 ## 인증
 
 ```http
-Authorization: Bearer <AGENT_API_TOKEN>
+Authorization: Bearer <AGENT_TOKEN>
 ```
 
-| 상황                  | 상태 코드 | `error`              |
-| --------------------- | --------- | -------------------- |
-| 토큰 미설정/16자 미만 | `503`     | `AGENT_API_DISABLED` |
-| 헤더 누락             | `401`     | `UNAUTHORIZED`       |
-| 토큰 불일치           | `401`     | `UNAUTHORIZED`       |
-| 요청 한도 초과        | `429`     | `RATE_LIMITED`       |
+`<AGENT_TOKEN>`은 **설정 > Agent API**(또는 첫 접속 화면)에서 발급한 평문 토큰입니다.
+
+| 상황                                | 상태 코드 | `error`              |
+| ----------------------------------- | --------- | -------------------- |
+| 사용 토글 off / 토큰 미발급 / 파일 손상 | `503`     | `AGENT_API_DISABLED` |
+| 헤더 누락                           | `401`     | `UNAUTHORIZED`       |
+| 토큰 불일치                         | `401`     | `UNAUTHORIZED`       |
+| 요청 한도 초과                      | `429`     | `RATE_LIMITED`       |
+
+`503` 응답의 `reason` 필드는 `env_disabled`(토글 off), `no_token`(토큰 미발급), `store_unavailable`(설정 파일 손상) 중 하나입니다.
 
 ## 공개 엔드포인트
 
@@ -263,64 +281,13 @@ curl -s -X POST -H "Authorization: Bearer $TOKEN" \
 - `restart` 기본값은 `true`입니다. `false`이면 `.restart-required` 플래그만 기록하고 응답 후 재시작하지 않습니다.
 - MQTT 접속 정보는 config가 아니라 환경변수/애드온 옵션이므로 API로 설정할 수 없습니다.
 - Home Assistant MQTT 애드온은 기본적으로 `3001/tcp`가 공개되지 않으므로, 초기 설정에 API를 사용하려면 애드온 네트워크 설정에서 포트를 공개해야 합니다.
-
-### 초기 설정 및 브릿지 추가
-
-로드된 설정이 하나도 없으면 UI 초기 설정 마법사 대신 API로 초기 설정을 완료할 수 있습니다. 이때 `/setup/apply`의 `mode`는 `init`(기본값)입니다. 이미 설정이 로드된 상태에서 새 포트(브릿지)를 추가하려면 `mode: "add"`를 사용하며, `/setup`의 `loadedPortIds`와 겹치지 않는 `portId`를 지정해야 합니다. `/setup/test-serial`은 설정 로드 여부와 관계없이 사용할 수 있습니다.
-
-```bash
-# 1. 설정 상태, 예제 목록, 사용 중인 portId 확인
-curl -s -H "Authorization: Bearer $TOKEN" "$H2M/setup"
-
-# 2. 예제의 serial 기본값과 선택 가능한 엔티티 확인
-curl -s -H "Authorization: Bearer $TOKEN" "$H2M/setup/examples/bestin.homenet_bridge.yaml"
-
-# 3. 배선 테스트 (최대 10개 패킷, 3초)
-curl -s -X POST -H "Authorization: Bearer $TOKEN" \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "example": "bestin.homenet_bridge.yaml",
-    "serialPath": "/dev/ttyUSB0",
-    "portId": "bestin_main"
-  }' "$H2M/setup/test-serial"
-
-# 4. 초기 설정 적용 (응답 후 자동 재시작)
-curl -s -X POST -H "Authorization: Bearer $TOKEN" \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "mode": "init",
-    "example": "bestin.homenet_bridge.yaml",
-    "serialPath": "/dev/ttyUSB0",
-    "portId": "bestin_main",
-    "selectedEntities": { "light": ["living_light"] },
-    "restart": true
-  }' "$H2M/setup/apply"
-
-# 5. 설정이 이미 로드된 상태에서 새 브릿지 추가 (새 portId)
-curl -s -X POST -H "Authorization: Bearer $TOKEN" \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "mode": "add",
-    "example": "bestin.homenet_bridge.yaml",
-    "serialPath": "/dev/ttyUSB1",
-    "portId": "bestin_second",
-    "restart": true
-  }' "$H2M/setup/apply"
-```
-
-- `mode` 기본값은 `init`입니다. 설정이 이미 로드된 상태에서 `init`으로 호출하면 기존 설정 보호를 위해 `409 SETUP_NOT_REQUIRED`가 반환됩니다.
-- `mode: "add"`는 새 설정 파일(예: `default_2.homenet_bridge.yaml`)을 생성하고 `.initialized` 마커는 건드리지 않습니다. `portId`와 `serialPath`가 기존 포트와 중복되면 각각 `400 PORT_ID_DUPLICATE`, `400 SERIAL_PATH_DUPLICATE`가 반환됩니다.
-- `example`에 `__empty__`를 지정하면 빈 config로 시작합니다. 이 경우 `serialConfig`에 `portId`, `path`, `baud_rate`, `data_bits`, `parity`, `stop_bits`를 모두 전달해야 합니다.
-- `selectedEntities`를 생략하면 예제의 모든 엔티티를 사용합니다. 지정한 타입은 전달한 ID만 남기고, 결과가 비면 해당 타입을 제거합니다.
-- `restart` 기본값은 `true`입니다. `false`이면 `.restart-required` 플래그만 기록하고 응답 후 재시작하지 않습니다.
-- MQTT 접속 정보는 config가 아니라 환경변수/애드온 옵션이므로 API로 설정할 수 없습니다.
-- Home Assistant MQTT 애드온은 기본적으로 `3001/tcp`가 공개되지 않으므로, 초기 설정에 API를 사용하려면 애드온 네트워크 설정에서 포트를 공개해야 합니다.
+- 에이전트 API를 켠 뒤 처음 UI에 접속하는 화면에서 에이전트 토큰을 함께 발급할 수 있습니다. 발급된 토큰으로 아래 `/setup` 엔드포인트를 바로 호출할 수 있어, 초기 마법사 전체를 AI 에이전트에 맡길 수 있습니다.
 
 ### 기본 워크플로
 
 ```bash
 export H2M="http://127.0.0.1:3001/api/v1/agent"
-export TOKEN="충분히-긴-임의의-토큰"
+export TOKEN="설정 > Agent API에서 발급한 토큰"
 
 # 1. 현재 상태 관측
 curl -s -H "Authorization: Bearer $TOKEN" "$H2M/ports"
@@ -473,7 +440,7 @@ curl -s -X POST -H "Authorization: Bearer $TOKEN" \
 }
 ```
 
-`POST /packets/send`는 `AGENT_ALLOW_PACKET_SEND=true`일 때만 동작하며, 추가로 `confirm: true`가 필요합니다.
+`POST /packets/send`는 **설정 > Agent API**에서 패킷 전송을 허용했을 때만 동작하며, 추가로 `confirm: true`가 필요합니다.
 
 ```json
 {
@@ -548,7 +515,7 @@ MCP 클라이언트는 일반적으로 다음 순서로 연결합니다.
 
 - 엔드포인트: `POST /api/v1/agent/mcp`
 - 전송: Streamable HTTP, JSON-RPC 2.0, **stateless**(세션 ID 없음, `GET`/`DELETE`는 `405`)
-- 인증: REST와 동일한 `Authorization: Bearer <AGENT_API_TOKEN>` 헤더
+- 인증: REST와 동일한 `Authorization: Bearer <AGENT_TOKEN>` 헤더
 - `Content-Type: application/json` 필수
 - 지원 메서드: `initialize`, `notifications/initialized`(202, 본문 없음), `ping`, `tools/list`, `tools/call`
 - 지원 프로토콜 버전: `2025-06-18`, `2025-03-26`, `2024-11-05`
@@ -572,7 +539,7 @@ MCP 클라이언트는 일반적으로 다음 순서로 연결합니다.
 | `validate_entity_draft`                     | 저장 없이 초안 검증 + 충돌/디스커버리 미리보기                        |
 | `apply_entity_draft`                        | `draftHash`로 초안을 YAML에 적용 + 백업 + 재시작 플래그               |
 | `get_recent_events`                         | `afterId` 기반 이벤트 폴링 (최근 500건 버퍼, SSE 대체)                |
-| `send_packet`                               | RS485 전송. `AGENT_ALLOW_PACKET_SEND=true`일 때만 `tools/list`에 노출 |
+| `send_packet`                               | RS485 전송. UI에서 패킷 전송을 허용한 경우에만 `tools/list`에 노출 |
 
 `send_packet`이 비활성인 상태에서 직접 호출하면 `isError: true`와 `PACKET_SEND_DISABLED`가 반환됩니다. 적용 계열 도구는 REST와 동일하게 YAML 백업과 초안 해시 검증을 수행합니다.
 
@@ -660,7 +627,7 @@ MCP Streamable HTTP를 지원하는 클라이언트에서 URL과 인증 헤더�
     "homenet2mqtt": {
       "url": "http://127.0.0.1:3001/api/v1/agent/mcp",
       "headers": {
-        "Authorization": "Bearer <AGENT_API_TOKEN>"
+        "Authorization": "Bearer <AGENT_TOKEN>"
       }
     }
   }
@@ -679,7 +646,7 @@ MCP Streamable HTTP를 지원하는 클라이언트에서 URL과 인증 헤더�
         "mcp-remote",
         "http://127.0.0.1:3001/api/v1/agent/mcp",
         "--header",
-        "Authorization: Bearer <AGENT_API_TOKEN>"
+        "Authorization: Bearer <AGENT_TOKEN>"
       ]
     }
   }

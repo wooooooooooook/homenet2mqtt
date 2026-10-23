@@ -28,7 +28,7 @@ Use get_entities and get_entity_state to inspect the loaded configuration and li
 Use get_packet_history and get_unmatched_packets to observe traffic, and analyze_packet to test a packet against the active configuration or an unsaved draft.
 Use start_capture / stop_capture / list_capture_files to collect raw bytes.
 Register new devices with validate_entity_draft, then apply_entity_draft with the returned draftHash. Applying writes YAML, creates a backup, and requires a restart.
-send_packet is only available when AGENT_ALLOW_PACKET_SEND=true and requires confirm=true.`;
+send_packet is only available when packet sending is enabled in Settings > Agent API, and requires confirm=true.`;
 
 type JsonRpcId = string | number | null;
 
@@ -160,7 +160,7 @@ function handleToolsList(ctx: AgentRoutesContext, id: JsonRpcId) {
   return {
     status: 200,
     body: jsonRpcResult(id, {
-      tools: listMcpTools({ allowPacketSend: ctx.agentApiConfig.allowPacketSend }).map(toWireTool),
+      tools: listMcpTools({ allowPacketSend: ctx.agentApi.getAllowPacketSend() }).map(toWireTool),
     }),
   };
 }
@@ -183,7 +183,7 @@ async function handleToolsCall(
     return {
       status: 200,
       body: jsonRpcError(id, INVALID_PARAMS, `Unknown tool "${toolName}".`, {
-        available: listMcpTools({ allowPacketSend: ctx.agentApiConfig.allowPacketSend }).map(
+        available: listMcpTools({ allowPacketSend: ctx.agentApi.getAllowPacketSend() }).map(
           (entry) => entry.name,
         ),
       }),

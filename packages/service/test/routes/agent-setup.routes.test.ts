@@ -8,6 +8,7 @@ import yaml from 'js-yaml';
 import { createAgentRoutes, type AgentRoutesContext } from '../../src/agent/agent.routes.js';
 import { handleMcpJsonParseError } from '../../src/agent/mcp/mcp.server.js';
 import { RateLimiter } from '../../src/utils/rate-limiter.js';
+import { FakeAgentApiState } from '../utils/agent-api-state.js';
 import { createSetupWizardService } from '../../src/services/setup.service.js';
 import { fileExists } from '../../src/utils/helpers.js';
 import { dumpConfigToYaml } from '../../src/utils/yaml-dumper.js';
@@ -77,12 +78,7 @@ describe('agent setup routes', () => {
     });
 
     const ctx: AgentRoutesContext = {
-      agentApiConfig: {
-        enabled: true,
-        token: TOKEN,
-        allowPacketSend: false,
-        disabledReason: null,
-      },
+      agentApi: new FakeAgentApiState({ envEnabled: true, token: TOKEN }),
       agentRateLimiter: new RateLimiter(60_000, 1000),
       commandRateLimiter: new RateLimiter(60_000, 1000),
       getBridges: () => [],

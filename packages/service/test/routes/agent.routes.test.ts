@@ -9,6 +9,7 @@ import { normalizeConfig } from '@rs485-homenet/core';
 import type { HomenetBridgeConfig } from '@rs485-homenet/core';
 import { createAgentRoutes, type AgentRoutesContext } from '../../src/agent/agent.routes.js';
 import { RateLimiter } from '../../src/utils/rate-limiter.js';
+import { FakeAgentApiState } from '../utils/agent-api-state.js';
 import type { LogRetentionService } from '../../src/log-retention.service.js';
 
 vi.mock('../../src/services/backup.service.js', () => ({
@@ -99,12 +100,11 @@ describe('agent routes', () => {
     const setCurrentConfigs = vi.fn();
 
     const ctx: AgentRoutesContext = {
-      agentApiConfig: {
-        enabled: options.enabled ?? true,
-        token: (options.enabled ?? true) ? TOKEN : null,
+      agentApi: new FakeAgentApiState({
+        envEnabled: options.enabled ?? true,
+        token: TOKEN,
         allowPacketSend: options.allowPacketSend ?? false,
-        disabledReason: (options.enabled ?? true) ? null : 'missing_token',
-      },
+      }),
       agentRateLimiter: new RateLimiter(60_000, 1000),
       commandRateLimiter: new RateLimiter(60_000, 1000),
       getBridges: () =>

@@ -15,7 +15,7 @@ import type { LogsRoutesContext } from '../routes/logs.routes.js';
 import { getAppVersion } from '../utils/version-utils.js';
 import { ConfigItemsError } from '../services/config-items.service.js';
 import { AGENT_API_BASE, AGENT_PATHS } from './agent-paths.js';
-import type { AgentApiConfig } from './agent.config.js';
+import type { AgentApiState } from './agent-api.store.js';
 import { createAgentAuthMiddleware } from './agent-auth.middleware.js';
 import { AGENT_LLMS_TXT, buildOpenApiDocument } from './openapi.js';
 import type { AgentEvent, AgentEventHub, AgentEventType } from './agent-events.service.js';
@@ -68,7 +68,7 @@ const DEFAULT_EVENT_TYPES: AgentEventType[] = [
 const EVENT_HEARTBEAT_MS = 15_000;
 
 export interface AgentRoutesContext {
-  agentApiConfig: AgentApiConfig;
+  agentApi: AgentApiState;
   agentRateLimiter: RateLimiter;
   commandRateLimiter: RateLimiter;
   getBridges: () => BridgeInstance[];
@@ -139,7 +139,7 @@ const resolvePortOrRespond = (ctx: AgentRoutesContext, res: Response, portIdInpu
 
 export function createAgentRoutes(ctx: AgentRoutesContext): Router {
   const router = Router();
-  const authMiddleware = createAgentAuthMiddleware(ctx.agentApiConfig);
+  const authMiddleware = createAgentAuthMiddleware(ctx.agentApi);
   let activeEventStreams = 0;
 
   const rateLimitMiddleware: RequestHandler = (_req, res, next) => {
@@ -180,7 +180,7 @@ export function createAgentRoutes(ctx: AgentRoutesContext): Router {
           observation: true,
           packetAnalysis: true,
           packetPreview: true,
-          packetSend: ctx.agentApiConfig.allowPacketSend,
+          packetSend: ctx.agentApi.getAllowPacketSend(),
           capture: true,
           events: true,
           draftEntities: true,

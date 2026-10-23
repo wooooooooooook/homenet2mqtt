@@ -2,7 +2,7 @@
 - 오류가 있으면 homeassistant [카페](https://cafe.naver.com/koreassistant), [깃헙](https://github.com/wooooooooooook/homenet2mqtt), [디스코드](https://discord.gg/kGwhUBMe5z) 등으로 알려주세요.
 
 v3.4.0
-- feat: AI 에이전트용 API 추가 — 애드온 구성에서 `agent_api_token`을 설정하면 AI 에이전트가 토큰 인증으로 REST/MCP를 통해 브릿지 상태 조회와 제어를 할 수 있습니다. UI 포트와 분리된 전용 포트(3001)에서 동작하며, 토큰을 설정하지 않으면 기존과 같이 비활성 상태로 유지됩니다. [문서보기](https://homenet2mqtt-docs.vercel.app/guide/agent-api.html#home-assistant-add-on)
+- feat: AI 에이전트용 API 추가 — 애드온 구성의 `agent_api_enabled` 토글로 켜고, AI 에이전트가 토큰 인증으로 REST/MCP를 통해 브릿지 상태 조회와 제어를 할 수 있습니다. Bearer 토큰·패킷 전송 허용은 웹 UI(첫 접속 화면 또는 설정 → Agent API)에서 발급/관리하며 환경변수는 없습니다. UI 포트와 분리된 전용 포트(기본 3001)에서 동작하고, 포트가 사용 중이면 빈 포트로 자동 이동하며 토글이 꺼져 있으면 포트 자체가 열리지 않습니다. [문서보기](https://homenet2mqtt-docs.vercel.app/guide/agent-api.html)
 - feat: UI 비밀번호 인증 추가 — HA 애드온(ingress) 접속은 Home Assistant 로그인으로 인증되므로 기존과 동일하게 비밀번호 없이 이용합니다. Docker 등으로 3000 포트에 직접 접속할 때만 비밀번호 로그인이 필요합니다. [문서보기](https://homenet2mqtt-docs.vercel.app/guide/install-docker.html#ui-%EB%B9%84%EB%B0%80%EB%B2%88%ED%98%B8)
   - security: Docker 직접 접속 환경에서는 최초 비밀번호 설정을 컨테이너 시작 후 15분으로 제한합니다. 시간이 지나면 설정이 차단되며, 컨테이너를 재시작하면 다시 설정할 수 있습니다. 애드온(ingress) 사용자에게는 적용되지 않습니다.
   - security: 인증 파일(`ui-auth.json`)이 손상되거나 읽을 수 없으면 로그인과 비밀번호 설정을 차단합니다(fail-closed). HA ingress 접속은 계속 사용할 수 있습니다. [복구 방법](https://homenet2mqtt-docs.vercel.app/guide/troubleshooting.html#ui-password-reset)

@@ -6,6 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { UiCredentialStore } from '../../src/auth/ui-credential.store.js';
 import { UiSessionStore } from '../../src/auth/ui-session.store.js';
+import { AgentApiStore, DEFAULT_AGENT_API_PORT } from '../../src/agent/agent-api.store.js';
 import { UI_SESSION_COOKIE, createUiAuthMiddleware } from '../../src/auth/ui-auth.middleware.js';
 import {
   createProtectedAuthRoutes,
@@ -19,6 +20,7 @@ interface Harness {
   credentials: UiCredentialStore;
   sessions: UiSessionStore;
   rateLimiter: RateLimiter;
+  agentApi: AgentApiStore;
 }
 
 const INGRESS_HEADER = { 'X-Ingress-Path': '/api/hassio_ingress/token' };
@@ -60,6 +62,9 @@ describe('UI auth routes', () => {
       corruptAuthFile?: boolean;
       setupWindowMs?: number;
       now?: () => number;
+      agentApiEnabled?: boolean;
+      portLocked?: boolean;
+      uiPort?: number;
     } = {},
   ): Promise<Harness> => {
     if (options.corruptAuthFile) {
@@ -72,6 +77,10 @@ describe('UI auth routes', () => {
       now: options.now,
     });
     await credentials.load();
+    const agentApi = new AgentApiStore(path.join(tempDir, 'agent-api.json'), {
+      envEnabled: options.agentApiEnabled ?? false,
+    });
+    await agentApi.load();
     const sessions = new UiSessionStore({ cleanupIntervalMs: 0 });
     const rateLimiter = new RateLimiter(15 * 60 * 1000, options.maxRequests ?? 100);
     const trustIngress = options.trustIngress ?? false;
@@ -82,6 +91,9 @@ describe('UI auth routes', () => {
       rateLimiter,
       trustIngress,
       trustedIngressAddresses,
+      agentApi,
+      portLocked: options.portLocked ?? false,
+      getUiPort: () => options.uiPort ?? 3000,
     };
 
     const app = express();
@@ -91,7 +103,7 @@ describe('UI auth routes', () => {
     app.use(createProtectedAuthRoutes(ctx));
     app.get('/api/protected', (_req, res) => res.json({ ok: true }));
 
-    return { app, credentials, sessions, rateLimiter };
+    return { app, credentials, sessions, rateLimiter, agentApi };
   };
 
   it('reports an unauthenticated, unconfigured status', async () => {
@@ -107,6 +119,7 @@ describe('UI auth routes', () => {
       ingress: false,
       unavailable: false,
       setupExpired: false,
+      agentApi: { enabled: false, portEditable: true },
     });
   });
 
@@ -123,6 +136,7 @@ describe('UI auth routes', () => {
       ingress: false,
       unavailable: true,
       setupExpired: false,
+      agentApi: { enabled: false, portEditable: true },
     });
   });
 
@@ -191,6 +205,7 @@ describe('UI auth routes', () => {
       ingress: false,
       unavailable: false,
       setupExpired: true,
+      agentApi: { enabled: false, portEditable: true },
     });
   });
 
@@ -291,7 +306,7 @@ describe('UI auth routes', () => {
     const setup = await request(app).post('/api/auth/setup').send({ password: 'password123' });
 
     expect(setup.status).toBe(200);
-    expect(setup.body).toEqual({ ok: true });
+    expect(setup.body).toEqual({ ok: true, agentToken: null });
     const cookieHeader = setCookieHeaders(setup).find((value) =>
       value.startsWith(`${UI_SESSION_COOKIE}=`),
     );
@@ -308,6 +323,127 @@ describe('UI auth routes', () => {
 
     const protectedResponse = await request(app).get('/api/protected').set('Cookie', cookie);
     expect(protectedResponse.status).toBe(200);
+  });
+
+  it('configures the password and the Agent API in one first-run call', async () => {
+    const { app, agentApi } = await buildHarness({ agentApiEnabled: true });
+
+    const setup = await request(app)
+      .post('/api/auth/setup')
+      .send({
+        password: 'password123',
+        agentApi: { generateToken: true, port: 3120, allowPacketSend: true },
+      });
+
+    expect(setup.status).toBe(200);
+    expect(typeof setup.body.agentToken).toBe('string');
+    expect(setup.body.agentToken.length).toBeGreaterThan(0);
+
+    expect(agentApi.hasToken()).toBe(true);
+    expect(agentApi.getDesiredPort()).toBe(3120);
+    expect(agentApi.getAllowPacketSend()).toBe(true);
+    await expect(agentApi.load()).resolves.toBeUndefined();
+    expect(agentApi.getDesiredPort()).toBe(3120);
+
+    const raw = await fs.readFile(path.join(tempDir, 'agent-api.json'), 'utf8');
+    expect(raw).not.toContain(setup.body.agentToken);
+  });
+
+  it('leaves the Agent API untouched when the setup payload omits it', async () => {
+    const { app, agentApi } = await buildHarness({ agentApiEnabled: true });
+
+    const setup = await request(app).post('/api/auth/setup').send({ password: 'password123' });
+
+    expect(setup.status).toBe(200);
+    expect(setup.body).toEqual({ ok: true, agentToken: null });
+    expect(agentApi.hasToken()).toBe(false);
+    expect(agentApi.getDesiredPort()).toBe(DEFAULT_AGENT_API_PORT);
+  });
+
+  it('does not persist the password when the requested agent port is invalid', async () => {
+    const { app, agentApi, credentials } = await buildHarness({ agentApiEnabled: true });
+
+    const response = await request(app)
+      .post('/api/auth/setup')
+      .send({ password: 'password123', agentApi: { port: 70000 } });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({ error: 'INVALID_PORT' });
+    expect(credentials.configured).toBe(false);
+    expect(agentApi.getDesiredPort()).toBe(DEFAULT_AGENT_API_PORT);
+  });
+
+  it('rejects an agent port that collides with the UI port', async () => {
+    const { app, agentApi, credentials } = await buildHarness({
+      agentApiEnabled: true,
+      uiPort: 3000,
+    });
+
+    const response = await request(app)
+      .post('/api/auth/setup')
+      .send({ password: 'password123', agentApi: { port: 3000, generateToken: true } });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({ error: 'PORT_CONFLICT' });
+    expect(credentials.configured).toBe(false);
+    expect(agentApi.hasToken()).toBe(false);
+  });
+
+  it('rejects an agent port while the add-on owns the mapping', async () => {
+    const { app, credentials } = await buildHarness({ portLocked: true });
+
+    const response = await request(app)
+      .post('/api/auth/setup')
+      .send({ password: 'password123', agentApi: { port: 3120 } });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({ error: 'PORT_MANAGED_BY_ADDON' });
+    expect(credentials.configured).toBe(false);
+
+    const tokenless = await request(app)
+      .post('/api/auth/setup')
+      .send({ password: 'password123', agentApi: { generateToken: true } });
+    expect(tokenless.status).toBe(200);
+    expect(typeof tokenless.body.agentToken).toBe('string');
+  });
+
+  it('refuses a second setup attempt without rotating the agent token', async () => {
+    const { app, agentApi } = await buildHarness({ agentApiEnabled: true });
+
+    const first = await request(app)
+      .post('/api/auth/setup')
+      .send({ password: 'password123', agentApi: { generateToken: true } });
+    const originalHash = agentApi.getTokenHash()?.toString('base64');
+
+    const second = await request(app)
+      .post('/api/auth/setup')
+      .send({ password: 'password456', agentApi: { generateToken: true } });
+
+    expect(second.status).toBe(409);
+    expect(second.body).toEqual({ error: 'UI_PASSWORD_ALREADY_CONFIGURED' });
+    expect(agentApi.getTokenHash()?.toString('base64')).toBe(originalHash);
+    expect(first.body.agentToken).toBeDefined();
+  });
+
+  it('rejects a malformed agent setup payload', async () => {
+    const { app, credentials } = await buildHarness();
+
+    const response = await request(app)
+      .post('/api/auth/setup')
+      .send({ password: 'password123', agentApi: { allowPacketSend: 'yes' } });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({ error: 'INVALID_ALLOW_PACKET_SEND' });
+    expect(credentials.configured).toBe(false);
+  });
+
+  it('exposes the agent API capabilities on the public status', async () => {
+    const { app } = await buildHarness({ agentApiEnabled: true, portLocked: true });
+
+    const response = await request(app).get('/api/auth/status');
+
+    expect(response.status).toBe(200);
+    expect(response.body.agentApi).toEqual({ enabled: true, portEditable: false });
   });
 
   it('rejects setup with a password that violates the policy', async () => {

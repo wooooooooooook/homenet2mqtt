@@ -7,7 +7,7 @@ import type { RateLimiter } from '../../utils/rate-limiter.js';
 import type { BridgeInstance } from '../../types/index.js';
 import { findBridgeInstanceByPortId } from '../../utils/bridge-lookup.js';
 import { parsePacketInput } from '../../utils/packet-input.js';
-import type { AgentApiConfig } from '../agent.config.js';
+import type { AgentApiState } from '../agent-api.store.js';
 import {
   buildDraftAnalysisConfig,
   validateDraft,
@@ -34,7 +34,7 @@ export interface AgentPacketContext {
 }
 
 export interface AgentPacketSendContext extends AgentPacketContext {
-  agentApiConfig: AgentApiConfig;
+  agentApi: AgentApiState;
   commandRateLimiter: RateLimiter;
 }
 
@@ -205,10 +205,10 @@ export async function sendAgentPacket(
   ctx: AgentPacketSendContext,
   request: SendPacketRequest,
 ): Promise<SendPacketResult> {
-  if (!ctx.agentApiConfig.allowPacketSend) {
+  if (!ctx.agentApi.getAllowPacketSend()) {
     throw new ConfigItemsError(
       'PACKET_SEND_DISABLED',
-      'Packet sending is disabled. Set AGENT_ALLOW_PACKET_SEND=true to enable it.',
+      'Packet sending is disabled. Enable it under Settings > Agent API.',
       403,
     );
   }

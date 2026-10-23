@@ -1959,7 +1959,7 @@
 {#if $isLoading || authState === 'checking'}
   <div class="loading-screen">Loading resources...</div>
 {:else if authState === 'setup' || authState === 'login' || authState === 'unavailable' || authState === 'expired'}
-  <AuthGate mode={authState} onSuccess={handleAuthSuccess} />
+  <AuthGate mode={authState} agentApi={authStatus?.agentApi} onSuccess={handleAuthSuccess} />
 {:else}
   <a href="#main-content" class="skip-link">{$t('header.skip_to_content')}</a>
   <main class="app-container">

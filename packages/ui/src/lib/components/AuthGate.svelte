@@ -2,12 +2,15 @@
   import { t } from 'svelte-i18n';
   import Button from './Button.svelte';
   import { UiAuthError, loginUi, setupUiPassword } from '../api/auth';
+  import { copyToClipboard } from '../utils/clipboard';
 
   let {
     mode,
+    agentApi = { enabled: false, portEditable: true },
     onSuccess,
   }: {
     mode: 'setup' | 'login' | 'unavailable' | 'expired';
+    agentApi?: { enabled: boolean; portEditable: boolean };
     onSuccess: () => void;
   } = $props();
 
@@ -20,6 +23,16 @@
   let confirmPassword = $state('');
   let submitting = $state(false);
   let errorKey = $state<string | null>(null);
+  let issueToken = $state(true);
+  let allowPacketSend = $state(false);
+  let portInput = $state('3001');
+  let issuedToken = $state<string | null>(null);
+  let copied = $state(false);
+
+  const parsedPort = $derived(Number(portInput));
+  const portValid = $derived(
+    Number.isInteger(parsedPort) && parsedPort >= 1 && parsedPort <= 65535,
+  );
 
   function resolveErrorKey(err: unknown): string {
     if (err instanceof UiAuthError) {
@@ -34,6 +47,12 @@
           return 'auth.errors.already_configured';
         case 'UI_SETUP_EXPIRED':
           return 'auth.errors.setup_expired';
+        case 'INVALID_PORT':
+          return 'auth.errors.invalid_port';
+        case 'PORT_CONFLICT':
+          return 'auth.errors.port_conflict';
+        case 'PORT_MANAGED_BY_ADDON':
+          return 'auth.errors.port_managed_by_addon';
         case 'NETWORK_ERROR':
           return 'auth.errors.network';
         default:
@@ -56,6 +75,10 @@
         errorKey = 'auth.errors.password_mismatch';
         return;
       }
+      if (agentApi.portEditable && !portValid) {
+        errorKey = 'auth.errors.invalid_port';
+        return;
+      }
     } else if (password.length === 0) {
       errorKey = 'auth.errors.invalid_password';
       return;
@@ -64,7 +87,15 @@
     submitting = true;
     try {
       if (mode === 'setup') {
-        await setupUiPassword(password);
+        const result = await setupUiPassword(password, {
+          generateToken: issueToken,
+          ...(agentApi.portEditable ? { port: parsedPort } : {}),
+          allowPacketSend,
+        });
+        if (result.agentToken) {
+          issuedToken = result.agentToken;
+          return;
+        }
       } else {
         await loginUi(password);
       }
@@ -75,87 +106,142 @@
       submitting = false;
     }
   }
+
+  async function handleCopyToken() {
+    if (!issuedToken) return;
+    copied = await copyToClipboard(issuedToken);
+  }
 </script>
 
 <div class="auth-gate">
   <div class="auth-card">
     <div class="brand">Homenet2MQTT</div>
-    <h1>
-      {#if mode === 'setup'}
-        {$t('auth.setup.title')}
-      {:else if mode === 'login'}
-        {$t('auth.login.title')}
-      {:else if mode === 'unavailable'}
-        {$t('auth.unavailable.title')}
-      {:else}
-        {$t('auth.expired.title')}
-      {/if}
-    </h1>
-    <p class="desc">
-      {#if mode === 'setup'}
-        {$t('auth.setup.desc')}
-      {:else if mode === 'login'}
-        {$t('auth.login.desc')}
-      {:else if mode === 'unavailable'}
-        {$t('auth.unavailable.desc')}
-      {:else}
-        {$t('auth.expired.desc')}
-      {/if}
-    </p>
 
-    {#if mode === 'unavailable' || mode === 'expired'}
-      <p class="help">
-        <a href={PASSWORD_RESET_DOC_URL} target="_blank" rel="noopener noreferrer">
-          {$t(mode === 'unavailable' ? 'auth.unavailable.docs' : 'auth.expired.docs')}
-        </a>
-      </p>
+    {#if issuedToken}
+      <h1>{$t('auth.setup.token_title')}</h1>
+      <p class="desc">{$t('auth.setup.token_desc')}</p>
+      <pre class="token">{issuedToken}</pre>
+      <div class="token-actions">
+        <Button variant="secondary" onclick={handleCopyToken}>
+          {$t(copied ? 'auth.setup.token_copied' : 'auth.setup.token_copy')}
+        </Button>
+        <Button variant="primary" onclick={onSuccess}>{$t('auth.setup.continue')}</Button>
+      </div>
+      <p class="hint">{$t('auth.setup.token_once_hint')}</p>
     {:else}
-      <form onsubmit={handleSubmit}>
-        <label class="field">
-          <span>{$t('auth.password')}</span>
-          <input
-            type="password"
-            bind:value={password}
-            autocomplete={mode === 'setup' ? 'new-password' : 'current-password'}
-            disabled={submitting}
-          />
-        </label>
-
+      <h1>
         {#if mode === 'setup'}
+          {$t('auth.setup.title')}
+        {:else if mode === 'login'}
+          {$t('auth.login.title')}
+        {:else if mode === 'unavailable'}
+          {$t('auth.unavailable.title')}
+        {:else}
+          {$t('auth.expired.title')}
+        {/if}
+      </h1>
+      <p class="desc">
+        {#if mode === 'setup'}
+          {$t('auth.setup.desc')}
+        {:else if mode === 'login'}
+          {$t('auth.login.desc')}
+        {:else if mode === 'unavailable'}
+          {$t('auth.unavailable.desc')}
+        {:else}
+          {$t('auth.expired.desc')}
+        {/if}
+      </p>
+
+      {#if mode === 'unavailable' || mode === 'expired'}
+        <p class="help">
+          <a href={PASSWORD_RESET_DOC_URL} target="_blank" rel="noopener noreferrer">
+            {$t(mode === 'unavailable' ? 'auth.unavailable.docs' : 'auth.expired.docs')}
+          </a>
+        </p>
+      {:else}
+        <form onsubmit={handleSubmit}>
           <label class="field">
-            <span>{$t('auth.confirm_password')}</span>
+            <span>{$t('auth.password')}</span>
             <input
               type="password"
-              bind:value={confirmPassword}
-              autocomplete="new-password"
+              bind:value={password}
+              autocomplete={mode === 'setup' ? 'new-password' : 'current-password'}
               disabled={submitting}
             />
           </label>
-          <p class="hint">{$t('auth.setup.hint')}</p>
-        {/if}
 
-        {#if errorKey}
-          <p class="error" role="alert">{$t(errorKey)}</p>
-        {/if}
+          {#if mode === 'setup'}
+            <label class="field">
+              <span>{$t('auth.confirm_password')}</span>
+              <input
+                type="password"
+                bind:value={confirmPassword}
+                autocomplete="new-password"
+                disabled={submitting}
+              />
+            </label>
+            <p class="hint">{$t('auth.setup.hint')}</p>
 
-        <Button
-          type="submit"
-          variant="primary"
-          fullWidth
-          isLoading={submitting}
-          disabled={submitting}
-        >
-          {mode === 'setup' ? $t('auth.submit_setup') : $t('auth.submit_login')}
-        </Button>
+            <!-- Agent API settings are configured together with the first password. -->
+            <div class="agent-section">
+              <div class="agent-header">
+                <span class="agent-title">{$t('auth.setup.agent_title')}</span>
+                <span class="agent-badge" class:active={agentApi.enabled}>
+                  {$t(agentApi.enabled ? 'auth.setup.agent_enabled' : 'auth.setup.agent_disabled')}
+                </span>
+              </div>
+              <p class="hint">{$t('auth.setup.agent_desc')}</p>
 
-        {#if mode === 'login'}
-          <p class="help">
-            <a href={PASSWORD_RESET_DOC_URL} target="_blank" rel="noopener noreferrer">
-              {$t('auth.forgot_password')}
-            </a>
-          </p>
-        {/if}
-      </form>
+              <label class="checkbox-field">
+                <input type="checkbox" bind:checked={issueToken} disabled={submitting} />
+                <span>{$t('auth.setup.agent_issue_token')}</span>
+              </label>
+
+              <label class="checkbox-field">
+                <input type="checkbox" bind:checked={allowPacketSend} disabled={submitting} />
+                <span>{$t('auth.setup.agent_allow_packet_send')}</span>
+              </label>
+
+              {#if agentApi.portEditable}
+                <label class="field">
+                  <span>{$t('auth.setup.agent_port')}</span>
+                  <input
+                    type="number"
+                    min="1"
+                    max="65535"
+                    bind:value={portInput}
+                    disabled={submitting}
+                  />
+                </label>
+              {:else}
+                <p class="hint">{$t('auth.setup.agent_port_locked')}</p>
+              {/if}
+            </div>
+          {/if}
+
+          {#if errorKey}
+            <p class="error" role="alert">{$t(errorKey)}</p>
+          {/if}
+
+          <Button
+            type="submit"
+            variant="primary"
+            fullWidth
+            isLoading={submitting}
+            disabled={submitting}
+          >
+            {mode === 'setup' ? $t('auth.submit_setup') : $t('auth.submit_login')}
+          </Button>
+
+          {#if mode === 'login'}
+            <p class="help">
+              <a href={PASSWORD_RESET_DOC_URL} target="_blank" rel="noopener noreferrer">
+                {$t('auth.login.forgot_password')}
+              </a>
+            </p>
+          {/if}
+        </form>
+      {/if}
     {/if}
   </div>
 </div>
@@ -241,6 +327,72 @@
     margin: -0.35rem 0 0;
     color: #64748b;
     font-size: 0.8rem;
+  }
+
+  .agent-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    padding: 1rem;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    border-radius: 10px;
+    background: rgba(15, 23, 42, 0.45);
+  }
+
+  .agent-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  .agent-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #e2e8f0;
+  }
+
+  .agent-badge {
+    font-size: 0.72rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    background: rgba(148, 163, 184, 0.2);
+    color: #94a3b8;
+  }
+
+  .agent-badge.active {
+    background: rgba(52, 211, 153, 0.18);
+    color: #34d399;
+  }
+
+  .checkbox-field {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: #cbd5e1;
+  }
+
+  .checkbox-field input {
+    width: auto;
+  }
+
+  .token {
+    margin: 0;
+    padding: 0.75rem;
+    border-radius: 8px;
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(148, 163, 184, 0.3);
+    color: #fbbf24;
+    font-size: 0.8rem;
+    word-break: break-all;
+    white-space: pre-wrap;
+  }
+
+  .token-actions {
+    display: flex;
+    gap: 0.6rem;
+    margin-top: 0.5rem;
   }
 
   .error {

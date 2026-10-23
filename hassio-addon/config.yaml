@@ -32,8 +32,7 @@ options:
   mqtt_passwd: ""
   config_files: []
   timezone: "Asia/Seoul"
-  agent_api_token: ""
-  agent_allow_packet_send: false
+  agent_api_enabled: false
 schema:
   log_level: list(trace|debug|info|warn|error|fatal)
   use_supervisor_mqtt: bool
@@ -46,12 +45,12 @@ schema:
   config_files:
     - str
   timezone: str?
-  agent_api_token: password?
-  agent_allow_packet_send: bool?
+  agent_api_enabled: bool?
 ingress: true
 ingress_port: 3000
 ingress_stream: true
-# Agent API port is optional; leave it unmapped unless an AI agent needs direct access.
+# Agent API is only an on/off switch here. Token, packet-send permission and the
+# in-container port are managed in the web UI; the host-side port is mapped below.
 ports:
   "3001/tcp": null
 ports_description:

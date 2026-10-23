@@ -6,6 +6,7 @@ import {
   type UiCredentialStore,
 } from '../auth/ui-credential.store.js';
 import type { UiSessionStore } from '../auth/ui-session.store.js';
+import type { AgentApiStore } from '../agent/agent-api.store.js';
 import {
   createClearedUiSessionCookie,
   createUiSessionCookie,
@@ -19,10 +20,57 @@ export interface AuthRoutesContext extends IngressTrustContext {
   credentials: UiCredentialStore;
   sessions: UiSessionStore;
   rateLimiter: RateLimiter;
+  agentApi: AgentApiStore;
+  getUiPort: () => number;
+  /** True for the MQTT add-on, where the agent port is a fixed container port mapped by HA. */
+  portLocked: boolean;
+}
+
+interface SetupAgentApiRequest {
+  generateToken: boolean;
+  port: number | null;
+  allowPacketSend: boolean | null;
 }
 
 function readBody(body: unknown): Record<string, unknown> {
   return body && typeof body === 'object' ? (body as Record<string, unknown>) : {};
+}
+
+class SetupValidationError extends Error {
+  constructor(readonly code: string) {
+    super(code);
+    this.name = 'SetupValidationError';
+  }
+}
+
+function parseOptionalBoolean(value: unknown, code: string): boolean | null {
+  if (value === undefined || value === null) return null;
+  if (typeof value !== 'boolean') throw new SetupValidationError(code);
+  return value;
+}
+
+function parseOptionalPort(value: unknown): number | null {
+  if (value === undefined || value === null) return null;
+  if (typeof value !== 'number' || !Number.isInteger(value) || value < 1 || value > 65535) {
+    throw new SetupValidationError('INVALID_PORT');
+  }
+  return value;
+}
+
+/**
+ * The first-run screen configures the UI password and the Agent API together,
+ * so an AI agent can take over the setup wizard right after bootstrap.
+ */
+function parseSetupAgentApi(value: unknown): SetupAgentApiRequest | null {
+  if (value === undefined || value === null) return null;
+  if (typeof value !== 'object') throw new SetupValidationError('INVALID_AGENT_API_SETTINGS');
+
+  const raw = value as Record<string, unknown>;
+  return {
+    generateToken: raw.generateToken === true,
+    port: parseOptionalPort(raw.port),
+    allowPacketSend: parseOptionalBoolean(raw.allowPacketSend, 'INVALID_ALLOW_PACKET_SEND'),
+  };
 }
 
 function applySessionCookie(req: Request, res: Response, token: string): void {
@@ -51,6 +99,10 @@ export function createPublicAuthRoutes(ctx: AuthRoutesContext): Router {
       ingress,
       unavailable,
       setupExpired: ctx.credentials.setupExpired,
+      agentApi: {
+        enabled: ctx.agentApi.isEnvEnabled(),
+        portEditable: !ctx.portLocked,
+      },
     });
   });
 
@@ -71,10 +123,32 @@ export function createPublicAuthRoutes(ctx: AuthRoutesContext): Router {
         return;
       }
 
-      const { password } = readBody(req.body);
+      const { password, agentApi: agentApiInput } = readBody(req.body);
       if (!isValidUiPassword(password)) {
         res.status(400).json({ error: 'INVALID_NEW_PASSWORD' });
         return;
+      }
+
+      let agentSetup: SetupAgentApiRequest | null = null;
+      try {
+        agentSetup = parseSetupAgentApi(agentApiInput);
+      } catch (err) {
+        if (err instanceof SetupValidationError) {
+          res.status(400).json({ error: err.code });
+          return;
+        }
+        throw err;
+      }
+
+      if (agentSetup?.port !== undefined && agentSetup?.port !== null) {
+        if (ctx.portLocked) {
+          res.status(400).json({ error: 'PORT_MANAGED_BY_ADDON' });
+          return;
+        }
+        if (agentSetup.port === ctx.getUiPort()) {
+          res.status(400).json({ error: 'PORT_CONFLICT' });
+          return;
+        }
       }
 
       if (ctx.credentials.configured || setupInProgress) {
@@ -83,15 +157,25 @@ export function createPublicAuthRoutes(ctx: AuthRoutesContext): Router {
       }
 
       setupInProgress = true;
+      let issuedAgentToken: string | null = null;
       try {
         await ctx.credentials.setPassword(password);
+        if (agentSetup) {
+          if (agentSetup.port !== null) await ctx.agentApi.setPort(agentSetup.port);
+          if (agentSetup.allowPacketSend !== null) {
+            await ctx.agentApi.setAllowPacketSend(agentSetup.allowPacketSend);
+          }
+          if (agentSetup.generateToken) {
+            issuedAgentToken = await ctx.agentApi.generateToken();
+          }
+        }
       } finally {
         setupInProgress = false;
       }
 
       const token = ctx.sessions.create();
       applySessionCookie(req, res, token);
-      res.json({ ok: true });
+      res.json({ ok: true, agentToken: issuedAgentToken });
     } catch (err) {
       next(err);
     }

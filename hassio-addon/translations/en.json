@@ -39,6 +39,10 @@
         "timezone": {
             "name": "Timezone",
             "description": "System timezone (e.g., Asia/Seoul). If left empty, the server uses UTC timezone, and the UI uses the browser's timezone."
+        },
+        "agent_api_enabled": {
+            "name": "AI Agent API",
+            "description": "When enabled, the agent REST/MCP API is served on its dedicated port. The access token and packet-send permission are managed in the web UI under Settings > Agent API. The port is also changed there, except for add-ons that use a port mapping (MQTT), where it is set in the add-on's Network settings. When disabled, the port is not opened at all. (Default: false)"
         }
     }
 }

@@ -3,7 +3,21 @@
     "setup": {
       "title": "Set UI Password",
       "desc": "Set a password to access this UI. Only a hash of the password is stored, and you will sign in with it afterwards.",
-      "hint": "Use between 8 and 1024 characters."
+      "hint": "Use between 8 and 1024 characters.",
+      "agent_title": "AI Agent API",
+      "agent_desc": "An agent can run the initial wizard for you using the token issued here. You can manage it later under Settings > Agent API.",
+      "agent_enabled": "Enabled",
+      "agent_disabled": "Disabled by option",
+      "agent_issue_token": "Issue an Agent API token automatically",
+      "agent_allow_packet_send": "Allow agents to send packets",
+      "agent_port": "Agent API port",
+      "agent_port_locked": "This port is changed in the add-on Network settings.",
+      "token_title": "Agent API token issued",
+      "token_desc": "The agent uses this token to reach the Agent API. It is shown only once, so copy it now.",
+      "token_copy": "Copy",
+      "token_copied": "Copied",
+      "token_once_hint": "You cannot view it again. Regenerate it under Settings > Agent API if lost.",
+      "continue": "Continue"
     },
     "login": {
       "title": "Sign in",
@@ -42,7 +56,10 @@
       "already_configured": "A password is already configured. Please reload the page.",
       "setup_expired": "The password setup window has expired. Restart the service and try again.",
       "network": "Unable to reach the server.",
-      "unknown": "The request could not be completed."
+      "unknown": "The request could not be completed.",
+      "invalid_port": "The port must be an integer between 1 and 65535.",
+      "port_conflict": "The agent port cannot be the same as the UI port.",
+      "port_managed_by_addon": "The port cannot be changed in this environment. Use the add-on Network settings."
     }
   },
   "settings": {
@@ -97,7 +114,7 @@
         "collection_item_4": "Received packet data (first 1000 packets)",
         "collection_item_5": "Application runtime logs",
         "collection_timing_title": "Collection Timing",
-        "collection_timing_desc": "Once you click 'Agree & Start', packet collection will begin. After collecting 1000 packets, they will be sent once and the collection will stop automatically.",
+        "collection_timing": "Once you click 'Agree & Start', packet collection will begin. After collecting 1000 packets, they will be sent once and the collection will stop automatically.",
         "privacy_note": "* No personal information is included. You can change this setting anytime.",
         "decline": "Decline",
         "accept": "Accept & Start"
@@ -234,6 +251,45 @@
       "process_fallback": {
         "title": "Process restart fallback",
         "desc": "Restart the entire service process if individual bridge recovery fails 3 consecutive times. When disabled, the bridge stays in error state while the process continues running."
+      }
+    },
+    "agent_api": {
+      "title": "Agent API",
+      "desc": "Manage the token, port and packet-send permission for the AI agent REST/MCP API.",
+      "state_title": "Current state",
+      "state_env_disabled": "Disabled by the add-on option (agent_api_enabled). The port stays closed.",
+      "state_unavailable": "agent-api.json could not be read, so the API is disabled for safety. Repair or remove the file.",
+      "state_no_token": "No token yet. Issue one to start using the API.",
+      "state_ready": "A token is issued and the Agent API is serving requests.",
+      "state_not_ready": "The Agent API did not start. Check for a port conflict.",
+      "badge_active": "Active",
+      "badge_inactive": "Inactive",
+      "port_fallback_notice": "The requested port was busy, so the Agent API is actually on {port}.",
+      "token_title": "Access token",
+      "token_create_desc": "The plaintext token is displayed once when you issue it.",
+      "token_reissue_desc": "Regenerating invalidates the previous token immediately.",
+      "token_generate": "Issue token",
+      "token_regenerate": "Regenerate token",
+      "token_copy": "Copy",
+      "token_copied": "Copied",
+      "token_once_hint": "This token will not be shown again.",
+      "packet_send_title": "Allow packet sending",
+      "packet_send_desc": "Lets agents send raw packets onto the RS485 bus.",
+      "port_title": "Agent API port",
+      "port_desc": "Dedicated agent port. Changing it requires a restart and must not collide with the UI port.",
+      "port_save": "Apply port",
+      "port_locked": "Change the port in the add-on Network settings (3001/tcp mapping).",
+      "restart_required": "Saved. Restart the service to apply the new port.",
+      "saved": "Saved.",
+      "errors": {
+        "unavailable": "The agent API settings file could not be read.",
+        "invalid_port": "Invalid port.",
+        "port_conflict": "Collides with the UI port.",
+        "port_managed_by_addon": "Change it through the add-on port mapping instead.",
+        "rate_limited": "Too many attempts. Try again later.",
+        "network": "Could not reach the server.",
+        "load_failed": "Failed to load the agent API settings.",
+        "unknown": "The request could not be processed."
       }
     }
   },
@@ -690,6 +746,10 @@
       "copy_fail": "Failed to copy YAML. Please copy it manually.",
       "default_entity_name": "New {type}",
       "default_script_description": "New script actions",
+      "save": "Add to Config",
+      "saving": "Adding...",
+      "save_success": "Added to the configuration. It will be applied after restart.",
+      "save_fail": "Failed to add: {error}",
       "confirm_title": "Confirm Add",
       "confirm_desc": "Do you want to add this configuration? It will be applied after restart.",
       "confirm_yes": "Add & Restart"

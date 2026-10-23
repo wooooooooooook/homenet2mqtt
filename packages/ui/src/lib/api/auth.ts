@@ -5,6 +5,16 @@ export interface UiAuthStatus {
   ingress: boolean;
   unavailable: boolean;
   setupExpired: boolean;
+  agentApi?: {
+    enabled: boolean;
+    portEditable: boolean;
+  };
+}
+
+export interface SetupAgentApiPayload {
+  generateToken: boolean;
+  port?: number | null;
+  allowPacketSend?: boolean | null;
 }
 
 export class UiAuthError extends Error {
@@ -51,10 +61,13 @@ export function getUiAuthStatus(): Promise<UiAuthStatus> {
   return authRequest<UiAuthStatus>('./api/auth/status');
 }
 
-export function setupUiPassword(password: string): Promise<{ ok: boolean }> {
-  return authRequest<{ ok: boolean }>('./api/auth/setup', {
+export function setupUiPassword(
+  password: string,
+  agentApi?: SetupAgentApiPayload,
+): Promise<{ ok: boolean; agentToken: string | null }> {
+  return authRequest<{ ok: boolean; agentToken: string | null }>('./api/auth/setup', {
     method: 'POST',
-    body: JSON.stringify({ password }),
+    body: JSON.stringify(agentApi ? { password, agentApi } : { password }),
   });
 }
 

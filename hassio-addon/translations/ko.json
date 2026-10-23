@@ -39,6 +39,10 @@
         "timezone": {
             "name": "타임존",
             "description": "시스템 타임존을 설정합니다. (예: Asia/Seoul) 비워두면 서버는 UTC timezone, UI는 브라우저의 타임존을 사용합니다."
+        },
+        "agent_api_enabled": {
+            "name": "AI 에이전트 API",
+            "description": "활성화하면 에이전트 전용 포트에서 REST/MCP API를 제공합니다. 접근 토큰과 패킷 전송 허용 여부는 웹 UI의 설정 → Agent API에서 관리합니다. 포트도 웹 UI에서 변경하며, 포트 매핑을 사용하는 애드온(MQTT)에서는 애드온의 네트워크 설정에서 변경합니다. 사용하지 않으면 포트가 열리지 않습니다. (기본값: false)"
         }
     }
 }

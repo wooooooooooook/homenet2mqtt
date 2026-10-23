@@ -6,6 +6,7 @@
   import Button from '../components/Button.svelte';
   import Dialog from '../components/Dialog.svelte';
   import PasswordChangeForm from '../components/PasswordChangeForm.svelte';
+  import AgentApiSettings from '../components/AgentApiSettings.svelte';
   import Toggle from '$lib/components/Toggle.svelte';
   import type {
     FrontendSettings,
@@ -1838,6 +1839,17 @@
               </div>
             </div>
           {/if}
+
+          <!-- Agent API Sub-section (token / port / packet-send; works under ingress) -->
+          <div class="subsection-header" id="agent-api">
+            <div>
+              <h3>{$t('settings.agent_api.title')}</h3>
+              <p>{$t('settings.agent_api.desc')}</p>
+            </div>
+          </div>
+          <div class="setting-subsection">
+            <AgentApiSettings />
+          </div>
 
           <!-- Auto Restart Sub-section -->
           <div class="subsection-header">
