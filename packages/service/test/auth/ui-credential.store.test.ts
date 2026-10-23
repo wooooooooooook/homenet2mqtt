@@ -130,6 +130,41 @@ describe('UiCredentialStore', () => {
     expect(store.configured).toBe(false);
   });
 
+  it.skipIf(process.getuid?.() === 0)('treats an unreadable file as unconfigured', async () => {
+    await fs.mkdir(path.dirname(filePath), { recursive: true });
+    await fs.writeFile(filePath, JSON.stringify({ version: 1 }), 'utf8');
+    await fs.chmod(filePath, 0o000);
+
+    try {
+      const store = new UiCredentialStore(filePath);
+      await store.load();
+
+      expect(store.configured).toBe(false);
+    } finally {
+      await fs.chmod(filePath, 0o600);
+    }
+  });
+
+  it.skipIf(process.getuid?.() === 0)(
+    'keeps the current password when saving a new one fails',
+    async () => {
+      const store = new UiCredentialStore(filePath);
+      await store.load();
+      await store.setPassword('password123');
+
+      const directory = path.dirname(filePath);
+      await fs.chmod(directory, 0o500);
+      try {
+        await expect(store.setPassword('password456')).rejects.toThrow();
+      } finally {
+        await fs.chmod(directory, 0o700);
+      }
+
+      await expect(store.verifyPassword('password123')).resolves.toBe(true);
+      await expect(store.verifyPassword('password456')).resolves.toBe(false);
+    },
+  );
+
   it('validates the password policy', () => {
     expect(isValidUiPassword('x'.repeat(MIN_UI_PASSWORD_LENGTH))).toBe(true);
     expect(isValidUiPassword('x'.repeat(MAX_UI_PASSWORD_LENGTH))).toBe(true);
