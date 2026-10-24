@@ -108,6 +108,7 @@ export default defineConfig({
             { text: "Ezville", link: "/manufacturers/ezville" },
             { text: "Hyundai", link: "/manufacturers/hyundai" },
             { text: "Kocom", link: "/manufacturers/kocom" },
+            { text: "LGAP (LG HVAC)", link: "/manufacturers/lgap" },
             { text: "Samsung SDS", link: "/manufacturers/samsung_sds" }
           ]
         }
