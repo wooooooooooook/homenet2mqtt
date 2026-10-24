@@ -4,14 +4,14 @@
 
 ## 1. 무엇이 어디서 도는가
 
-| 구성                 | 역할                                                                                        | 스킬에서 쓰는 것                                                                    |
-| -------------------- | ------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| `packages/core`      | RS485 ↔ MQTT 브리지 엔진. 엔티티 파싱/매칭/커맨드, 설정 스키마                             | `config/examples/*.homenet_bridge.yaml`, `static/schema/homenet-bridge.schema.json` |
-| `packages/service`   | API + 빌드된 UI 정적 서빙. UI API(`/api/*`, 세션 쿠키)와 Agent API(`/api/v1/agent`, Bearer) | REST·MCP 호출 대상                                                                  |
-| `packages/ui`        | Svelte UI. 토큰 발급, 패킷 전송 허용, 로그는 여기서만                                       | 사람이 직접 해야 하는 단계의 위치                                                   |
-| `packages/simulator` | 디버깅용 RS485 엔드포인트(가상 버스)                                                        | 하드웨어 없이 배선/프레이밍 연습. 실기기 검증을 대체하지 않는다                     |
-| `gallery`            | 벤더별 프리셋 YAML (`list.json`/`list_new.json`은 배포 시 생성)                             | `/gallery*` API 응답 · `gallery-show` 원본 스니펫 · `gallery-expand` 펼친 초안      |
-| `docs`               | VitePress 문서                                                                              | `docs/guide/agent-api.md`가 해당 버전 API의 정본                                    |
+| 구성                 | 역할                                                                                        | 스킬에서 쓰는 것                                                                      |
+| -------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `packages/core`      | RS485 ↔ MQTT 브리지 엔진. 엔티티 파싱/매칭/커맨드, 설정 스키마                             | `config/examples/*.homenet_bridge.yaml`, `static/schema/homenet-bridge.schema.json`   |
+| `packages/service`   | API + 빌드된 UI 정적 서빙. UI API(`/api/*`, 세션 쿠키)와 Agent API(`/api/v1/agent`, Bearer) | REST·MCP 호출 대상                                                                    |
+| `packages/ui`        | Svelte UI. 토큰 발급, 패킷 전송 허용, 로그는 여기서만                                       | 사람이 직접 해야 하는 단계의 위치                                                     |
+| `packages/simulator` | 디버깅용 RS485 엔드포인트(가상 버스)                                                        | 하드웨어 없이 배선/프레이밍 연습. 실기기 검증을 대체하지 않는다                       |
+| `gallery`            | 벤더별 프리셋 YAML (`list.json`/`list_new.json`은 배포 시 생성)                             | `/gallery*` API 응답 · `gallery-show` 원본 스니펫 · `gallery-expand` 펼친 초안        |
+| `docs`               | VitePress 문서                                                                              | 로컬 `docs/guide/agent-api.md` 또는 배포 문서 <https://homenet2mqtt-docs.vercel.app/> |
 
 표의 `packages/`·`gallery/`·`docs/` 경로는 **저장소 체크아웃 기준**이다. 스킬을 단독 설치한 환경에는 이 파일들이 없으므로, 같은 정보는 Agent API(`/capabilities`, `/gallery*`, `/schema*`, `/setup/examples/*`)와 `references/`로 얻는다.
 
@@ -146,6 +146,7 @@ MCP 연결 정보다:
 - `/gallery/expand`가 `404`면 `$repeat`/`{{i}}` 서버 펼침이 없는 버전이다 → `gallery-show` 원문을 직접 펼친다. `expand` 응답의 `draft`는 설정에 쓰이지 않으므로, 반영은 항상 `/entities/validate`→`/entities/apply`다
 - `/schema`가 `404`면 그 버전에는 스키마 노출이 없다. `references/entity-schema.md`의 요약으로 초안을 만들고 `validate`의 오류 메시지로 필드명을 교정한다
 - 개발 체크아웃에서는 `docs/guide/agent-api.md`가 그 버전의 정본이다. 문서와 라이브 `capabilities`가 어긋나면 **라이브가 우선**이고, 문서를 고칠 대상으로 보고한다
+- 저장소 `docs/`가 없으면 배포 문서 <https://homenet2mqtt-docs.vercel.app/>에서 해당 페이지만 읽는다(예: `/guide/agent-api.html`, `/guide/agent-skills.html`). 배포 문서는 최신 main 기준이므로 설치 버전과 다를 수 있다
 
 ## 8. 요청 유형 → 첫 호출
 

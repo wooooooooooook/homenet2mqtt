@@ -43,6 +43,20 @@ h2m의 설정은 프레이밍(rx_header/rx_length)·체크섬·디코드·필드
 - 작업 표면은 REST(`$H2M_URL/*`, `scripts/h2m.mjs`)와 MCP(`POST $H2M_URL/mcp`, `scripts/mcp.mjs`) 둘이다. 같은 도메인 로직이라 결과·rate limit·`draftHash` 규칙이 같고, 표면별 차이는 `references/interfaces.md`에 정리돼 있다.
 - 갤러리·예제가 커버하는 벤더는 여기서 새로 만들지 않는다. 커버되지 않는 프로토콜만 폴백 역산 대상이다.
 
+## 외부 문서 — 필요하면 배포 문서를 읽는다
+
+이 스킬의 `references/`가 1차 자료다. 저장소 체크아웃이 없거나 UI·설치·고급 설정처럼 스킬 범위 밖의 최신 안내가 필요하면 **해당 페이지만** 가져온다(웹 도구가 있을 때).
+
+- 문서 루트: <https://homenet2mqtt-docs.vercel.app/>
+- Agent API: <https://homenet2mqtt-docs.vercel.app/guide/agent-api.html>
+- 스킬 설치·사용: <https://homenet2mqtt-docs.vercel.app/guide/agent-skills.html>
+- 갤러리: <https://homenet2mqtt-docs.vercel.app/guide/gallery.html>
+- 설치: <https://homenet2mqtt-docs.vercel.app/guide/install-addon.html> · <https://homenet2mqtt-docs.vercel.app/guide/install-docker.html>
+
+- 문서는 최신 배포(main) 기준일 수 있다. 설치된 h2m 버전과 어긋나면 **라이브 `/capabilities`·API 응답·`/schema`가 우선**이다.
+- 위 경로를 그대로 쓴다(`.html` 포함). 사이트 전체를 크롤링하지 말고 필요한 페이지만 읽는다.
+- 공개 문서 사이트이므로 토큰·내부 주소를 요청에 담지 않는다.
+
 ## 0. 연결 — 사용자가 주소·API를 모를 때
 
 사용자는 보통 **UI 주소만** 알고, Agent API의 존재·포트(기본 3001)·토큰은 모른다. 추측한 URL로 재시도하지 말고 아래 순서로 확인한다(설치 형태별 상세: `references/connection-setup.md`).
@@ -355,4 +369,5 @@ node scripts/mcp.mjs tools   # MCP 도구 목록 = 이 배포에서 가능한 �
 - `references/heuristics.md` — 프리셋 우선 규칙, 체크섬·mask·ack·BCD·정적 버스·glued 패킷·API 제약에 대한 실측 판정 규칙과 함정
 - `references/draft-climate-example.json` — `analyze`/`validate` 통과가 검증된 climate 초안 샘플(형태 참고용)
 - API 규약: `GET /openapi.json`(API 스펙), `GET /llms.txt`(요약), 설정 스키마는 `GET /schema/homenet-bridge`(`scripts/schema.mjs`)
+- 배포 문서: <https://homenet2mqtt-docs.vercel.app/> — 스킬 범위 밖(UI·설치·고급 설정)의 최신 안내가 필요할 때 해당 페이지만 읽는다. 버전이 어긋나면 라이브 API가 우선
 - `references/interfaces.md` — 시스템 지도(core/service/ui/simulator/gallery), REST 엔드포인트·MCP 도구 전체 표, MCP에 없어 REST로 내려와야 하는 기능, API로 불가능해 사용자에게 요청할 것

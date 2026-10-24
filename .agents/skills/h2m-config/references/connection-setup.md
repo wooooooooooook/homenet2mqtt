@@ -123,4 +123,5 @@ node scripts/mcp.mjs tools
 - Agent 포트를 인터넷에 그대로 노출하지 않는다. 필요하면 리버스 프록시 + TLS + 접근 제한을 먼저 갖춘다
 - 사용자가 이미 쓰는 토큰을 함부로 재발급하지 않는다. 다른 자동화가 함께 끊긴다
 
-공식 문서: <https://homenet2mqtt-docs.vercel.app/guide/agent-api.html> (이 배포의 UI에도 "Agent API 가이드" 링크가 있다)
+공식 문서: <https://homenet2mqtt-docs.vercel.app/> · Agent API <https://homenet2mqtt-docs.vercel.app/guide/agent-api.html> · 애드온 설치 <https://homenet2mqtt-docs.vercel.app/guide/install-addon.html> · Docker 설치 <https://homenet2mqtt-docs.vercel.app/guide/install-docker.html>
+(이 배포의 UI에도 "Agent API 가이드" 링크가 있다. 문서는 최신 main 기준이므로 설치 버전과 어긋나면 라이브 `/capabilities`·API 응답이 우선이다)
