@@ -33,6 +33,7 @@ export const AGENT_PATHS = {
   backups: '/backups',
   backup: '/backups/:filename',
   backupRestore: '/backups/restore',
+  bridgeDelete: '/bridges/delete',
   schema: '/schema',
   schemaFile: '/schema/:schemaName',
   events: '/events',

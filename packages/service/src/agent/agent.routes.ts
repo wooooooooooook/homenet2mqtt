@@ -55,6 +55,7 @@ import {
   listAgentBackups,
   restoreAgentBackup,
 } from './services/backups.service.js';
+import { deleteAgentBridge } from './services/bridges.service.js';
 import { isPlainObject, readDraftInput, readOptionalString, toInteger } from './services/input.js';
 import { isAgentPortError, resolveAgentPort } from './services/port.service.js';
 import {
@@ -99,9 +100,11 @@ export interface AgentRoutesContext {
   rawStreamController: RawStreamController;
   agentEventHub: AgentEventHub;
   configDir: string;
+  configInitMarker: string;
   setupWizardService: SetupWizardService;
   setCurrentConfigs: (index: number, config: HomenetBridgeConfig) => void;
   setCurrentRawConfigs: (index: number, config: HomenetBridgeConfig) => void;
+  removeCurrentConfig: (index: number) => void;
   rebuildPortMappings: () => void;
   requestRestart: () => Promise<void>;
 }
@@ -197,6 +200,7 @@ export function createAgentRoutes(ctx: AgentRoutesContext): Router {
           gallery: true,
           schema: true,
           backups: true,
+          bridgeDelete: true,
           mcp: true,
         },
         limits: {
@@ -643,6 +647,20 @@ export function createAgentRoutes(ctx: AgentRoutesContext): Router {
         return;
       }
       res.json(backup);
+    } catch (error) {
+      handleRouteError(res, error);
+    }
+  });
+
+  // --- Bridge deletion (requires a matching backup of the current YAML) ---
+  router.post(`${AGENT_API_BASE}${AGENT_PATHS.bridgeDelete}`, async (req, res) => {
+    const body = isPlainObject(req.body) ? req.body : {};
+    try {
+      const result = await deleteAgentBridge(ctx, body);
+      res.on('finish', () => {
+        void ctx.requestRestart();
+      });
+      res.json({ success: true, ...result, restartInitiated: true });
     } catch (error) {
       handleRouteError(res, error);
     }

@@ -122,7 +122,7 @@ const parseBackupFilename = (filename: string): { configFile: string; reason: st
   return { configFile, reason: match[3] };
 };
 
-const assertConfigFile = (value: unknown): string => {
+export const assertConfigFile = (value: unknown): string => {
   if (typeof value !== 'string' || !value.trim()) {
     throw new ConfigItemsError(
       'BACKUP_TARGET_INVALID',
@@ -224,7 +224,10 @@ const resolveListedConfigFile = (
   return undefined;
 };
 
-const resolveBackupPath = (ctx: AgentBackupContext, filename: string): string => {
+const resolveBackupPath = (
+  ctx: Pick<AgentBackupContext, 'configDir'>,
+  filename: string,
+): string => {
   const resolved = resolveSecurePath(backupDirectory(ctx.configDir), filename);
   if (!resolved) {
     throw new ConfigItemsError(
@@ -278,7 +281,7 @@ const writeBackupFile = async (
 };
 
 const readBackupFile = async (
-  ctx: AgentBackupContext,
+  ctx: Pick<AgentBackupContext, 'configDir'>,
   filename: string,
 ): Promise<AgentBackupContent> => {
   const { configFile, reason } = parseBackupFilename(filename);
@@ -461,7 +464,7 @@ export async function createAgentBackup(
 }
 
 export async function getAgentBackup(
-  ctx: AgentBackupContext,
+  ctx: Pick<AgentBackupContext, 'configDir'>,
   filenameInput: unknown,
 ): Promise<AgentBackupContent> {
   const filename = assertBackupFilename(filenameInput);

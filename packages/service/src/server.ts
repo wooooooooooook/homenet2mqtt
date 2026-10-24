@@ -384,6 +384,12 @@ const agentRoutesContext: AgentRoutesContext = {
   getLatestStates: () => latestStates,
   rawStreamController,
   agentEventHub,
+  configInitMarker: CONFIG_INIT_MARKER,
+  removeCurrentConfig: (index: number) => {
+    currentConfigs.splice(index, 1);
+    currentRawConfigs.splice(index, 1);
+    currentConfigFiles.splice(index, 1);
+  },
   requestRestart,
 };
 

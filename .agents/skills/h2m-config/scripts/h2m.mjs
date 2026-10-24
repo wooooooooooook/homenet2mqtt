@@ -286,6 +286,57 @@ switch (cmd) {
     }
     break;
   }
+  case 'delete-bridge': {
+    // h2m.mjs delete-bridge <portId|-> --backup <filename> --confirm [--config-file <file>]
+    // 삭제 전에 만든 백업이 현재 YAML과 일치할 때만 서버가 삭제한다.
+    const usageText =
+      'h2m.mjs delete-bridge <portId|-> --backup <filename> --confirm [--config-file <file>]';
+    const readFlag = (name) => {
+      const i = a.findIndex((v) => v === name || v.startsWith(`${name}=`));
+      if (i < 0) return undefined;
+      const token = a[i];
+      if (token.includes('=')) return token.slice(name.length + 1);
+      const next = a[i + 1];
+      if (!next || next.startsWith('--')) {
+        console.error(`거부: ${name} 값이 필요합니다.`);
+        process.exit(2);
+      }
+      return next;
+    };
+
+    for (const v of a) {
+      if (!v.startsWith('--')) continue;
+      const name = v.split('=')[0];
+      if (!['--backup', '--confirm', '--config-file'].includes(name)) usage(usageText);
+      if (name === '--confirm' && v.includes('=')) {
+        console.error('거부: --confirm 은 값 없이 단독으로 사용하세요.');
+        process.exit(2);
+      }
+    }
+
+    if (!a.includes('--confirm')) {
+      console.error(
+        '거부: 브릿지 YAML 삭제에는 --confirm 이 필요합니다. 대상·백업 파일·재시작 영향을 사용자에게 알리고 승인을 받으세요.',
+      );
+      process.exit(2);
+    }
+    const backup = readFlag('--backup');
+    if (!backup) {
+      console.error(
+        '거부: 삭제 전에 backups create로 현재 YAML을 백업하고 --backup <filename>으로 지정해야 합니다.',
+      );
+      process.exit(2);
+    }
+    const configFile = readFlag('--config-file');
+    const portId = a[0] && !a[0].startsWith('--') && a[0] !== '-' ? a[0] : undefined;
+    console.log('!! /bridges/delete: YAML을 삭제하고 서비스를 재시작합니다.');
+    printJson(
+      await req('POST', '/bridges/delete', {
+        body: { portId, configFile, backupFilename: backup, confirm: true },
+      }),
+    );
+    break;
+  }
   case 'analyze': {
     if (!a[1]) usage('h2m.mjs analyze <portId> <draft.json> <hex...>');
     const draft = readDraft(a[1]);
@@ -502,6 +553,6 @@ switch (cmd) {
   }
   default:
     usage(
-      'info|setup|get|post|entities|automations|scripts|unmatched|history|capture|gallery|gallery-show|gallery-match|gallery-expand|backups|analyze|validate|apply|preview|send',
+      'info|setup|get|post|entities|automations|scripts|unmatched|history|capture|gallery|gallery-show|gallery-match|gallery-expand|backups|delete-bridge|analyze|validate|apply|preview|send',
     );
 }

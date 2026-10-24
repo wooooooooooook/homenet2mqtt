@@ -40,6 +40,7 @@ interface BackupHarness {
   configDir: string;
   setCurrentConfigs: ReturnType<typeof vi.fn>;
   setCurrentRawConfigs: ReturnType<typeof vi.fn>;
+  removeCurrentConfig: ReturnType<typeof vi.fn>;
   rebuildPortMappings: ReturnType<typeof vi.fn>;
   requestRestart: ReturnType<typeof vi.fn>;
 }
@@ -55,6 +56,7 @@ describe('agent configuration backups', () => {
   const buildHarness = (): BackupHarness => {
     const setCurrentConfigs = vi.fn();
     const setCurrentRawConfigs = vi.fn();
+    const removeCurrentConfig = vi.fn();
     const rebuildPortMappings = vi.fn();
     const requestRestart = vi.fn(async () => undefined);
 
@@ -76,9 +78,11 @@ describe('agent configuration backups', () => {
         subscribe: () => () => {},
       },
       configDir,
+      configInitMarker: path.join(configDir, '.initialized'),
       setupWizardService: {},
       setCurrentConfigs,
       setCurrentRawConfigs,
+      removeCurrentConfig,
       rebuildPortMappings,
       requestRestart,
     } as unknown as AgentRoutesContext;
@@ -93,6 +97,7 @@ describe('agent configuration backups', () => {
       configDir,
       setCurrentConfigs,
       setCurrentRawConfigs,
+      removeCurrentConfig,
       rebuildPortMappings,
       requestRestart,
     };
@@ -311,6 +316,172 @@ describe('agent configuration backups', () => {
     expect(wrongRoot.body.error).toBe('BACKUP_INVALID');
   });
 
+  describe('bridge deletion', () => {
+    const deleteBridge = (body: Record<string, unknown>) =>
+      request(harness.app)
+        .post('/api/v1/agent/bridges/delete')
+        .set('Authorization', AUTH)
+        .send(body);
+
+    it('requires confirmation before deleting', async () => {
+      const backup = await createBackup('before_delete');
+
+      const denied = await deleteBridge({ backupFilename: backup.filename });
+      expect(denied.status).toBe(400);
+      expect(denied.body.error).toBe('BRIDGE_DELETE_CONFIRM_REQUIRED');
+      await expect(fs.access(configPath())).resolves.toBeUndefined();
+      expect(harness.requestRestart).not.toHaveBeenCalled();
+    });
+
+    it('requires a backup filename', async () => {
+      const denied = await deleteBridge({ confirm: true });
+      expect(denied.status).toBe(400);
+      expect(denied.body.error).toBe('BACKUP_REQUIRED');
+      await expect(fs.access(configPath())).resolves.toBeUndefined();
+    });
+
+    it('rejects a stale backup when the YAML changed after the snapshot', async () => {
+      const backup = await createBackup('before_delete');
+      const current = await fs.readFile(configPath(), 'utf8');
+      await fs.writeFile(configPath(), `${current}\n# edited after backup\n`, 'utf8');
+
+      const denied = await deleteBridge({
+        backupFilename: backup.filename,
+        confirm: true,
+      });
+      expect(denied.status).toBe(409);
+      expect(denied.body.error).toBe('BACKUP_STALE');
+      await expect(fs.access(configPath())).resolves.toBeUndefined();
+    });
+
+    it('rejects a backup that belongs to another config file', async () => {
+      const current = await fs.readFile(configPath(), 'utf8');
+      const filename = 'other.homenet_bridge.yaml.2026-01-01T00-00-00-000Z.agent_backup.bak';
+      await fs.mkdir(path.join(configDir, 'backups'), { recursive: true });
+      await fs.writeFile(backupPath(filename), current, 'utf8');
+
+      const denied = await deleteBridge({ backupFilename: filename, confirm: true });
+      expect(denied.status).toBe(400);
+      expect(denied.body.error).toBe('BACKUP_TARGET_MISMATCH');
+      await expect(fs.access(configPath())).resolves.toBeUndefined();
+    });
+
+    it('deletes the YAML after a matching backup and requests a restart', async () => {
+      const backup = await createBackup('before_delete');
+
+      const deleted = await deleteBridge({
+        backupFilename: backup.filename,
+        confirm: true,
+      });
+
+      expect(deleted.status).toBe(200);
+      expect(deleted.body).toMatchObject({
+        success: true,
+        deleted: true,
+        portId: 'default',
+        configFile: CONFIG_FILE,
+        backupFilename: backup.filename,
+        loaded: true,
+        remainingConfigFiles: 0,
+        initMarkerRemoved: false,
+        restartRequired: true,
+        restartInitiated: true,
+      });
+      await expect(fs.access(configPath())).rejects.toMatchObject({ code: 'ENOENT' });
+      expect(harness.removeCurrentConfig).toHaveBeenCalledWith(0);
+      expect(harness.rebuildPortMappings).toHaveBeenCalledTimes(1);
+      expect(harness.requestRestart).toHaveBeenCalledTimes(1);
+    });
+
+    it('removes the init marker when the last config is deleted', async () => {
+      const marker = path.join(configDir, '.initialized');
+      await fs.writeFile(marker, 'initialized', 'utf8');
+      const backup = await createBackup('before_delete');
+
+      const deleted = await deleteBridge({
+        backupFilename: backup.filename,
+        confirm: true,
+      });
+
+      expect(deleted.status).toBe(200);
+      expect(deleted.body).toMatchObject({ remainingConfigFiles: 0, initMarkerRemoved: true });
+      await expect(fs.access(marker)).rejects.toMatchObject({ code: 'ENOENT' });
+    });
+
+    it('keeps the init marker when another config remains', async () => {
+      const marker = path.join(configDir, '.initialized');
+      await fs.writeFile(marker, 'initialized', 'utf8');
+      await fs.writeFile(
+        path.join(configDir, 'second.homenet_bridge.yaml'),
+        yaml.dump({
+          homenet_bridge: {
+            ...buildRawConfig(),
+            serial: { ...buildRawConfig().serial, portId: 'second' },
+          },
+        }),
+        'utf8',
+      );
+      const backup = await createBackup('before_delete');
+
+      const deleted = await deleteBridge({
+        backupFilename: backup.filename,
+        confirm: true,
+      });
+
+      expect(deleted.status).toBe(200);
+      expect(deleted.body).toMatchObject({ remainingConfigFiles: 1, initMarkerRemoved: false });
+      await expect(fs.access(marker)).resolves.toBeUndefined();
+    });
+
+    it('deletes an unloaded config file by configFile', async () => {
+      const otherFile = 'other.homenet_bridge.yaml';
+      const otherPath = path.join(configDir, otherFile);
+      await fs.writeFile(
+        otherPath,
+        yaml.dump({
+          homenet_bridge: {
+            ...buildRawConfig(),
+            serial: { ...buildRawConfig().serial, portId: 'other' },
+          },
+        }),
+        'utf8',
+      );
+
+      const created = await request(harness.app)
+        .post('/api/v1/agent/backups')
+        .set('Authorization', AUTH)
+        .send({ configFile: otherFile });
+      expect(created.status).toBe(200);
+
+      const deleted = await deleteBridge({
+        configFile: otherFile,
+        backupFilename: created.body.backup.filename,
+        confirm: true,
+      });
+
+      expect(deleted.status).toBe(200);
+      expect(deleted.body).toMatchObject({
+        deleted: true,
+        portId: null,
+        configFile: otherFile,
+        loaded: false,
+      });
+      expect(harness.removeCurrentConfig).not.toHaveBeenCalled();
+      await expect(fs.access(otherPath)).rejects.toMatchObject({ code: 'ENOENT' });
+    });
+
+    it('rejects unknown ports', async () => {
+      const backup = await createBackup();
+      const denied = await deleteBridge({
+        portId: 'ghost',
+        backupFilename: backup.filename,
+        confirm: true,
+      });
+      expect(denied.status).toBe(404);
+      expect(denied.body.error).toBe('PORT_NOT_FOUND');
+    });
+  });
+
   describe('MCP and documentation', () => {
     it('exposes backup tools over MCP', async () => {
       const list = await request(harness.app)
@@ -319,7 +490,13 @@ describe('agent configuration backups', () => {
         .send({ jsonrpc: '2.0', id: 1, method: 'tools/list' });
       const names: string[] = list.body.result.tools.map((tool: { name: string }) => tool.name);
       expect(names).toEqual(
-        expect.arrayContaining(['list_backups', 'create_backup', 'get_backup', 'restore_backup']),
+        expect.arrayContaining([
+          'list_backups',
+          'create_backup',
+          'get_backup',
+          'restore_backup',
+          'delete_bridge',
+        ]),
       );
 
       const created = await request(harness.app)
@@ -378,25 +555,81 @@ describe('agent configuration backups', () => {
       expect(harness.requestRestart).not.toHaveBeenCalled();
     });
 
+    it('deletes a bridge over MCP only with a matching backup', async () => {
+      const created = await request(harness.app)
+        .post('/api/v1/agent/mcp')
+        .set('Authorization', AUTH)
+        .send({
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'tools/call',
+          params: { name: 'create_backup', arguments: { reason: 'before_delete' } },
+        });
+      const backup = created.body.result.structuredContent.backup;
+
+      const denied = await request(harness.app)
+        .post('/api/v1/agent/mcp')
+        .set('Authorization', AUTH)
+        .send({
+          jsonrpc: '2.0',
+          id: 2,
+          method: 'tools/call',
+          params: { name: 'delete_bridge', arguments: { confirm: true } },
+        });
+      expect(denied.body.result.isError).toBe(true);
+      expect(denied.body.result.structuredContent.error).toBe('BACKUP_REQUIRED');
+
+      const deleted = await request(harness.app)
+        .post('/api/v1/agent/mcp')
+        .set('Authorization', AUTH)
+        .send({
+          jsonrpc: '2.0',
+          id: 3,
+          method: 'tools/call',
+          params: {
+            name: 'delete_bridge',
+            arguments: { backupFilename: backup.filename, confirm: true },
+          },
+        });
+
+      expect(deleted.body.result.structuredContent).toMatchObject({
+        success: true,
+        deleted: true,
+        configFile: CONFIG_FILE,
+        backupFilename: backup.filename,
+        restartInitiated: true,
+      });
+      await expect(fs.access(configPath())).rejects.toMatchObject({ code: 'ENOENT' });
+      expect(harness.requestRestart).toHaveBeenCalledTimes(1);
+    });
+
     it('documents the backup endpoints and feature', async () => {
       const openapi = await request(harness.app).get('/api/v1/agent/openapi.json');
       expect(openapi.body.paths['/backups'].get).toBeDefined();
       expect(openapi.body.paths['/backups'].post).toBeDefined();
       expect(openapi.body.paths['/backups/restore'].post).toBeDefined();
       expect(openapi.body.paths['/backups/{filename}'].get).toBeDefined();
+      expect(openapi.body.paths['/bridges/delete'].post).toBeDefined();
       expect(openapi.body.components.schemas.RestoreBackupRequest.required).toEqual([
         'filename',
+        'confirm',
+      ]);
+      expect(openapi.body.components.schemas.DeleteBridgeRequest.required).toEqual([
+        'backupFilename',
         'confirm',
       ]);
 
       const llms = await request(harness.app).get('/api/v1/agent/llms.txt');
       expect(llms.text).toContain('list_backups');
       expect(llms.text).toContain('/backups/restore');
+      expect(llms.text).toContain('delete_bridge');
+      expect(llms.text).toContain('/bridges/delete');
 
       const capabilities = await request(harness.app)
         .get('/api/v1/agent/capabilities')
         .set('Authorization', AUTH);
       expect(capabilities.body.features.backups).toBe(true);
+      expect(capabilities.body.features.bridgeDelete).toBe(true);
     });
   });
 });

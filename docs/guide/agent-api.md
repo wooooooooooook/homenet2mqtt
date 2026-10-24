@@ -239,6 +239,7 @@ Authorization: Bearer <AGENT_TOKEN>
 | POST   | `/backups`                               | 현재 설정 YAML 백업 생성 + 내용 반환          |
 | GET    | `/backups/:filename?raw=`                | 백업 내용(JSON) 또는 YAML 다운로드            |
 | POST   | `/backups/restore`                       | 백업을 설정 파일로 복원 + 사전 백업 + 재시작  |
+| POST   | `/bridges/delete`                        | 백업이 일치할 때만 설정 YAML 삭제 + 재시작    |
 | GET    | `/schema`                                | 번들된 JSON 스키마 이름 목록                  |
 | GET    | `/schema/:schemaName`                    | 설정 JSON 스키마(엔티티 필드·enum·제약)       |
 | GET    | `/events`                                | SSE 실시간 이벤트 스트림                      |
@@ -482,6 +483,29 @@ curl -s -X POST -H "Authorization: Bearer $TOKEN" \
 - `POST /backups/restore`는 `confirm: true`가 없으면 `400 BACKUP_CONFIRM_REQUIRED`입니다. 복원 전에 현재 YAML을 `pre_restore` 백업으로 남기고, 백업이 유효한 `homenet_bridge` 설정인지 확인한 뒤 원자적으로 덮어씁니다. 로드된 설정 파일이면 인메모리 설정도 갱신하며, 기본적으로 응답 후 서비스를 재시작합니다(`restart: false`로 생략 가능).
 - 경로 조작·형식 오류는 `400 BACKUP_FILENAME_INVALID` / `400 BACKUP_TARGET_INVALID` / `400 BACKUP_INVALID`, 없는 백업은 `404 BACKUP_NOT_FOUND`입니다.
 
+### 브릿지 삭제 (백업 선행 필수)
+
+`POST /bridges/delete`는 설정 YAML을 삭제합니다. 실수로 설정을 잃지 않도록 **삭제 시점의 현재 YAML과 바이트 단위로 일치하는 백업**을 `backupFilename`으로 넘겨야만 동작합니다.
+
+```bash
+# 1. 삭제할 설정의 현재 YAML 백업 (응답에 filename과 YAML 포함)
+curl -s -X POST -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"portId":"default","reason":"before_delete"}' \
+  "$H2M/backups"
+
+# 2. 응답의 backup.filename으로 삭제 (confirm 필수, 응답 후 재시작)
+curl -s -X POST -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"portId":"default","backupFilename":"<filename>","confirm":true}' \
+  "$H2M/bridges/delete"
+```
+
+- 대상은 `portId` 또는 `configFile`로 지정합니다. 둘 다 생략하면 로드된 포트가 하나일 때 그 설정을 사용합니다. 로드되지 않은 YAML도 `configFile`로 삭제할 수 있습니다.
+- `confirm: true`가 없으면 `400 BRIDGE_DELETE_CONFIRM_REQUIRED`, `backupFilename`이 없으면 `400 BACKUP_REQUIRED`, 다른 설정의 백업이면 `400 BACKUP_TARGET_MISMATCH`, 백업 이후 YAML이 바뀌었으면 `409 BACKUP_STALE`입니다.
+- 삭제 후 서비스를 재시작합니다. 로드된 설정이면 인메모리 목록에서도 제거하고, 마지막 설정을 삭제하면 `.initialized` 마커를 지워 초기 설정 마법사가 다시 열립니다.
+- 백업 파일 자체는 삭제하지 않으므로 `GET /backups?configFile=`로 계속 내려받을 수 있습니다.
+
 ### 패킷 미리보기/전송
 
 `POST /packets/preview`
@@ -664,11 +688,12 @@ MCP 클라이언트는 일반적으로 다음 순서로 연결합니다.
 | `create_backup`                             | 현재 설정 YAML 백업 생성 + 메타데이터/YAML 반환                    |
 | `get_backup`                                | 백업 YAML 다운로드 (`filename` 필수)                               |
 | `restore_backup`                            | 백업 복원 + 사전 백업 + 재시작 (`filename`, `confirm` 필수)        |
+| `delete_bridge`                             | 설정 YAML 삭제 (`backupFilename`, `confirm` 필수, 백업 일치 필요)  |
 | `list_config_schemas`                       | 동봉된 설정 스키마 이름 목록                                       |
 | `get_config_schema`                         | 설정 JSON 스키마 (엔티티 필드·enum·required, 약 120KB)             |
 | `send_packet`                               | RS485 전송. UI에서 패킷 전송을 허용한 경우에만 `tools/list`에 노출 |
 
-`send_packet`이 비활성인 상태에서 직접 호출하면 `isError: true`와 `PACKET_SEND_DISABLED`가 반환됩니다. 적용 계열 도구는 REST와 동일하게 YAML 백업과 초안 해시 검증을 수행합니다. `restore_backup`은 `confirm: true` 없이는 실행되지 않으며, 기본적으로 복원 후 서비스를 재시작합니다(`restart: false`로 생략).
+`send_packet`이 비활성인 상태에서 직접 호출하면 `isError: true`와 `PACKET_SEND_DISABLED`가 반환됩니다. 적용 계열 도구는 REST와 동일하게 YAML 백업과 초안 해시 검증을 수행합니다. `restore_backup`은 `confirm: true` 없이는 실행되지 않으며, 기본적으로 복원 후 서비스를 재시작합니다(`restart: false`로 생략). `delete_bridge`도 `confirm: true`와 현재 YAML과 일치하는 `backupFilename`이 필요하고, 삭제 후 서비스를 재시작합니다.
 
 `apply_initial_setup`은 설정이 이미 로드된 상태에서 `mode="init"`이면 `isError: true`와 `SETUP_NOT_REQUIRED`를 반환합니다. 새 브릿지는 `mode="add"`와 `get_setup_state`의 `loadedPortIds`에 없는 `portId`로 추가하세요. `test_setup_serial`은 설정 로드 여부와 관계없이 동작합니다.
 

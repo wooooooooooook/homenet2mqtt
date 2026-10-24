@@ -41,7 +41,7 @@ MCP 연결 정보다:
 
 ## 3. 시작할 때 능력부터 확인한다
 
-1. `GET /capabilities` — `serviceVersion`, `features`(`observation`, `packetAnalysis`, `packetPreview`, `packetSend`, `capture`, `events`, `draftEntities`, `setup`, `gallery`, `schema`, `backups`, `mcp`), `limits`(분당 120회, history 1,000건, 이벤트 버퍼 500건), `mcp.endpoint`, `links`(`openapi`, `llms`, `schema`, `mcp`)
+1. `GET /capabilities` — `serviceVersion`, `features`(`observation`, `packetAnalysis`, `packetPreview`, `packetSend`, `capture`, `events`, `draftEntities`, `setup`, `gallery`, `schema`, `backups`, `bridgeDelete`, `mcp`), `limits`(분당 120회, history 1,000건, 이벤트 버퍼 500건), `mcp.endpoint`, `links`(`openapi`, `llms`, `schema`, `mcp`)
 2. MCP 클라이언트면 `tools/list` — 이 배포에서 실제로 가능한 작업 목록
 3. 세부 스키마 — `GET /openapi.json`, `GET /llms.txt`(둘 다 공개, 토큰 불필요), 각 도구의 `inputSchema`
 4. `node scripts/h2m.mjs info`가 `capabilities` + 포트 요약을 한 번에 출력한다
@@ -78,6 +78,7 @@ MCP 연결 정보다:
 | 캡처 파일            | `GET /capture/files`, `GET\|DELETE /capture/files/:filename`                                                      | `capture files\|get\|delete`                                   |
 | 갤러리               | `GET /gallery[?vendor=]`, `/gallery/snippet?file=`, `/gallery/match`, `POST /gallery/expand`                      | `gallery`, `gallery-show`, `gallery-match`, `gallery-expand`   |
 | 설정 백업            | `GET /backups?portId=&configFile=`, `POST /backups`, `GET /backups/:filename[?raw=true]`, `POST /backups/restore` | `backups list\|create\|get\|restore`                           |
+| 설정(브릿지) 삭제    | `POST /bridges/delete` (`backupFilename`·`confirm: true` 필수, 백업이 현재 YAML과 일치해야 함)                    | `delete-bridge <portId\|-> --backup <filename> --confirm`      |
 | 설정 스키마          | `GET /schema`, `GET /schema/:schemaName`                                                                          | `schema.mjs list`, `schema.mjs fields <type>`                  |
 | 이벤트(SSE)          | `GET /events?types=&portId=&sinceId=`                                                                             | (스크립트 없음 — curl 또는 MCP)                                |
 | 초안 검증            | `POST /entities/validate`                                                                                         | `validate <portId> <draft.json>`                               |
@@ -113,6 +114,7 @@ MCP 연결 정보다:
 |        | `create_backup`                                              | `portId`, `configFile`, `reason`                                                                            |
 |        | `get_backup`                                                 | `filename*`                                                                                                 |
 |        | `restore_backup`                                             | `filename*`, `confirm*=true`, `restart`                                                                     |
+|        | `delete_bridge`                                              | `portId` 또는 `configFile`, `backupFilename*`, `confirm*=true`                                              |
 | 엔티티 | `validate_entity_draft`                                      | `entities`, `automations`, `scripts`, `packetDefaults`, `portId`, `discoveryPreview`, `similarityThreshold` |
 |        | `apply_entity_draft`                                         | `draftHash*`, 위 초안 필드, `portId`, `resolutions`, `renames`, `restart`                                   |
 | 이벤트 | `get_recent_events`                                          | `afterId`, `limit`, `types`, `portId`, `rawMode`                                                            |
@@ -132,17 +134,17 @@ MCP 연결 정보다:
 
 ## 6. API로 할 수 없는 것 — 사용자에게 요청한다
 
-| 원하는 것                                          | 왜 안 되나                                                          | 대신                                                                                                           |
-| -------------------------------------------------- | ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| Agent API 켜기 / 토큰 발급 / 포트 변경 / 전송 허용 | UI **설정 > Agent API**에서만. 토큰 평문은 발급 화면에서 1회만 표시 | 사용자에게 UI에서 켜고 발급 요청(`references/connection-setup.md`). 받은 토큰을 문서·로그·커밋에 남기지 않는다 |
-| MQTT 브로커 주소·계정                              | config가 아니라 환경변수/애드온 옵션                                | 사용자에게 환경변수·애드온 옵션 수정 요청                                                                      |
-| 애드온 포트 매핑(`3001/tcp`)                       | 애드온 네트워크 설정                                                | HA 애드온 설정에서 매핑 변경 요청                                                                              |
-| 서비스 로그 라인                                   | Agent API에 로그 조회가 없다(`/events`는 패킷·상태·브리지 이벤트)   | UI 로그 화면 확인 요청                                                                                         |
-| 백업 파일 삭제/정리                                | Agent API는 목록·생성·다운로드·복원만 제공하고 삭제는 없다          | UI 백업 관리에서 정리 요청                                                                                     |
-| 설정 파일 직접 편집                                | 파일 쓰기는 `entities/apply`·`setup/apply` 경로만                   | 초안으로 표현 가능한 것만 API로, 나머지는 로컬 편집 후 사용자에게 적용 안내                                    |
-| 월패드에서 조작 가능한 기기 목록                   | 설치 대수·채널 배치는 API에 없다(갤러리 개수 파라미터는 허용 상한)  | 사용자에게 실물 목록 요청 → 그 기기·채널만 확장하고 조작 요청                                                  |
-| 실기기 조작(월패드·스위치·리모컨)                  | 물리 행위                                                           | SKILL.md "트래픽 확보" 절의 조작 요청                                                                          |
-| 등록된 엔티티의 command 실행                       | Agent API에 커맨드 실행 엔드포인트가 없다                           | 사용자가 HA/MQTT/월패드에서 실행하거나, 승인 후 같은 payload를 `/packets/send`로 보낸다                        |
+| 원하는 것                                          | 왜 안 되나                                                                                            | 대신                                                                                                           |
+| -------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Agent API 켜기 / 토큰 발급 / 포트 변경 / 전송 허용 | UI **설정 > Agent API**에서만. 토큰 평문은 발급 화면에서 1회만 표시                                   | 사용자에게 UI에서 켜고 발급 요청(`references/connection-setup.md`). 받은 토큰을 문서·로그·커밋에 남기지 않는다 |
+| MQTT 브로커 주소·계정                              | config가 아니라 환경변수/애드온 옵션                                                                  | 사용자에게 환경변수·애드온 옵션 수정 요청                                                                      |
+| 애드온 포트 매핑(`3001/tcp`)                       | 애드온 네트워크 설정                                                                                  | HA 애드온 설정에서 매핑 변경 요청                                                                              |
+| 서비스 로그 라인                                   | Agent API에 로그 조회가 없다(`/events`는 패킷·상태·브리지 이벤트)                                     | UI 로그 화면 확인 요청                                                                                         |
+| 백업 파일 삭제/정리                                | Agent API는 백업 파일의 목록·생성·다운로드·복원만 제공하고 삭제는 없다(설정 삭제는 `/bridges/delete`) | UI 백업 관리에서 정리 요청                                                                                     |
+| 설정 파일 직접 편집                                | 파일 쓰기는 `entities/apply`·`setup/apply` 경로만                                                     | 초안으로 표현 가능한 것만 API로, 나머지는 로컬 편집 후 사용자에게 적용 안내                                    |
+| 월패드에서 조작 가능한 기기 목록                   | 설치 대수·채널 배치는 API에 없다(갤러리 개수 파라미터는 허용 상한)                                    | 사용자에게 실물 목록 요청 → 그 기기·채널만 확장하고 조작 요청                                                  |
+| 실기기 조작(월패드·스위치·리모컨)                  | 물리 행위                                                                                             | SKILL.md "트래픽 확보" 절의 조작 요청                                                                          |
+| 등록된 엔티티의 command 실행                       | Agent API에 커맨드 실행 엔드포인트가 없다                                                             | 사용자가 HA/MQTT/월패드에서 실행하거나, 승인 후 같은 payload를 `/packets/send`로 보낸다                        |
 
 `entities/apply`는 초안의 `automations`를 설정 파일의 `automation` 키에, `scripts`를 `scripts` 키에 기록한다(엔티티와 같은 파일). 적용은 여전히 **전체 재시작**을 요구하며, 재시작 전에는 automation이 등록되지 않는다.
 
@@ -153,6 +155,7 @@ MCP 연결 정보다:
 - `/gallery` 자체가 없으면 그 배포는 갤러리 확장을 지원하지 않는다 → 폴백 역산으로 넘어간다
 - `/gallery/expand`가 `404`면 `$repeat`/`{{i}}` 서버 펼침이 없는 버전이다 → `gallery-show` 원문을 직접 펼친다. `expand` 응답의 `draft`는 설정에 쓰이지 않으므로, 반영은 항상 `/entities/validate`→`/entities/apply`다
 - `/backups`가 `404`면 그 배포는 백업 조회·복원 API가 없다(`apply`는 자체 백업만 만든다). 로컬 체크아웃이면 파일시스템, 아니면 사용자에게 복원을 요청한다
+- `/bridges/delete`가 `404`면 그 배포에는 브릿지 삭제 API가 없다. 파일을 직접 지우지 말고 UI 브릿지 관리에서 삭제를 요청한다
 - `features.packetSend`가 없거나 `false`면 전송 API가 비활성이다(구버전이거나 UI 설정이 꺼짐). `preview`는 `features.packetPreview`로 따로 확인하고, 전송이 필요하면 사용자에게 UI에서 허용을 요청한다
 - `/schema`가 `404`면 그 버전에는 스키마 노출이 없다. `references/entity-schema.md`의 요약으로 초안을 만들고 `validate`의 오류 메시지로 필드명을 교정한다
 - 개발 체크아웃에서는 `docs/guide/agent-api.md`가 그 버전의 정본이다. 문서와 라이브 `capabilities`가 어긋나면 **라이브가 우선**이고, 문서를 고칠 대상으로 보고한다
@@ -174,5 +177,6 @@ MCP 연결 정보다:
 | "자동화/스크립트 붙여줘"     | `automations <portId>` + `scripts <portId>` | `gallery-expand`의 `draft.automations`/`draft.scripts` → `validate`(counts) → 승인 → `apply` → `/events` |
 | "이 필드명/값이 맞나"        | `schema.mjs fields <type>`                  | `--desc` → `def <Def>` → `validate`. MCP면 `get_config_schema`                                           |
 | "방금 설정 되돌려줘"         | `backups list <portId>`                     | `backups get <filename>`로 원본 확인 → 승인 → `backups restore <filename>`(재시작)                       |
+| "브릿지/설정 삭제해줘"       | `backups create <portId> before_delete`     | 원본 YAML 확보 → `delete-bridge <portId> --backup <filename> --confirm`(재시작, 마지막이면 설정 마법사)  |
 | "방금 무슨 일 있었어"        | `get_recent_events` / `events`              | `packets/history`                                                                                        |
 | "MQTT/토큰/포트 설정 바꿔줘" | §6                                          | 사용자 요청 또는 UI 안내                                                                                 |

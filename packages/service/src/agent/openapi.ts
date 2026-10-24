@@ -43,6 +43,7 @@ export function buildOpenApiDocument(options: OpenApiOptions): Record<string, un
       { name: 'capture' },
       { name: 'gallery' },
       { name: 'backups' },
+      { name: 'bridges' },
       { name: 'schema' },
       { name: 'draft' },
       { name: 'events' },
@@ -673,6 +674,28 @@ export function buildOpenApiDocument(options: OpenApiOptions): Record<string, un
           },
         },
       },
+      [AGENT_PATHS.bridgeDelete]: {
+        post: {
+          tags: ['bridges'],
+          summary: 'Delete a bridge configuration',
+          description:
+            'Deletes the configuration YAML after verifying that backupFilename is a backup of the exact current file. Requires confirm=true; rejects missing, mismatched or stale backups. Restarts the service after responding. Deleting the last configuration reopens the setup wizard.',
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/DeleteBridgeRequest' },
+              },
+            },
+          },
+          responses: {
+            '200': jsonResponse('Deleted configuration', { type: 'object' }),
+            '400': errorResponse('Missing confirmation, missing backup or mismatched backup'),
+            '404': errorResponse('Port, config file or backup not found'),
+            '409': errorResponse('Backup is stale and does not match the current YAML'),
+          },
+        },
+      },
       [AGENT_PATHS.schema]: {
         get: {
           tags: ['schema'],
@@ -871,6 +894,31 @@ export function buildOpenApiDocument(options: OpenApiOptions): Record<string, un
             },
           },
         },
+        DeleteBridgeRequest: {
+          type: 'object',
+          required: ['backupFilename', 'confirm'],
+          properties: {
+            portId: {
+              type: 'string',
+              description: 'Serial port id. Defaults to the only loaded port when omitted.',
+            },
+            configFile: {
+              type: 'string',
+              description:
+                'Configuration filename such as "default.homenet_bridge.yaml". Alternative to portId.',
+            },
+            backupFilename: {
+              type: 'string',
+              description:
+                'Backup filename returned by create_backup or list_backups. It must match the current YAML byte for byte.',
+            },
+            confirm: {
+              type: 'boolean',
+              const: true,
+              description: 'Must be true. Deleting removes the configuration YAML.',
+            },
+          },
+        },
         JsonRpcRequest: {
           type: 'object',
           required: ['jsonrpc', 'method'],
@@ -904,11 +952,13 @@ OpenAPI: ${AGENT_API_BASE}${AGENT_PATHS.openapi}
 7. POST /entities/apply { portId, draftHash, ...draft, resolutions, renames, restart }.
 8. The service writes YAML, creates a backup, and marks a restart as required.
 9. If a change must be rolled back, POST /backups/restore { filename, confirm: true, restart? }; the current YAML is backed up first.
+10. To remove a bridge entirely, POST /bridges/delete { portId? | configFile?, backupFilename, confirm: true }. The backup must match the current YAML byte for byte; the service deletes the file and restarts. Deleting the last configuration reopens the setup wizard.
 
 ## Notes
 - Config schema: GET /schema lists the bundled JSON Schema names; GET /schema/homenet-bridge returns the config schema for this build (entity fields, enums, required flags). The same schema is available over MCP as list_config_schemas and get_config_schema. Look up exact field names there instead of guessing them.
 - Gallery presets: GET /gallery lists vendors (id, requirements, snippetCount, entityTypes); GET /gallery?vendor=<id> returns that vendor's snippets with parameters, content summary and discovery block; GET /gallery/snippet?file=<vendor>/<name>.yaml returns the raw YAML; GET /gallery/match?portId=&vendor= scores every snippet's discovery against observed packets and returns inferred parameter values (channel counts); POST /gallery/expand { file, parameterValues? } resolves parameters and expands $repeat/$if/{{expr}} templates into a draft with entities, automations and scripts ready for /entities/validate. GitHub is read first and the packaged gallery directory is the offline fallback, so \`source\` in the response tells you which one served the data. Use these to extend entities until /packets/unmatched is empty.
 - Configuration backups: GET /backups?portId=&configFile= lists backups newest first; POST /backups { portId?, configFile?, reason? } snapshots the current YAML and returns its content; GET /backups/<filename> returns metadata plus YAML (raw=true downloads the YAML); POST /backups/restore { filename, confirm: true, restart? } restores the source config file, writes a pre_restore backup first, and restarts the service. Use them to keep a pristine copy before edits and to roll back.
+- Bridge deletion: POST /bridges/delete { portId? | configFile?, backupFilename, confirm: true } deletes the YAML only when backupFilename is a backup of the exact current content; missing, mismatched or stale backups are rejected. Always restarts the service; deleting the last configuration reopens the setup wizard.
 - /setup/apply with mode "init" (default) requires that no configuration is loaded; mode "add" writes a new config file while configurations are loaded and requires a unique portId and serialPath. Use "__empty__" as the example to start from a blank config; then serialConfig { portId, path, baud_rate, data_bits, parity, stop_bits } is required.
 - /setup/test-serial is available with or without loaded configurations, but the port must not already be held by a running bridge.
 - POST /setup/apply restarts the service after responding unless restart=false.
@@ -925,6 +975,6 @@ Methods: initialize, notifications/initialized (202, no body), ping, tools/list,
 Tools: get_setup_state, get_setup_example, test_setup_serial, apply_initial_setup, list_ports, get_entities, get_automations, get_scripts, get_entity_state, get_packet_history, get_unmatched_packets, analyze_packet,
 start_capture, stop_capture, get_capture_status, list_capture_files, validate_entity_draft, apply_entity_draft,
 get_recent_events (poll with afterId), list_gallery, get_gallery_snippet, match_gallery, expand_gallery_snippet, list_config_schemas, get_config_schema,
-list_backups, create_backup, get_backup, restore_backup, and send_packet when packet sending is enabled in Settings > Agent API.
+list_backups, create_backup, get_backup, restore_backup, delete_bridge, and send_packet when packet sending is enabled in Settings > Agent API.
 Tool failures are returned as tool results with isError=true and { error, message }; protocol errors use JSON-RPC error codes.
 `;

@@ -30,6 +30,7 @@ Use start_capture / stop_capture / list_capture_files to collect raw bytes.
 Use list_gallery / get_gallery_snippet / match_gallery to compare vendor presets against observed packets. Pass the chosen snippet and parameter values to expand_gallery_snippet to get a draft with entities, automations and scripts, so no unmatched packet is left behind.
 Register new devices with validate_entity_draft, then apply_entity_draft with the returned draftHash. Applying writes YAML, creates a backup, and requires a restart.
 Before changing an existing configuration, use create_backup to snapshot it and get_backup to keep the YAML. If a change goes wrong, restore_backup with confirm=true writes the selected backup back and restarts the service.
+To remove a bridge, create_backup first, then delete_bridge with that backupFilename and confirm=true; deletion is rejected when the backup no longer matches the current YAML.
 send_packet is only available when packet sending is enabled in Settings > Agent API, and requires confirm=true.`;
 
 type JsonRpcId = string | number | null;
