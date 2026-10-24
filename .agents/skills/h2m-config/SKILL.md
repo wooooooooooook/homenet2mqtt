@@ -21,7 +21,7 @@ h2m의 설정은 프레이밍(rx_header/rx_length)·체크섬·디코드·필드
 
 1. **라이브 설정** — `/entities --full`의 동일 타입 엔티티(구조·mask·버튼값의 원본)와 포트 `packetDefaults`
 2. **갤러리 프리셋** — API `/gallery*`로 읽는 `discovery.match`·`parameters`/`$repeat`·`requirements`와 `automation`/`scripts` 블록
-3. **예제 설정** — 적용된 예제의 전체 내용과 다른 벤더 예제(`/setup/examples/<file>`)
+3. **예제 설정** — 예제 파일의 전체 내용(`/setup/examples/<file>`). `/setup/apply`는 기본적으로 serial·packet_defaults만 복사하므로 엔티티 정의는 조회용 참고로 쓴다
 4. **직접 패킷 역산** — 위 셋에 정보가 없을 때만. 변동 증거를 확보한 뒤 최소 필드만
 
 4번은 기본이 아니라 최후 수단이다. 갤러리 HIT이 있는데 바이트를 새로 추론하는 것, 예제에 채널 2개가 있는데 4개를 관측한 것을 역산으로 푸는 것은 모두 잘못된 순서다.
@@ -144,7 +144,7 @@ node scripts/h2m.mjs unmatched <portId>       # 아직 설명되지 않는 원�
 
 ## 3. 갤러리 프리셋으로 미매칭부터 없애기 (1순위 확장 수단)
 
-`/setup/apply`로 잡은 예제는 **대표 엔티티 몇 개만 펼친 축약본**이다. 미매칭의 대부분은 프로토콜을 몰라서가 아니라 "예제가 스니펫보다 적게 펼쳤기 때문"이다. 갤러리에는 디바이스 타입별 스니펫과 개수 파라미터가 있으므로, 관측 패킷과 대조해 잔여를 한 번에 채운다.
+`/setup/apply`는 예제에서 **설정(serial·packet_defaults)만** 복사하고 엔티티·automation·scripts는 가져오지 않는다. 적용 직후 미매칭이 남는 것은 정상이며, 대부분은 프로토콜을 몰라서가 아니라 아직 엔티티를 펼치지 않았기 때문이다. 갤러리에는 디바이스 타입별 스니펫과 개수 파라미터가 있으므로, 관측 패킷과 대조해 필요한 엔티티를 한 번에 채운다. 예제 파일의 엔티티 정의(`/setup/examples/<file>`)는 갤러리에 없는 벤더의 참고 자료로만 쓰고, 갤러리가 있으면 갤러리를 우선한다.
 
 ```bash
 node scripts/h2m.mjs gallery                           # 벤더 목록: 스니펫 수/엔티티 타입/requirements
@@ -168,7 +168,7 @@ Agent API는 갤러리를 **GitHub 우선**으로 읽고, 도달 불가일 때�
 - `STATIC n=수백`(수백 프레임 동안 1바이트도 불변, 페이로드 0 채움)은 요청/하트비트 잡음 후보다. 벤더 스니펫 전체와 대조해 HIT이 없으면 미매칭으로 남기는 것이 엔티티를 지어내는 것보다 정확하다
 
 ::: warning 새 엔티티의 바이트 원본은 "라이브 설정"에서 복사
-같은 벤더라도 적용된 예제(`/setup/examples/<file>`)와 갤러리 스니펫(`gallery-expand` 결과)의 프로토콜 리비전이 다를 수 있다. `gallery-expand`로 **구조(필드 조합)**를 잡고, mask/ack/버튼값 같은 **구체 바이트는 `/entities --full`의 기존 동일 타입 엔티티**에서 복사해 채널 인덱스만 바꾼다. 두 소스가 어긋나면 라이브 설정이 정답이다(그 설정으로 이미 다른 채널이 정상 파싱되고 있다).
+같은 벤더라도 예제 파일(`/setup/examples/<file>`)과 갤러리 스니펫(`gallery-expand` 결과)의 프로토콜 리비전이 다를 수 있다. `gallery-expand`로 **구조(필드 조합)**를 잡고, mask/ack/버튼값 같은 **구체 바이트는 `/entities --full`의 기존 동일 타입 엔티티**에서 복사해 채널 인덱스만 바꾼다. 두 소스가 어긋나면 라이브 설정이 정답이다(그 설정으로 이미 다른 채널이 정상 파싱되고 있다).
 :::
 
 ### 스니펫 → 엔티티·automation 반영 (3단계의 종료 조건)
@@ -290,9 +290,10 @@ node scripts/h2m.mjs post "/setup/apply" '{"mode":"init","example":"<winner>.hom
 ```
 
 - `mode:"init"`은 설정이 0개일 때만(`409 SETUP_NOT_REQUIRED` 방지). 이미 로드된 환경의 신규 포트는 `mode:"add"` + 미사용 `portId`
+- **`/setup/apply`는 기본적으로 설정만 복사한다.** 예제의 엔티티·automation·scripts는 들어가지 않으므로, 적용 직후 미매칭이 남는 것은 정상이다. 재시작 후 3절 갤러리 확장으로 엔티티를 채운다. 예제 엔티티까지 한 번에 복사해야 하면 `includeEntities:true`(+선택적으로 `selectedEntities`)를 명시한다
 - 재시작 후 `/ports`(status=started), `/state`, `/packets/history`, `/packets/unmatched`를 확인한다
-- **예제 수는 실제 디바이스 수와 무관하다.** 예: 예제에 climate 2개인데 버스에 4대가 있으면 잔여가 unmatched로 남는다 → 3절 갤러리 확장으로 넘어간다
-- MCP에서는 `get_setup_state` → `get_setup_example` → `test_setup_serial` → `apply_initial_setup`(`mode:"init"|"add"`)으로 같은 흐름을 만든다. 설정 0개 판정과 `loadedPortIds` 확인도 이 도구들로 끝난다
+- **예제 수는 실제 디바이스 수와 무관하다.** 갤러리 `params` 상한과 관측 채널을 근거로 필요한 만큼만 펼친다 → 3절 갤러리 확장으로 넘어간다
+- MCP에서는 `get_setup_state` → `get_setup_example` → `test_setup_serial` → `apply_initial_setup`(`mode:"init"|"add"`, 필요시 `includeEntities:true`)으로 같은 흐름을 만든다. 설정 0개 판정과 `loadedPortIds` 확인도 이 도구들로 끝난다
 - MQTT 접속 정보(브로커 주소/계정)는 config가 아니라 환경변수/애드온 옵션이므로 API로 설정 불가
 
 ## 트래픽 확보 — 홈넷은 조작해야 말한다

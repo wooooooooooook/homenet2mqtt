@@ -59,7 +59,7 @@ MCP 연결 정보다:
 | 초기 설정 상태       | `GET /setup`                                                                                                      | `setup`                                                        |
 | 예제 원문            | `GET /setup/examples/:filename`                                                                                   | `get /setup/examples/<file>`                                   |
 | 배선 테스트          | `POST /setup/test-serial`                                                                                         | `post /setup/test-serial '<json>'`                             |
-| 설정 생성/브릿지     | `POST /setup/apply` (`mode=init\|add`)                                                                            | `post /setup/apply '<json>'`                                   |
+| 설정 생성/브릿지     | `POST /setup/apply` (`mode=init\|add`, 기본 설정만·`includeEntities:true`면 예제 엔티티 포함)                     | `post /setup/apply '<json>'`                                   |
 | 포트/브리지          | `GET /ports`                                                                                                      | `info`                                                         |
 | 엔티티 목록          | `GET /entities?portId=`                                                                                           | `entities <portId> [--full]`                                   |
 | 엔티티 단건          | `GET /entities/:entityId`                                                                                         | `get "/entities/<id>"`                                         |
@@ -89,35 +89,35 @@ MCP 연결 정보다:
 
 ## 5. MCP 도구 (30개, `*` = 필수)
 
-| 그룹   | 도구                                                         | 인자                                                                                                        |
-| ------ | ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
-| 설정   | `get_setup_state`                                            | –                                                                                                           |
-|        | `get_setup_example`                                          | `example*`                                                                                                  |
-|        | `test_setup_serial`                                          | `example*`, `serialPath`, `serialConfig`                                                                    |
-|        | `apply_initial_setup`                                        | `example*`, `mode`(`init\|add`), `portId`, `serialPath`, `serialConfig`, `entityIds`, `restart`             |
-| 관측   | `list_ports`                                                 | –                                                                                                           |
-|        | `get_entities` / `get_entity_state`                          | `portId`                                                                                                    |
-|        | `get_automations` / `get_scripts`                            | `portId`                                                                                                    |
-|        | `get_packet_history`                                         | `portId`, `limit`, `since`                                                                                  |
-|        | `get_unmatched_packets`                                      | `portId`, `limit`                                                                                           |
-| 패킷   | `analyze_packet`                                             | `input*`(hex 또는 int 배열), `portId`, `draft`, `similarityThreshold`                                       |
-|        | `send_packet`                                                | `hex*`, `confirm*=true`, `portId`, `header`, `footer`, `checksum`, `count`(≤10), `interval`                 |
-| 캡처   | `start_capture`                                              | `mode`(`all\|valid`)                                                                                        |
-|        | `stop_capture` / `get_capture_status` / `list_capture_files` | –                                                                                                           |
-| 갤러리 | `list_gallery`                                               | `vendor`                                                                                                    |
-|        | `get_gallery_snippet`                                        | `file*` (`vendor/name.yaml`)                                                                                |
-|        | `match_gallery`                                              | `portId`, `vendor`                                                                                          |
-|        | `expand_gallery_snippet`                                     | `file*` (`vendor/name.yaml`), `parameterValues`                                                             |
-| 스키마 | `list_config_schemas`                                        | –                                                                                                           |
-|        | `get_config_schema`                                          | `name` (기본 `homenet-bridge`)                                                                              |
-| 백업   | `list_backups`                                               | `portId`, `configFile`                                                                                      |
-|        | `create_backup`                                              | `portId`, `configFile`, `reason`                                                                            |
-|        | `get_backup`                                                 | `filename*`                                                                                                 |
-|        | `restore_backup`                                             | `filename*`, `confirm*=true`, `restart`                                                                     |
-|        | `delete_bridge`                                              | `portId` 또는 `configFile`, `backupFilename*`, `confirm*=true`                                              |
-| 엔티티 | `validate_entity_draft`                                      | `entities`, `automations`, `scripts`, `packetDefaults`, `portId`, `discoveryPreview`, `similarityThreshold` |
-|        | `apply_entity_draft`                                         | `draftHash*`, 위 초안 필드, `portId`, `resolutions`, `renames`, `restart`                                   |
-| 이벤트 | `get_recent_events`                                          | `afterId`, `limit`, `types`, `portId`, `rawMode`                                                            |
+| 그룹   | 도구                                                         | 인자                                                                                                                                        |
+| ------ | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| 설정   | `get_setup_state`                                            | –                                                                                                                                           |
+|        | `get_setup_example`                                          | `example*`                                                                                                                                  |
+|        | `test_setup_serial`                                          | `example*`, `serialPath`, `serialConfig`                                                                                                    |
+|        | `apply_initial_setup`                                        | `example*`, `mode`(`init\|add`), `portId`, `serialPath`, `serialConfig`, `packetDefaults`, `includeEntities`, `selectedEntities`, `restart` |
+| 관측   | `list_ports`                                                 | –                                                                                                                                           |
+|        | `get_entities` / `get_entity_state`                          | `portId`                                                                                                                                    |
+|        | `get_automations` / `get_scripts`                            | `portId`                                                                                                                                    |
+|        | `get_packet_history`                                         | `portId`, `limit`, `since`                                                                                                                  |
+|        | `get_unmatched_packets`                                      | `portId`, `limit`                                                                                                                           |
+| 패킷   | `analyze_packet`                                             | `input*`(hex 또는 int 배열), `portId`, `draft`, `similarityThreshold`                                                                       |
+|        | `send_packet`                                                | `hex*`, `confirm*=true`, `portId`, `header`, `footer`, `checksum`, `count`(≤10), `interval`                                                 |
+| 캡처   | `start_capture`                                              | `mode`(`all\|valid`)                                                                                                                        |
+|        | `stop_capture` / `get_capture_status` / `list_capture_files` | –                                                                                                                                           |
+| 갤러리 | `list_gallery`                                               | `vendor`                                                                                                                                    |
+|        | `get_gallery_snippet`                                        | `file*` (`vendor/name.yaml`)                                                                                                                |
+|        | `match_gallery`                                              | `portId`, `vendor`                                                                                                                          |
+|        | `expand_gallery_snippet`                                     | `file*` (`vendor/name.yaml`), `parameterValues`                                                                                             |
+| 스키마 | `list_config_schemas`                                        | –                                                                                                                                           |
+|        | `get_config_schema`                                          | `name` (기본 `homenet-bridge`)                                                                                                              |
+| 백업   | `list_backups`                                               | `portId`, `configFile`                                                                                                                      |
+|        | `create_backup`                                              | `portId`, `configFile`, `reason`                                                                                                            |
+|        | `get_backup`                                                 | `filename*`                                                                                                                                 |
+|        | `restore_backup`                                             | `filename*`, `confirm*=true`, `restart`                                                                                                     |
+|        | `delete_bridge`                                              | `portId` 또는 `configFile`, `backupFilename*`, `confirm*=true`                                                                              |
+| 엔티티 | `validate_entity_draft`                                      | `entities`, `automations`, `scripts`, `packetDefaults`, `portId`, `discoveryPreview`, `similarityThreshold`                                 |
+|        | `apply_entity_draft`                                         | `draftHash*`, 위 초안 필드, `portId`, `resolutions`, `renames`, `restart`                                                                   |
+| 이벤트 | `get_recent_events`                                          | `afterId`, `limit`, `types`, `portId`, `rawMode`                                                                                            |
 
 `send_packet`은 `destructiveHint` 도구다. `count` 기본값은 1이고 API 상한은 10이다. 같은 패킷 반복은 `count`/`interval`(10–1000ms)로, 서로 다른 패킷 시퀀스는 승인된 순서대로 `count: 1`씩 보낸다. `h2m.mjs send`는 여러 hex를 `--delay` 간격으로 순차 전송하며 한 호출 최대 10패킷이다. `checksum` 기본값은 `true`, `header`/`footer` 기본값은 `false`이므로 `preview`와 **같은 플래그**를 넘겨야 한다. 실패 코드: `PACKET_SEND_DISABLED`(권한 꺼짐), `CONFIRM_REQUIRED`, `INVALID_COUNT`/`INVALID_INTERVAL`, `PORT_NOT_READY`, `PACKET_BUILD_FAILED`, `RATE_LIMITED`.
 

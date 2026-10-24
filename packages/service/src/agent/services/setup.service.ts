@@ -131,5 +131,6 @@ export async function applyAgentInitialSetup(
       !Array.isArray(request.selectedEntities)
         ? (request.selectedEntities as Record<string, unknown>)
         : undefined,
+    includeEntities: request.includeEntities === true,
   });
 }

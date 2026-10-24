@@ -850,9 +850,17 @@ export function buildOpenApiDocument(options: OpenApiOptions): Record<string, un
                 'Full serial settings for "__empty__": portId, path, baud_rate, data_bits, parity, stop_bits.',
             },
             packetDefaults: { type: 'object', additionalProperties: true },
+            includeEntities: {
+              type: 'boolean',
+              default: false,
+              description:
+                'Import the example entities, automations, and scripts. Defaults to false: only settings such as serial and packet_defaults are written. Add entities from the gallery afterwards.',
+            },
             selectedEntities: {
               type: 'object',
               additionalProperties: { type: 'array', items: { type: 'string' } },
+              description:
+                'Entity ids to keep, keyed by entity type. Only used when includeEntities is true.',
             },
             restart: { type: 'boolean', default: true },
           },
@@ -941,7 +949,7 @@ Auth: Authorization: Bearer <agent API token> (required for every endpoint excep
 OpenAPI: ${AGENT_API_BASE}${AGENT_PATHS.openapi}
 
 ## Workflow
-0. If no configuration is loaded yet, call GET /setup. Inspect an example with GET /setup/examples/<filename>, optionally POST /setup/test-serial, then POST /setup/apply { mode: "init", example, serialPath, portId?, packetDefaults?, selectedEntities?, restart }.
+0. If no configuration is loaded yet, call GET /setup. Inspect an example with GET /setup/examples/<filename>, optionally POST /setup/test-serial, then POST /setup/apply { mode: "init", example, serialPath, portId?, packetDefaults?, includeEntities?, selectedEntities?, restart }. By default only settings are written; add entities from the gallery after the restart.
    To add another bridge while configurations are loaded, read loadedPortIds from GET /setup, optionally POST /setup/test-serial, then POST /setup/apply { mode: "add", example, serialPath, portId, ... } with a portId not already in loadedPortIds.
 1. GET /ports, GET /entities, GET /automations, and GET /scripts to inspect the loaded configuration.
 2. GET /state, GET /packets/history, and GET /packets/unmatched to observe traffic.
@@ -959,7 +967,7 @@ OpenAPI: ${AGENT_API_BASE}${AGENT_PATHS.openapi}
 - Gallery presets: GET /gallery lists vendors (id, requirements, snippetCount, entityTypes); GET /gallery?vendor=<id> returns that vendor's snippets with parameters, content summary and discovery block; GET /gallery/snippet?file=<vendor>/<name>.yaml returns the raw YAML; GET /gallery/match?portId=&vendor= scores every snippet's discovery against observed packets and returns inferred parameter values (channel counts); POST /gallery/expand { file, parameterValues? } resolves parameters and expands $repeat/$if/{{expr}} templates into a draft with entities, automations and scripts ready for /entities/validate. GitHub is read first and the packaged gallery directory is the offline fallback, so \`source\` in the response tells you which one served the data. Use these to extend entities until /packets/unmatched is empty.
 - Configuration backups: GET /backups?portId=&configFile= lists backups newest first; POST /backups { portId?, configFile?, reason? } snapshots the current YAML and returns its content; GET /backups/<filename> returns metadata plus YAML (raw=true downloads the YAML); POST /backups/restore { filename, confirm: true, restart? } restores the source config file, writes a pre_restore backup first, and restarts the service. Use them to keep a pristine copy before edits and to roll back.
 - Bridge deletion: POST /bridges/delete { portId? | configFile?, backupFilename, confirm: true } deletes the YAML only when backupFilename is a backup of the exact current content; missing, mismatched or stale backups are rejected. Always restarts the service; deleting the last configuration reopens the setup wizard.
-- /setup/apply with mode "init" (default) requires that no configuration is loaded; mode "add" writes a new config file while configurations are loaded and requires a unique portId and serialPath. Use "__empty__" as the example to start from a blank config; then serialConfig { portId, path, baud_rate, data_bits, parity, stop_bits } is required.
+- /setup/apply with mode "init" (default) requires that no configuration is loaded; mode "add" writes a new config file while configurations are loaded and requires a unique portId and serialPath. Use "__empty__" as the example to start from a blank config; then serialConfig { portId, path, baud_rate, data_bits, parity, stop_bits } is required. Example application imports only settings by default; pass includeEntities=true to also copy the example entities, automations, and scripts (selectedEntities filters them).
 - /setup/test-serial is available with or without loaded configurations, but the port must not already be held by a running bridge.
 - POST /setup/apply restarts the service after responding unless restart=false.
 - Draft ids must match ^[A-Za-z0-9_-]+$.

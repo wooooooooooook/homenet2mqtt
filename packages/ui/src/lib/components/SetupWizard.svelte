@@ -276,6 +276,7 @@
                   filename: EMPTY_CONFIG_VALUE,
                   serialConfig: serialConfigPayload,
                   packetDefaults: finalPacketDefaults,
+                  includeEntities: true,
                   selectedEntities,
                   mode,
                 }
@@ -284,6 +285,7 @@
                   serialPath: serialPath.trim(),
                   portId: serialPortId.trim(),
                   packetDefaults: finalPacketDefaults,
+                  includeEntities: true,
                   selectedEntities,
                   mode,
                 },

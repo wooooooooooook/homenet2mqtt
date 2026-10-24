@@ -56,6 +56,7 @@ export type SetupSelectionRequest = {
   portId?: string;
   packetDefaults?: Record<string, unknown>;
   selectedEntities?: Record<string, unknown>;
+  includeEntities?: boolean;
   mode?: 'init' | 'add';
 };
 
@@ -437,6 +438,24 @@ export const createSetupWizardService = (deps: SetupWizardDeps): SetupWizardServ
   const isRecord = (value: unknown): value is Record<string, unknown> =>
     Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 
+  const ENTITY_SECTION_KEYS = [...ENTITY_TYPE_KEYS, 'automation', 'automations', 'scripts'];
+
+  const stripEntitySections = (document: unknown): void => {
+    if (!isRecord(document)) return;
+
+    const bridgeConfig = isRecord(document.homenet_bridge) ? document.homenet_bridge : document;
+    for (const key of ENTITY_SECTION_KEYS) {
+      delete bridgeConfig[key];
+    }
+
+    if (bridgeConfig !== document) {
+      delete document.entities;
+      delete document.automation;
+      delete document.automations;
+      delete document.scripts;
+    }
+  };
+
   const resolveExamplePath = async (filename: string): Promise<string> => {
     if (!filename || filename.includes('/') || filename.includes('\\')) {
       throw new ConfigItemsError('INVALID_FILENAME', 'Invalid example filename.', 400);
@@ -751,30 +770,34 @@ export const createSetupWizardService = (deps: SetupWizardDeps): SetupWizardServ
         );
       }
 
-      if (bridgeConfig && isRecord(request.selectedEntities)) {
-        for (const type of ENTITY_TYPE_KEYS) {
-          if (!(type in request.selectedEntities)) continue;
+      if (request.includeEntities === true) {
+        if (bridgeConfig && isRecord(request.selectedEntities)) {
+          for (const type of ENTITY_TYPE_KEYS) {
+            if (!(type in request.selectedEntities)) continue;
 
-          const rawAllowed = request.selectedEntities[type];
-          const allowedIds = new Set(
-            Array.isArray(rawAllowed)
-              ? rawAllowed.filter((id): id is string => typeof id === 'string')
-              : [],
-          );
+            const rawAllowed = request.selectedEntities[type];
+            const allowedIds = new Set(
+              Array.isArray(rawAllowed)
+                ? rawAllowed.filter((id): id is string => typeof id === 'string')
+                : [],
+            );
 
-          const items = bridgeConfig[type];
-          if (!Array.isArray(items)) continue;
+            const items = bridgeConfig[type];
+            if (!Array.isArray(items)) continue;
 
-          const filtered = items.filter(
-            (item) => isRecord(item) && typeof item.id === 'string' && allowedIds.has(item.id),
-          );
+            const filtered = items.filter(
+              (item) => isRecord(item) && typeof item.id === 'string' && allowedIds.has(item.id),
+            );
 
-          if (filtered.length > 0) {
-            bridgeConfig[type] = filtered;
-          } else {
-            delete bridgeConfig[type];
+            if (filtered.length > 0) {
+              bridgeConfig[type] = filtered;
+            } else {
+              delete bridgeConfig[type];
+            }
           }
         }
+      } else {
+        stripEntitySections(document);
       }
 
       updatedYaml = dumpConfigToYaml(document as Record<string, unknown>, { lineWidth: 120 });

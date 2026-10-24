@@ -35,6 +35,40 @@ const exampleYaml = `homenet_bridge:
       name: Sensor A
     - id: sensor_b
       name: Sensor B
+  automation:
+    - id: example_automation
+      trigger:
+        - type: schedule
+          every: 1m
+  scripts:
+    example_script: >-
+      {{ "00" }}
+automation:
+  - id: top_level_automation
+    trigger:
+      - type: schedule
+        every: 1m
+`;
+
+const legacyExampleYaml = `homenet_bridge:
+  serial:
+    portId: legacy_port
+    path: /dev/ttyS1
+    baud_rate: 9600
+    data_bits: 8
+    parity: none
+    stop_bits: 1
+  packet_defaults:
+    rx_timeout: 10ms
+entities:
+  sensor:
+    - id: legacy_sensor
+      name: Legacy Sensor
+automation:
+  - id: legacy_automation
+    trigger:
+      - type: schedule
+        every: 1m
 `;
 
 interface TestHarness {
@@ -197,6 +231,7 @@ describe('agent setup routes', () => {
       example: EXAMPLE_FILE,
       serialPath: '/dev/ttyUSB0',
       portId: 'test_port',
+      includeEntities: true,
       selectedEntities: { sensor: ['sensor_a'] },
       restart: false,
     });
@@ -215,10 +250,58 @@ describe('agent setup routes', () => {
       path: '/dev/ttyUSB0',
     });
     expect(written.homenet_bridge.sensor.map((sensor: any) => sensor.id)).toEqual(['sensor_a']);
+    expect(written.homenet_bridge.automation).toHaveLength(1);
+    expect(written.homenet_bridge.scripts).toHaveProperty('example_script');
+    expect(written.automation).toHaveLength(1);
 
     expect(await fileExists(path.join(configDir, '.initialized'))).toBe(true);
     expect(await fileExists(path.join(configDir, '.restart-required'))).toBe(true);
     expect(harness.requestRestart).not.toHaveBeenCalled();
+  });
+
+  it('imports only settings by default and omits entities, automations, and scripts', async () => {
+    const response = await post('/api/v1/agent/setup/apply', {
+      example: EXAMPLE_FILE,
+      serialPath: '/dev/ttyUSB0',
+      restart: false,
+    });
+
+    expect(response.status).toBe(200);
+
+    const written = yaml.load(await fs.readFile(path.join(configDir, CONFIG_FILE), 'utf8')) as any;
+    expect(written.homenet_bridge.serial).toMatchObject({
+      portId: 'test_port',
+      path: '/dev/ttyUSB0',
+    });
+    expect(written.homenet_bridge.packet_defaults).toMatchObject({ rx_timeout: 10 });
+    expect(written.homenet_bridge).not.toHaveProperty('sensor');
+    expect(written.homenet_bridge).not.toHaveProperty('automation');
+    expect(written.homenet_bridge).not.toHaveProperty('scripts');
+    expect(written).not.toHaveProperty('automation');
+  });
+
+  it('strips legacy top-level entities and automations by default', async () => {
+    await fs.writeFile(
+      path.join(examplesDir, 'legacy.homenet_bridge.yaml'),
+      legacyExampleYaml,
+      'utf8',
+    );
+
+    const response = await post('/api/v1/agent/setup/apply', {
+      example: 'legacy.homenet_bridge.yaml',
+      serialPath: '/dev/ttyUSB0',
+      restart: false,
+    });
+
+    expect(response.status).toBe(200);
+
+    const written = yaml.load(await fs.readFile(path.join(configDir, CONFIG_FILE), 'utf8')) as any;
+    expect(written.homenet_bridge.serial).toMatchObject({
+      portId: 'legacy_port',
+      path: '/dev/ttyUSB0',
+    });
+    expect(written).not.toHaveProperty('entities');
+    expect(written).not.toHaveProperty('automation');
   });
 
   it('restarts after responding when restart is not disabled', async () => {
@@ -291,6 +374,7 @@ describe('agent setup routes', () => {
       example: EXAMPLE_FILE,
       serialPath: '/dev/ttyUSB1',
       portId: 'test_port_2',
+      includeEntities: true,
       selectedEntities: { sensor: ['sensor_a'] },
       restart: false,
     });
@@ -406,6 +490,10 @@ describe('agent setup routes', () => {
       restartInitiated: true,
     });
 
+    const written = yaml.load(await fs.readFile(path.join(configDir, CONFIG_FILE), 'utf8')) as any;
+    expect(written.homenet_bridge).not.toHaveProperty('sensor');
+    expect(written.homenet_bridge).not.toHaveProperty('automation');
+
     await new Promise((resolve) => setTimeout(resolve, 10));
     expect(harness.requestRestart).toHaveBeenCalledTimes(1);
   });
@@ -444,6 +532,7 @@ describe('agent setup routes', () => {
             example: EXAMPLE_FILE,
             serialPath: '/dev/ttyUSB1',
             portId: 'mcp_port',
+            includeEntities: true,
             restart: false,
           },
         },
@@ -456,6 +545,12 @@ describe('agent setup routes', () => {
       target: 'default_2.homenet_bridge.yaml',
       restartInitiated: false,
     });
-    expect(await fileExists(path.join(configDir, 'default_2.homenet_bridge.yaml'))).toBe(true);
+    const written = yaml.load(
+      await fs.readFile(path.join(configDir, 'default_2.homenet_bridge.yaml'), 'utf8'),
+    ) as any;
+    expect(written.homenet_bridge.sensor.map((sensor: any) => sensor.id)).toEqual([
+      'sensor_a',
+      'sensor_b',
+    ]);
   });
 });

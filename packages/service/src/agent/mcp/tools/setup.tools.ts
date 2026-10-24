@@ -77,7 +77,7 @@ export const setupTools: McpTool[] = [
     name: 'apply_initial_setup',
     title: 'Apply initial setup or add a bridge',
     description:
-      'With mode="init" (default), seed the default configuration from an example or "__empty__" and mark initialization complete; this requires that no configuration is loaded. With mode="add", write a new configuration file to add another bridge while configurations are loaded; portId and serialPath must not duplicate an existing port. Restarts after responding unless restart=false.',
+      'With mode="init" (default), seed the default configuration from an example or "__empty__" and mark initialization complete; this requires that no configuration is loaded. With mode="add", write a new configuration file to add another bridge while configurations are loaded; portId and serialPath must not duplicate an existing port. By default only settings (serial, packet_defaults) are written; pass includeEntities=true to also import the example entities, automations, and scripts. Restarts after responding unless restart=false.',
     inputSchema: {
       type: 'object',
       required: ['example'],
@@ -102,10 +102,17 @@ export const setupTools: McpTool[] = [
             'Full serial settings for "__empty__": portId, path, baud_rate, data_bits, parity, stop_bits.',
         },
         packetDefaults: { type: 'object', additionalProperties: true },
+        includeEntities: {
+          type: 'boolean',
+          default: false,
+          description:
+            'Import the example entities, automations, and scripts. Defaults to false: only settings such as serial and packet_defaults are written. Add entities from the gallery afterwards.',
+        },
         selectedEntities: {
           type: 'object',
           additionalProperties: { type: 'array', items: { type: 'string' } },
-          description: 'Entity ids to keep, keyed by entity type.',
+          description:
+            'Entity ids to keep, keyed by entity type. Only used when includeEntities is true.',
         },
         restart: {
           type: 'boolean',

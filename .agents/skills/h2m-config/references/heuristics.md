@@ -99,9 +99,9 @@ node scripts/h2m.mjs preview <portId> 04010481000000
 - 반대도 성립: coverage 100%라도 프레임 길이가 짧은(4바이트 등) 예제가 이기면 우연일 수 있다. 체크섬 검증 실패 사례가 0이어야 하고, 2위와 격차가 30%p 이상이어야 확정
 - 예제 확정 후에도 `/packets/unmatched`에 다른 벤더 계열 접두가 다수 남으면 혼선·복수 버스 가능성을 다시 의심한다
 
-## 12. 초기 설정의 미매칭은 대개 "예제가 스니펫보다 적게 펼쳤다"
+## 12. 초기 설정의 미매칭은 대개 "아직 엔티티를 펼치지 않았다"
 
-`/setup/apply`가 쓰는 예제는 대표 엔티티만 축약해 넣은 파일이라, 갤러리 스니펫(`/gallery*` API)의 `discovery.match`+개수 파라미터로 확장하면 미매칭이 한 번에 사라지는 경우가 많다.
+`/setup/apply`는 예제에서 설정(serial·packet_defaults)만 복사하므로, 갤러리 스니펫(`/gallery*` API)의 `discovery.match`+개수 파라미터로 필요한 엔티티를 펼치면 미매칭이 한 번에 사라지는 경우가 많다. 예제의 엔티티 정의는 갤러리가 없는 벤더의 참고용이다.
 
 - `h2m.mjs gallery-match <portId|-> [vendor]`가 `params={"heater_count":4}` / `채널값=0x03,0x04 → max=4`를 돌려주면 `heater_count`를 4로 채우는 근거
 - `/gallery*`는 GitHub을 우선 읽고 동봉 `gallery/`는 폴백이므로, 응답의 `source=local`이면 프리셋이 배포본 사본(구버전 리비전)일 수 있다. 아래 리비전 어긋남 규칙을 특히 주의
