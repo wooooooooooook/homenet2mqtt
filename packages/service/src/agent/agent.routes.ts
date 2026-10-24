@@ -49,6 +49,12 @@ import {
   sendAgentPacket,
 } from './services/packet.service.js';
 import { applyAgentEntityDraft, validateAgentEntityDraft } from './services/entities.service.js';
+import {
+  createAgentBackup,
+  getAgentBackup,
+  listAgentBackups,
+  restoreAgentBackup,
+} from './services/backups.service.js';
 import { isPlainObject, readDraftInput, readOptionalString, toInteger } from './services/input.js';
 import { isAgentPortError, resolveAgentPort } from './services/port.service.js';
 import {
@@ -190,6 +196,7 @@ export function createAgentRoutes(ctx: AgentRoutesContext): Router {
           setup: true,
           gallery: true,
           schema: true,
+          backups: true,
           mcp: true,
         },
         limits: {
@@ -578,6 +585,64 @@ export function createAgentRoutes(ctx: AgentRoutesContext): Router {
           parameterValues: body.parameterValues as Record<string, unknown> | undefined,
         }),
       );
+    } catch (error) {
+      handleRouteError(res, error);
+    }
+  });
+
+  // --- Configuration backups (config YAML snapshot, download, restore) ---
+  router.get(`${AGENT_API_BASE}${AGENT_PATHS.backups}`, async (req, res) => {
+    try {
+      res.json(
+        await listAgentBackups(ctx, {
+          portId: firstQueryValue(req.query.portId),
+          configFile: firstQueryValue(req.query.configFile),
+        }),
+      );
+    } catch (error) {
+      handleRouteError(res, error);
+    }
+  });
+
+  router.post(`${AGENT_API_BASE}${AGENT_PATHS.backups}`, async (req, res) => {
+    const body = isPlainObject(req.body) ? req.body : {};
+    try {
+      const backup = await createAgentBackup(ctx, body);
+      res.json({ created: true, backup });
+    } catch (error) {
+      handleRouteError(res, error);
+    }
+  });
+
+  router.post(`${AGENT_API_BASE}${AGENT_PATHS.backupRestore}`, async (req, res) => {
+    const body = isPlainObject(req.body) ? req.body : {};
+    try {
+      const result = await restoreAgentBackup(ctx, body);
+      const restartInitiated = body.restart !== false;
+
+      if (restartInitiated) {
+        res.on('finish', () => {
+          void ctx.requestRestart();
+        });
+      }
+
+      res.json({ success: true, ...result, restartInitiated });
+    } catch (error) {
+      handleRouteError(res, error);
+    }
+  });
+
+  router.get(`${AGENT_API_BASE}${AGENT_PATHS.backup}`, async (req, res) => {
+    try {
+      const backup = await getAgentBackup(ctx, req.params.filename);
+      const raw = firstQueryValue(req.query.raw);
+      if (raw === 'true' || raw === '1') {
+        res.attachment(backup.filename);
+        res.type('text/yaml');
+        res.send(backup.yaml);
+        return;
+      }
+      res.json(backup);
     } catch (error) {
       handleRouteError(res, error);
     }

@@ -42,6 +42,7 @@ export function buildOpenApiDocument(options: OpenApiOptions): Record<string, un
       { name: 'packets' },
       { name: 'capture' },
       { name: 'gallery' },
+      { name: 'backups' },
       { name: 'schema' },
       { name: 'draft' },
       { name: 'events' },
@@ -588,6 +589,90 @@ export function buildOpenApiDocument(options: OpenApiOptions): Record<string, un
           },
         },
       },
+      [AGENT_PATHS.backups]: {
+        get: {
+          tags: ['backups'],
+          summary: 'List configuration backups',
+          description:
+            'Lists YAML backups of configuration files, newest first. Filter by portId or configFile when more than one bridge is loaded.',
+          parameters: [
+            { $ref: '#/components/parameters/PortId' },
+            {
+              name: 'configFile',
+              in: 'query',
+              schema: { type: 'string' },
+              description: 'Configuration filename such as "default.homenet_bridge.yaml".',
+            },
+          ],
+          responses: { '200': jsonResponse('Backups', { type: 'object' }) },
+        },
+        post: {
+          tags: ['backups'],
+          summary: 'Create a configuration backup',
+          description:
+            'Snapshots the current configuration YAML into the backups directory and returns its metadata with the YAML content. Use it before applying a draft or gallery preset so the agent keeps a pristine copy.',
+          requestBody: {
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/CreateBackupRequest' },
+              },
+            },
+          },
+          responses: {
+            '200': jsonResponse('Created backup', { type: 'object' }),
+            '404': errorResponse('Port or configuration file not found'),
+          },
+        },
+      },
+      [AGENT_PATHS.backupRestore]: {
+        post: {
+          tags: ['backups'],
+          summary: 'Restore a configuration backup',
+          description:
+            'Overwrites the source configuration file with the selected backup, writes a pre_restore backup first, and refreshes the loaded bridge config. Requires confirm=true; restarts after responding unless restart=false.',
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/RestoreBackupRequest' },
+              },
+            },
+          },
+          responses: {
+            '200': jsonResponse('Restored backup', { type: 'object' }),
+            '400': errorResponse('Missing confirmation or invalid backup'),
+            '404': errorResponse('Backup not found'),
+          },
+        },
+      },
+      [openApiPath(AGENT_PATHS.backup)]: {
+        get: {
+          tags: ['backups'],
+          summary: 'Download a configuration backup',
+          description:
+            'Returns backup metadata and YAML. Add raw=true to download the YAML as a text/yaml attachment.',
+          parameters: [
+            {
+              name: 'filename',
+              in: 'path',
+              required: true,
+              schema: { type: 'string' },
+              description: 'Backup filename returned by the list or create endpoint.',
+            },
+            {
+              name: 'raw',
+              in: 'query',
+              schema: { type: 'boolean', default: false },
+              description: 'Return the YAML file instead of JSON metadata.',
+            },
+          ],
+          responses: {
+            '200': jsonResponse('Backup content', { type: 'object' }),
+            '400': errorResponse('Invalid backup filename'),
+            '404': errorResponse('Backup not found'),
+          },
+        },
+      },
       [AGENT_PATHS.schema]: {
         get: {
           tags: ['schema'],
@@ -749,6 +834,43 @@ export function buildOpenApiDocument(options: OpenApiOptions): Record<string, un
             restart: { type: 'boolean', default: true },
           },
         },
+        CreateBackupRequest: {
+          type: 'object',
+          properties: {
+            portId: { type: 'string' },
+            configFile: {
+              type: 'string',
+              description:
+                'Configuration filename such as "default.homenet_bridge.yaml". Alternative to portId.',
+            },
+            reason: {
+              type: 'string',
+              pattern: '^[A-Za-z0-9_-]{1,60}$',
+              default: 'agent_backup',
+              description: 'Short label recorded in the backup filename.',
+            },
+          },
+        },
+        RestoreBackupRequest: {
+          type: 'object',
+          required: ['filename', 'confirm'],
+          properties: {
+            filename: {
+              type: 'string',
+              description: 'Backup filename returned by the list or create endpoint.',
+            },
+            confirm: {
+              type: 'boolean',
+              const: true,
+              description: 'Must be true. Restoring overwrites the configuration YAML.',
+            },
+            restart: {
+              type: 'boolean',
+              default: true,
+              description: 'Restart the service after the configuration is restored.',
+            },
+          },
+        },
         JsonRpcRequest: {
           type: 'object',
           required: ['jsonrpc', 'method'],
@@ -777,13 +899,16 @@ OpenAPI: ${AGENT_API_BASE}${AGENT_PATHS.openapi}
 2. GET /state, GET /packets/history, and GET /packets/unmatched to observe traffic.
 3. POST /packets/analyze with \`input\` (hex or int array) and an optional \`draft\` config.
 4. POST /capture/start { "mode": "all" | "valid" } and POST /capture/stop to record raw bytes.
-5. POST /entities/validate { portId, entities, automations, scripts, packetDefaults, discoveryPreview }.
-6. POST /entities/apply { portId, draftHash, ...draft, resolutions, renames, restart }.
-7. The service writes YAML, creates a backup, and marks a restart as required.
+5. Before changing an existing configuration, POST /backups { portId?, configFile?, reason? } to snapshot it; GET /backups/<filename> returns the YAML so the agent can keep a pristine copy.
+6. POST /entities/validate { portId, entities, automations, scripts, packetDefaults, discoveryPreview }.
+7. POST /entities/apply { portId, draftHash, ...draft, resolutions, renames, restart }.
+8. The service writes YAML, creates a backup, and marks a restart as required.
+9. If a change must be rolled back, POST /backups/restore { filename, confirm: true, restart? }; the current YAML is backed up first.
 
 ## Notes
 - Config schema: GET /schema lists the bundled JSON Schema names; GET /schema/homenet-bridge returns the config schema for this build (entity fields, enums, required flags). The same schema is available over MCP as list_config_schemas and get_config_schema. Look up exact field names there instead of guessing them.
 - Gallery presets: GET /gallery lists vendors (id, requirements, snippetCount, entityTypes); GET /gallery?vendor=<id> returns that vendor's snippets with parameters, content summary and discovery block; GET /gallery/snippet?file=<vendor>/<name>.yaml returns the raw YAML; GET /gallery/match?portId=&vendor= scores every snippet's discovery against observed packets and returns inferred parameter values (channel counts); POST /gallery/expand { file, parameterValues? } resolves parameters and expands $repeat/$if/{{expr}} templates into a draft with entities, automations and scripts ready for /entities/validate. GitHub is read first and the packaged gallery directory is the offline fallback, so \`source\` in the response tells you which one served the data. Use these to extend entities until /packets/unmatched is empty.
+- Configuration backups: GET /backups?portId=&configFile= lists backups newest first; POST /backups { portId?, configFile?, reason? } snapshots the current YAML and returns its content; GET /backups/<filename> returns metadata plus YAML (raw=true downloads the YAML); POST /backups/restore { filename, confirm: true, restart? } restores the source config file, writes a pre_restore backup first, and restarts the service. Use them to keep a pristine copy before edits and to roll back.
 - /setup/apply with mode "init" (default) requires that no configuration is loaded; mode "add" writes a new config file while configurations are loaded and requires a unique portId and serialPath. Use "__empty__" as the example to start from a blank config; then serialConfig { portId, path, baud_rate, data_bits, parity, stop_bits } is required.
 - /setup/test-serial is available with or without loaded configurations, but the port must not already be held by a running bridge.
 - POST /setup/apply restarts the service after responding unless restart=false.
@@ -799,6 +924,7 @@ Auth: same Authorization: Bearer header. Send Content-Type: application/json.
 Methods: initialize, notifications/initialized (202, no body), ping, tools/list, tools/call.
 Tools: get_setup_state, get_setup_example, test_setup_serial, apply_initial_setup, list_ports, get_entities, get_automations, get_scripts, get_entity_state, get_packet_history, get_unmatched_packets, analyze_packet,
 start_capture, stop_capture, get_capture_status, list_capture_files, validate_entity_draft, apply_entity_draft,
-get_recent_events (poll with afterId), list_gallery, get_gallery_snippet, match_gallery, expand_gallery_snippet, list_config_schemas, get_config_schema, and send_packet when packet sending is enabled in Settings > Agent API.
+get_recent_events (poll with afterId), list_gallery, get_gallery_snippet, match_gallery, expand_gallery_snippet, list_config_schemas, get_config_schema,
+list_backups, create_backup, get_backup, restore_backup, and send_packet when packet sending is enabled in Settings > Agent API.
 Tool failures are returned as tool results with isError=true and { error, message }; protocol errors use JSON-RPC error codes.
 `;

@@ -1,4 +1,5 @@
 import type { McpTool } from './types.js';
+import { backupTools } from './tools/backup.tools.js';
 import { captureTools } from './tools/capture.tools.js';
 import { entityTools } from './tools/entity.tools.js';
 import { eventTools } from './tools/event.tools.js';
@@ -16,6 +17,7 @@ export const MCP_TOOLS: McpTool[] = [
   ...galleryTools,
   ...schemaTools,
   ...entityTools,
+  ...backupTools,
   ...eventTools,
 ];
 

@@ -235,6 +235,10 @@ Authorization: Bearer <AGENT_TOKEN>
 | GET    | `/gallery/snippet?file=`                 | 갤러리 스니펫 원본 YAML                       |
 | GET    | `/gallery/match?portId=&vendor=`         | 관측 패킷 대비 갤러리 스니펫 점수화           |
 | POST   | `/gallery/expand`                        | 스니펫 파라미터·템플릿을 펼쳐 초안으로 변환   |
+| GET    | `/backups?portId=&configFile=`           | 설정 YAML 백업 목록(최신순)                   |
+| POST   | `/backups`                               | 현재 설정 YAML 백업 생성 + 내용 반환          |
+| GET    | `/backups/:filename?raw=`                | 백업 내용(JSON) 또는 YAML 다운로드            |
+| POST   | `/backups/restore`                       | 백업을 설정 파일로 복원 + 사전 백업 + 재시작  |
 | GET    | `/schema`                                | 번들된 JSON 스키마 이름 목록                  |
 | GET    | `/schema/:schemaName`                    | 설정 JSON 스키마(엔티티 필드·enum·제약)       |
 | GET    | `/events`                                | SSE 실시간 이벤트 스트림                      |
@@ -447,6 +451,37 @@ curl -s -X POST -H "Authorization: Bearer $TOKEN" \
 - `restart: true`이면 응답 전송 후 서비스가 재시작됩니다.
 - 재시작 전까지 실행 중인 브리지는 기존 디바이스만 사용합니다(라이브 등록은 지원하지 않음).
 
+### 설정 백업·복원
+
+기존 설정을 수정하기 전에 에이전트가 원본 YAML을 확보해 둘 수 있습니다. 백업 파일은 설정 디렉터리의 `backups/`에 저장되며, 파일명은 `<설정파일>.<타임스탬프>.<reason>.bak` 형식입니다. `reason`은 영문·숫자·`_`·`-`만 허용합니다.
+
+```bash
+# 1. 현재 설정 백업 생성 (응답에 YAML 본문 포함)
+curl -s -X POST -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"portId":"default","reason":"before_gallery_apply"}' \
+  "$H2M/backups"
+
+# 2. 백업 목록 (portId 또는 configFile로 필터)
+curl -s -H "Authorization: Bearer $TOKEN" "$H2M/backups?portId=default"
+
+# 3. 백업 내용 확인 / 원본 YAML 다운로드
+curl -s -H "Authorization: Bearer $TOKEN" "$H2M/backups/<filename>"
+curl -s -H "Authorization: Bearer $TOKEN" "$H2M/backups/<filename>?raw=true" -o restored.yaml
+
+# 4. 복원 (confirm 필수, 응답 후 재시작)
+curl -s -X POST -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"filename":"<filename>","confirm":true,"restart":true}' \
+  "$H2M/backups/restore"
+```
+
+- `POST /backups`는 `portId`(또는 `configFile`)로 대상을 고릅니다. 둘 다 생략하면 로드된 포트가 하나일 때 그 설정을 사용합니다.
+- 응답의 `backup` 객체에는 `filename`, `configFile`, `reason`, `size`, `createdAt`, `bytes`, `yaml`이 들어 있습니다. 이 YAML을 그대로 보관하면 에이전트가 원본 사본을 유지할 수 있습니다.
+- `GET /backups/:filename`은 `?raw=true`일 때 `text/yaml` 첨부 파일로 내려줍니다.
+- `POST /backups/restore`는 `confirm: true`가 없으면 `400 BACKUP_CONFIRM_REQUIRED`입니다. 복원 전에 현재 YAML을 `pre_restore` 백업으로 남기고, 백업이 유효한 `homenet_bridge` 설정인지 확인한 뒤 원자적으로 덮어씁니다. 로드된 설정 파일이면 인메모리 설정도 갱신하며, 기본적으로 응답 후 서비스를 재시작합니다(`restart: false`로 생략 가능).
+- 경로 조작·형식 오류는 `400 BACKUP_FILENAME_INVALID` / `400 BACKUP_TARGET_INVALID` / `400 BACKUP_INVALID`, 없는 백업은 `404 BACKUP_NOT_FOUND`입니다.
+
 ### 패킷 미리보기/전송
 
 `POST /packets/preview`
@@ -624,15 +659,19 @@ MCP 클라이언트는 일반적으로 다음 순서로 연결합니다.
 | `get_gallery_snippet`                       | 갤러리 스니펫 원본 YAML (`file` 필수)                              |
 | `match_gallery`                             | 관측 패킷으로 갤러리 스니펫 채점 + 파라미터 추정                   |
 | `expand_gallery_snippet`                    | 스니펫을 파라미터·템플릿 기준으로 펼쳐 초안 반환 (`file` 필수)     |
+| `list_backups`                              | 설정 YAML 백업 목록 (`portId`/`configFile` 선택)                   |
+| `create_backup`                             | 현재 설정 YAML 백업 생성 + 메타데이터/YAML 반환                    |
+| `get_backup`                                | 백업 YAML 다운로드 (`filename` 필수)                               |
+| `restore_backup`                            | 백업 복원 + 사전 백업 + 재시작 (`filename`, `confirm` 필수)        |
 | `list_config_schemas`                       | 동봉된 설정 스키마 이름 목록                                       |
 | `get_config_schema`                         | 설정 JSON 스키마 (엔티티 필드·enum·required, 약 120KB)             |
 | `send_packet`                               | RS485 전송. UI에서 패킷 전송을 허용한 경우에만 `tools/list`에 노출 |
 
-`send_packet`이 비활성인 상태에서 직접 호출하면 `isError: true`와 `PACKET_SEND_DISABLED`가 반환됩니다. 적용 계열 도구는 REST와 동일하게 YAML 백업과 초안 해시 검증을 수행합니다.
+`send_packet`이 비활성인 상태에서 직접 호출하면 `isError: true`와 `PACKET_SEND_DISABLED`가 반환됩니다. 적용 계열 도구는 REST와 동일하게 YAML 백업과 초안 해시 검증을 수행합니다. `restore_backup`은 `confirm: true` 없이는 실행되지 않으며, 기본적으로 복원 후 서비스를 재시작합니다(`restart: false`로 생략).
 
 `apply_initial_setup`은 설정이 이미 로드된 상태에서 `mode="init"`이면 `isError: true`와 `SETUP_NOT_REQUIRED`를 반환합니다. 새 브릿지는 `mode="add"`와 `get_setup_state`의 `loadedPortIds`에 없는 `portId`로 추가하세요. `test_setup_serial`은 설정 로드 여부와 관계없이 동작합니다.
 
-캡처 파일 다운로드/삭제와 전송 패킷 미리보기는 MCP 도구로 제공되지 않으므로 REST를 사용하세요.
+캡처 파일 다운로드/삭제, 전송 패킷 미리보기, 백업 파일 삭제는 MCP 도구로 제공되지 않으므로 REST 또는 UI를 사용하세요.
 
 ### 응답 형식
 
