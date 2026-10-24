@@ -128,7 +128,7 @@ node scripts/h2m.mjs preview <portId> 04010481000000
 - **상태 문자열 대소문자**: 정규화된 상태는 `ON`/`OFF`, `OPEN`/`CLOSED`처럼 대문자다. 구형 스니펫의 `eq: 'on'`/`== 'on'`을 그대로 복사하면 guard/if가 항상 거짓이 된다. `/state`의 실제 값으로 맞추고, YAML의 맨 `on`/`off`는 불리언이 되므로 인용한다
 - **스케줄 + `command`의 `low_priority`**: schedule 트리거의 **최상위** `command` 액션만 자동으로 `low_priority: true`가 된다. `if`/`repeat` 안이나 script 안의 command는 자동 적용되지 않으므로, 폴링이 사용자 조작을 밀어내지 않게 하려면 명시한다
 - **`update_state` 대상 필드**: 대상 엔티티에 **정의된 state 필드만** 갱신된다. 정규화 이름(`state`, `brightness` 등)도 받지만, `optimistic: true` 엔티티는 state 스키마가 있어야 한다. 패킷 트리거에서 여러 엔티티를 갱신할 때는 `target_id`가 실제 ID인지(또는 CEL 결과인지) 확인한다
-- **`send_packet` 기본값**: `checksum`은 기본 `true`, `header`/`footer`는 기본 `false`. 체크섬까지 포함한 완성 패킷을 그대로 보내는 스니펫은 `checksum: false`를 명시하므로 빼먹지 않는다
+- **`send_packet` 기본값**: `checksum`은 기본 `true`, `header`/`footer`는 기본 `false`. 체크섬까지 포함한 완성 패킷을 그대로 보내는 스니펫은 `checksum: false`를 명시하므로 빼먹지 않는다. 실제 버스로 검증할 때도 `preview`와 같은 플래그를 쓰고, 사용자 동의 후 승인된 횟수·순서대로 보낸다(같은 패킷 반복은 `count`/`interval`, 서로 다른 패킷은 시퀀스 — SKILL.md "실기기 패킷 전송")
 - **packet 트리거 `match.index`**: 생략하면 `rx_header` **이후** 기준, 명시하면 헤더 포함 **절대 위치**다. 엔티티의 `state.index`와 같은 좌표계로 착각하지 않는다. CEL의 `trigger.packet`/`prev_packet`은 BigInt 배열이므로 산술 전에 `int()`로 캐스팅한다
 - **스케줄 타임존**: 별도 설정이 없으면 cron은 UTC다. 사용자가 기대하는 현지 시각과 다르면 알린다
 - **script args의 CEL 평가**: 문자열 값이 `(`, `.`, `[`를 포함하면 CEL로 평가된다. 리터럴 문자열은 이스케이프/인용이 필요할 수 있다. script 재귀 호출은 차단된다

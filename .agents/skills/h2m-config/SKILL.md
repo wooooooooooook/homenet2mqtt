@@ -1,6 +1,6 @@
 ---
 name: h2m-config
-description: Homenet2MQTT(h2m) 설정에 디바이스 엔티티(climate/light/sensor/fan/switch 등)와 필요한 automation/scripts를 추가하는 방법론. 1순위 근거는 이미 적용된 예제 설정과 벤더 갤러리 프리셋(discovery.match·개수 파라미터·$repeat)이며, 그 둘로 설명되지 않는 디바이스만 원시 RS485 패킷 역산을 폴백으로 쓴다. 갤러리 스니펫의 automation/scripts(주기 폴링·버스 대리응답·벨/엘리베이터 시퀀스·복합 TX 패킷 생성)는 엔티티 동작의 일부이므로 엔티티만 옮기고 끝내지 않는다. 홈넷 버스는 조작할 때만 트래픽이 생기는 경우가 많으므로 사용자에게 월패드·스위치·리모컨 조작을 구체적으로 요청하는 단계를 포함하고, 사용자가 알려준 벤더·모델명은 탐색 우선순위 힌트로 쓰되 이름만으로 예제를 확정하지 않는다. "unmatched 패킷 정리해줘", "이 패킷에 맞는 엔티티 추가해줘", "패킷만 보고 엔티티를 만들어줘", "갤러리 프리셋으로 히터/조명 늘려줘", "설정에 없는 디바이스 붙여줘", "패킷이 안 잡히는데 뭘 조작해야 하나", "상태가 갱신되게 주기 조회를 넣어줘", "현관벨 자동열기/엘리베이터 호출 시퀀스를 붙여줘" 같은 요청에 사용. h2m 주소를 모르거나 Agent API를 어떻게 켜고 토큰을 발급하는지 모르는 사용자에게는 연결부터 안내한다(references/connection-setup.md). h2m은 REST(`/api/v1/agent`)와 MCP(`/api/v1/agent/mcp`)로 같은 도메인 로직을 노출하므로 클라이언트에 MCP 도구가 있으면 MCP로, 셸만 있으면 스크립트로 작업하고 표면별 차이는 references/interfaces.md를 따른다.
+description: Homenet2MQTT(h2m) 설정에 디바이스 엔티티(climate/light/sensor/fan/switch 등)와 필요한 automation/scripts를 추가하는 방법론. 1순위 근거는 이미 적용된 예제 설정과 벤더 갤러리 프리셋(discovery.match·개수 파라미터·$repeat)이며, 그 둘로 설명되지 않는 디바이스만 원시 RS485 패킷 역산을 폴백으로 쓴다. 갤러리 스니펫의 automation/scripts(주기 폴링·버스 대리응답·벨/엘리베이터 시퀀스·복합 TX 패킷 생성)는 엔티티 동작의 일부이므로 엔티티만 옮기고 끝내지 않는다. 홈넷 버스는 조작할 때만 트래픽이 생기는 경우가 많으므로 사용자에게 월패드·스위치·리모컨 조작을 구체적으로 요청하는 단계를 포함하고, 사용자가 알려준 벤더·모델명은 탐색 우선순위 힌트로 쓰되 이름만으로 예제를 확정하지 않는다. "unmatched 패킷 정리해줘", "이 패킷에 맞는 엔티티 추가해줘", "패킷만 보고 엔티티를 만들어줘", "갤러리 프리셋으로 히터/조명 늘려줘", "설정에 없는 디바이스 붙여줘", "패킷이 안 잡히는데 뭘 조작해야 하나", "상태가 갱신되게 주기 조회를 넣어줘", "현관벨 자동열기/엘리베이터 호출 시퀀스를 붙여줘", "패킷을 직접 보내서 전등이 실제로 켜지는지 확인해줘" 같은 요청에 사용. h2m 주소를 모르거나 Agent API를 어떻게 켜고 토큰을 발급하는지 모르는 사용자에게는 연결부터 안내한다(references/connection-setup.md). h2m은 REST(`/api/v1/agent`)와 MCP(`/api/v1/agent/mcp`)로 같은 도메인 로직을 노출하므로 클라이언트에 MCP 도구가 있으면 MCP로, 셸만 있으면 스크립트로 작업하고 표면별 차이는 references/interfaces.md를 따른다. 패킷 전송 권한이 있으면 생성한 커맨드가 실제 기기를 움직이는지 확인할 때만 미리보기 → 대상·hex·순서·간격을 밝힌 사용자 승인 → 승인된 1회/시퀀스 전송 → 실기기 동작 확인 순서를 지킨다.
 argument-hint: [portId]
 ---
 
@@ -8,7 +8,7 @@ argument-hint: [portId]
 
 ## 목적
 
-여기서 "config"는 API로 다루는 브릿지 설정 전반(초기 예제 선택, 포트/브릿지 추가, 엔티티 추가·검증·적용, automation/scripts 반영, 재시작)을 뜻한다. MQTT 브로커·애드온 옵션·API 토큰·서비스 로그·백업 복원은 API 밖이므로 사용자에게 요청한다(`references/interfaces.md` §6).
+여기서 "config"는 API로 다루는 브릿지 설정 전반(초기 예제 선택, 포트/브릿지 추가, 엔티티 추가·검증·적용, automation/scripts 반영, 설정 백업·복원, 재시작)을 뜻한다. MQTT 브로커·애드온 옵션·API 토큰·서비스 로그는 API 밖이므로 사용자에게 요청한다(`references/interfaces.md` §6). 기존 설정을 수정하기 전에는 `/backups`로 원본 YAML을 확보해 두고, 필요하면 같은 백업으로 되돌린다.
 
 h2m의 설정은 프레이밍(rx_header/rx_length)·체크섬·디코드·필드 조합이 얽혀 있어 처음부터 손으로 쓰기 어렵다. 그래서 이 스킬의 목적은 **h2m이 이미 가진 프로토콜 자산(적용된 예제 설정 + 벤더 갤러리 프리셋)에 홈네트워크 패킷이 실제로 말하는 디바이스를 엮어 엔티티를 추가하는 것**이다. 새 프로토콜을 발명하는 작업이 아니라, 검증된 프리셋의 어휘 안에서 채널·개수를 늘리는 작업이 기본값이다.
 
@@ -35,6 +35,7 @@ h2m의 설정은 프레이밍(rx_header/rx_length)·체크섬·디코드·필드
 5. **벤더명은 힌트다.** 사용자가 알려준 벤더·모델은 갤러리·예제 탐색의 시작점으로 **우선 사용**하되, 이름만으로 `/setup/apply`하지 않는다. 내부 프로토콜 세대 차이·파생 모델·혼선 배선으로 어긋날 수 있으므로 수집 바이트의 프레이밍/체크섬/채널 검증이 최종 판정이다.
 6. **커맨드는 관측 바이트로 증명한다.** `state` 파싱이 맞아도 `command_*`가 버스에서 실측된 TX hex와 1바이트 차이까지 일치해야(`preview` 대조) 신뢰할 수 있다.
 7. **automation은 엔티티가 못 하는 일만 맡는다.** 상태 파싱·단일 커맨드는 엔티티에 두고, 요청/응답·시퀀스·복합 TX 생성만 automation/scripts로 뺀다. 갤러리 스니펫에 해당 블록이 있으면 "이 디바이스가 원래 그렇게 동작한다"는 증거로 취급하되, 사용자 환경에 없는 채널을 위한 폴링은 옮기지 않는다.
+8. **실기기 전송은 승인된 계획대로.** 전송 권한(`features.packetSend`)은 허용일 뿐 동의가 아니다. 보낼 패킷 전체(대상·hex·순서·간격)를 `preview`로 확정해 보여주고 한 번에 승인받은 범위 안에서만, 에이전트가 정한 횟수만큼 보낸다. 1회일 수도 있고 "거실→방1→방2 ON 후 1초 뒤 OFF" 같은 시퀀스일 수도 있다. 전송 후 사용자에게 실제 기기 반응을 확인하고, 무반응·부분 실패면 같은 시퀀스를 반복하지 말고 원인을 좁혀 다시 승인받는다.
 
 ## 전제와 범위
 
@@ -80,7 +81,7 @@ h2m은 같은 `agent/services/*` 로직을 REST와 MCP 두 문으로 노출한�
 | 캡처 파일 다운로드·삭제, TX `preview`, SSE `/events` | REST 전용 (MCP에 없음)                                     |
 | 설정 스키마 필드 조회(`/schema`)                     | MCP `get_config_schema`(통째) 또는 REST `schema.mjs`(절단) |
 
-- 시작점은 `h2m.mjs info`(= `/capabilities` + `/ports`). `features.packetSend`가 false면 패킷 전송 기능이 없는 배포이고, MCP `tools/list`에 `send_packet`이 없는 것과 같은 뜻이다.
+- 시작점은 `h2m.mjs info`(= `/capabilities` + `/ports`). `features.packetSend`가 false면 패킷 전송이 꺼진 상태이고, MCP `tools/list`에 `send_packet`이 없는 것과 같은 뜻이다. 권한이 켜져 있어도 전송 전에 사용자 승인이 필요하다(→ "실기기 패킷 전송" 절).
 - 기능·엔드포인트·도구 인자 전체 표는 `references/interfaces.md`. 낯선 배포에서는 추측 대신 `/capabilities` → `llms.txt`/`openapi.json` → MCP `tools/list` 순으로 확인한다.
 - MCP 도구 실패는 JSON-RPC 오류가 아니라 `isError=true` + `{ error, message }`로 온다. `PACKET_SEND_DISABLED`, `CONFIG_NOT_LOADED`, `DRAFT_STALE`처럼 코드로 원인을 구분한다.
 - 두 표면을 섞어도 된다. 단 같은 파일에 대한 초안은 `validate` 직후 받은 `draftHash`로만 `apply`한다(표면이 달라도 동일 규칙).
@@ -95,15 +96,16 @@ h2m은 같은 `agent/services/*` 로직을 REST와 MCP 두 문으로 노출한�
 | 2   | 사용자에게 힌트 확인(벤더/모델, 월패드에서 조작 가능한 기기 목록, 물리 조작 가능 여부)                                                           | 벤더명·실물 기기 대수 확보 (없으면 `gallery` 전체 목록으로 대체)                           |
 | 3   | `h2m.mjs gallery <vendor>` · `gallery-match <portId> <vendor>` · `gallery-expand <file> <params>`                                                | HIT 스니펫 + `params`/채널 상한 + `auto=N scripts=M` 확인. 0건이면 다른 벤더·타입까지 확인 |
 | 4   | `gallery-expand` 초안을 라이브 동일 타입 엔티티와 대조·보정(automation/scripts 포함) → `h2m.mjs analyze`                                         | 대표 hex 전부 `MINE=<id>`, `UNMATCHED` 0건. automation이 필요한데 빠뜨리지 않았는지 확인   |
-| 5   | `h2m.mjs validate` → 재시작 고지·승인 → `h2m.mjs apply ... --restart`                                                                            | `valid=true` · `applicable=true` · counts/`draftHash` 확인                                 |
-| 6   | 재시작 후 `h2m.mjs unmatched` · `/state` · 이벤트                                                                                                | 0건, 또는 잔여가 요청/하트비트 잡음임을 근거로 설명. 폴링/시퀀스가 실제로 도는지 확인      |
-| 7   | (폴백) 3~6으로도 설명 안 되는 잔여만 아래 폴백 절의 역산                                                                                         | 변동 증거가 있는 그룹만                                                                    |
+| 5   | `h2m.mjs backups create <portId> before_apply --out backup.yaml`                                                                                 | 기존 설정 원본 YAML과 `filename` 확보(수정 전 필수)                                        |
+| 6   | `h2m.mjs validate` → 재시작 고지·승인 → `h2m.mjs apply ... --restart`                                                                            | `valid=true` · `applicable=true` · counts/`draftHash` 확인                                 |
+| 7   | 재시작 후 `h2m.mjs unmatched` · `/state` · 이벤트                                                                                                | 0건, 또는 잔여가 요청/하트비트 잡음임을 근거로 설명. 폴링/시퀀스가 실제로 도는지 확인      |
+| 8   | (폴백) 3~7로도 설명 안 되는 잔여만 아래 폴백 절의 역산                                                                                           | 변동 증거가 있는 그룹만                                                                    |
 
-미매칭이 0이면 엔티티가 이미 충분하다 — 같은 타입 확장을 더 만들지 말고 보고한다. 3→6을 한 번에 끝내려 하지 말고, 타입별(난방 → 조명 → 환기)로 끊어 적용하는 편이 안전하다.
+미매칭이 0이면 엔티티가 이미 충분하다 — 같은 타입 확장을 더 만들지 말고 보고한다. 3→7을 한 번에 끝내려 하지 말고, 타입별(난방 → 조명 → 환기)로 끊어 적용하는 편이 안전하다.
 
 초안 필드명이 기억나지 않으면 `node scripts/schema.mjs fields climate`로 **이 빌드의 스키마**를 확인한다(`GET /schema/homenet-bridge` — MCP 도구면 `get_config_schema`도 같은 문서를 준다). 이는 설정을 읽는 1단계에서도, 초안을 쓰는 4단계에서도 쓰는 조회다.
 
-MCP 클라이언트라면 같은 단계를 도구로 치환한다: `info`→`list_ports`(`/capabilities`는 REST), `entities`→`get_entities`, `automations`→`get_automations`, `scripts`→`get_scripts`, `unmatched`→`get_unmatched_packets`, `history`→`get_packet_history`, `gallery-match`→`match_gallery`, `gallery-expand`→`expand_gallery_snippet`, 스키마→`list_config_schemas`/`get_config_schema`, `analyze`→`analyze_packet`, `validate`→`validate_entity_draft`, `apply`→`apply_entity_draft`, 재시작 후 확인→`get_unmatched_packets`. 캡처 파일을 로컬로 받아 `variance.mjs`로 볼 때만 REST(`capture get`)로 내려온다. 스키마는 MCP가 문서 전체(약 120KB)를 주므로, 필드만 빠르게 보려면 REST `schema.mjs fields`가 더 작다.
+MCP 클라이언트라면 같은 단계를 도구로 치환한다: `info`→`list_ports`(`/capabilities`는 REST), `entities`→`get_entities`, `automations`→`get_automations`, `scripts`→`get_scripts`, `unmatched`→`get_unmatched_packets`, `history`→`get_packet_history`, `gallery-match`→`match_gallery`, `gallery-expand`→`expand_gallery_snippet`, 백업 생성→`create_backup`, 백업 다운로드→`get_backup`, 복원→`restore_backup`, 스키마→`list_config_schemas`/`get_config_schema`, `analyze`→`analyze_packet`, `validate`→`validate_entity_draft`, `apply`→`apply_entity_draft`, 전송→`send_packet`(`preview`·사용자 승인 후), 재시작 후 확인→`get_unmatched_packets`. 캡처 파일을 로컬로 받아 `variance.mjs`로 볼 때만 REST(`capture get`)로 내려온다. 스키마는 MCP가 문서 전체(약 120KB)를 주므로, 필드만 빠르게 보려면 REST `schema.mjs fields`가 더 작다.
 
 ## 1. 현황 파악 — 설정을 먼저 읽는다
 
@@ -212,7 +214,7 @@ Agent API는 갤러리를 **GitHub 우선**으로 읽고, 도달 불가일 때�
 
 ```bash
 node scripts/h2m.mjs analyze <portId> <draft.json> <hex> <hex> ...
-node scripts/h2m.mjs preview <portId> <txHex>
+node scripts/h2m.mjs preview <portId> <txHex> [--header] [--footer] [--no-checksum]
 node scripts/h2m.mjs validate <portId> <draft.json>
 ```
 
@@ -226,8 +228,40 @@ node scripts/h2m.mjs validate <portId> <draft.json>
 
 - `validate`는 `valid`/`applicable`/`errors`/`conflicts`/`discoveryPreview`와 `draftHash`, `counts`(`entities`/`automations`/`scripts`)를 준다. **counts가 의도한 개수와 맞는지 확인**한다 — `scripts`가 0인데 엔티티 `command_*`가 script를 참조하거나, `automations`가 빠진 채 적용하면 이후 동작이 조용히 실패한다.
 - `analyze`는 RX 패킷이 초안 엔티티에 매칭되는지만 본다. automation/scripts는 **실행 시뮬레이션이 없으므로** `valid=true`가 곧 동작 보장이 아니다. 스케줄·상태 트리거·시퀀스는 적용 후 `/events`·`/state`·`/packets/history`로 확인한다.
-- `/entities/apply`는 YAML 기록 + 백업 + **서비스 재시작**을 수행하고, 재시작 전까지 라이브 등록이 안 된다. 반드시 방금 받은 `draftHash`로만 호출하며(바뀌면 `409 DRAFT_STALE`), 재시작 영향과 `restart: false` 대안을 알리고 승인받는다. ID 충돌은 `resolutions`(`overwrite`/`skip`) 또는 `renames`로 해결한다.
-- `/packets/send`는 실제 버스에 트래픽을 흘리는 옵트인 기능이다. 테스트 토큰이라도 실제 디바이스가 붙은 버스에서는 쓰지 말 것.
+- `/entities/apply`는 YAML 기록 + 백업 + **서비스 재시작**을 수행하고, 재시작 전까지 라이브 등록이 안 된다. 반드시 방금 받은 `draftHash`로만 호출하며(바뀌면 `409 DRAFT_STALE`), 재시작 영향과 `restart: false` 대안을 알리고 승인받는다. ID 충돌은 `resolutions`(`overwrite`/`skip`) 또는 `renames`로 해결한다. 적용 전에 `backups create`로 원본을 따로 확보해 두면, 결과가 기대와 다를 때 `backups restore <filename>`로 되돌릴 수 있다(복원도 재시작).
+- `/packets/send`는 실제 버스에 트래픽을 흘리는 옵트인 기능이다. `features.packetSend`가 켜져 있어도 보낼 패킷 전체(순서·간격 포함)를 `preview`로 확정해 사용자에게 보여주고 명시적 승인을 받은 뒤 승인 범위 안에서만 보낸다. 1회든 여러 패킷 시퀀스든 동일하다. 절차는 아래 "실기기 패킷 전송" 절을 따른다.
+
+## 실기기 패킷 전송 — 미리보기 → 명시적 동의 → 승인된 시퀀스 전송 → 동작 확인
+
+생성한 커맨드가 **실제 기기를 움직이는지** 확인할 때만 쓴다. `features.packetSend`/`send_packet` 권한은 전송을 _가능하게_ 할 뿐, 지금 보내도 된다는 동의가 아니다. `analyze`·`validate`를 대체하지도 않는다.
+
+전송 횟수는 검증 목적에 따라 에이전트가 정한다. 한 패킷일 수도 있고, "거실→방1→방2 순서로 켠 뒤 1초 뒤 모두 끄기"처럼 여러 패킷을 순서·간격까지 정한 시퀀스일 수도 있다. 중요한 것은 **보낼 패킷 전체와 순서·간격을 미리 사용자에게 보여주고 한 번에 승인받는 것**이다.
+
+1. **권한 확인** — `h2m.mjs info`의 `features.packetSend`가 `false`면 전송 API가 꺼진 상태다. MCP `tools/list`에 `send_packet`이 없는 것도 같다. 사용자에게 UI **설정 > Agent API > 패킷 전송 허용**을 켜 달라고 요청하고, 켜지기 전에는 `preview`까지만 한다(`references/interfaces.md` §6).
+2. **hex 확정** — 보낼 `hex`는 **프레임을 제외한 payload**다. 엔티티 `command_*`에서 만든다: 정적 `{ data: [...] }`는 그 배열을 그대로, CEL 문자열 커맨드는 목표 값(`x`)과 현재 state로 평가한 바이트 배열을 쓴다. CEL을 확신 있게 평가할 수 없으면 추측하지 말고 정적 ON/OFF 커맨드부터 검증한다. 이미 관측된 TX를 그대로 재현할 때는 **프레임 전체 hex**를 header/footer 플래그 없이 `--no-checksum`으로 넘기면 바이트가 변형되지 않는다. 프레이밍은 `packetDefaults`에 맞춰 `--header`/`--footer`/`--no-checksum`을 고르고, **시퀀스의 각 패킷마다** `preview`를 돌려 최종 hex 목록을 만든다. `data` 접두·`value_index`·`value_encode`가 의심되면 §5의 preview 대조를 먼저 끝낸다.
+3. **동의 요청** — 전송 전에 계획 **전체**를 보여준다: ① 포트 ② 각 대상 기기·채널 ③ 각 최종 hex ④ 전송 순서와 간격(예: ON 3개를 1초 간격 → 마지막 ON 후 1초 → OFF 3개) ⑤ 기대 동작 ⑥ 실패 시 영향(일부 기기가 켜진 채 남거나 다른 기기가 오동작할 가능성). **"이 순서와 간격으로 전송해도 될까요?"**라고 명시적으로 묻는다. 승인은 **그 계획에만** 유효하다 — 패킷·순서·간격·횟수가 바뀌면 다시 승인받는다. 대상이 불명확한 "해봐"나 이전 작업의 포괄 승인은 새 계획의 동의로 쓰지 않는다. 승인 전에는 `send`를 호출하지 않는다.
+4. **승인된 시퀀스 전송** — 승인 직후 계획대로 보낸다.
+   - 서로 다른 패킷: `h2m.mjs send <portId> <hex1> <hex2> ... --confirm --delay <ms>`로 승인된 순서대로 1회씩 보낸다. 중간 간격이 다르면 `sleep`으로 나눠 호출한다(예: ON 3개를 `--delay 1000`으로 보낸 뒤 `sleep 1`, OFF 3개 전송). 승인 한 건이 여러 `send` 호출을 커버할 수 있다.
+   - 같은 패킷 반복: `--count N --interval <ms>`(API 상한 10). 단, toggle형 커맨드는 반복하면 상태가 뒤집히므로 쓰지 않는다.
+   - 스크립트는 `--confirm` 없이는 거부하고 한 호출에 최대 10패킷만 보낸다. 전송 중 하나라도 실패하면 즉시 멈추며, 남은 패킷을 임의로 이어 보내지 않는다.
+   - 전송 API에는 명령 레이트 리밋(10초당 20회)이 있다. 10패킷 시퀀스를 연달아 두 번 보내지 말고, `RATE_LIMITED`(429)가 나면 재시도로 넘기지 말고 남은 단계에서 멈춘 뒤 간격을 두고 다시 승인받는다.
+5. **동작 확인 요청** — 전송 후 사용자에게 시퀀스 **전체**를 확인한다: **"거실→방1→방2 순서로 켜졌고, 1초 뒤 모두 꺼졌나요? 반응하지 않은 단계가 있나요?"** 동시에 send 응답의 `packet`/`sentCount`, `/state`의 엔티티 값 변화, `/packets/history`의 ACK/RX를 확인한다. 에이전트가 보낸 TX 자체는 history에 남지 않을 수 있으므로, 프레임을 확인해야 하면 전송 전에 `capture start`를 켠다. 결과를 구분해 보고한다: ① **기기는 움직였는데 HA 상태가 안 바뀜** = RX 파싱/mask 문제 ② **TX는 나갔는데 기기 무반응** = 프레이밍/체크섬/채널 값 문제 ③ **전송 실패** = `PORT_NOT_READY`·`PACKET_BUILD_FAILED` 등 API 오류.
+6. **무반응·부분 실패면 재전송 금지** — 시퀀스 전체를 습관적으로 다시 보내지 않는다. 어느 단계에서 멈췄는지(사용자 확인 + 캡처/ACK) 좁힌 뒤 `preview`/전송 응답의 hex와 실제 프레임을 대조해 header/footer/checksum 플래그, `data` 접두, `value_index`, 채널 바이트, `value_encode`(BCD/bit)를 고친다. 수정한 계획으로 3~5단계를 다시 밟는다. 같은 hex의 반복 전송이나 채널을 훑는 브루트포스는 하지 않는다. 승인된 계획에 OFF가 포함돼 있는데 일부 기기가 켜진 채 남았다면 원상복구용 OFF를 먼저 보낸다.
+7. **탐색 목적 전송 금지** — 미지의 바이트·채널을 알아내려고 `send`를 쓰지 않는다. 전송 횟수·순서도 검증 계획에 근거해야 하며, 이미 확정된 커맨드의 실기기 검증에만 쓴다. 트래픽이 필요하면 "트래픽 확보" 절의 사용자 조작 요청으로 돌아간다.
+
+```bash
+node scripts/h2m.mjs preview <portId> <hex> [--header] [--footer] [--no-checksum]
+node scripts/h2m.mjs send <portId> <hex> --confirm [--header] [--footer] [--no-checksum] [--count N] [--interval ms]
+node scripts/h2m.mjs send <portId> <hex1> <hex2> ... --confirm [--header] [--footer] [--no-checksum] [--delay ms]
+```
+
+승인 요청 예시(시퀀스):
+
+> "거실→방1→방2 전등을 1초 간격으로 켠 뒤, 마지막 ON에서 1초 후 모두 끄는 6개 패킷을 보내도 될까요? 최종 hex는 각각 `…`, `…`, … 이고, 실패하면 일부 전등이 켜진 채 남을 수 있습니다. 전송 후 단계별로 실제 반응을 알려 주세요."
+
+전송 후 확인 요청 예시:
+
+> "승인된 순서로 6개 패킷을 전송했습니다. 거실→방1→방2 순서로 켜졌고, 1초 뒤 모두 꺼졌나요? 반응하지 않은 단계가 있으면 알려 주세요. 확인되면 결과를 정리하겠습니다."
 
 ## 신규 환경(설정 0개) — 예제 매칭도 힌트에서 시작
 
@@ -262,7 +296,7 @@ node scripts/h2m.mjs post "/setup/apply" '{"mode":"init","example":"<winner>.hom
 
 ## 트래픽 확보 — 홈넷은 조작해야 말한다
 
-엔티티 확장(3절)은 이미 들어오는 프레임으로 대부분 끝난다. 하지만 채널 상한 판단이나 폴백 역산에는 **변동이 있는 트래픽**이 필요하다. 먼저 이 버스가 폴링형인지 이벤트형인지 가른다(캡처를 직접 켜지 않아도 된다):
+엔티티 확장(3절)은 이미 들어오는 프레임으로 대부분 끝난다. 하지만 채널 상한 판단이나 폴백 역산에는 **변동이 있는 트래픽**이 필요하다. 관측을 위해 `send`로 트래픽을 만들지 않는다 — 전송은 확정된 커맨드의 실기기 검증 전용이다. 먼저 이 버스가 폴링형인지 이벤트형인지 가른다(캡처를 직접 켜지 않아도 된다):
 
 ```bash
 node scripts/h2m.mjs capture wait <portId> 60 5
@@ -340,7 +374,7 @@ STATIC만 나오면 추측하지 말고 위 "트래픽 확보" 절의 조작 요
 | 예시 그룹   | gallery heaters_new    | byte1 bit0, byte3/4 | `state_off`, 온도 `bcd` | 일치      | 일치       | 주기 조회 1개(`auto=1`) | applicable |
 | 미해결 그룹 | 없음(STATIC)           | 없음                | 확정 불가               | -         | -          | 해당 없음               | -          |
 
-미해결 항목을 성공 항목과 섞어 보고하지 말 것. 어떤 근거(프리셋/예제/역산)로 만든 엔티티인지도 함께 적는다. automation/scripts를 추가했다면 **무엇을 왜 넣었는지**(예: "상태가 스스로 갱신되지 않아 30초 주기 조회 추가", "현관벨 상태 → 3초 지연 후 문 열기")와 적용 후 실제 발화 여부를 함께 적는다.
+미해결 항목을 성공 항목과 섞어 보고하지 말 것. 어떤 근거(프리셋/예제/역산)로 만든 엔티티인지도 함께 적는다. automation/scripts를 추가했다면 **무엇을 왜 넣었는지**(예: "상태가 스스로 갱신되지 않아 30초 주기 조회 추가", "현관벨 상태 → 3초 지연 후 문 열기")와 적용 후 실제 발화 여부를 함께 적는다. 실기기 전송으로 검증했다면 승인받은 계획(패킷·순서·간격)과 실제 전송 횟수, 사용자 확인 결과(동작함/무반응/부분 실패)를 적고, 무반응이면 재전송하지 않고 교정 계획을 보고한다.
 
 ## 도구
 
@@ -352,7 +386,7 @@ node scripts/h2m.mjs info
 node scripts/mcp.mjs tools   # MCP 도구 목록 = 이 배포에서 가능한 작업
 ```
 
-- `scripts/h2m.mjs` — REST 래퍼. `info|setup|get|post|entities|automations|scripts|unmatched|history|capture(start|stop|status|wait|files|get|delete)|gallery|gallery-show|gallery-match|gallery-expand|analyze|validate|apply|preview`. `automations`/`scripts`는 기존 automation/script 목록과 config를 읽는다. `gallery-expand <file> [paramsJson] [--out draft.json] [--port portId]`는 서버에서 `$repeat`/`{{i}}`와 automation/scripts를 펼쳐 초안을 만든다. `analyze`/`validate`/`apply`는 초안의 `entities`·`automations`(`automation` 별칭 포함)·`scripts`·`packetDefaults`를 그대로 전달한다. `gallery <vendor>` 출력의 `auto=N scripts=M`으로 automation/scripts 보유 여부를 먼저 거른다
+- `scripts/h2m.mjs` — REST 래퍼. `info|setup|get|post|entities|automations|scripts|unmatched|history|capture(start|stop|status|wait|files|get|delete)|gallery|gallery-show|gallery-match|gallery-expand|backups(list|create|get|restore)|analyze|validate|apply|preview|send`. `preview <portId> <hex> [--header] [--footer] [--no-checksum]`는 최종 프레임을 보여주고, `send <portId> <hex> [<hex> ...] --confirm ...`는 실제 전송이다. 단일 hex는 `--count N --interval ms`로 같은 패킷을 반복하고, 여러 hex는 `--delay ms` 간격으로 승인된 순서대로 1회씩 보낸다(한 호출 최대 10패킷, `--confirm` 필수 — 미리보기·사용자 승인 없이는 쓰지 않는다). `automations`/`scripts`는 기존 automation/script 목록과 config를 읽는다. `gallery-expand <file> [paramsJson] [--out draft.json] [--port portId]`는 서버에서 `$repeat`/`{{i}}`와 automation/scripts를 펼쳐 초안을 만든다. `backups create [portId|-] [reason] [--out file.yaml]`는 수정 전 원본 YAML을 확보하고, `backups get <filename> [outfile]`·`backups restore <filename> [--no-restart]`로 내려받거나 되돌린다(복원은 `confirm=true`를 자동 포함). `analyze`/`validate`/`apply`는 초안의 `entities`·`automations`(`automation` 별칭 포함)·`scripts`·`packetDefaults`를 그대로 전달한다. `gallery <vendor>` 출력의 `auto=N scripts=M`으로 automation/scripts 보유 여부를 먼저 거른다
 - `scripts/schema.mjs` — 이 빌드의 설정 JSON 스키마 조회(Agent API `GET /schema/homenet-bridge`, Bearer 토큰; MCP `get_config_schema`가 같은 문서). `list` · `types` · `fields <type|Def> [--desc|--json]` · `def <Def>`. 120KB 전체를 덤프하지 않고 정의 단위로 잘라 본다 — 필드명·enum·required의 정본
 - `scripts/mcp.mjs` — MCP JSON-RPC 클라이언트(stateless). `tools`(도구+필수 인자) · `call <tool> [json|@file] [--max N]`(기본 전체 출력) · `raw <method> [json]` · `init`. 도구 인자 표는 `references/interfaces.md`
   - MCP에 없는 기능(캡처 파일 다운로드·삭제, TX `preview`, SSE `/events`)은 같은 토큰으로 `h2m.mjs`(REST)를 쓴다

@@ -313,7 +313,7 @@ automation/scripts도 엔티티와 같은 초안으로 validate/apply한다.
 - **폴링 폭주**: 채널마다 별도 automation + 짧은 `every`는 버스와 MQTT를 포화시킨다. 한 automation에서 `$repeat`/`send_packet`으로 묶는다.
 - **낙관적 상태 남용**: 실제 상태 패킷이 있으면 `optimistic`을 쓰지 않는다. 써야 하면 명령/응답 automation이 상태를 반드시 갱신하게 한다.
 - **`low_priority` 누락**: `schedule` + 중첩 `command`/script 내부 `command`는 자동 적용 대상이 아니다.
-- **`/packets/send`로 자동화 테스트**: 실제 버스에 트래픽을 흘린다. 실기기가 연결된 환경에서는 쓰지 않는다.
+- **`/packets/send`로 자동화 테스트**: 전송 성공은 자동화가 발화했다는 증거가 아니다. 먼저 `/events`·`/packets/history`로 트리거 발화와 TX를 확인하고, 실기기 동작 확인이 필요할 때만 SKILL.md "실기기 패킷 전송" 절의 `preview` → 사용자 동의 → 승인된 시퀀스 전송 → 동작 확인 순서를 따른다. 자동화 검증을 이유로 같은 hex를 승인 없이 반복 전송하거나 채널을 훑지 않는다.
 - **적용 후 검증 생략**: 재시작 후 최소 1회 폴링 주기와 실제 조작 1회를 관찰한다.
 
 ## 7. 적용 후 검증

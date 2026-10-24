@@ -231,6 +231,61 @@ switch (cmd) {
     }
     break;
   }
+  case 'backups': {
+    // h2m.mjs backups list [portId|-] | create [portId|-] [reason] [--out file.yaml] | get <filename> [outfile] | restore <filename> [--no-restart]
+    const [sub] = a;
+    const rest = a.slice(1).filter((v, i, arr) => !v.startsWith('--') && arr[i - 1] !== '--out');
+    const [target, extra] = rest;
+    const outIndex = a.indexOf('--out');
+    const out = outIndex >= 0 ? a[outIndex + 1] : undefined;
+    if (sub === 'list') {
+      const r = await req(
+        'GET',
+        `/backups${q({ portId: target && target !== '-' ? target : undefined })}`,
+      );
+      console.log(
+        `backups=${r.backups.length} totalSize=${r.totalSize}${r.configFile ? ` configFile=${r.configFile}` : ''}`,
+      );
+      for (const b of r.backups)
+        console.log(`${b.filename}\t${b.size}B\t${b.reason}\t${b.createdAt}`);
+    } else if (sub === 'create') {
+      const reason = extra && !extra.startsWith('--') ? extra : undefined;
+      const r = await req('POST', '/backups', {
+        body: { portId: target && target !== '-' ? target : undefined, reason },
+      });
+      console.log(
+        `created ${r.backup.filename} bytes=${r.backup.bytes} configFile=${r.backup.configFile}`,
+      );
+      if (out) {
+        fs.writeFileSync(out, r.backup.yaml);
+        console.log(`yaml -> ${out}`);
+      }
+    } else if (sub === 'get') {
+      if (!target) usage('h2m.mjs backups get <filename> [outfile]');
+      if (extra) {
+        const buf = await req('GET', `/backups/${encodeURIComponent(target)}`, { raw: true });
+        fs.writeFileSync(extra, buf);
+        console.log(`saved -> ${extra} (${buf.length} bytes)`);
+      } else {
+        printJson(await req('GET', `/backups/${encodeURIComponent(target)}`), 8000);
+      }
+    } else if (sub === 'restore') {
+      if (!target) usage('h2m.mjs backups restore <filename> [--no-restart]');
+      console.log(
+        '!! /backups/restore 는 설정 YAML을 백업으로 덮어쓰고 기본적으로 재시작합니다. 현재 YAML은 pre_restore 백업으로 남습니다.',
+      );
+      printJson(
+        await req('POST', '/backups/restore', {
+          body: { filename: target, confirm: true, restart: !a.includes('--no-restart') },
+        }),
+      );
+    } else {
+      usage(
+        'h2m.mjs backups <list [portId|-]|create [portId|-] [reason] [--out file.yaml]|get <filename> [outfile]|restore <filename> [--no-restart]>',
+      );
+    }
+    break;
+  }
   case 'analyze': {
     if (!a[1]) usage('h2m.mjs analyze <portId> <draft.json> <hex...>');
     const draft = readDraft(a[1]);
@@ -295,20 +350,158 @@ switch (cmd) {
     break;
   }
   case 'preview': {
-    if (!a[1]) usage('h2m.mjs preview <portId> <hex> [--no-checksum]');
+    if (!a[1]) usage('h2m.mjs preview <portId> <hex> [--header] [--footer] [--no-checksum]');
     printJson(
       await req('POST', '/packets/preview', {
         body: {
           portId: a[0],
           hex: a[1].replace(/\s/g, ''),
+          header: a.includes('--header'),
+          footer: a.includes('--footer'),
           checksum: !a.includes('--no-checksum'),
         },
       }),
     );
     break;
   }
+  case 'send': {
+    // h2m.mjs send <portId> <hex> [<hex> ...] --confirm [--header] [--footer] [--no-checksum]
+    //   [--count N --interval ms] | [--delay ms]
+    // 실제 버스 전송. 단일 hex는 count 반복, 여러 hex는 승인된 순서대로 1회씩 보낸다.
+    const sendUsage =
+      'h2m.mjs send <portId> <hex> [<hex> ...] --confirm [--header] [--footer] [--no-checksum] [--count N --interval ms] [--delay ms]';
+    const booleanFlags = new Set(['--confirm', '--header', '--footer', '--no-checksum']);
+    const valueFlags = new Set(['--delay', '--count', '--interval']);
+
+    for (const v of a) {
+      if (!v.startsWith('--')) continue;
+      const name = v.split('=')[0];
+      if (booleanFlags.has(name) && v.includes('=')) {
+        console.error(`거부: ${name} 은 값 없이 단독으로 사용하세요.`);
+        process.exit(2);
+      }
+      if (!booleanFlags.has(name) && !valueFlags.has(name)) usage(sendUsage);
+    }
+
+    const flagValue = (name) => {
+      const i = a.findIndex((v) => v === name || v.startsWith(`${name}=`));
+      if (i < 0) return undefined;
+      const token = a[i];
+      if (token.includes('=')) return token.slice(name.length + 1);
+      if (i + 1 >= a.length || a[i + 1].startsWith('--')) {
+        console.error(`거부: ${name} 값이 필요합니다.`);
+        process.exit(2);
+      }
+      return a[i + 1];
+    };
+
+    const readInt = (name, fallback) => {
+      const raw = flagValue(name);
+      if (raw === undefined) return fallback;
+      const value = Number(raw);
+      if (!Number.isInteger(value)) {
+        console.error(`거부: ${name} 값은 정수여야 합니다.`);
+        process.exit(2);
+      }
+      return value;
+    };
+
+    const hexArgs = [];
+    for (let i = 1; i < a.length; i += 1) {
+      const v = a[i];
+      if (v.startsWith('--')) {
+        if (valueFlags.has(v.split('=')[0]) && !v.includes('=')) i += 1;
+        continue;
+      }
+      hexArgs.push(v.replace(/\s/g, ''));
+    }
+
+    if (!hexArgs.length) usage(sendUsage);
+    if (!a.includes('--confirm')) {
+      console.error(
+        '거부: 실제 RS485 버스 전송에는 --confirm 이 필요합니다. 먼저 preview로 최종 hex를 확인하고, 대상 기기·순서·간격과 함께 사용자 승인을 받으세요.',
+      );
+      process.exit(2);
+    }
+    if (hexArgs.some((hex) => !/^[0-9A-Fa-f]+$/.test(hex) || hex.length % 2 !== 0)) {
+      console.error('거부: hex는 공백을 제외한 짝수 길이의 16진수여야 합니다.');
+      process.exit(2);
+    }
+    if (hexArgs.length > 10) {
+      console.error(
+        '거부: 한 번에 최대 10개 패킷까지 전송할 수 있습니다. 더 긴 계획은 나눠서 호출하세요.',
+      );
+      process.exit(2);
+    }
+
+    const count = readInt('--count', 1);
+    const interval = readInt('--interval', 100);
+    const delay = readInt('--delay', 1000);
+    if (count < 1 || count > 10) {
+      console.error('거부: --count 는 1~10이어야 합니다.');
+      process.exit(2);
+    }
+    if (interval < 10 || interval > 1000) {
+      console.error('거부: --interval 은 10~1000ms여야 합니다.');
+      process.exit(2);
+    }
+    if (delay < 0 || delay > 60000) {
+      console.error('거부: --delay 는 0~60000ms여야 합니다.');
+      process.exit(2);
+    }
+    if (hexArgs.length > 1 && count !== 1) {
+      console.error(
+        '거부: 여러 hex 시퀀스에서는 --count를 쓸 수 없습니다. 같은 패킷 반복은 hex 하나와 --count를 쓰세요.',
+      );
+      process.exit(2);
+    }
+    if (hexArgs.length === 1 && flagValue('--delay') !== undefined) {
+      console.error('거부: 단일 hex 반복 간격은 --delay가 아니라 --interval입니다.');
+      process.exit(2);
+    }
+
+    const common = {
+      portId: a[0],
+      header: a.includes('--header'),
+      footer: a.includes('--footer'),
+      checksum: !a.includes('--no-checksum'),
+      confirm: true,
+    };
+
+    if (hexArgs.length === 1) {
+      console.log(`!! /packets/send: 실제 RS485 버스로 ${count}회 전송합니다.`);
+      printJson(
+        await req('POST', '/packets/send', {
+          body: { ...common, hex: hexArgs[0], count, interval },
+        }),
+      );
+      break;
+    }
+
+    console.log(
+      `!! /packets/send: 실제 RS485 버스로 ${hexArgs.length}개 패킷을 ${delay}ms 간격으로 승인된 순서대로 전송합니다.`,
+    );
+    const results = [];
+    for (let i = 0; i < hexArgs.length; i += 1) {
+      console.log(`[${i + 1}/${hexArgs.length}] send ${hexArgs[i]}`);
+      const result = await req('POST', '/packets/send', {
+        body: { ...common, hex: hexArgs[i], count: 1, interval },
+      });
+      results.push({
+        index: i + 1,
+        hex: hexArgs[i],
+        packet: result.packet,
+        sentCount: result.sentCount,
+      });
+      if (i < hexArgs.length - 1 && delay > 0) {
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
+    printJson({ success: true, portId: a[0], sentCount: results.length, packets: results });
+    break;
+  }
   default:
     usage(
-      'info|setup|get|post|entities|automations|scripts|unmatched|history|capture|gallery|gallery-show|gallery-match|gallery-expand|analyze|validate|apply|preview',
+      'info|setup|get|post|entities|automations|scripts|unmatched|history|capture|gallery|gallery-show|gallery-match|gallery-expand|backups|analyze|validate|apply|preview|send',
     );
 }
