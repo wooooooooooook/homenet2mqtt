@@ -303,7 +303,7 @@ curl -s -X POST -H "Authorization: Bearer $TOKEN" \
 - `mode: "add"`는 새 설정 파일(예: `default_2.homenet_bridge.yaml`)을 생성하고 `.initialized` 마커는 건드리지 않습니다. `portId`와 `serialPath`가 기존 포트와 중복되면 각각 `400 PORT_ID_DUPLICATE`, `400 SERIAL_PATH_DUPLICATE`가 반환됩니다.
 - `example`에 `__empty__`를 지정하면 빈 config로 시작합니다. 이 경우 `serialConfig`에 `portId`, `path`, `baud_rate`, `data_bits`, `parity`, `stop_bits`를 모두 전달해야 합니다.
 - 예제 적용은 기본적으로 `serial`·`packet_defaults` 등 **설정만** 가져오며, 예제의 엔티티·automation·scripts는 복사하지 않습니다. 재시작 후 갤러리(`/gallery*`)와 `/entities/apply`로 필요한 엔티티를 추가하세요.
-- 예제의 엔티티까지 함께 가져오려면 `includeEntities: true`를 지정합니다. 이때 `selectedEntities`로 타입별 ID를 고를 수 있으며, 생략하면 예제의 모든 엔티티를 사용합니다. 지정한 타입은 전달한 ID만 남기고, 결과가 비면 해당 타입을 제거합니다. `selectedEntities`는 `includeEntities: true`일 때만 적용됩니다.
+- **주의 (AI 에이전트)**: `includeEntities`와 `selectedEntities`는 UI 초기 마법사용 옵션입니다. AI 에이전트 워크플로에서는 버스에 실존하지 않는 가짜 엔티티 생성을 방지하기 위해 이 파라미터들을 절대 전달하지 마십시오. 모든 엔티티는 패킷 트래픽을 관측한 뒤 갤러리 매칭(`gallery-match`)으로 실제 존재가 증명된 것만 추가해야 합니다.
 - `restart` 기본값은 `true`입니다. `false`이면 `.restart-required` 플래그만 기록하고 응답 후 재시작하지 않습니다.
 - MQTT 접속 정보는 config가 아니라 환경변수/애드온 옵션이므로 API로 설정할 수 없습니다.
 - Home Assistant MQTT 애드온은 기본적으로 `3001/tcp`가 공개되지 않으므로, 초기 설정에 API를 사용하려면 애드온 네트워크 설정에서 포트를 공개해야 합니다.
@@ -695,7 +695,7 @@ MCP 클라이언트는 일반적으로 다음 순서로 연결합니다.
 
 `send_packet`이 비활성인 상태에서 직접 호출하면 `isError: true`와 `PACKET_SEND_DISABLED`가 반환됩니다. 적용 계열 도구는 REST와 동일하게 YAML 백업과 초안 해시 검증을 수행합니다. `restore_backup`은 `confirm: true` 없이는 실행되지 않으며, 기본적으로 복원 후 서비스를 재시작합니다(`restart: false`로 생략). `delete_bridge`도 `confirm: true`와 현재 YAML과 일치하는 `backupFilename`이 필요하고, 삭제 후 서비스를 재시작합니다.
 
-`apply_initial_setup`은 설정이 이미 로드된 상태에서 `mode="init"`이면 `isError: true`와 `SETUP_NOT_REQUIRED`를 반환합니다. 새 브릿지는 `mode="add"`와 `get_setup_state`의 `loadedPortIds`에 없는 `portId`로 추가하세요. 예제 적용은 기본적으로 설정만 복사하며, 예제의 엔티티까지 가져오려면 `includeEntities: true`를 지정합니다. `test_setup_serial`은 설정 로드 여부와 관계없이 동작합니다.
+`apply_initial_setup`은 설정이 이미 로드된 상태에서 `mode="init"`이면 `isError: true`와 `SETUP_NOT_REQUIRED`를 반환합니다. 새 브릿지는 `mode="add"`와 `get_setup_state`의 `loadedPortIds`에 없는 `portId`로 추가하세요. 예제 적용은 기본적으로 설정만 복사하며, 에이전트 워크플로에서는 `includeEntities`나 `selectedEntities`를 사용하지 않습니다(가짜 엔티티 방지). `test_setup_serial`은 설정 로드 여부와 관계없이 동작합니다.
 
 캡처 파일 다운로드/삭제, 전송 패킷 미리보기, 백업 파일 삭제는 MCP 도구로 제공되지 않으므로 REST 또는 UI를 사용하세요.
 

@@ -59,7 +59,7 @@ MCP 연결 정보다:
 | 초기 설정 상태       | `GET /setup`                                                                                                      | `setup`                                                        |
 | 예제 원문            | `GET /setup/examples/:filename`                                                                                   | `get /setup/examples/<file>`                                   |
 | 배선 테스트          | `POST /setup/test-serial`                                                                                         | `post /setup/test-serial '<json>'`                             |
-| 설정 생성/브릿지     | `POST /setup/apply` (`mode=init\|add`, 기본 설정만·`includeEntities:true`면 예제 엔티티 포함)                     | `post /setup/apply '<json>'`                                   |
+| 설정 생성/브릿지     | `POST /setup/apply` (`mode=init\|add`, 설정만 복사. ⚠️ 에이전트 `includeEntities`/`selectedEntities` 사용 금지)                     | `post /setup/apply '<json>'`                                   |
 | 포트/브리지          | `GET /ports`                                                                                                      | `info`                                                         |
 | 엔티티 목록          | `GET /entities?portId=`                                                                                           | `entities <portId> [--full]`                                   |
 | 엔티티 단건          | `GET /entities/:entityId`                                                                                         | `get "/entities/<id>"`                                         |
@@ -94,7 +94,7 @@ MCP 연결 정보다:
 | 설정   | `get_setup_state`                                            | –                                                                                                                                           |
 |        | `get_setup_example`                                          | `example*`                                                                                                                                  |
 |        | `test_setup_serial`                                          | `example*`, `serialPath`, `serialConfig`                                                                                                    |
-|        | `apply_initial_setup`                                        | `example*`, `mode`(`init\|add`), `portId`, `serialPath`, `serialConfig`, `packetDefaults`, `includeEntities`, `selectedEntities`, `restart` |
+|        | `apply_initial_setup`                                        | `example*`, `mode`(`init\|add`), `portId`, `serialPath`, `serialConfig`, `packetDefaults`, `restart` (⚠️ `includeEntities`/`selectedEntities` 사용 금지) |
 | 관측   | `list_ports`                                                 | –                                                                                                                                           |
 |        | `get_entities` / `get_entity_state`                          | `portId`                                                                                                                                    |
 |        | `get_automations` / `get_scripts`                            | `portId`                                                                                                                                    |
