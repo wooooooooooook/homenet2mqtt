@@ -349,11 +349,18 @@ function expandNode(node: unknown, context: Record<string, unknown>): unknown {
   return node;
 }
 
+export function resolveGalleryParameters(
+  snippet: Pick<GallerySnippet, 'parameters'>,
+  parameterValues?: Record<string, unknown>,
+): Record<string, unknown> {
+  return resolveParameterValues(snippet.parameters, parameterValues);
+}
+
 export function expandGalleryTemplate(
   snippet: GallerySnippet,
   parameterValues?: Record<string, unknown>,
 ): GallerySnippet {
-  const parameters = resolveParameterValues(snippet.parameters, parameterValues);
+  const parameters = resolveGalleryParameters(snippet, parameterValues);
   const context = { ...parameters };
 
   const expandedEntities = snippet.entities

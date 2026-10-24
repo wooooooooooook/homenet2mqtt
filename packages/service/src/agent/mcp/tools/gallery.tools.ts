@@ -1,5 +1,6 @@
 import { ConfigItemsError } from '../../../services/config-items.service.js';
 import {
+  expandGallerySnippet,
   getGallerySnippet,
   getGalleryVendorIndex,
   listGalleryVendors,
@@ -80,6 +81,36 @@ export const galleryTools: McpTool[] = [
       data: await matchGallerySnippets(ctx, {
         portId: readStringArg(args, 'portId'),
         vendor: readStringArg(args, 'vendor'),
+      }),
+    }),
+  },
+  {
+    name: 'expand_gallery_snippet',
+    title: 'Expand a gallery snippet into a draft',
+    description:
+      "Resolve a gallery snippet's parameters and expand its $repeat/$if/{{expr}} templates into a draft with entities, automations and scripts, ready to pass to validate_entity_draft and apply_entity_draft. Use the parameterValues inferred by match_gallery or override them explicitly. Returns the resolved parameterValues and item counts alongside the draft.",
+    inputSchema: {
+      type: 'object',
+      required: ['file'],
+      properties: {
+        file: {
+          type: 'string',
+          description: 'Gallery-relative YAML path, e.g. "commax/heaters_new.yaml".',
+        },
+        parameterValues: {
+          type: 'object',
+          description:
+            'Parameter overrides keyed by parameter name. Missing parameters fall back to their gallery defaults.',
+          additionalProperties: true,
+        },
+      },
+      additionalProperties: false,
+    },
+    annotations: { readOnlyHint: true, openWorldHint: true },
+    handler: async (_ctx, args) => ({
+      data: await expandGallerySnippet({
+        file: readStringArg(args, 'file') ?? '',
+        parameterValues: args.parameterValues as Record<string, unknown> | undefined,
       }),
     }),
   },

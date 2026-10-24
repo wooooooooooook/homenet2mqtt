@@ -215,6 +215,10 @@ Authorization: Bearer <AGENT_TOKEN>
 | GET    | `/ports`                                 | 포트별 serial 설정, 브리지 상태, 엔티티 수    |
 | GET    | `/entities?portId=`                      | 정규화된 엔티티 목록                          |
 | GET    | `/entities/:entityId?portId=`            | 단일 엔티티 설정                              |
+| GET    | `/automations?portId=`                   | 정규화된 automation 목록                      |
+| GET    | `/automations/:automationId?portId=`     | 단일 automation 설정                          |
+| GET    | `/scripts?portId=`                       | 정규화된 script 목록                          |
+| GET    | `/scripts/:scriptId?portId=`             | 단일 script 설정                              |
 | GET    | `/state?portId=`                         | 최신 엔티티 상태 스냅샷                       |
 | GET    | `/packets/history?portId=&limit=&since=` | parsed/command 패킷 통합 이력                 |
 | GET    | `/packets/unmatched?portId=`             | 미매칭 패킷 + 횟수/최초·최근 시각             |
@@ -230,6 +234,7 @@ Authorization: Bearer <AGENT_TOKEN>
 | GET    | `/gallery?vendor=`                       | 갤러리 벤더 목록, 또는 벤더별 스니펫 인덱스   |
 | GET    | `/gallery/snippet?file=`                 | 갤러리 스니펫 원본 YAML                       |
 | GET    | `/gallery/match?portId=&vendor=`         | 관측 패킷 대비 갤러리 스니펫 점수화           |
+| POST   | `/gallery/expand`                        | 스니펫 파라미터·템플릿을 펼쳐 초안으로 변환   |
 | GET    | `/schema`                                | 번들된 JSON 스키마 이름 목록                  |
 | GET    | `/schema/:schemaName`                    | 설정 JSON 스키마(엔티티 필드·enum·제약)       |
 | GET    | `/events`                                | SSE 실시간 이벤트 스트림                      |
@@ -476,7 +481,7 @@ curl -s -X POST -H "Authorization: Bearer $TOKEN" \
 - 전송 요청은 별도의 강한 rate limit(10초당 20회)이 적용되고, 감사 로그에는 `portId`, 패킷 hex, 횟수만 기록됩니다(토큰 제외).
 - 잘못된 패킷을 보내면 장치가 오동작할 수 있으므로 반드시 미리보기로 확인하세요.
 
-### 갤러리 스니펫 조회
+### 갤러리 스니펫 조회·확장
 
 갤러리는 벤더별 엔티티 스니펫 저장소입니다. Agent API는 **GitHub을 우선**으로 읽고, 도달할 수 없으면 이미지에 동봉된 `gallery/` 디렉터리로 폴백합니다. 응답의 `source`가 `remote`/`local` 중 어느 쪽에서 왔는지 알려줍니다. 목적은 로컬 사본보다 최신 프리셋을 대조해 **미매칭 패킷을 남기지 않는 것**이므로, 폴백으로 받은 데이터는 오래됐을 수 있다고 보고 판단하세요.
 
@@ -494,12 +499,20 @@ curl -s -H "Authorization: Bearer $TOKEN" \
 # 4. 관측 패킷으로 스니펫 점수화 (채널 수 같은 파라미터 추정치 반환)
 curl -s -H "Authorization: Bearer $TOKEN" \
   "$H2M/gallery/match?portId=commax&vendor=commax"
+
+# 5. 스니펫을 초안으로 펼침 (파라미터 기본값 또는 추정치 사용)
+curl -s -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"file":"commax/heaters_new.yaml","parameterValues":{"heater_count":4},"portId":"commax"}' \
+  "$H2M/gallery/expand"
 ```
 
 - `file`은 갤러리 상대 경로여야 합니다(`commax/heaters_new.yaml`). `..`이나 절대 경로는 `400 GALLERY_FILE_INVALID`.
 - `/gallery/match`는 로그 리텐션이 켜져 있어야 합니다. 꺼져 있으면 `available: false`와 사유를 반환합니다(에러가 아닙니다).
 - `/gallery/match`는 벤더의 `requirements`(serial/checksum 등)를 만족하는 포트만 대상으로 하며, `discovery`가 있는 스니펫만 채점합니다. 결과는 `matched`, `matchedPacketCount` 내림차순입니다.
-- 스니펫의 `$repeat`/`{{i}}` 템플릿은 펼치지 않고 원본 그대로 반환합니다. 채널 수를 정했으면 `{{i}}`를 실제 인덱스로 치환해 엔티티 초안을 만듭니다.
+- `/gallery/snippet`은 `$repeat`/`{{i}}` 템플릿을 펼치지 않고 원본 그대로 반환합니다. 실제 초안이 필요하면 `/gallery/expand`를 씁니다.
+- `/gallery/expand`는 `parameters` 기본값(또는 `parameterValues` 재정의)을 검증한 뒤 `$repeat`/`$if`/`{{expr}}`을 결정적으로 펼쳐 `draft: { entities, automations, scripts }`를 반환합니다. 스니펫의 `automation`(단수)은 초안 봉투에 맞춰 `automations`(복수)로 변환됩니다. `parameterValues`가 범위를 벗어나면 `400 GALLERY_EXPAND_FAILED`, 펼친 항목에 `id`가 없으면 `400 GALLERY_CONTENT_INVALID`입니다.
+- 반환된 `draft`를 그대로 `/entities/validate`에 넣고, 충돌·미매칭을 확인한 뒤 `/entities/apply`로 반영합니다. `portId`는 선택이며, 주어지면 로드된 포트인지 먼저 검증합니다.
 
 ### 설정 스키마 조회
 
@@ -556,6 +569,10 @@ curl -N -H "Authorization: Bearer $TOKEN" \
 - `GALLERY_UNAVAILABLE` (`503`): GitHub와 동봉 `gallery/` 모두에서 갤러리 목록을 읽지 못함
 - `GALLERY_VENDOR_NOT_FOUND` (`404`): 갤러리에 없는 벤더 id
 - `GALLERY_FILE_INVALID` (`400`) / `GALLERY_FILE_NOT_FOUND` (`404`): 스니펫 경로 오류
+- `GALLERY_PARAMETER_INVALID` (`400`): `parameterValues`가 객체가 아님
+- `GALLERY_EXPAND_FAILED` (`400`): 파라미터 누락·범위 초과 또는 템플릿 평가 실패
+- `GALLERY_CONTENT_INVALID` (`400`): 펼친 엔티티/automation/script에 `id`가 없음
+- `GALLERY_YAML_INVALID` (`400`) / `GALLERY_VERSION_INCOMPATIBLE` (`400`): 스니펫 YAML 파싱 실패 또는 `meta.min_version` 미충족
 - `SCHEMA_NAME_INVALID` (`400`) / `SCHEMA_NOT_FOUND` (`404`): 스키마 이름 오류(`^[a-z0-9-]+$`만 허용)
 
 ## 기존 API와의 관계
@@ -592,6 +609,8 @@ MCP 클라이언트는 일반적으로 다음 순서로 연결합니다.
 | `apply_initial_setup`                       | 초기 설정(`mode="init"`) 또는 브릿지 추가(`mode="add"`) + 재시작   |
 | `list_ports`                                | 로드된 포트/브리지 상태/엔티티 수                                  |
 | `get_entities`                              | 정규화된 엔티티 목록 (`portId` 선택)                               |
+| `get_automations`                           | 정규화된 automation 목록 (`portId` 선택)                           |
+| `get_scripts`                               | 정규화된 script 목록 (`portId` 선택)                               |
 | `get_entity_state`                          | 최신 엔티티 상태 스냅샷                                            |
 | `get_packet_history`                        | parsed/command 통합 패킷 이력                                      |
 | `get_unmatched_packets`                     | 미매칭 패킷 + 횟수/최초·최근 시각                                  |
@@ -604,6 +623,7 @@ MCP 클라이언트는 일반적으로 다음 순서로 연결합니다.
 | `list_gallery`                              | 갤러리 벤더 목록 또는 벤더별 스니펫 인덱스 (`vendor` 선택)         |
 | `get_gallery_snippet`                       | 갤러리 스니펫 원본 YAML (`file` 필수)                              |
 | `match_gallery`                             | 관측 패킷으로 갤러리 스니펫 채점 + 파라미터 추정                   |
+| `expand_gallery_snippet`                    | 스니펫을 파라미터·템플릿 기준으로 펼쳐 초안 반환 (`file` 필수)     |
 | `list_config_schemas`                       | 동봉된 설정 스키마 이름 목록                                       |
 | `get_config_schema`                         | 설정 JSON 스키마 (엔티티 필드·enum·required, 약 120KB)             |
 | `send_packet`                               | RS485 전송. UI에서 패킷 전송을 허용한 경우에만 `tools/list`에 노출 |

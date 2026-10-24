@@ -1,6 +1,8 @@
 # h2m-config — Homenet2MQTT 엔티티 설정 스킬
 
-Homenet2MQTT(h2m)의 Agent API를 사용해 RS485 홈넷 디바이스 엔티티(climate/light/sensor/fan/switch)를 조사·추가·검증·적용하는 에이전트 스킬입니다. 특정 에이전트 제품에 종속되지 않으며, `SKILL.md`를 읽을 수 있는 스킬 지원 에이전트(Claude Code, Codex, Cursor, Qoder 등)에서 사용할 수 있습니다.
+Homenet2MQTT(h2m)의 Agent API를 사용해 RS485 홈넷 디바이스 엔티티(climate/light/sensor/fan/switch)와 필요한 automation/scripts를 조사·추가·검증·적용하는 에이전트 스킬입니다. 특정 에이전트 제품에 종속되지 않으며, `SKILL.md`를 읽을 수 있는 스킬 지원 에이전트(Claude Code, Codex, Cursor, Qoder 등)에서 사용할 수 있습니다.
+
+갤러리 프리셋의 automation/scripts(주기 폴링, 버스 대리응답, 벨/엘리베이터 시퀀스, 복합 TX 패킷 생성)는 엔티티 동작의 일부입니다. 이 스킬은 엔티티만 옮기고 끝내지 않고, 필요한 automation/scripts를 같은 초안에 넣는 절차를 안내합니다.
 
 ## 요구 사항
 
@@ -73,15 +75,15 @@ node scripts/h2m.mjs info
 
 ## 주요 기능
 
-| 파일                   | 역할                                                                  |
-| ---------------------- | --------------------------------------------------------------------- |
-| `SKILL.md`             | 전체 작업 절차. 라이브 설정 → 갤러리 → 예제 → 패킷 역산 순서의 방법론 |
-| `scripts/h2m.mjs`      | Agent API REST 래퍼 (조회·분석·검증·적용·캡처·갤러리)                 |
-| `scripts/schema.mjs`   | 설정 스키마를 필드 단위로 조회                                        |
-| `scripts/mcp.mjs`      | MCP Streamable HTTP 클라이언트 (`tools`, `call`)                      |
-| `scripts/probe.mjs`    | 신규 환경에서 예제별 프레이밍/체크섬을 채점해 초기 예제 후보 순위화   |
-| `scripts/variance.mjs` | 캡처 로그의 변동 바이트 분석                                          |
-| `references/`          | 연결 안내, 엔티티 필드, 판정 휴리스틱, REST/MCP 인터페이스 표         |
+| 파일                   | 역할                                                                                   |
+| ---------------------- | -------------------------------------------------------------------------------------- |
+| `SKILL.md`             | 전체 작업 절차. 라이브 설정 → 갤러리 → 예제 → 패킷 역산 순서의 방법론                  |
+| `scripts/h2m.mjs`      | Agent API REST 래퍼 (조회·분석·검증·적용·캡처·갤러리)                                  |
+| `scripts/schema.mjs`   | 설정 스키마를 필드 단위로 조회                                                         |
+| `scripts/mcp.mjs`      | MCP Streamable HTTP 클라이언트 (`tools`, `call`)                                       |
+| `scripts/probe.mjs`    | 신규 환경에서 예제별 프레이밍/체크섬을 채점해 초기 예제 후보 순위화                    |
+| `scripts/variance.mjs` | 캡처 로그의 변동 바이트 분석                                                           |
+| `references/`          | 연결 안내, 엔티티 필드, automation/scripts 패턴, 판정 휴리스틱, REST/MCP 인터페이스 표 |
 
 ## 보안
 

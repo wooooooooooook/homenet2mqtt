@@ -36,6 +36,21 @@ const rawConfig = () => ({
       state: { index: 0, length: 1, type: 'byte' },
     },
   ],
+  automation: [
+    {
+      id: 'existing_automation',
+      name: 'Existing Automation',
+      trigger: [{ type: 'state', entity_id: 'existing', match: { eq: 'ON' } }],
+      then: [{ action: 'delay', milliseconds: 100 }],
+    },
+  ],
+  scripts: [
+    {
+      id: 'existing_script',
+      description: 'Existing Script',
+      actions: [{ action: 'delay', milliseconds: 100 }],
+    },
+  ],
 });
 
 const newSensorDraft = () => ({
@@ -223,6 +238,8 @@ describe('agent routes', () => {
       expect(response.body.openapi).toBe('3.1.0');
       expect(response.body.paths).toHaveProperty('/capabilities');
       expect(response.body.paths).toHaveProperty('/setup');
+      expect(response.body.paths).toHaveProperty('/automations');
+      expect(response.body.paths).toHaveProperty('/scripts');
       expect(response.body.paths).toHaveProperty('/mcp');
     });
 
@@ -330,6 +347,72 @@ describe('agent routes', () => {
         .set('Authorization', AUTH);
       expect(response.status).toBe(404);
       expect(response.body.error).toBe('PORT_NOT_FOUND');
+    });
+
+    it('lists and finds automations by id', async () => {
+      const list = await request(harness.app)
+        .get('/api/v1/agent/automations?portId=default')
+        .set('Authorization', AUTH);
+      expect(list.status).toBe(200);
+      expect(list.body.automations).toHaveLength(1);
+      expect(list.body.automations[0]).toMatchObject({
+        id: 'existing_automation',
+        name: 'Existing Automation',
+        portId: 'default',
+        config: { id: 'existing_automation' },
+      });
+
+      const found = await request(harness.app)
+        .get('/api/v1/agent/automations/existing_automation?portId=default')
+        .set('Authorization', AUTH);
+      expect(found.status).toBe(200);
+      expect(found.body.config.id).toBe('existing_automation');
+
+      const missing = await request(harness.app)
+        .get('/api/v1/agent/automations/missing?portId=default')
+        .set('Authorization', AUTH);
+      expect(missing.status).toBe(404);
+      expect(missing.body.error).toBe('AUTOMATION_NOT_FOUND');
+    });
+
+    it('lists and finds scripts by id', async () => {
+      const list = await request(harness.app)
+        .get('/api/v1/agent/scripts?portId=default')
+        .set('Authorization', AUTH);
+      expect(list.status).toBe(200);
+      expect(list.body.scripts).toHaveLength(1);
+      expect(list.body.scripts[0]).toMatchObject({
+        id: 'existing_script',
+        description: 'Existing Script',
+        portId: 'default',
+        config: { id: 'existing_script' },
+      });
+
+      const found = await request(harness.app)
+        .get('/api/v1/agent/scripts/existing_script?portId=default')
+        .set('Authorization', AUTH);
+      expect(found.status).toBe(200);
+      expect(found.body.config.id).toBe('existing_script');
+
+      const missing = await request(harness.app)
+        .get('/api/v1/agent/scripts/missing?portId=default')
+        .set('Authorization', AUTH);
+      expect(missing.status).toBe(404);
+      expect(missing.body.error).toBe('SCRIPT_NOT_FOUND');
+    });
+
+    it('rejects an unknown port for automations and scripts', async () => {
+      const automations = await request(harness.app)
+        .get('/api/v1/agent/automations?portId=nope')
+        .set('Authorization', AUTH);
+      expect(automations.status).toBe(404);
+      expect(automations.body.error).toBe('PORT_NOT_FOUND');
+
+      const scripts = await request(harness.app)
+        .get('/api/v1/agent/scripts?portId=nope')
+        .set('Authorization', AUTH);
+      expect(scripts.status).toBe(404);
+      expect(scripts.body.error).toBe('PORT_NOT_FOUND');
     });
 
     it('returns the latest state snapshot', async () => {

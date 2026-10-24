@@ -25,10 +25,14 @@ import { handleMcpPayload, MCP_PROTOCOL_VERSIONS } from './mcp/mcp.server.js';
 import {
   AGENT_PACKET_HISTORY_DEFAULT_LIMIT,
   AGENT_PACKET_HISTORY_MAX_LIMIT,
+  findAgentAutomation,
   findAgentEntity,
+  findAgentScript,
+  listAgentAutomations,
   listAgentEntities,
   listAgentPacketHistory,
   listAgentPorts,
+  listAgentScripts,
   listAgentStates,
   listAgentUnmatchedPackets,
 } from './services/observation.service.js';
@@ -48,6 +52,7 @@ import { applyAgentEntityDraft, validateAgentEntityDraft } from './services/enti
 import { isPlainObject, readDraftInput, readOptionalString, toInteger } from './services/input.js';
 import { isAgentPortError, resolveAgentPort } from './services/port.service.js';
 import {
+  expandGallerySnippet,
   getGallerySnippet,
   getGalleryVendorIndex,
   listGalleryVendors,
@@ -297,6 +302,72 @@ export function createAgentRoutes(ctx: AgentRoutesContext): Router {
     res.json(entity);
   });
 
+  router.get(`${AGENT_API_BASE}${AGENT_PATHS.automations}`, (req, res) => {
+    const portId = firstQueryValue(req.query.portId);
+    if (portId) {
+      const port = resolvePortOrRespond(ctx, res, portId);
+      if (!port) return;
+    }
+    res.json({
+      portId: portId ?? null,
+      automations: listAgentAutomations(ctx.getCurrentConfigs(), portId),
+    });
+  });
+
+  router.get(`${AGENT_API_BASE}${AGENT_PATHS.automation}`, (req, res) => {
+    const portId = firstQueryValue(req.query.portId);
+    if (portId) {
+      const port = resolvePortOrRespond(ctx, res, portId);
+      if (!port) return;
+    }
+
+    const automation = findAgentAutomation(
+      ctx.getCurrentConfigs(),
+      req.params.automationId,
+      portId,
+    );
+    if (!automation) {
+      return sendError(
+        res,
+        404,
+        'AUTOMATION_NOT_FOUND',
+        `Automation "${req.params.automationId}" was not found.`,
+      );
+    }
+    res.json(automation);
+  });
+
+  router.get(`${AGENT_API_BASE}${AGENT_PATHS.scripts}`, (req, res) => {
+    const portId = firstQueryValue(req.query.portId);
+    if (portId) {
+      const port = resolvePortOrRespond(ctx, res, portId);
+      if (!port) return;
+    }
+    res.json({
+      portId: portId ?? null,
+      scripts: listAgentScripts(ctx.getCurrentConfigs(), portId),
+    });
+  });
+
+  router.get(`${AGENT_API_BASE}${AGENT_PATHS.script}`, (req, res) => {
+    const portId = firstQueryValue(req.query.portId);
+    if (portId) {
+      const port = resolvePortOrRespond(ctx, res, portId);
+      if (!port) return;
+    }
+
+    const script = findAgentScript(ctx.getCurrentConfigs(), req.params.scriptId, portId);
+    if (!script) {
+      return sendError(
+        res,
+        404,
+        'SCRIPT_NOT_FOUND',
+        `Script "${req.params.scriptId}" was not found.`,
+      );
+    }
+    res.json(script);
+  });
+
   router.get(`${AGENT_API_BASE}${AGENT_PATHS.state}`, (req, res) => {
     const portId = firstQueryValue(req.query.portId);
     if (portId) {
@@ -487,6 +558,24 @@ export function createAgentRoutes(ctx: AgentRoutesContext): Router {
         await matchGallerySnippets(ctx, {
           portId,
           vendor: firstQueryValue(req.query.vendor),
+        }),
+      );
+    } catch (error) {
+      handleRouteError(res, error);
+    }
+  });
+
+  router.post(`${AGENT_API_BASE}${AGENT_PATHS.galleryExpand}`, async (req, res) => {
+    const body = isPlainObject(req.body) ? req.body : {};
+    if (body.portId !== undefined && body.portId !== null && body.portId !== '') {
+      const port = resolvePortOrRespond(ctx, res, body.portId);
+      if (!port) return;
+    }
+    try {
+      res.json(
+        await expandGallerySnippet({
+          file: typeof body.file === 'string' ? body.file : '',
+          parameterValues: body.parameterValues as Record<string, unknown> | undefined,
         }),
       );
     } catch (error) {

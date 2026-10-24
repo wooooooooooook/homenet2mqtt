@@ -1,9 +1,11 @@
 import {
   AGENT_PACKET_HISTORY_DEFAULT_LIMIT,
   AGENT_PACKET_HISTORY_MAX_LIMIT,
+  listAgentAutomations,
   listAgentEntities,
   listAgentPacketHistory,
   listAgentPorts,
+  listAgentScripts,
   listAgentStates,
   listAgentUnmatchedPackets,
 } from '../../services/observation.service.js';
@@ -50,6 +52,48 @@ export const observationTools: McpTool[] = [
         data: {
           portId: portId ?? null,
           entities: listAgentEntities(ctx.getCurrentConfigs(), portId),
+        },
+      };
+    },
+  },
+  {
+    name: 'get_automations',
+    title: 'List automations',
+    description:
+      'List configured automations with their normalized port id, id, name, and full YAML configuration.',
+    inputSchema: {
+      type: 'object',
+      properties: { portId: portIdProperty },
+      additionalProperties: false,
+    },
+    annotations: { readOnlyHint: true, openWorldHint: false },
+    handler: (ctx, args) => {
+      const portId = readStringArg(args, 'portId');
+      return {
+        data: {
+          portId: portId ?? null,
+          automations: listAgentAutomations(ctx.getCurrentConfigs(), portId),
+        },
+      };
+    },
+  },
+  {
+    name: 'get_scripts',
+    title: 'List scripts',
+    description:
+      'List configured scripts with their normalized port id, id, description, and full YAML configuration.',
+    inputSchema: {
+      type: 'object',
+      properties: { portId: portIdProperty },
+      additionalProperties: false,
+    },
+    annotations: { readOnlyHint: true, openWorldHint: false },
+    handler: (ctx, args) => {
+      const portId = readStringArg(args, 'portId');
+      return {
+        data: {
+          portId: portId ?? null,
+          scripts: listAgentScripts(ctx.getCurrentConfigs(), portId),
         },
       };
     },

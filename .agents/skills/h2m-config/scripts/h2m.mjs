@@ -13,7 +13,8 @@ const readDraft = (file) => {
   const root = j.draft ?? j;
   return {
     entities: root.entities ?? {},
-    automations: root.automations,
+    automations: root.automations ?? root.automation,
+    scripts: root.scripts,
     packetDefaults: root.packetDefaults,
   };
 };
@@ -53,6 +54,20 @@ switch (cmd) {
     for (const e of (await req('GET', `/entities${q({ portId: a[0] })}`)).entities) {
       console.log(`[${e.entityType}] ${e.id}  file_port=${e.portId}`);
       if (a[1] === '--full') printJson(e.config, 1500);
+    }
+    break;
+  case 'automations':
+    for (const auto of (await req('GET', `/automations${q({ portId: a[0] })}`)).automations) {
+      console.log(`[automation] ${auto.id}  name=${auto.name ?? '-'}  port=${auto.portId}`);
+      if (a[1] === '--full') printJson(auto.config, 4000);
+    }
+    break;
+  case 'scripts':
+    for (const script of (await req('GET', `/scripts${q({ portId: a[0] })}`)).scripts) {
+      console.log(
+        `[script] ${script.id}  desc=${script.description ?? '-'}  port=${script.portId}`,
+      );
+      if (a[1] === '--full') printJson(script.config, 4000);
     }
     break;
   case 'unmatched': {
@@ -159,7 +174,9 @@ switch (cmd) {
         console.log(
           `${s.file}\t${s.name_en ?? s.name ?? ''}\t${(s.parameters ?? [])
             .map((p) => `${p.name}(${p.type}${p.min !== undefined ? `:${p.min}..${p.max}` : ''})`)
-            .join(' ')}\tmatch=${s.discovery ? JSON.stringify(s.discovery.match) : '-'}`,
+            .join(
+              ' ',
+            )}\tauto=${s.contentSummary?.automations ?? 0} scripts=${s.contentSummary?.scripts ?? 0}\tmatch=${s.discovery ? JSON.stringify(s.discovery.match) : '-'}`,
         );
     }
     console.log(`# source=${r.source}${r.generatedAt ? ` generated=${r.generatedAt}` : ''}`);
@@ -186,6 +203,32 @@ switch (cmd) {
         console.log(
           `HIT ${m.file} n=${m.matchedPacketCount} params=${JSON.stringify(m.parameterValues)}`,
         );
+    break;
+  }
+  case 'gallery-expand': {
+    // h2m.mjs gallery-expand <vendor/file.yaml> [paramsJson|-] [--out draft.json] [--port portId]
+    if (!a[0])
+      usage(
+        'h2m.mjs gallery-expand <vendor/file.yaml> [paramsJson] [--out draft.json] [--port portId]',
+      );
+    const outIndex = a.indexOf('--out');
+    const portIndex = a.indexOf('--port');
+    const out = outIndex >= 0 ? a[outIndex + 1] : undefined;
+    const portId = portIndex >= 0 ? a[portIndex + 1] : undefined;
+    const parameterValues =
+      a[1] && a[1] !== '-' && !a[1].startsWith('--') ? JSON.parse(a[1]) : undefined;
+    const r = await req('POST', '/gallery/expand', {
+      body: { file: a[0], parameterValues, portId },
+    });
+    console.log(
+      `# source=${r.source} params=${JSON.stringify(r.parameterValues)} entities=${r.counts.entities} automations=${r.counts.automations} scripts=${r.counts.scripts}`,
+    );
+    if (out) {
+      fs.writeFileSync(out, JSON.stringify(r.draft, null, 2));
+      console.log(`draft -> ${out}`);
+    } else {
+      printJson(r.draft, 4000);
+    }
     break;
   }
   case 'analyze': {
@@ -222,6 +265,10 @@ switch (cmd) {
       body: { portId: a[0], ...readDraft(a[1]), discoveryPreview: true },
     });
     console.log(`valid=${r.valid} applicable=${r.applicable} restartRequired=${r.restartRequired}`);
+    if (r.counts)
+      console.log(
+        `counts entities=${r.counts.entities} automations=${r.counts.automations} scripts=${r.counts.scripts}`,
+      );
     console.log(`draftHash=${r.draftHash}`);
     if (r.errors?.length) console.log(`errors: ${JSON.stringify(r.errors)}`);
     if (r.warnings?.length) console.log(`warnings: ${JSON.stringify(r.warnings)}`);
@@ -262,6 +309,6 @@ switch (cmd) {
   }
   default:
     usage(
-      'info|setup|get|post|entities|unmatched|history|capture|gallery|gallery-show|gallery-match|analyze|validate|apply|preview',
+      'info|setup|get|post|entities|automations|scripts|unmatched|history|capture|gallery|gallery-show|gallery-match|gallery-expand|analyze|validate|apply|preview',
     );
 }

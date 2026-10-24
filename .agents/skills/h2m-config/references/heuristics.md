@@ -105,7 +105,7 @@ node scripts/h2m.mjs preview <portId> 04010481000000
 
 - `h2m.mjs gallery-match <portId|-> [vendor]`가 `params={"heater_count":4}` / `채널값=0x03,0x04 → max=4`를 돌려주면 `heater_count`를 4로 채우는 근거
 - `/gallery*`는 GitHub을 우선 읽고 동봉 `gallery/`는 폴백이므로, 응답의 `source=local`이면 프리셋이 배포본 사본(구버전 리비전)일 수 있다. 아래 리비전 어긋남 규칙을 특히 주의
-- `/gallery*`는 **조회 전용**이다. Agent API에는 스니펫을 설정에 반영하는 엔드포인트가 없고 서버가 `$repeat`/`{{i}}`를 펼쳐주지도 않는다. 관측 채널만큼 explicit 엔티티로 풀어 `/entities/validate`·`/entities/apply`로 반영해야 미매칭이 실제로 줄어든다
+- `/gallery*` 조회 API는 읽기 전용이지만 `/gallery/expand`가 `$repeat`/`{{i}}`를 초안으로 펼쳐 준다. 그래도 설정에 쓰지는 않으므로 `/entities/validate`·`/entities/apply`로 반영해야 미매칭이 실제로 줄어든다. `expand`가 없는 버전에서만 관측 채널만큼 explicit 엔티티로 직접 푼다
 - 폴링형에서는 **RX가 아니라 브리지 TX의 인덱스**가 채널 상한을 먼저 알려준다. `TX b0 00 03`이 관측됐다면 3번 조명 실물이 존재하지만 `RX b0 …`는 아직 안 나온 상태 — 이때도 확장 대상
 - 단, 스니펫의 `discovery.match`에 HIT하지 않는 고정 프레임(`STATIC n=수백`, 페이로드 0 채움)은 요청/하트비트 잡음이다. 벤더 갤러리 전체와 대조해 HIT이 없으면 미매칭으로 남긴다
 - 예제 파일과 갤러리 스니펫의 프로토콜 리비전이 어긋날 수 있다. 필드 조합은 갤러리에서, mask/ack/버튼값 같은 구체 바이트는 `/entities --full`로 읽은 **라이브 동일 타입 엔티티**에서 복사하고 채널 인덱스만 바꾼다
@@ -119,3 +119,18 @@ node scripts/h2m.mjs preview <portId> 04010481000000
 - 이벤트형으로 판정되면 대기하지 말고 즉시 사용자에게 요청: ① 월패드에서 실제로 조작 가능한 기기 목록(타입별 대수·채널) ② "월패드 화면을 켜서 전등 ON/OFF, 난방 목표온도 변경, 환기팬 모드 변경 등을 1~2분간 조작해 주세요". 목록 없이 조작부터 요청하면 설치되지 않은 기기를 찾느라 왕복이 늘어난다
 - `NO_TRAFFIC`은 RX/TX 모두 0건이라는 뜻이다. `/ports` status가 `error`/`stopped`면 프레이밍·경로 문제이고, `started`인데 계속 0건이어야 이벤트형(조작 대기)으로 본다
 - 이벤트형 버스는 사용자 조작 1회가 곧 1차·2차 캡처를 겸한다. 조작 직전에 캡처를 켜고 조작 순서를 메모해 두면 `--base` 대조 없이도 시간순으로 필드가 전개된다
+
+## 14. automation/scripts 함정
+
+갤러리 스니펫의 automation/scripts는 대부분 **엔티티만으로는 안 되는 동작**을 담는다. `gallery <vendor>`의 `auto=N scripts=M`이 0이 아니면 `gallery-expand`로 `draft.automations`/`draft.scripts`를 확인한다. 상세 패턴은 `automation-scripts.md`.
+
+- **구형 트리거**: 갤러리 일부는 `entity`/`to`를 쓰지만 현재 런타임의 state 트리거는 `entity_id`(+`property`/`match`)만 읽는다. 그대로 옮기면 조용히 발화하지 않는다 → 고쳐 쓴다
+- **상태 문자열 대소문자**: 정규화된 상태는 `ON`/`OFF`, `OPEN`/`CLOSED`처럼 대문자다. 구형 스니펫의 `eq: 'on'`/`== 'on'`을 그대로 복사하면 guard/if가 항상 거짓이 된다. `/state`의 실제 값으로 맞추고, YAML의 맨 `on`/`off`는 불리언이 되므로 인용한다
+- **스케줄 + `command`의 `low_priority`**: schedule 트리거의 **최상위** `command` 액션만 자동으로 `low_priority: true`가 된다. `if`/`repeat` 안이나 script 안의 command는 자동 적용되지 않으므로, 폴링이 사용자 조작을 밀어내지 않게 하려면 명시한다
+- **`update_state` 대상 필드**: 대상 엔티티에 **정의된 state 필드만** 갱신된다. 정규화 이름(`state`, `brightness` 등)도 받지만, `optimistic: true` 엔티티는 state 스키마가 있어야 한다. 패킷 트리거에서 여러 엔티티를 갱신할 때는 `target_id`가 실제 ID인지(또는 CEL 결과인지) 확인한다
+- **`send_packet` 기본값**: `checksum`은 기본 `true`, `header`/`footer`는 기본 `false`. 체크섬까지 포함한 완성 패킷을 그대로 보내는 스니펫은 `checksum: false`를 명시하므로 빼먹지 않는다
+- **packet 트리거 `match.index`**: 생략하면 `rx_header` **이후** 기준, 명시하면 헤더 포함 **절대 위치**다. 엔티티의 `state.index`와 같은 좌표계로 착각하지 않는다. CEL의 `trigger.packet`/`prev_packet`은 BigInt 배열이므로 산술 전에 `int()`로 캐스팅한다
+- **스케줄 타임존**: 별도 설정이 없으면 cron은 UTC다. 사용자가 기대하는 현지 시각과 다르면 알린다
+- **script args의 CEL 평가**: 문자열 값이 `(`, `.`, `[`를 포함하면 CEL로 평가된다. 리터럴 문자열은 이스케이프/인용이 필요할 수 있다. script 재귀 호출은 차단된다
+- **중복 응답자**: 같은 버스 질의에 응답하는 automation이 둘 이상이면 TX가 충돌한다. 갤러리 스니펫을 여러 개 합칠 때 대리응답(`send_packet`)의 `match`가 겹치지 않는지 확인한다
+- **기존 automation/scripts 확인**: `/entities`는 엔티티만 준다. `/automations`·`/scripts`(MCP `get_automations`/`get_scripts`)로 ID와 트리거·액션을 먼저 읽어 중복 폴러/응답자를 피한다. `validate`는 정적 검사만 하므로 적용 후 `/events`·`/state`·`/packets/history`로 발화를 확인한다

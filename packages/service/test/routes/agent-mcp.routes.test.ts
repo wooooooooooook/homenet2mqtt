@@ -39,6 +39,21 @@ const rawConfig = () => ({
       state: { index: 0, length: 1, type: 'byte' },
     },
   ],
+  automation: [
+    {
+      id: 'existing_automation',
+      name: 'Existing Automation',
+      trigger: [{ type: 'state', entity_id: 'existing', match: { eq: 'ON' } }],
+      then: [{ action: 'delay', milliseconds: 100 }],
+    },
+  ],
+  scripts: [
+    {
+      id: 'existing_script',
+      description: 'Existing Script',
+      actions: [{ action: 'delay', milliseconds: 100 }],
+    },
+  ],
 });
 
 const newSensorDraft = {
@@ -391,6 +406,22 @@ describe('agent MCP routes', () => {
 
       const state = await toolCall('get_entity_state', {}, 2);
       expect(state.body.result.structuredContent.states[0].entityId).toBe('existing');
+    });
+
+    it('lists automations and scripts', async () => {
+      const automations = await toolCall('get_automations', { portId: 'default' }, 1);
+      expect(automations.body.result.structuredContent.automations[0]).toMatchObject({
+        id: 'existing_automation',
+        name: 'Existing Automation',
+        portId: 'default',
+      });
+
+      const scripts = await toolCall('get_scripts', { portId: 'default' }, 2);
+      expect(scripts.body.result.structuredContent.scripts[0]).toMatchObject({
+        id: 'existing_script',
+        description: 'Existing Script',
+        portId: 'default',
+      });
     });
 
     it('returns packet history and unmatched packets', async () => {

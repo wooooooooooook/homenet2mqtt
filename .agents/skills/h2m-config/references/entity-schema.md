@@ -59,6 +59,36 @@ MCP 클라이언트면 `get_config_schema`가 같은 문서를 준다(기본 `ho
 | `length`, `signed`, `endian`, `multiply_factor` | 값 인코딩 보조                                   |
 | `low_priority`, `script`                        | 전송 스케줄/스크립트 참조                        |
 
+`command_*`는 세 가지 형태를 받는다: `CommandSchema` 객체, CEL 문자열, `{ script: <scriptId>, args: {...} }`. 스크립트 형태는 복합 TX 패킷 생성에 쓰이며, 참조하는 script가 초안 `scripts`에 함께 있어야 한다. `validate`는 이 참조를 검사하지 않으므로, 빠뜨리면 적용 후 커맨드가 조용히 동작하지 않을 수 있다.
+
+## 초안 봉투 (draft envelope)
+
+`POST /entities/validate`·`/entities/apply`, MCP `validate_entity_draft`·`apply_entity_draft`, `h2m.mjs analyze/validate/apply`가 받는 JSON은 다음 네 필드만 본다.
+
+| 초안 필드        | 설정 파일 키      | 내용                                                                                                                      |
+| ---------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `entities`       | 타입별 키         | `{ climate: [...], light: [...], sensor: [...] }` (필수)                                                                  |
+| `automations`    | `automation`      | `AutomationConfig[]`. **API 본문은 복수형만** 받고, 설정 파일 키는 단수형이다(`h2m.mjs`는 로컬 초안의 단수형 별칭도 변환) |
+| `scripts`        | `scripts`         | `ScriptConfig[]`                                                                                                          |
+| `packetDefaults` | `packet_defaults` | 포트 기본값 오버라이드(선택)                                                                                              |
+
+`validate` 응답의 `counts`는 `{ entities, automations, scripts }`다. 적용 후 재시작 전까지는 라이브 등록이 안 된다.
+
+## AutomationConfig / ScriptConfig
+
+| 타입               | 필드                                                                                                                                                      |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AutomationConfig` | `id`(필수, 유일), `trigger[]`(필수), `then[]`(필수), `guard?`, `else?`, `mode?`(`parallel\|single\|restart\|queued`), `enabled?`, `name?`, `description?` |
+| `ScriptConfig`     | `id`(필수, 유일), `actions[]`(필수), `args?`, `description?`                                                                                              |
+
+- `then`이 정본이고 `actions`는 deprecated 별칭이다. **둘을 동시에 정의할 수 없다.**
+- `trigger`는 배열이다. 타입: `state`(`entity_id`, `property?`, `match?`, `debounce_ms?`), `packet`(`match`), `schedule`(`every` 또는 `cron`), `startup`.
+- 액션 타입: `command`(`target`, `input?`, `low_priority?`), `publish`, `log`, `delay`, `script`, `update_state`(`target_id`, `state`), `send_packet`(`data`, `checksum?`, `header?`, `footer?`, `ack?`), `if`, `repeat`, `wait_until`, `choose`, `stop`.
+- `ScriptConfig`에는 `mode`가 없다. 갤러리 스니펫의 script `mode`는 버린다.
+- 구형 `entity`/`to` 상태 트리거와 `actions` 전용 트리거는 현재 런타임이 읽지 않는다. `entity_id`/`property`/`match` + `then`으로 고쳐 쓴다.
+
+패턴·런타임 의미론·함정은 `automation-scripts.md`를 본다.
+
 ## 타입별 주요 필드
 
 ### light / switch
@@ -80,7 +110,7 @@ MCP 클라이언트면 `get_config_schema`가 같은 문서를 준다(기본 `ho
 
 ## gallery 프리셋 표기($repeat) — 실config에는 없음
 
-`gallery-show`로 받은 스니펫은 템플릿이라 `$repeat`(count/as/start), `{{i}}`, `discovery.match`(`data`+`mask`), `dimensions`를 쓴다. API 초안(`h2m.mjs analyze/validate`에 넣는 JSON)에는 **사용 불가** — 펼쳐서 explicit 엔티티로 쓴다. 예:
+`gallery-show`로 받은 스니펫은 템플릿이라 `$repeat`(count/as/start), `{{i}}`, `discovery.match`(`data`+`mask`), `dimensions`를 쓴다. API 초안(`h2m.mjs analyze/validate`에 넣는 JSON)에는 **사용 불가** — `/gallery/expand`(`gallery-expand`)로 펼친 뒤 explicit 엔티티로 쓴다. 예:
 
 ```yaml
 # gallery-show commax/lights_new.yaml (템플릿)

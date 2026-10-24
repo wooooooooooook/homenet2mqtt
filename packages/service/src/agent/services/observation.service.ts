@@ -36,6 +36,20 @@ export interface AgentEntitySummary {
   config: Record<string, unknown>;
 }
 
+export interface AgentAutomationSummary {
+  portId: string;
+  id: string;
+  name: string | null;
+  config: Record<string, unknown>;
+}
+
+export interface AgentScriptSummary {
+  portId: string;
+  id: string;
+  description: string | null;
+  config: Record<string, unknown>;
+}
+
 export interface AgentStateEntry {
   entityId: string;
   portId: string | null;
@@ -135,6 +149,78 @@ export function findAgentEntity(
   portId?: string,
 ): AgentEntitySummary | undefined {
   return listAgentEntities(configs, portId).find((entity) => entity.id === entityId);
+}
+
+const toConfigRecords = (value: unknown): Record<string, unknown>[] =>
+  Array.isArray(value)
+    ? value.filter(
+        (entry): entry is Record<string, unknown> =>
+          Boolean(entry) && typeof entry === 'object' && !Array.isArray(entry),
+      )
+    : [];
+
+export function listAgentAutomations(
+  configs: HomenetBridgeConfig[],
+  portId?: string,
+): AgentAutomationSummary[] {
+  const automations: AgentAutomationSummary[] = [];
+
+  configs.forEach((config, index) => {
+    const configPortId = resolveConfigPortId(config, index);
+    if (portId && configPortId !== portId) return;
+
+    for (const automation of toConfigRecords(config.automation)) {
+      if (typeof automation.id !== 'string' || !automation.id) continue;
+      automations.push({
+        portId: configPortId,
+        id: automation.id,
+        name: typeof automation.name === 'string' ? automation.name : null,
+        config: automation,
+      });
+    }
+  });
+
+  return automations;
+}
+
+export function findAgentAutomation(
+  configs: HomenetBridgeConfig[],
+  automationId: string,
+  portId?: string,
+): AgentAutomationSummary | undefined {
+  return listAgentAutomations(configs, portId).find((automation) => automation.id === automationId);
+}
+
+export function listAgentScripts(
+  configs: HomenetBridgeConfig[],
+  portId?: string,
+): AgentScriptSummary[] {
+  const scripts: AgentScriptSummary[] = [];
+
+  configs.forEach((config, index) => {
+    const configPortId = resolveConfigPortId(config, index);
+    if (portId && configPortId !== portId) return;
+
+    for (const script of toConfigRecords(config.scripts)) {
+      if (typeof script.id !== 'string' || !script.id) continue;
+      scripts.push({
+        portId: configPortId,
+        id: script.id,
+        description: typeof script.description === 'string' ? script.description : null,
+        config: script,
+      });
+    }
+  });
+
+  return scripts;
+}
+
+export function findAgentScript(
+  configs: HomenetBridgeConfig[],
+  scriptId: string,
+  portId?: string,
+): AgentScriptSummary | undefined {
+  return listAgentScripts(configs, portId).find((script) => script.id === scriptId);
 }
 
 export function listAgentStates(

@@ -1,6 +1,6 @@
 ---
 name: h2m-config
-description: Homenet2MQTT(h2m) 설정에 디바이스 엔티티(climate/light/sensor/fan/switch 등)를 추가하는 방법론. 1순위 근거는 이미 적용된 예제 설정과 벤더 갤러리 프리셋(discovery.match·개수 파라미터·$repeat)이며, 그 둘로 설명되지 않는 디바이스만 원시 RS485 패킷 역산을 폴백으로 쓴다. 홈넷 버스는 조작할 때만 트래픽이 생기는 경우가 많으므로 사용자에게 월패드·스위치·리모컨 조작을 구체적으로 요청하는 단계를 포함하고, 사용자가 알려준 벤더·모델명은 탐색 우선순위 힌트로 쓰되 이름만으로 예제를 확정하지 않는다. "unmatched 패킷 정리해줘", "이 패킷에 맞는 엔티티 추가해줘", "패킷만 보고 엔티티를 만들어줘", "갤러리 프리셋으로 히터/조명 늘려줘", "설정에 없는 디바이스 붙여줘", "패킷이 안 잡히는데 뭘 조작해야 하나" 같은 요청에 사용. h2m 주소를 모르거나 Agent API를 어떻게 켜고 토큰을 발급하는지 모르는 사용자에게는 연결부터 안내한다(references/connection-setup.md). h2m은 REST(`/api/v1/agent`)와 MCP(`/api/v1/agent/mcp`)로 같은 도메인 로직을 노출하므로 클라이언트에 MCP 도구가 있으면 MCP로, 셸만 있으면 스크립트로 작업하고 표면별 차이는 references/interfaces.md를 따른다.
+description: Homenet2MQTT(h2m) 설정에 디바이스 엔티티(climate/light/sensor/fan/switch 등)와 필요한 automation/scripts를 추가하는 방법론. 1순위 근거는 이미 적용된 예제 설정과 벤더 갤러리 프리셋(discovery.match·개수 파라미터·$repeat)이며, 그 둘로 설명되지 않는 디바이스만 원시 RS485 패킷 역산을 폴백으로 쓴다. 갤러리 스니펫의 automation/scripts(주기 폴링·버스 대리응답·벨/엘리베이터 시퀀스·복합 TX 패킷 생성)는 엔티티 동작의 일부이므로 엔티티만 옮기고 끝내지 않는다. 홈넷 버스는 조작할 때만 트래픽이 생기는 경우가 많으므로 사용자에게 월패드·스위치·리모컨 조작을 구체적으로 요청하는 단계를 포함하고, 사용자가 알려준 벤더·모델명은 탐색 우선순위 힌트로 쓰되 이름만으로 예제를 확정하지 않는다. "unmatched 패킷 정리해줘", "이 패킷에 맞는 엔티티 추가해줘", "패킷만 보고 엔티티를 만들어줘", "갤러리 프리셋으로 히터/조명 늘려줘", "설정에 없는 디바이스 붙여줘", "패킷이 안 잡히는데 뭘 조작해야 하나", "상태가 갱신되게 주기 조회를 넣어줘", "현관벨 자동열기/엘리베이터 호출 시퀀스를 붙여줘" 같은 요청에 사용. h2m 주소를 모르거나 Agent API를 어떻게 켜고 토큰을 발급하는지 모르는 사용자에게는 연결부터 안내한다(references/connection-setup.md). h2m은 REST(`/api/v1/agent`)와 MCP(`/api/v1/agent/mcp`)로 같은 도메인 로직을 노출하므로 클라이언트에 MCP 도구가 있으면 MCP로, 셸만 있으면 스크립트로 작업하고 표면별 차이는 references/interfaces.md를 따른다.
 argument-hint: [portId]
 ---
 
@@ -8,18 +8,19 @@ argument-hint: [portId]
 
 ## 목적
 
-여기서 "config"는 API로 다루는 브릿지 설정 전반(초기 예제 선택, 포트/브릿지 추가, 엔티티 추가·검증·적용, 재시작)을 뜻한다. MQTT 브로커·애드온 옵션·API 토큰·서비스 로그·백업 복원은 API 밖이므로 사용자에게 요청한다(`references/interfaces.md` §6).
+여기서 "config"는 API로 다루는 브릿지 설정 전반(초기 예제 선택, 포트/브릿지 추가, 엔티티 추가·검증·적용, automation/scripts 반영, 재시작)을 뜻한다. MQTT 브로커·애드온 옵션·API 토큰·서비스 로그·백업 복원은 API 밖이므로 사용자에게 요청한다(`references/interfaces.md` §6).
 
 h2m의 설정은 프레이밍(rx_header/rx_length)·체크섬·디코드·필드 조합이 얽혀 있어 처음부터 손으로 쓰기 어렵다. 그래서 이 스킬의 목적은 **h2m이 이미 가진 프로토콜 자산(적용된 예제 설정 + 벤더 갤러리 프리셋)에 홈네트워크 패킷이 실제로 말하는 디바이스를 엮어 엔티티를 추가하는 것**이다. 새 프로토콜을 발명하는 작업이 아니라, 검증된 프리셋의 어휘 안에서 채널·개수를 늘리는 작업이 기본값이다.
 
 - **기본 경로**: 라이브 설정 → 갤러리 프리셋 → 예제 설정 순으로 근거를 찾아 초안을 만들고 `/entities/*`로 적용
 - **폴백 경로**: 위 셋으로 설명되지 않는 디바이스에 한해 원시 패킷을 직접 역산
+- **automation/scripts는 엔티티의 일부**: 갤러리 스니펫이 주기 폴링·대리응답·시퀀스·복합 TX를 담고 있으면 같은 초안에 넣는다. 빠뜨리면 상태가 갱신되지 않거나 버스 질의에 응답하지 못한다(`references/automation-scripts.md`)
 - 어느 경로든 **홈넷 버스는 조작해야 말한다**. 트래픽이 조용하면 대기하지 말고 사용자에게 피지컬 디바이스 조작을 요청한다
 
 ## 우선순위 (이 순서를 지킨다)
 
 1. **라이브 설정** — `/entities --full`의 동일 타입 엔티티(구조·mask·버튼값의 원본)와 포트 `packetDefaults`
-2. **갤러리 프리셋** — API `/gallery*`로 읽는 `discovery.match`·`parameters`/`$repeat`·`requirements`
+2. **갤러리 프리셋** — API `/gallery*`로 읽는 `discovery.match`·`parameters`/`$repeat`·`requirements`와 `automation`/`scripts` 블록
 3. **예제 설정** — 적용된 예제의 전체 내용과 다른 벤더 예제(`/setup/examples/<file>`)
 4. **직접 패킷 역산** — 위 셋에 정보가 없을 때만. 변동 증거를 확보한 뒤 최소 필드만
 
@@ -33,6 +34,7 @@ h2m의 설정은 프레이밍(rx_header/rx_length)·체크섬·디코드·필드
 4. **홈넷 버스는 조작해야 말한다.** 무트래픽이면 이벤트형(월패드·스위치·리모컨 조작 시에만 송수신)일 수 있다. 조작 요청은 대상·동작·유지시간을 한 번에 묶어 구체적으로 한다.
 5. **벤더명은 힌트다.** 사용자가 알려준 벤더·모델은 갤러리·예제 탐색의 시작점으로 **우선 사용**하되, 이름만으로 `/setup/apply`하지 않는다. 내부 프로토콜 세대 차이·파생 모델·혼선 배선으로 어긋날 수 있으므로 수집 바이트의 프레이밍/체크섬/채널 검증이 최종 판정이다.
 6. **커맨드는 관측 바이트로 증명한다.** `state` 파싱이 맞아도 `command_*`가 버스에서 실측된 TX hex와 1바이트 차이까지 일치해야(`preview` 대조) 신뢰할 수 있다.
+7. **automation은 엔티티가 못 하는 일만 맡는다.** 상태 파싱·단일 커맨드는 엔티티에 두고, 요청/응답·시퀀스·복합 TX 생성만 automation/scripts로 뺀다. 갤러리 스니펫에 해당 블록이 있으면 "이 디바이스가 원래 그렇게 동작한다"는 증거로 취급하되, 사용자 환경에 없는 채널을 위한 폴링은 옮기지 않는다.
 
 ## 전제와 범위
 
@@ -57,12 +59,12 @@ h2m의 설정은 프레이밍(rx_header/rx_length)·체크섬·디코드·필드
 
 h2m은 같은 `agent/services/*` 로직을 REST와 MCP 두 문으로 노출한다. **지금 쓸 수 있는 문으로 끝까지 간다.**
 
-| 지금 쓸 수 있는 것                                         | 사용                                                          |
-| ---------------------------------------------------------- | ------------------------------------------------------------- |
-| 에이전트 클라이언트에 MCP 도구가 연결됨                    | MCP — `scripts/mcp.mjs` `tools` · `call`                      |
-| 셸만 있음 / MCP 미지원 클라이언트                          | REST — `scripts/h2m.mjs`                                      |
-| 캡처 파일 다운로드·삭제, TX `preview`, SSE `/events`           | REST 전용 (MCP에 없음)                                        |
-| 설정 스키마 필드 조회(`/schema`)                              | MCP `get_config_schema`(통째) 또는 REST `schema.mjs`(절단)        |
+| 지금 쓸 수 있는 것                                   | 사용                                                       |
+| ---------------------------------------------------- | ---------------------------------------------------------- |
+| 에이전트 클라이언트에 MCP 도구가 연결됨              | MCP — `scripts/mcp.mjs` `tools` · `call`                   |
+| 셸만 있음 / MCP 미지원 클라이언트                    | REST — `scripts/h2m.mjs`                                   |
+| 캡처 파일 다운로드·삭제, TX `preview`, SSE `/events` | REST 전용 (MCP에 없음)                                     |
+| 설정 스키마 필드 조회(`/schema`)                     | MCP `get_config_schema`(통째) 또는 REST `schema.mjs`(절단) |
 
 - 시작점은 `h2m.mjs info`(= `/capabilities` + `/ports`). `features.packetSend`가 false면 패킷 전송 기능이 없는 배포이고, MCP `tools/list`에 `send_packet`이 없는 것과 같은 뜻이다.
 - 기능·엔드포인트·도구 인자 전체 표는 `references/interfaces.md`. 낯선 배포에서는 추측 대신 `/capabilities` → `llms.txt`/`openapi.json` → MCP `tools/list` 순으로 확인한다.
@@ -73,32 +75,35 @@ h2m은 같은 `agent/services/*` 로직을 REST와 MCP 두 문으로 노출한�
 
 `h2m.mjs info`가 연결 오류(`H2M_TOKEN` 없음, 연결 거부, `401`, `503 AGENT_API_DISABLED`)로 멈추면 1단계로 가지 말고 0절로 돌아간다. 1단계는 **연결이 확인된 뒤**의 절차다.
 
-| #   | 할 일                                                                                 | 통과 조건                                                          |
-| --- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| 1   | `h2m.mjs info` · `h2m.mjs entities <portId> --full` · `h2m.mjs unmatched <portId>`     | 포트 상태, 적용 예제, 기존 엔티티·시그니처, 미매칭 hex 목록 확보    |
-| 2   | 사용자에게 힌트 확인(벤더/모델, 월패드에서 조작 가능한 기기 목록, 물리 조작 가능 여부) | 벤더명·실물 기기 대수 확보 (없으면 `gallery` 전체 목록으로 대체)   |
-| 3   | `h2m.mjs gallery <vendor>` · `gallery-match <portId> <vendor>` · `gallery-show <..>`   | HIT 스니펫 + `params`/채널 상한. 0건이면 다른 벤더·타입까지 확인    |
-| 4   | HIT 스니펫 + 라이브 동일 타입 엔티티로 초안 작성 → `h2m.mjs analyze`                   | 대표 hex 전부 `MINE=<id>`, `UNMATCHED` 0건                          |
-| 5   | `h2m.mjs validate` → 재시작 고지·승인 → `h2m.mjs apply ... --restart`                  | `valid=true` · `applicable=true` · 방금 받은 `draftHash`            |
-| 6   | 재시작 후 `h2m.mjs unmatched`                                                          | 0건, 또는 잔여가 요청/하트비트 잡음임을 근거로 설명                 |
-| 7   | (폴백) 3~6으로도 설명 안 되는 잔여만 아래 폴백 절의 역산                                 | 변동 증거가 있는 그룹만                                              |
+| #   | 할 일                                                                                                                                            | 통과 조건                                                                                  |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ |
+| 1   | `h2m.mjs info` · `h2m.mjs entities <portId> --full` · `h2m.mjs automations <portId>` · `h2m.mjs scripts <portId>` · `h2m.mjs unmatched <portId>` | 포트 상태, 적용 예제, 기존 엔티티·automation/script·시그니처, 미매칭 hex 목록 확보         |
+| 2   | 사용자에게 힌트 확인(벤더/모델, 월패드에서 조작 가능한 기기 목록, 물리 조작 가능 여부)                                                           | 벤더명·실물 기기 대수 확보 (없으면 `gallery` 전체 목록으로 대체)                           |
+| 3   | `h2m.mjs gallery <vendor>` · `gallery-match <portId> <vendor>` · `gallery-expand <file> <params>`                                                | HIT 스니펫 + `params`/채널 상한 + `auto=N scripts=M` 확인. 0건이면 다른 벤더·타입까지 확인 |
+| 4   | `gallery-expand` 초안을 라이브 동일 타입 엔티티와 대조·보정(automation/scripts 포함) → `h2m.mjs analyze`                                         | 대표 hex 전부 `MINE=<id>`, `UNMATCHED` 0건. automation이 필요한데 빠뜨리지 않았는지 확인   |
+| 5   | `h2m.mjs validate` → 재시작 고지·승인 → `h2m.mjs apply ... --restart`                                                                            | `valid=true` · `applicable=true` · counts/`draftHash` 확인                                 |
+| 6   | 재시작 후 `h2m.mjs unmatched` · `/state` · 이벤트                                                                                                | 0건, 또는 잔여가 요청/하트비트 잡음임을 근거로 설명. 폴링/시퀀스가 실제로 도는지 확인      |
+| 7   | (폴백) 3~6으로도 설명 안 되는 잔여만 아래 폴백 절의 역산                                                                                         | 변동 증거가 있는 그룹만                                                                    |
 
 미매칭이 0이면 엔티티가 이미 충분하다 — 같은 타입 확장을 더 만들지 말고 보고한다. 3→6을 한 번에 끝내려 하지 말고, 타입별(난방 → 조명 → 환기)로 끊어 적용하는 편이 안전하다.
 
 초안 필드명이 기억나지 않으면 `node scripts/schema.mjs fields climate`로 **이 빌드의 스키마**를 확인한다(`GET /schema/homenet-bridge` — MCP 도구면 `get_config_schema`도 같은 문서를 준다). 이는 설정을 읽는 1단계에서도, 초안을 쓰는 4단계에서도 쓰는 조회다.
 
-MCP 클라이언트라면 같은 단계를 도구로 치환한다: `info`→`list_ports`(`/capabilities`는 REST), `entities`→`get_entities`, `unmatched`→`get_unmatched_packets`, `history`→`get_packet_history`, `gallery-match`→`match_gallery`, 스키마→`list_config_schemas`/`get_config_schema`, `analyze`→`analyze_packet`, `validate`→`validate_entity_draft`, `apply`→`apply_entity_draft`, 재시작 후 확인→`get_unmatched_packets`. 캡처 파일을 로컬로 받아 `variance.mjs`로 볼 때만 REST(`capture get`)로 내려온다. 스키마는 MCP가 문서 전체(약 120KB)를 주므로, 필드만 빠르게 보려면 REST `schema.mjs fields`가 더 작다.
+MCP 클라이언트라면 같은 단계를 도구로 치환한다: `info`→`list_ports`(`/capabilities`는 REST), `entities`→`get_entities`, `automations`→`get_automations`, `scripts`→`get_scripts`, `unmatched`→`get_unmatched_packets`, `history`→`get_packet_history`, `gallery-match`→`match_gallery`, `gallery-expand`→`expand_gallery_snippet`, 스키마→`list_config_schemas`/`get_config_schema`, `analyze`→`analyze_packet`, `validate`→`validate_entity_draft`, `apply`→`apply_entity_draft`, 재시작 후 확인→`get_unmatched_packets`. 캡처 파일을 로컬로 받아 `variance.mjs`로 볼 때만 REST(`capture get`)로 내려온다. 스키마는 MCP가 문서 전체(약 120KB)를 주므로, 필드만 빠르게 보려면 REST `schema.mjs fields`가 더 작다.
 
 ## 1. 현황 파악 — 설정을 먼저 읽는다
 
 ```bash
 node scripts/h2m.mjs info                     # 포트/적용 벤더/packetDefaults/엔티티 수
 node scripts/h2m.mjs entities <portId> --full # 기존 엔티티 전체 설정(구조·mask·index 원본)
+node scripts/h2m.mjs automations <portId>     # 기존 automation 목록(중복 폴러/응답자 확인)
+node scripts/h2m.mjs scripts <portId>         # 기존 script 목록(중복 시퀀스 확인)
 node scripts/h2m.mjs unmatched <portId>       # 아직 설명되지 않는 원시 프레임
 ```
 
 - `portId`가 2개 이상이면 모든 호출에 명시한다(`400 PORT_ID_REQUIRED`). 상태가 `error`인 포트는 트래픽이 없으므로 다른 포트를 고른다.
 - **가장 강한 템플릿은 같은 파일의 동일 타입 엔티티다.** 여기서 `data`/`mask`/`state_*`/`command_*`/`value_index`를 복사하고 채널 인덱스만 바꾸는 것이 갤러리 스니펫을 맨바닥에서 해석하는 것보다 정확하다.
+- **`/entities`는 엔티티만 보여준다.** automation/scripts는 `/automations`·`/scripts`(MCP `get_automations`/`get_scripts`)로 따로 읽는다. 초안 ID가 기존 엔티티·automation·script ID와 겹치지 않는지 세 목록으로 확인한다. 적용된 automation이 실제로 도는지는 `/events`·`/state`·`/packets/history`로 확인한다(`references/interfaces.md` §4).
 - `/setup`이 `setupRequired: true`(설정 0개)면 아래 "신규 환경" 절로 먼저 브릿지 설정을 잡는다.
 
 ## 2. 사용자 힌트 — 벤더명은 탐색 순서를 정한다
@@ -130,29 +135,31 @@ node scripts/h2m.mjs gallery                           # 벤더 목록: 스니�
 node scripts/h2m.mjs gallery <vendor>                  # 스니펫 인덱스: 파라미터 범위 + discovery.match
 node scripts/h2m.mjs gallery-match <portId> <vendor>   # 관측 패킷으로 채점 → HIT + 개수 파라미터 추정치
 node scripts/h2m.mjs gallery-show <vendor>/heaters_new.yaml   # 스니펫 원본 YAML
+node scripts/h2m.mjs gallery-expand <vendor>/heaters_new.yaml '{"heater_count":4}' --out draft.json   # 초안으로 펼침
 ```
 
 Agent API는 갤러리를 **GitHub 우선**으로 읽고, 도달 불가일 때만 컨테이너 동봉 `gallery/`를 폴백으로 쓴다. 출력 마지막 줄 `# source=local`이면 프리셋 리비전이 구버전일 수 있으니 아래 "라이브 설정에서 복사" 규칙으로 교정한다. `gallery-match`은 로그 리텐션이 켜져 있어야 채점되고, 꺼져 있으면 `UNAVAILABLE: …`을 돌려준다(에러가 아니라 안내).
 
-`/gallery`가 없는 구버전 배포(`capabilities.features.gallery` 없음)라면 갤러리 확장을 건너뛰고 4절 폴백으로 간다. 스킬은 갤러리를 **서버 API로만** 읽는다(로컬 `gallery/`를 직접 읽는 경로는 없다).
+`/gallery`가 없는 구버전 배포(`capabilities.features.gallery` 없음)라면 갤러리 확장을 건너뛰고 4절 폴백으로 간다. `/gallery/expand`가 `404`인 중간 버전이면 `gallery-show` 원문을 직접 펼친다. 스킬은 갤러리를 **서버 API로만** 읽는다(로컬 `gallery/`를 직접 읽는 경로는 없다).
 
 해석 규칙:
 
 - `HIT <file> n=<패킷수>` — `discovery.match`(data/mask)가 관측 프레임을 설명한다 → **초안에 반드시 반영**
+- `auto=N scripts=M` — 스니펫이 엔티티 외에 automation/scripts를 함께 담고 있다는 뜻. `N`/`M`이 1 이상이면 `gallery-expand`의 `draft.automations`/`draft.scripts`에 어떻게 펼쳐졌는지 확인하고, 이 디바이스 동작(주기 조회·대리응답·시퀀스·복합 TX)에 필요한지 판단해 같은 초안에 넣는다. `discovery.match`가 없는 automation 전용 스니펫은 HIT에 잡히지 않으므로 이름/설명으로 확인하고, deprecated 표시가 있으면 최신 동등 스니펫을 먼저 찾는다. 판단 기준은 `references/automation-scripts.md`
 - `params={"heater_count":4}` / `채널값=0x03,0x04 → max=4 (허용 1..9, 기본 4)` — `$repeat` 인덱스(`dimensions.index`)에서 관측된 최대 채널. **개수 파라미터를 정하는 근거**다
 - HIT 없는 프레임은 갤러리 범위 밖 → 폴백 역산 대상
 - 폴링형에서는 RX만 보지 말고 **브리지 TX 인덱스**도 채널 상한 증거다. `TX b0 00 03`이 관측되면 3번 채널 실물이 존재한다
 - `STATIC n=수백`(수백 프레임 동안 1바이트도 불변, 페이로드 0 채움)은 요청/하트비트 잡음 후보다. 벤더 스니펫 전체와 대조해 HIT이 없으면 미매칭으로 남기는 것이 엔티티를 지어내는 것보다 정확하다
 
 ::: warning 새 엔티티의 바이트 원본은 "라이브 설정"에서 복사
-같은 벤더라도 적용된 예제(`/setup/examples/<file>`)와 갤러리 스니펫(`gallery-show`)의 프로토콜 리비전이 다를 수 있다. `gallery-show`로 **구조(필드 조합)**를 잡고, mask/ack/버튼값 같은 **구체 바이트는 `/entities --full`의 기존 동일 타입 엔티티**에서 복사해 채널 인덱스만 바꾼다. 두 소스가 어긋나면 라이브 설정이 정답이다(그 설정으로 이미 다른 채널이 정상 파싱되고 있다).
+같은 벤더라도 적용된 예제(`/setup/examples/<file>`)와 갤러리 스니펫(`gallery-expand` 결과)의 프로토콜 리비전이 다를 수 있다. `gallery-expand`로 **구조(필드 조합)**를 잡고, mask/ack/버튼값 같은 **구체 바이트는 `/entities --full`의 기존 동일 타입 엔티티**에서 복사해 채널 인덱스만 바꾼다. 두 소스가 어긋나면 라이브 설정이 정답이다(그 설정으로 이미 다른 채널이 정상 파싱되고 있다).
 :::
 
-### 스니펫 → 엔티티 반영 (3단계의 종료 조건)
+### 스니펫 → 엔티티·automation 반영 (3단계의 종료 조건)
 
-`/gallery*`는 **조회 전용**이다. 서버가 `$repeat`/`{{i}}`를 펼쳐 설정에 넣어주지 않으므로, HIT한 스니펫을 explicit 엔티티로 풀어 `/entities/validate`·`/entities/apply`로 반영해야 미매칭이 실제로 줄어든다.
+`/gallery`·`/gallery/snippet`·`/gallery/match`는 **조회 전용**이고, `/gallery/expand`는 설정을 쓰지 않고 **초안만** 만든다. 서버가 `$repeat`/`{{i}}`와 `automation`/`scripts`를 결정적으로 펼치므로, HIT한 스니펫은 `gallery-expand`로 초안을 만들고 `/entities/validate`·`/entities/apply`로 반영한다. 이때 `gallery-match`가 알려준 **관측 채널 수**를 파라미터로 넘겨 빈 채널을 만들지 않는다(빈 채널은 미매칭을 줄이지 않고 경고만 늘린다).
 
-1. **펼침**: `gallery-show <vendor>/<snippet>.yaml`로 원문을 받아, `$repeat` 블록을 지우고 `gallery-match`가 알려준 **관측 채널만** 명시 엔티티로 만든다(빈 채널을 미리 만들면 미매칭이 줄지 않고 경고만 늘어난다). 채널 번호 `i`마다 템플릿을 직접 계산한다:
+1. **펼침**: `gallery-expand <vendor>/<snippet>.yaml '{"<count_param>":<관측값>}' --out draft.json` — 응답의 `parameterValues`·`counts`로 펼침 결과를 확인하고, 초안 파일을 다음 단계의 입력으로 쓴다. 서버가 없는 구버전이면 `gallery-show` 원문에서 `$repeat` 블록을 지우고 **관측 채널만** 명시 엔티티로 직접 만든다:
    - `{{i}}` → 채널 번호, `0x36` → `54`처럼 hex는 10진으로 옮긴다
    - 단순 산술은 손으로 계산한다: `{{8 + i * 2}}`(i=3 → 14), `{{0x10 + i}}`(i=3 → 19), `{{bitShiftLeft(1, i - 1)}}`(i=3 → 4)
    - folded scalar(`script: >-` 등) 안의 문자열은 hex/수식 변환 대상이 아니다 — 그대로 옮긴다
@@ -160,11 +167,18 @@ Agent API는 갤러리를 **GitHub 우선**으로 읽고, 도달 불가일 때�
 
    결과는 YAML이 아니라 JSON 초안으로 쓴다. 필드 대응은 `references/entity-schema.md`, 형태는 `references/draft-climate-example.json`을 따른다.
 
-2. **증명**: `analyze <portId> draft.json <OFF hex> <ON hex> <값 변경 hex>` — 전부 `MINE=<new id>`, `UNMATCHED` 0건이어야 통과. `OTHER=<기존 id>`가 뜨면 시그니처가 겹치는 것이니 mask를 넓히거나 ID 중복을 의심한다.
+2. **automation/scripts 확인**: `gallery-expand`의 `draft.automations`/`draft.scripts`와 `counts`를 먼저 본다. 스니펫의 `automation`/`scripts`가 이미 같은 봉투로 펼쳐져 있으므로 원문을 다시 계산하지 않는다. 서버 펼침이 없는 구버전에서만 `gallery-show`의 `$repeat`/`{{i}}`를 엔티티와 같은 규칙으로 직접 펼친다.
+   - 엔티티 동작에 필요한 것(주기 조회, 브리지 대리응답, 상태→시퀀스, 복합 TX 생성)만 옮기고, 사용자 환경에 없는 채널용 폴링은 남기지 않는다. `gallery-expand`가 만든 자동화가 관측 채널 수(`parameterValues`)를 넘는 채널을 폴링하면 파라미터를 줄여 다시 펼친다
+   - 옮기기 전에 `/automations`·`/scripts`로 같은 트리거·동작이 이미 있는지 확인한다. 같은 질의에 응답하는 폴러/응답자가 있으면 초안에서 해당 항목을 빼거나 `resolutions`/`renames`로 해결한다
+   - 트리거의 `entity_id`가 펼친 엔티티 ID와 정확히 일치하는지 확인한다. 갤러리의 구형 `entity`/`to` 트리거는 현재 런타임이 읽지 않으므로 `entity_id`/`property`/`match`로 고쳐 쓴다
+   - `then`과 `actions`를 동시에 쓰지 않는다(`then`이 정본). ID는 엔티티와 별도 네임스페이스이며 전체에서 유일해야 한다
+   - 스니펫의 script `mode`처럼 이 빌드의 `ScriptConfig`에 없는 필드는 버린다. 남길지 판단이 서지 않으면 `references/automation-scripts.md`의 패턴 표를 본다
 
-3. **적용**: `validate` → 사용자에게 재시작 영향(전 디바이스 일시 unavailable) 고지·승인 → `apply <portId> draft.json <방금 받은 draftHash> --restart`.
+3. **증명**: `analyze <portId> draft.json <OFF hex> <ON hex> <값 변경 hex>` — 전부 `MINE=<new id>`, `UNMATCHED` 0건이어야 통과. `OTHER=<기존 id>`가 뜨면 시그니처가 겹치는 것이니 mask를 넓히거나 ID 중복을 의심한다. `analyze`는 **RX 매칭만** 검증하며 automation 실행은 시뮬레이션하지 않는다.
 
-4. **재확인**: 재시작 후 `unmatched`. 0건이면 종료, 남으면 다른 타입 스니펫으로 1~3을 반복하고, 갤러리로도 설명 안 되는 프레임만 폴백 절로 넘긴다.
+4. **적용**: `validate` → 사용자에게 재시작 영향(전 디바이스 일시 unavailable) 고지·승인 → `apply <portId> draft.json <방금 받은 draftHash> --restart`.
+
+5. **재확인**: 재시작 후 `unmatched`. 0건이면 종료, 남으면 다른 타입 스니펫으로 1~4를 반복하고, 갤러리로도 설명 안 되는 프레임만 폴백 절로 넘긴다. automation을 넣었다면 폴링 주기·대리응답·시퀀스가 실제로 도는지 `/events`·`/state`·`/packets/history`로 확인한다.
 
 ## 4. 초안 규칙 (프리셋을 옮길 때)
 
@@ -175,6 +189,10 @@ Agent API는 갤러리를 **GitHub 우선**으로 읽고, 도달 불가일 때�
 - 타입 선택: 온도/모드 2개 이상 → `climate`, 단일 수치 → `sensor`, ON/OFF 2값 → `light`/`switch`.
 - mask는 **관측된 값보다 좁게** 잡지 말 것 — ack 패킷까지 같은 엔티티로 흡수하는 벤더 프리셋 관례를 따른다(`references/heuristics.md` §3).
 - `$repeat`/`{{i}}`/YAML 앵커는 초안에 남길 수 없다. 관측 채널만큼 명시적으로 펼친다.
+- **초안 봉투는 `entities`(필수) + `automations`(선택) + `scripts`(선택) + `packetDefaults`(선택)** 이다. API 요청 본문은 `automations`(복수)만 받고, 설정 파일에는 `automation` 키로 기록된다(`scripts/h2m.mjs`는 로컬 초안의 `automation` 별칭도 변환해 준다). `validate`/`apply`는 이 네 필드만 본다(`references/entity-schema.md`).
+- automation/scripts도 **ID가 전체에서 유일**해야 한다. 같은 ID가 이미 있으면 엔티티처럼 `resolutions`/`renames`로 해결한다. 라이브 목록은 `/automations`·`/scripts`로 먼저 확인하고, 같은 동작을 하는 automation이 다른 ID로 이미 있는지도 본다.
+- automation을 넣을 때는 **엔티티 필드로 표현 가능한 일을 중복 구현하지 않는다.** 단일 상태 파싱·단일 커맨드는 엔티티에 두고, 여러 엔티티 갱신·요청/응답 시퀀스·스케줄·복합 TX만 automation/scripts로 뺀다. 패턴·금지 사례는 `references/automation-scripts.md`.
+- `validate`는 automation/scripts의 **정적 스키마**(ID·필수 필드·`then`/`actions` 동시 정의·script `actions` 비어 있음)만 검사하고, script 참조가 실제로 존재하는지나 실행 결과는 검증하지 않는다. 트리거가 실제로 발화하는지는 적용 후 관측으로만 확인한다.
 
 ## 5. 증명과 적용 (모든 경로 공통)
 
@@ -189,10 +207,11 @@ node scripts/h2m.mjs validate <portId> <draft.json>
 | `MINE=<id>={...}` 값이 관측 사실과 일치 | 초안 통과                     | 다음 hex로 확장                                 |
 | `MINE=NONE OTHER=<기존id>`              | 시그니처가 기존 설정보다 좁음 | mask/index 재조정                               |
 | `MINE=... OTHER=<기존id>`               | 시그니처가 겹침               | 중복 등록 여부·ID 충돌 판단                     |
-| `UNMATCHED <hex>`                       | 초안으로 설명 불가            | 추측 금지. 폴백 절로 넘어가 변동 확보             |
+| `UNMATCHED <hex>`                       | 초안으로 설명 불가            | 추측 금지. 폴백 절로 넘어가 변동 확보           |
 | `preview` 결과가 실측 TX와 다름         | 커맨드 오도출                 | `data` 접두/`value_index`/`value_encode` 재검토 |
 
-- `validate`는 `valid`/`applicable`/`errors`/`conflicts`/`discoveryPreview`와 `draftHash`를 준다.
+- `validate`는 `valid`/`applicable`/`errors`/`conflicts`/`discoveryPreview`와 `draftHash`, `counts`(`entities`/`automations`/`scripts`)를 준다. **counts가 의도한 개수와 맞는지 확인**한다 — `scripts`가 0인데 엔티티 `command_*`가 script를 참조하거나, `automations`가 빠진 채 적용하면 이후 동작이 조용히 실패한다.
+- `analyze`는 RX 패킷이 초안 엔티티에 매칭되는지만 본다. automation/scripts는 **실행 시뮬레이션이 없으므로** `valid=true`가 곧 동작 보장이 아니다. 스케줄·상태 트리거·시퀀스는 적용 후 `/events`·`/state`·`/packets/history`로 확인한다.
 - `/entities/apply`는 YAML 기록 + 백업 + **서비스 재시작**을 수행하고, 재시작 전까지 라이브 등록이 안 된다. 반드시 방금 받은 `draftHash`로만 호출하며(바뀌면 `409 DRAFT_STALE`), 재시작 영향과 `restart: false` 대안을 알리고 승인받는다. ID 충돌은 `resolutions`(`overwrite`/`skip`) 또는 `renames`로 해결한다.
 - `/packets/send`는 실제 버스에 트래픽을 흘리는 옵트인 기능이다. 테스트 토큰이라도 실제 디바이스가 붙은 버스에서는 쓰지 말 것.
 
@@ -302,12 +321,12 @@ STATIC만 나오면 추측하지 말고 위 "트래픽 확보" 절의 조작 요
 
 ## 보고
 
-| 패킷 그룹   | 근거(프리셋/예제/역산) | 변동                | 도출 필드               | 상태 파싱 | TX preview | validate   |
-| ----------- | ---------------------- | ------------------- | ----------------------- | --------- | ---------- | ---------- |
-| 예시 그룹   | gallery heaters_new    | byte1 bit0, byte3/4 | `state_off`, 온도 `bcd` | 일치      | 일치       | applicable |
-| 미해결 그룹 | 없음(STATIC)           | 없음                | 확정 불가               | -         | -          | -          |
+| 패킷 그룹   | 근거(프리셋/예제/역산) | 변동                | 도출 필드               | 상태 파싱 | TX preview | automation/scripts      | validate   |
+| ----------- | ---------------------- | ------------------- | ----------------------- | --------- | ---------- | ----------------------- | ---------- |
+| 예시 그룹   | gallery heaters_new    | byte1 bit0, byte3/4 | `state_off`, 온도 `bcd` | 일치      | 일치       | 주기 조회 1개(`auto=1`) | applicable |
+| 미해결 그룹 | 없음(STATIC)           | 없음                | 확정 불가               | -         | -          | 해당 없음               | -          |
 
-미해결 항목을 성공 항목과 섞어 보고하지 말 것. 어떤 근거(프리셋/예제/역산)로 만든 엔티티인지도 함께 적는다.
+미해결 항목을 성공 항목과 섞어 보고하지 말 것. 어떤 근거(프리셋/예제/역산)로 만든 엔티티인지도 함께 적는다. automation/scripts를 추가했다면 **무엇을 왜 넣었는지**(예: "상태가 스스로 갱신되지 않아 30초 주기 조회 추가", "현관벨 상태 → 3초 지연 후 문 열기")와 적용 후 실제 발화 여부를 함께 적는다.
 
 ## 도구
 
@@ -319,7 +338,7 @@ node scripts/h2m.mjs info
 node scripts/mcp.mjs tools   # MCP 도구 목록 = 이 배포에서 가능한 작업
 ```
 
-- `scripts/h2m.mjs` — REST 래퍼. `info|setup|get|post|entities|unmatched|history|capture(start|stop|status|wait|files|get|delete)|gallery|gallery-show|gallery-match|analyze|validate|apply|preview`
+- `scripts/h2m.mjs` — REST 래퍼. `info|setup|get|post|entities|automations|scripts|unmatched|history|capture(start|stop|status|wait|files|get|delete)|gallery|gallery-show|gallery-match|gallery-expand|analyze|validate|apply|preview`. `automations`/`scripts`는 기존 automation/script 목록과 config를 읽는다. `gallery-expand <file> [paramsJson] [--out draft.json] [--port portId]`는 서버에서 `$repeat`/`{{i}}`와 automation/scripts를 펼쳐 초안을 만든다. `analyze`/`validate`/`apply`는 초안의 `entities`·`automations`(`automation` 별칭 포함)·`scripts`·`packetDefaults`를 그대로 전달한다. `gallery <vendor>` 출력의 `auto=N scripts=M`으로 automation/scripts 보유 여부를 먼저 거른다
 - `scripts/schema.mjs` — 이 빌드의 설정 JSON 스키마 조회(Agent API `GET /schema/homenet-bridge`, Bearer 토큰; MCP `get_config_schema`가 같은 문서). `list` · `types` · `fields <type|Def> [--desc|--json]` · `def <Def>`. 120KB 전체를 덤프하지 않고 정의 단위로 잘라 본다 — 필드명·enum·required의 정본
 - `scripts/mcp.mjs` — MCP JSON-RPC 클라이언트(stateless). `tools`(도구+필수 인자) · `call <tool> [json|@file] [--max N]`(기본 전체 출력) · `raw <method> [json]` · `init`. 도구 인자 표는 `references/interfaces.md`
   - MCP에 없는 기능(캡처 파일 다운로드·삭제, TX `preview`, SSE `/events`)은 같은 토큰으로 `h2m.mjs`(REST)를 쓴다
@@ -332,6 +351,7 @@ node scripts/mcp.mjs tools   # MCP 도구 목록 = 이 배포에서 가능한 �
 
 - `references/connection-setup.md` — 주소·토큰을 모르는 사용자용 안내(설치 형태별 주소, Agent API 활성화·토큰 발급, 연결 확인, 증상별 진단)
 - `references/entity-schema.md` — 타입별 필드 요약(정본은 라이브 `/schema`), 매칭 로직, YAML→JSON 변환
+- `references/automation-scripts.md` — 갤러리에서 automation/scripts가 쓰이는 패턴(주기 폴링·대리응답·상태 시퀀스·복합 TX), 초안 봉투, 트리거/액션 의미론, 구형 트리거·`low_priority`·`update_state` 함정
 - `references/heuristics.md` — 프리셋 우선 규칙, 체크섬·mask·ack·BCD·정적 버스·glued 패킷·API 제약에 대한 실측 판정 규칙과 함정
 - `references/draft-climate-example.json` — `analyze`/`validate` 통과가 검증된 climate 초안 샘플(형태 참고용)
 - API 규약: `GET /openapi.json`(API 스펙), `GET /llms.txt`(요약), 설정 스키마는 `GET /schema/homenet-bridge`(`scripts/schema.mjs`)

@@ -1,3 +1,4 @@
+import yaml from 'js-yaml';
 import { normalizePortId, type HomenetBridgeConfig } from '@rs485-homenet/core';
 import { ConfigItemsError } from '../../services/config-items.service.js';
 import type { LogRetentionService } from '../../log-retention.service.js';
@@ -14,6 +15,17 @@ import {
   type GalleryListVendor,
   type GallerySource,
 } from '../../utils/gallery-source.js';
+import {
+  expandGalleryTemplate,
+  resolveGalleryParameters,
+  type GallerySnippet,
+} from '../../utils/gallery-template.js';
+import {
+  validateGalleryAutomationIds,
+  validateGalleryEntityIds,
+  validateGalleryScriptIds,
+} from '../../utils/gallery-validation.js';
+import { checkMinVersion, getAppVersion } from '../../utils/version-utils.js';
 
 export interface AgentGalleryContext {
   getCurrentConfigs: () => HomenetBridgeConfig[];
@@ -154,6 +166,147 @@ export async function getGallerySnippet(file: string): Promise<{
     source: lookup.source,
     bytes: Buffer.byteLength(lookup.value, 'utf8'),
     yaml: lookup.value,
+  };
+}
+
+export interface GalleryExpandOptions {
+  file: string;
+  parameterValues?: Record<string, unknown>;
+}
+
+export interface GalleryExpandResult {
+  file: string;
+  vendor: string;
+  source: GallerySource;
+  name?: string;
+  nameEn?: string;
+  version?: string;
+  parameterValues: Record<string, unknown>;
+  counts: {
+    entities: number;
+    automations: number;
+    scripts: number;
+  };
+  draft: {
+    entities: Record<string, unknown[]>;
+    automations: unknown[];
+    scripts: unknown[];
+  };
+}
+
+const countExpandedEntities = (entities: Record<string, unknown> | undefined): number =>
+  entities
+    ? Object.values(entities).reduce<number>(
+        (total, list) => total + (Array.isArray(list) ? list.length : 0),
+        0,
+      )
+    : 0;
+
+export async function expandGallerySnippet(
+  options: GalleryExpandOptions,
+): Promise<GalleryExpandResult> {
+  if (typeof options.file !== 'string' || !options.file.trim()) {
+    throw new ConfigItemsError(
+      'GALLERY_FILE_INVALID',
+      'file must be a gallery-relative YAML path such as "commax/heaters_new.yaml".',
+      400,
+    );
+  }
+  if (
+    options.parameterValues !== undefined &&
+    (!options.parameterValues ||
+      typeof options.parameterValues !== 'object' ||
+      Array.isArray(options.parameterValues))
+  ) {
+    throw new ConfigItemsError(
+      'GALLERY_PARAMETER_INVALID',
+      'parameterValues must be an object.',
+      400,
+    );
+  }
+
+  const file = assertGalleryFilePath(options.file);
+  const lookup = await readGallerySnippet(file);
+  if (!lookup) {
+    throw new ConfigItemsError(
+      'GALLERY_FILE_NOT_FOUND',
+      `Gallery file "${file}" was not found.`,
+      404,
+    );
+  }
+
+  let snippet: GallerySnippet;
+  try {
+    const parsed = yaml.load(lookup.value);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      throw new Error('Gallery YAML must be a mapping.');
+    }
+    snippet = parsed as GallerySnippet;
+  } catch (error) {
+    throw new ConfigItemsError(
+      'GALLERY_YAML_INVALID',
+      `Gallery file "${file}" is not valid YAML.`,
+      400,
+      { reason: error instanceof Error ? error.message : String(error) },
+    );
+  }
+
+  const appVersion = await getAppVersion();
+  const versionCheck = checkMinVersion(snippet.meta?.min_version, appVersion);
+  if (!versionCheck.compatible) {
+    throw new ConfigItemsError(
+      'GALLERY_VERSION_INCOMPATIBLE',
+      versionCheck.message ?? 'This snippet requires a newer service version.',
+      400,
+      { minVersion: versionCheck.minVersion, appVersion: versionCheck.appVersion },
+    );
+  }
+
+  let parameterValues: Record<string, unknown>;
+  let expanded: GallerySnippet;
+  try {
+    parameterValues = resolveGalleryParameters(snippet, options.parameterValues);
+    expanded = expandGalleryTemplate(snippet, parameterValues);
+  } catch (error) {
+    throw new ConfigItemsError(
+      'GALLERY_EXPAND_FAILED',
+      error instanceof Error ? error.message : 'Gallery expansion failed.',
+      400,
+    );
+  }
+
+  const missing = [
+    ...validateGalleryEntityIds(expanded.entities),
+    ...validateGalleryAutomationIds(expanded.automation),
+    ...validateGalleryScriptIds(expanded.scripts),
+  ];
+  if (missing.length > 0) {
+    throw new ConfigItemsError(
+      'GALLERY_CONTENT_INVALID',
+      `Gallery items must include id. Missing: ${missing.join(', ')}`,
+      400,
+      { missing },
+    );
+  }
+
+  const entities = (expanded.entities ?? {}) as Record<string, unknown[]>;
+  const automations = Array.isArray(expanded.automation) ? expanded.automation : [];
+  const scripts = Array.isArray(expanded.scripts) ? expanded.scripts : [];
+
+  return {
+    file,
+    vendor: file.split('/')[0],
+    source: lookup.source,
+    name: snippet.meta?.name,
+    nameEn: snippet.meta?.name_en,
+    version: snippet.meta?.version,
+    parameterValues,
+    counts: {
+      entities: countExpandedEntities(entities),
+      automations: automations.length,
+      scripts: scripts.length,
+    },
+    draft: { entities, automations, scripts },
   };
 }
 

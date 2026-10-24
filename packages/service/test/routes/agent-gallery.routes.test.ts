@@ -14,13 +14,34 @@ const AUTH = `Bearer ${TOKEN}`;
 
 const HEATERS_YAML = `meta:
   name: 난방
+  version: 2.0.0
+parameters:
+  - name: heater_count
+    type: integer
+    default: 4
+    min: 1
+    max: 9
 entities:
   climate:
     - $repeat:
-        count: heater_count
+        count: '{{heater_count}}'
         as: i
         start: 1
       id: heater_{{i}}
+      name: Heater {{i}}
+automation:
+  - id: heater_poll
+    trigger:
+      - type: interval
+        milliseconds: 1000
+    then:
+      - action: send_packet
+        data: "[0x82, 0x00, 0x01]"
+scripts:
+  - id: heater_refresh
+    sequence:
+      - action: delay
+        milliseconds: 10ms
 `;
 
 const galleryList = () => ({
@@ -41,7 +62,7 @@ const galleryList = () => ({
           version: '2.0.0',
           tags: ['climate'],
           parameters: [{ name: 'heater_count', type: 'integer', default: 4, min: 1, max: 9 }],
-          content_summary: { entities: { climate: 4 }, automations: 0, scripts: 0 },
+          content_summary: { entities: { climate: 4 }, automations: 1, scripts: 1 },
           discovery: {
             match: { data: [130], mask: [254] },
             dimensions: [{ parameter: 'heater_count', index: 2 }],
@@ -269,6 +290,97 @@ describe('agent gallery routes', () => {
     });
   });
 
+  describe('expand snippet into a draft', () => {
+    it('expands repeat templates using gallery defaults', async () => {
+      stubRemoteGallery();
+      const response = await request(buildHarness())
+        .post('/api/v1/agent/gallery/expand')
+        .set('Authorization', AUTH)
+        .send({ file: 'fixturevendor/heaters.yaml' });
+
+      expect(response.status).toBe(200);
+      expect(response.body).toMatchObject({
+        file: 'fixturevendor/heaters.yaml',
+        vendor: 'fixturevendor',
+        source: 'remote',
+        parameterValues: { heater_count: 4 },
+        counts: { entities: 4, automations: 1, scripts: 1 },
+      });
+      expect(response.body.draft.entities.climate).toHaveLength(4);
+      expect(response.body.draft.entities.climate[1]).toMatchObject({
+        id: 'heater_2',
+        name: 'Heater 2',
+      });
+      expect(response.body.draft.automations[0].id).toBe('heater_poll');
+      expect(response.body.draft.scripts[0].id).toBe('heater_refresh');
+    });
+
+    it('applies explicit parameter overrides', async () => {
+      stubRemoteGallery();
+      const response = await request(buildHarness())
+        .post('/api/v1/agent/gallery/expand')
+        .set('Authorization', AUTH)
+        .send({ file: 'fixturevendor/heaters.yaml', parameterValues: { heater_count: 2 } });
+
+      expect(response.status).toBe(200);
+      expect(response.body.parameterValues).toEqual({ heater_count: 2 });
+      expect(response.body.counts.entities).toBe(2);
+      expect(
+        response.body.draft.entities.climate.map((entity: { id: string }) => entity.id),
+      ).toEqual(['heater_1', 'heater_2']);
+    });
+
+    it('reports out-of-range parameters as an expansion failure', async () => {
+      stubRemoteGallery();
+      const response = await request(buildHarness())
+        .post('/api/v1/agent/gallery/expand')
+        .set('Authorization', AUTH)
+        .send({ file: 'fixturevendor/heaters.yaml', parameterValues: { heater_count: 99 } });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe('GALLERY_EXPAND_FAILED');
+      expect(response.body.message).toContain('heater_count');
+    });
+
+    it('rejects invalid, missing and unresolvable files', async () => {
+      stubRemoteGallery();
+      const app = buildHarness();
+      const cases = [
+        { body: {}, status: 400, error: 'GALLERY_FILE_INVALID' },
+        { body: { file: '../package.json' }, status: 400, error: 'GALLERY_FILE_INVALID' },
+        {
+          body: { file: 'fixturevendor/missing.yaml' },
+          status: 404,
+          error: 'GALLERY_FILE_NOT_FOUND',
+        },
+        {
+          body: { file: 'fixturevendor/heaters.yaml', parameterValues: [] },
+          status: 400,
+          error: 'GALLERY_PARAMETER_INVALID',
+        },
+      ];
+      for (const { body, status, error } of cases) {
+        const response = await request(app)
+          .post('/api/v1/agent/gallery/expand')
+          .set('Authorization', AUTH)
+          .send(body);
+        expect(response.status).toBe(status);
+        expect(response.body.error).toBe(error);
+      }
+    });
+
+    it('rejects an unknown port', async () => {
+      stubRemoteGallery();
+      const response = await request(buildHarness())
+        .post('/api/v1/agent/gallery/expand')
+        .set('Authorization', AUTH)
+        .send({ file: 'fixturevendor/heaters.yaml', portId: 'ghost' });
+
+      expect(response.status).toBe(404);
+      expect(response.body.error).toBe('PORT_NOT_FOUND');
+    });
+  });
+
   describe('match against observed packets', () => {
     it('infers snippet parameters from traffic and skips incompatible vendors', async () => {
       stubRemoteGallery();
@@ -330,8 +442,11 @@ describe('agent gallery routes', () => {
       expect(response.body.paths['/gallery'].get.parameters).toHaveLength(1);
       expect(response.body.paths['/gallery/snippet'].get.parameters[0].required).toBe(true);
       expect(response.body.paths['/gallery/match'].get).toBeDefined();
+      expect(response.body.paths['/gallery/expand'].post).toBeDefined();
+      expect(response.body.paths['/gallery/expand'].post.requestBody.required).toBe(true);
       const llms = await request(buildHarness()).get('/api/v1/agent/llms.txt');
       expect(llms.text).toContain('list_gallery');
+      expect(llms.text).toContain('/gallery/expand');
     });
 
     it('advertises the gallery feature', async () => {
@@ -351,7 +466,12 @@ describe('agent gallery routes', () => {
         .send({ jsonrpc: '2.0', id: 1, method: 'tools/list' });
       const names: string[] = list.body.result.tools.map((tool: { name: string }) => tool.name);
       expect(names).toEqual(
-        expect.arrayContaining(['list_gallery', 'get_gallery_snippet', 'match_gallery']),
+        expect.arrayContaining([
+          'list_gallery',
+          'get_gallery_snippet',
+          'match_gallery',
+          'expand_gallery_snippet',
+        ]),
       );
 
       const call = await request(app)
@@ -379,6 +499,26 @@ describe('agent gallery routes', () => {
         });
       expect(missing.body.result.isError).toBe(true);
       expect(missing.body.result.content[0].text).toContain('GALLERY_FILE_INVALID');
+
+      const expanded = await request(app)
+        .post('/api/v1/agent/mcp')
+        .set('Authorization', AUTH)
+        .send({
+          jsonrpc: '2.0',
+          id: 4,
+          method: 'tools/call',
+          params: {
+            name: 'expand_gallery_snippet',
+            arguments: {
+              file: 'fixturevendor/heaters.yaml',
+              parameterValues: { heater_count: 2 },
+            },
+          },
+        });
+      expect(expanded.body.result.structuredContent).toMatchObject({
+        parameterValues: { heater_count: 2 },
+        counts: { entities: 2, automations: 1, scripts: 1 },
+      });
     });
   });
 });

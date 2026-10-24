@@ -24,10 +24,10 @@ const INTERNAL_ERROR = -32603;
 const MCP_INSTRUCTIONS = `homenet2mqtt bridges RS485 devices to MQTT / Home Assistant.
 If no configuration is loaded yet, call get_setup_state, inspect an example with get_setup_example, test wiring with test_setup_serial, then complete provisioning with apply_initial_setup (mode="init").
 To add another bridge while configurations are loaded, call get_setup_state for loadedPortIds, test the new port with test_setup_serial, then call apply_initial_setup with mode="add" and a portId that is not in loadedPortIds.
-Use get_entities and get_entity_state to inspect the loaded configuration and live state.
+Use get_entities, get_automations, get_scripts, and get_entity_state to inspect the loaded configuration and live state.
 Use get_packet_history and get_unmatched_packets to observe traffic, and analyze_packet to test a packet against the active configuration or an unsaved draft.
 Use start_capture / stop_capture / list_capture_files to collect raw bytes.
-Use list_gallery / get_gallery_snippet / match_gallery to compare vendor presets against observed packets, then draft every matching entity so no unmatched packet is left behind.
+Use list_gallery / get_gallery_snippet / match_gallery to compare vendor presets against observed packets. Pass the chosen snippet and parameter values to expand_gallery_snippet to get a draft with entities, automations and scripts, so no unmatched packet is left behind.
 Register new devices with validate_entity_draft, then apply_entity_draft with the returned draftHash. Applying writes YAML, creates a backup, and requires a restart.
 send_packet is only available when packet sending is enabled in Settings > Agent API, and requires confirm=true.`;
 
