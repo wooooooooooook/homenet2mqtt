@@ -23,19 +23,19 @@ API 활성화·토큰 발급·설치 형태별 주소는 [AI 에이전트용 API
 
 ```bash
 # 저장소의 스킬 목록 확인
-npx skills add woooooooooooook/homenet2mqtt --list
+npx skills add wooooooooooook/homenet2mqtt --list
 
 # h2m-config만 설치 (대상 에이전트는 대화형으로 선택)
-npx skills add woooooooooooook/homenet2mqtt --skill h2m-config
+npx skills add wooooooooooook/homenet2mqtt --skill h2m-config
 
 # 에이전트를 명시해 프로젝트 범위에 설치
-npx skills add woooooooooooook/homenet2mqtt --skill h2m-config -a claude-code qoder cursor
+npx skills add wooooooooooook/homenet2mqtt --skill h2m-config -a claude-code qoder cursor
 
 # 사용자 범위(~/.<agent>/skills)에 설치
-npx skills add woooooooooooook/homenet2mqtt --skill h2m-config -g -a qoder
+npx skills add wooooooooooook/homenet2mqtt --skill h2m-config -g -a qoder
 
 # 심볼릭 링크 대신 파일을 복사
-npx skills add woooooooooooook/homenet2mqtt --skill h2m-config --copy
+npx skills add wooooooooooook/homenet2mqtt --skill h2m-config --copy
 ```
 
 - `-a`에 지정할 수 있는 에이전트 이름은 설치된 `skills` 버전의 안내를 따릅니다. 생략하면 대화형 선택입니다.
