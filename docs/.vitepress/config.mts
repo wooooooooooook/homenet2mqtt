@@ -48,6 +48,7 @@ export default defineConfig({
             { text: "Matter 연결 가이드", link: "/guide/matter-connection" },
             { text: "Docker 환경변수 레퍼런스", link: "/guide/environment-variables" },
             { text: "AI 에이전트용 API", link: "/guide/agent-api" },
+            { text: "AI 에이전트 스킬 설치", link: "/guide/agent-skills" },
             { text: "멀티브릿지 설정", link: "/guide/advanced-setup" },
             { text: "엔티티 예제", link: "/guide/entity-examples" },
             { text: "갤러리", link: "/guide/gallery" },

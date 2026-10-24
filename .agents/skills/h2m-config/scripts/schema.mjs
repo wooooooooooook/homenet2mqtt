@@ -28,7 +28,7 @@ function explain(res) {
   if (res.error) {
     console.error(
       `ERROR: ${res.url} 에 연결하지 못했습니다 (${res.error.code ?? res.error.message}).\n` +
-        'H2M_URL과 Agent API 토글(설정 > Agent API)을 확인하세요.',
+        'H2M_URL과 Agent API 토글(설정 > Agent API)을 확인하세요. 주소·활성화 방법은 references/connection-setup.md에 있습니다.',
     );
     process.exit(2);
   }
@@ -95,7 +95,8 @@ function describe(v) {
   return 'any';
 }
 
-if (!cmd) usage('schema.mjs list|types|fields <type|DefName> [--desc|--json] | def <DefName> [--url BASE]');
+if (!cmd)
+  usage('schema.mjs list|types|fields <type|DefName> [--desc|--json] | def <DefName> [--url BASE]');
 
 if (cmd === 'list') {
   const res = await fetchJson('GET', endpoint(''));

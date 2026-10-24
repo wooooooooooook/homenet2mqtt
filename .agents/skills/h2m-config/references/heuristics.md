@@ -2,7 +2,7 @@
 
 ## 0. 순서: 프리셋이 1순위, 패킷 역산은 폴백
 
-h2m 설정 파일(`packages/core/config/examples/*.homenet_bridge.yaml`)과 갤러리(`gallery/<vendor>/*.yaml`)에는 프레이밍·체크섬·디코드·필드 조합이 이미 검증된 형태로 들어 있다. 엔티티를 추가할 때는 **이 자산을 먼저 찾고, 없을 때만 바이트를 새로 해석**한다.
+h2m의 예제 설정과 갤러리 프리셋에는 프레이밍·체크섬·디코드·필드 조합이 이미 검증된 형태로 들어 있다(단독 설치본에서는 `/setup/examples/*`와 `/gallery*` API로 같은 자산을 얻는다). 엔티티를 추가할 때는 **이 자산을 먼저 찾고, 없을 때만 바이트를 새로 해석**한다.
 
 1. `/entities --full`의 동일 타입 엔티티 — 가장 강한 템플릿(같은 파일에서 이미 파싱 중)
 2. 갤러리 스니펫 — `discovery.match`, `parameters`/`$repeat`, `requirements`
@@ -68,7 +68,7 @@ node scripts/h2m.mjs preview <portId> 04010481000000
 
 - `0x25` → 25, `0x13` → 13, `0x05` → 5 처럼 hex 표기가 곧 10진으로 읽히면 `decode: bcd`
 - `0x00`~`0x64` 범위인데 10진 변환값이 물리적으로 말도 안 되면(예: 실내온도 130도) bcd가 아니고 plain 값
-- `add_0x80`, `signed_byte_half_degree` 같은 변형은 gallery 프리셋에 자주 나오니 벤더가 밝혀졌으면 `gallery/<vendor>/*.yaml`을 grep 하는 것이 가장 빠르다
+- `add_0x80`, `signed_byte_half_degree` 같은 변형은 gallery 프리셋에 자주 나오니 벤더가 밝혀졌으면 `gallery <vendor>` → `gallery-match` → `gallery-show` 순서로 스니펫을 확인하는 것이 가장 빠르다
 
 ## 8. glued 패킷
 
@@ -101,9 +101,9 @@ node scripts/h2m.mjs preview <portId> 04010481000000
 
 ## 12. 초기 설정의 미매칭은 대개 "예제가 스니펫보다 적게 펼쳤다"
 
-`/setup/apply`가 쓰는 `packages/core/config/examples/<vendor>.homenet_bridge.yaml`은 대표 엔티티만 축약해 넣은 파일이라, 갤러리 스니펫(`gallery/<vendor>/*.yaml`)의 `discovery.match`+개수 파라미터로 확장하면 미매칭이 한 번에 사라지는 경우가 많다.
+`/setup/apply`가 쓰는 예제는 대표 엔티티만 축약해 넣은 파일이라, 갤러리 스니펫(`/gallery*` API)의 `discovery.match`+개수 파라미터로 확장하면 미매칭이 한 번에 사라지는 경우가 많다.
 
-- `h2m.mjs gallery-match <portId|-> [vendor]`(또는 폴백 `gallery.mjs check <vendor> --length <rx_length> --packets "<unmatched>"`)가 `params={"heater_count":4}` / `채널값=0x03,0x04 → max=4`를 돌려주면 `heater_count`를 4로 채우는 근거
+- `h2m.mjs gallery-match <portId|-> [vendor]`가 `params={"heater_count":4}` / `채널값=0x03,0x04 → max=4`를 돌려주면 `heater_count`를 4로 채우는 근거
 - `/gallery*`는 GitHub을 우선 읽고 동봉 `gallery/`는 폴백이므로, 응답의 `source=local`이면 프리셋이 배포본 사본(구버전 리비전)일 수 있다. 아래 리비전 어긋남 규칙을 특히 주의
 - `/gallery*`는 **조회 전용**이다. Agent API에는 스니펫을 설정에 반영하는 엔드포인트가 없고 서버가 `$repeat`/`{{i}}`를 펼쳐주지도 않는다. 관측 채널만큼 explicit 엔티티로 풀어 `/entities/validate`·`/entities/apply`로 반영해야 미매칭이 실제로 줄어든다
 - 폴링형에서는 **RX가 아니라 브리지 TX의 인덱스**가 채널 상한을 먼저 알려준다. `TX b0 00 03`이 관측됐다면 3번 조명 실물이 존재하지만 `RX b0 …`는 아직 안 나온 상태 — 이때도 확장 대상
@@ -116,6 +116,6 @@ node scripts/h2m.mjs preview <portId> 04010481000000
 
 - 판정은 **원시 프레임 기준**: `h2m.mjs capture wait <portId> 60 5`는 `/capture`의 `packetCount`를 본다. `TRAFFIC`이면 폴링형, `NO_TRAFFIC`(exit 3)면 이벤트형으로 취급
 - 함정: `/packets/history`는 매칭된 패킷만 담는다. 설정이 없는 신규 환경에서 history로 판단하면 미매칭 프레임이 계속 들어오는데도 조용한 버스로 오인한다
-- 이벤트형으로 판정되면 대기하지 말고 즉시 사용자에게 요청: "월패드 화면을 켜서 전등 ON/OFF, 난방 목표온도 변경, 환기팬 모드 변경 등을 1~2분간 조작해 주세요"
+- 이벤트형으로 판정되면 대기하지 말고 즉시 사용자에게 요청: ① 월패드에서 실제로 조작 가능한 기기 목록(타입별 대수·채널) ② "월패드 화면을 켜서 전등 ON/OFF, 난방 목표온도 변경, 환기팬 모드 변경 등을 1~2분간 조작해 주세요". 목록 없이 조작부터 요청하면 설치되지 않은 기기를 찾느라 왕복이 늘어난다
 - `NO_TRAFFIC`은 RX/TX 모두 0건이라는 뜻이다. `/ports` status가 `error`/`stopped`면 프레이밍·경로 문제이고, `started`인데 계속 0건이어야 이벤트형(조작 대기)으로 본다
 - 이벤트형 버스는 사용자 조작 1회가 곧 1차·2차 캡처를 겸한다. 조작 직전에 캡처를 켜고 조작 순서를 메모해 두면 `--base` 대조 없이도 시간순으로 필드가 전개된다

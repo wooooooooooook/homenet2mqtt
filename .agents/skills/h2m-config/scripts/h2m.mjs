@@ -137,7 +137,7 @@ switch (cmd) {
       }
       await stop();
       console.log(
-        'NO_TRAFFIC — RX/TX 원시 프레임이 0건입니다. /ports status가 started라면 이 버스는 이벤트형(월패드·스위치 조작 시에만 송수신)일 가능성이 높습니다. 사용자에게 요청: "월패드 화면을 켜서 전등 ON/OFF, 난방 목표온도 변경, 환기팬 모드 변경 등을 1~2분간 직접 조작해 주세요" → 조작 직전에 이 명령을 다시 실행하면 상태 프레임과 TX/ACK까지 함께 기록됩니다. status가 error/stopped이거나 계속 0건이면 배선·브리지 경로부터 확인하세요.',
+        'NO_TRAFFIC — RX/TX 원시 프레임이 0건입니다. /ports status가 started라면 이 버스는 이벤트형(월패드·스위치 조작 시에만 송수신)일 가능성이 높습니다. 사용자에게 요청: ① 월패드에서 실제로 조작 가능한 기기 목록(타입별 대수·채널)을 먼저 확인하고 ② 그 기기만 "월패드 화면을 켜서 전등 ON/OFF, 난방 목표온도 변경, 환기팬 모드 변경 등을 1~2분간 직접 조작해 주세요" → 조작 직전에 이 명령을 다시 실행하면 상태 프레임과 TX/ACK까지 함께 기록됩니다. status가 error/stopped이거나 계속 0건이면 배선·브리지 경로부터 확인하세요.',
       );
       process.exit(3);
     } else
@@ -183,7 +183,9 @@ switch (cmd) {
     console.log(`# source=${r.source} packets=${r.packetCount} evaluated=${r.evaluatedCount}`);
     for (const m of r.results ?? [])
       if (m.matched)
-        console.log(`HIT ${m.file} n=${m.matchedPacketCount} params=${JSON.stringify(m.parameterValues)}`);
+        console.log(
+          `HIT ${m.file} n=${m.matchedPacketCount} params=${JSON.stringify(m.parameterValues)}`,
+        );
     break;
   }
   case 'analyze': {

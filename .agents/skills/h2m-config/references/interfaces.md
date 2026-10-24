@@ -10,8 +10,10 @@
 | `packages/service`   | API + 빌드된 UI 정적 서빙. UI API(`/api/*`, 세션 쿠키)와 Agent API(`/api/v1/agent`, Bearer)  | REST·MCP 호출 대상                                                               |
 | `packages/ui`        | Svelte UI. 토큰 발급, 패킷 전송 허용, 로그는 여기서만                                        | 사람이 직접 해야 하는 단계의 위치                                                |
 | `packages/simulator` | 디버깅용 RS485 엔드포인트(가상 버스)                                                         | 하드웨어 없이 배선/프레이밍 연습. 실기기 검증을 대체하지 않는다                   |
-| `gallery`            | 벤더별 프리셋 YAML (`list.json`/`list_new.json`은 배포 시 생성)                              | `gallery/*.yaml` 원본 스니펫                                                     |
+| `gallery`            | 벤더별 프리셋 YAML (`list.json`/`list_new.json`은 배포 시 생성)                              | `/gallery*` API 응답 · `gallery-show` 원본 스니펫                                |
 | `docs`               | VitePress 문서                                                                               | `docs/guide/agent-api.md`가 해당 버전 API의 정본                                |
+
+표의 `packages/`·`gallery/`·`docs/` 경로는 **저장소 체크아웃 기준**이다. 스킬을 단독 설치한 환경에는 이 파일들이 없으므로, 같은 정보는 Agent API(`/capabilities`, `/gallery*`, `/schema*`, `/setup/examples/*`)와 `references/`로 얻는다.
 
 - Agent API는 **UI와 다른 포트**(기본 3001)다. UI 포트(3000)의 `/api/v1/agent/*`는 `404`이고, Agent 포트는 UI 정적 파일을 서빙하지 않는다. 포트는 UI **설정 > Agent API**에서 바뀐다.
 - Agent API 토글(`AGENT_API_ENABLED` / 애드온 `agent_api_enabled`)이 꺼져 있으면 **포트 자체가 열리지 않는다**. 이때는 API가 아니라 "사용자가 UI에서 켜야 하는 상태"다.
@@ -117,19 +119,20 @@ MCP 연결 정보다:
 
 | 원하는 것                                       | 왜 안 되나                                                            | 대신                                                                     |
 | ----------------------------------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| Agent API 켜기 / 토큰 발급 / 포트 변경 / 전송 허용 | UI **설정 > Agent API**에서만. 토큰 평문은 발급 화면에서 1회만 표시   | 사용자에게 발급·전달 요청. 받은 토큰을 문서·로그·커밋에 남기지 않는다     |
+| Agent API 켜기 / 토큰 발급 / 포트 변경 / 전송 허용 | UI **설정 > Agent API**에서만. 토큰 평문은 발급 화면에서 1회만 표시   | 사용자에게 UI에서 켜고 발급 요청(`references/connection-setup.md`). 받은 토큰을 문서·로그·커밋에 남기지 않는다 |
 | MQTT 브로커 주소·계정                           | config가 아니라 환경변수/애드온 옵션                                  | 사용자에게 환경변수·애드온 옵션 수정 요청                                |
 | 애드온 포트 매핑(`3001/tcp`)                    | 애드온 네트워크 설정                                                  | HA 애드온 설정에서 매핑 변경 요청                                        |
 | 서비스 로그 라인                                | Agent API에 로그 조회가 없다(`/events`는 패킷·상태·브리지 이벤트)     | UI 로그 화면 확인 요청                                                   |
 | 설정 백업 목록/복원                             | `apply`가 백업 생성만 하고 조회·복원 API가 없다                       | 로컬 체크아웃이면 파일시스템, 아니면 사용자                               |
 | 설정 파일 직접 편집                             | 파일 쓰기는 `entities/apply`·`setup/apply` 경로만                     | 초안으로 표현 가능한 것만 API로, 나머지는 로컬 편집 후 사용자에게 적용 안내 |
+| 월패드에서 조작 가능한 기기 목록                | 설치 대수·채널 배치는 API에 없다(갤러리 개수 파라미터는 허용 상한)    | 사용자에게 실물 목록 요청 → 그 기기·채널만 확장하고 조작 요청            |
 | 실기기 조작(월패드·스위치·리모컨)               | 물리 행위                                                             | SKILL.md "트래픽 확보" 절의 조작 요청                                     |
 
 ## 7. 배포 버전 차이
 
 - `/capabilities.features`에 없는 키 = 그 배포에 없는 기능. `mcp: false`/`404`면 REST만 쓴다
 - 갤러리 응답의 `source=local`은 GitHub 조회 실패로 동봉 프리셋을 쓴 것이다 → 리비전이 낮을 수 있으니 바이트는 라이브 설정에서 복사
-- `/gallery` 자체가 없으면 `scripts/gallery.mjs`로 로컬 `gallery/`를 읽는다
+- `/gallery` 자체가 없으면 그 배포는 갤러리 확장을 지원하지 않는다 → 폴백 역산으로 넘어간다
 - `/schema`가 `404`면 그 버전에는 스키마 노출이 없다. `references/entity-schema.md`의 요약으로 초안을 만들고 `validate`의 오류 메시지로 필드명을 교정한다
 - 개발 체크아웃에서는 `docs/guide/agent-api.md`가 그 버전의 정본이다. 문서와 라이브 `capabilities`가 어긋나면 **라이브가 우선**이고, 문서를 고칠 대상으로 보고한다
 

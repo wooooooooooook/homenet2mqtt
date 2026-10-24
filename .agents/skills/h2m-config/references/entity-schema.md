@@ -21,7 +21,7 @@ MCP 클라이언트면 `get_config_schema`가 같은 문서를 준다(기본 `ho
 - `packages/core/src/domain/entities/{light,climate,sensor,fan,switch}.entity.ts` — 타입별 필드
 - `packages/core/src/utils/packet-matching.ts:13` — `matchesPacket()` (시그니처 매칭 로직)
 - JSON 스키마 파일: `packages/core/static/schema/homenet-bridge.schema.json` (= `GET /schema/homenet-bridge` 응답과 같은 파일)
-- 벤더 프리셋(필드 사용 예): `gallery/<vendor>/*.yaml`
+- 벤더 프리셋(필드 사용 예): `/gallery*` API의 스니펫(`gallery-show`)
 
 ## 공통 (EntityConfig)
 
@@ -80,10 +80,10 @@ MCP 클라이언트면 `get_config_schema`가 같은 문서를 준다(기본 `ho
 
 ## gallery 프리셋 표기($repeat) — 실config에는 없음
 
-`gallery/<vendor>/*.yaml`는 템플릿이라 `$repeat`(count/as/start), `{{i}}`, `discovery.match`(`data`+`mask`), `dimensions`를 쓴다. API 초안(`h2m.mjs analyze/validate`에 넣는 JSON)에는 **사용 불가** — 펼쳐서 explicit 엔티티로 쓴다. 예:
+`gallery-show`로 받은 스니펫은 템플릿이라 `$repeat`(count/as/start), `{{i}}`, `discovery.match`(`data`+`mask`), `dimensions`를 쓴다. API 초안(`h2m.mjs analyze/validate`에 넣는 JSON)에는 **사용 불가** — 펼쳐서 explicit 엔티티로 쓴다. 예:
 
 ```yaml
-# gallery/commax/lights_new.yaml (템플릿)
+# gallery-show commax/lights_new.yaml (템플릿)
 - $repeat: { count: '{{light_count}}', as: i, start: 1 }
   id: 'light_{{i}}'
   state: { data: [0xB0, 0x00, '{{i}}'], mask: [0xF0, 0x00, 0xFF] }

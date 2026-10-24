@@ -20,6 +20,33 @@ https://homenet2mqtt-docs.vercel.app
 - **NAS/서버 사용자**: Docker Compose (`network_mode: host` 권장)
 - **첫 실행 검증**: Web UI 접속 → 연결 상태 확인 (MQTT 상태 또는 Matter 페어링 대기) → 패킷 모니터 동작 확인
 
+## AI 에이전트용 엔티티 설정 스킬
+
+에이전트가 Agent API로 설정을 읽고 디바이스 엔티티를 추가·검증·적용할 수 있게 해주는 스킬이 [`.agents/skills/h2m-config`](./.agents/skills/h2m-config)에 있습니다. Claude Code, Codex, Cursor, Qoder 등 `SKILL.md` 기반 스킬을 지원하는 에이전트에서 동작하며, 특정 에이전트에 종속되지 않습니다.
+
+### 설치
+
+[`skills`](https://www.npmjs.com/package/skills) CLI를 사용하면 대상 에이전트의 스킬 디렉터리에 바로 설치됩니다.
+
+```bash
+# 이 스킬만 설치 (대상 에이전트는 대화형으로 선택)
+npx skills add woooooooooook/homenet2mqtt --skill h2m-config
+
+# 에이전트·스코프 지정 (예: 프로젝트 범위)
+npx skills add woooooooooook/homenet2mqtt --skill h2m-config -a claude-code qoder cursor
+
+# 사용자 범위
+npx skills add woooooooooook/homenet2mqtt --skill h2m-config -g -a qoder
+```
+
+CLI를 쓰지 않으려면 `h2m-config` 폴더 전체를 `.agents/skills/`(공통), `.claude/skills/`, `.qoder/skills/` 중 사용하는 에이전트의 디렉터리에 복사하면 됩니다. 자세한 내용은 [스킬 설치 가이드](https://homenet2mqtt-docs.vercel.app/guide/agent-skills)를 참고하세요.
+
+### 연결
+
+에이전트 환경에 `H2M_URL`(예: `http://<H2M-HOST>:3001/api/v1/agent`)과 `H2M_TOKEN`(UI **설정 > Agent API**에서 발급)을 설정합니다. Agent API가 꺼져 있으면 포트가 열리지 않으므로, 설치 형태별 주소와 토큰 발급 방법은 [AI 에이전트용 API 문서](https://homenet2mqtt-docs.vercel.app/guide/agent-api)와 스킬의 `references/connection-setup.md`를 확인하세요.
+
+> **주의:** 토큰은 채팅·커밋·로그·URL에 남기지 말고, Agent API 포트(기본 3001)를 인터넷에 직접 노출하지 마세요.
+
 ## 개발 관련
 
 - 워크스페이스 빌드: `pnpm build`

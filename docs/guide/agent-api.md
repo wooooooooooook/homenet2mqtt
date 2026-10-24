@@ -738,6 +738,7 @@ MCP Streamable HTTP를 지원하는 클라이언트에서 URL과 인증 헤더�
 
 ## 관련 문서
 
+- [AI 에이전트 스킬 설치](./agent-skills.md)
 - [Docker 환경변수 레퍼런스](./environment-variables.md)
 - [설정 개요](/config/)
 - [트러블슈팅](./troubleshooting.md)
