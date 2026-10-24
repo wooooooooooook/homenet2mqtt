@@ -30,13 +30,13 @@ https://homenet2mqtt-docs.vercel.app
 
 ```bash
 # 이 스킬만 설치 (대상 에이전트는 대화형으로 선택)
-npx skills add woooooooooook/homenet2mqtt --skill h2m-config
+npx skills add woooooooooooook/homenet2mqtt --skill h2m-config
 
 # 에이전트·스코프 지정 (예: 프로젝트 범위)
-npx skills add woooooooooook/homenet2mqtt --skill h2m-config -a claude-code qoder cursor
+npx skills add woooooooooooook/homenet2mqtt --skill h2m-config -a claude-code qoder cursor
 
 # 사용자 범위
-npx skills add woooooooooook/homenet2mqtt --skill h2m-config -g -a qoder
+npx skills add woooooooooooook/homenet2mqtt --skill h2m-config -g -a qoder
 ```
 
 CLI를 쓰지 않으려면 `h2m-config` 폴더 전체를 `.agents/skills/`(공통), `.claude/skills/`, `.qoder/skills/` 중 사용하는 에이전트의 디렉터리에 복사하면 됩니다. 자세한 내용은 [스킬 설치 가이드](https://homenet2mqtt-docs.vercel.app/guide/agent-skills)를 참고하세요.

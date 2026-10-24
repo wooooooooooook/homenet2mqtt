@@ -22,19 +22,19 @@ Homenet2MQTT(h2m)의 Agent API를 사용해 RS485 홈넷 디바이스 엔티티(
 
 ```bash
 # 저장소에서 이 스킬만 설치 (대상 에이전트는 대화형으로 선택)
-npx skills add woooooooooook/homenet2mqtt --skill h2m-config
+npx skills add woooooooooooook/homenet2mqtt --skill h2m-config
 
 # 설치 위치와 에이전트를 명시 (프로젝트 범위)
-npx skills add woooooooooook/homenet2mqtt --skill h2m-config -a claude-code qoder cursor
+npx skills add woooooooooooook/homenet2mqtt --skill h2m-config -a claude-code qoder cursor
 
 # 사용자 범위(~/.<agent>/skills)에 설치
-npx skills add woooooooooook/homenet2mqtt --skill h2m-config -g -a qoder
+npx skills add woooooooooooook/homenet2mqtt --skill h2m-config -g -a qoder
 
 # 심볼릭 링크 대신 파일을 복사
-npx skills add woooooooooook/homenet2mqtt --skill h2m-config --copy
+npx skills add woooooooooooook/homenet2mqtt --skill h2m-config --copy
 ```
 
-설치 가능한 스킬 이름은 `npx skills add woooooooooook/homenet2mqtt --list`로 확인할 수 있습니다.
+설치 가능한 스킬 이름은 `npx skills add woooooooooooook/homenet2mqtt --list`로 확인할 수 있습니다.
 
 ### 2. 수동 복사
 
