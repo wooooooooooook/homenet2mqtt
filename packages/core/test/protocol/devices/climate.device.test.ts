@@ -72,4 +72,30 @@ describe('ClimateDevice Command Generation', () => {
 
     expect(command).toEqual([0x01, 0x02, 10]);
   });
+
+  it('should safely frame packet when command expression yields a float in array (Buffer.from uint8 conversion)', () => {
+    const checksumConfig: ProtocolConfig = {
+      packet_defaults: {
+        tx_header: [0xf7],
+        tx_checksum: 'xor',
+      },
+    };
+    const config = {
+      id: 'test_climate',
+      name: 'test_climate',
+      command_temperature: '[0x01, 0x02, x]',
+    };
+
+    const device = new ClimateDevice(config, checksumConfig);
+    // x = 14.5 -> array contains 14.5
+    // Frame packet calculates checksum via Buffer.from(commandData) which uses 14 (0x0E):
+    // Checksum: 0xF7 ^ 0x01 ^ 0x02 ^ 0x0E = 0xFA
+    const command = device.constructCommand('temperature', 14.5) as number[];
+    expect(command).toEqual([0xf7, 0x01, 0x02, 14.5, 0xfa]);
+
+    // When serialized to Buffer for RS485 transmission, floats are safely converted to uint8
+    const packetBuffer = Buffer.from(command);
+    expect(packetBuffer).toEqual(Buffer.from([0xf7, 0x01, 0x02, 0x0e, 0xfa]));
+    expect(packetBuffer[3]).toBe(0x0e);
+  });
 });
