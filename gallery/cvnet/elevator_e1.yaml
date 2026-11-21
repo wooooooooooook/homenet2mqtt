@@ -1,0 +1,132 @@
+meta:
+  name: "엘리베이터 호출 (0xE1 버스트)"
+  name_en: "Elevator Call (0xE1 Burst)"
+  description: |
+    CVNet 월패드 엘리베이터 호출 (0xE1 프레임 버스트 송신) 설정입니다. (v3.4.0 확인 / 제보: 평택3인간)
+
+    ### [원리]
+    - CVNet 매뉴얼 8장의 0x81(엘리베이터 호출 스위치) 방식에 반응이 없는 월패드에서 동작합니다.
+    - 매뉴얼 23장의 0xE1(통합/일괄소등 스위치) 프레임으로 호출합니다.
+    - 스마트싱스 CVNet 엣지드라이버 신호를 기반으로 패킷 A 11회 + 패킷 B 5회를 110ms 간격(약 1.7초)으로 연속 송신합니다.
+    - 월패드가 약 2초마다 0xE1을 폴링하므로, 연속 송신(버스트)으로 응답 타이밍을 맞춥니다.
+
+    ### [프레임 구조]
+    `F7 20 01 E1 81 | D0 D1 D2 D3 D4 D5 D6 D7 | CS AA`
+    - D0=0x02, D1=0x00, D2=0x01, D3=0x00, D4=0x00, D5=0x02 또는 0x04
+    - D6~D7: 층(ASCII, 고정값)
+    - CS: F7 다음 바이트부터 D7까지의 합 & 0xFF
+
+    | 구분 | 횟수 | 데이터 (Full Packet) |
+    | :--- | :---: | :--- |
+    | 패킷 A | 11회 | `F7 20 01 E1 81 02 00 01 00 00 02 31 33 EC AA` |
+    | 패킷 B | 5회 | `F7 20 01 E1 81 02 00 01 00 00 04 30 38 F2 AA` |
+
+    ### [주의사항]
+    - **D2(가스밸브/일괄소등 자리)는 반드시 0x01로 둘 것**: 0x00으로 전송 시 가스밸브가 잠긴 사례가 있습니다.
+    - 단지/월패드 펌웨어마다 다를 수 있으므로 적용 전 가스밸브 상태를 확인하고, 처음에는 엘리베이터가 다른 층에 있을 때 테스트하세요.
+    - 층수 바이트(`31 33` / `30 38`)는 드라이버 고정값으로 보이며 실제 층수와 무관합니다.
+    - `discovery_linked_id`는 기존 층수 센서 id에 맞게 변경하거나, 단독 버튼으로 사용할 경우 줄을 지우거나 주석 처리하세요.
+  description_en: "CVNet elevator call via 0xE1 frame burst (11x packet A + 5x packet B, 110ms apart) for wallpads where standard 0x81 packets do not respond."
+  version: "1.0.0"
+  min_version: "3.4.0"
+  author: "평택3인간"
+  tags: ["elevator", "button", "cvnet", "e1", "burst"]
+
+discovery:
+  match:
+    data: [0x20, 0x01, 0xE1]
+    mask: [0xFF, 0xFF, 0xFF]
+
+entities:
+  button:
+    - id: 'elevator_call'
+      name: 'Elevator Call'
+      icon: 'mdi:elevator'
+      command_press:
+        script: elevator_call_burst
+      # 층수 센서(예: elevator_floors)가 이미 등록된 경우 아래 discovery_linked_id를 유지하세요.
+      # 층수 센서 없이 단독 버튼으로 사용할 때는 아래 줄을 지우거나 주석 처리해야 HA에 즉시 버튼이 등록됩니다.
+      discovery_linked_id: 'elevator_floors'
+
+scripts:
+  - id: 'elevator_call_burst'
+    description: 'CVNet elevator call via 0xE1 frame burst (11x A + 5x B, 110 ms apart)'
+    actions:
+      - action: send_packet
+        data: [0xF7, 0x20, 0x01, 0xE1, 0x81, 0x02, 0x00, 0x01, 0x00, 0x00, 0x02, 0x31, 0x33, 0xEC, 0xAA]
+        checksum: false
+      - action: delay
+        milliseconds: 110
+      - action: send_packet
+        data: [0xF7, 0x20, 0x01, 0xE1, 0x81, 0x02, 0x00, 0x01, 0x00, 0x00, 0x02, 0x31, 0x33, 0xEC, 0xAA]
+        checksum: false
+      - action: delay
+        milliseconds: 110
+      - action: send_packet
+        data: [0xF7, 0x20, 0x01, 0xE1, 0x81, 0x02, 0x00, 0x01, 0x00, 0x00, 0x02, 0x31, 0x33, 0xEC, 0xAA]
+        checksum: false
+      - action: delay
+        milliseconds: 110
+      - action: send_packet
+        data: [0xF7, 0x20, 0x01, 0xE1, 0x81, 0x02, 0x00, 0x01, 0x00, 0x00, 0x02, 0x31, 0x33, 0xEC, 0xAA]
+        checksum: false
+      - action: delay
+        milliseconds: 110
+      - action: send_packet
+        data: [0xF7, 0x20, 0x01, 0xE1, 0x81, 0x02, 0x00, 0x01, 0x00, 0x00, 0x02, 0x31, 0x33, 0xEC, 0xAA]
+        checksum: false
+      - action: delay
+        milliseconds: 110
+      - action: send_packet
+        data: [0xF7, 0x20, 0x01, 0xE1, 0x81, 0x02, 0x00, 0x01, 0x00, 0x00, 0x02, 0x31, 0x33, 0xEC, 0xAA]
+        checksum: false
+      - action: delay
+        milliseconds: 110
+      - action: send_packet
+        data: [0xF7, 0x20, 0x01, 0xE1, 0x81, 0x02, 0x00, 0x01, 0x00, 0x00, 0x02, 0x31, 0x33, 0xEC, 0xAA]
+        checksum: false
+      - action: delay
+        milliseconds: 110
+      - action: send_packet
+        data: [0xF7, 0x20, 0x01, 0xE1, 0x81, 0x02, 0x00, 0x01, 0x00, 0x00, 0x02, 0x31, 0x33, 0xEC, 0xAA]
+        checksum: false
+      - action: delay
+        milliseconds: 110
+      - action: send_packet
+        data: [0xF7, 0x20, 0x01, 0xE1, 0x81, 0x02, 0x00, 0x01, 0x00, 0x00, 0x02, 0x31, 0x33, 0xEC, 0xAA]
+        checksum: false
+      - action: delay
+        milliseconds: 110
+      - action: send_packet
+        data: [0xF7, 0x20, 0x01, 0xE1, 0x81, 0x02, 0x00, 0x01, 0x00, 0x00, 0x02, 0x31, 0x33, 0xEC, 0xAA]
+        checksum: false
+      - action: delay
+        milliseconds: 110
+      - action: send_packet
+        data: [0xF7, 0x20, 0x01, 0xE1, 0x81, 0x02, 0x00, 0x01, 0x00, 0x00, 0x02, 0x31, 0x33, 0xEC, 0xAA]
+        checksum: false
+      - action: delay
+        milliseconds: 110
+      - action: send_packet
+        data: [0xF7, 0x20, 0x01, 0xE1, 0x81, 0x02, 0x00, 0x01, 0x00, 0x00, 0x04, 0x30, 0x38, 0xF2, 0xAA]
+        checksum: false
+      - action: delay
+        milliseconds: 110
+      - action: send_packet
+        data: [0xF7, 0x20, 0x01, 0xE1, 0x81, 0x02, 0x00, 0x01, 0x00, 0x00, 0x04, 0x30, 0x38, 0xF2, 0xAA]
+        checksum: false
+      - action: delay
+        milliseconds: 110
+      - action: send_packet
+        data: [0xF7, 0x20, 0x01, 0xE1, 0x81, 0x02, 0x00, 0x01, 0x00, 0x00, 0x04, 0x30, 0x38, 0xF2, 0xAA]
+        checksum: false
+      - action: delay
+        milliseconds: 110
+      - action: send_packet
+        data: [0xF7, 0x20, 0x01, 0xE1, 0x81, 0x02, 0x00, 0x01, 0x00, 0x00, 0x04, 0x30, 0x38, 0xF2, 0xAA]
+        checksum: false
+      - action: delay
+        milliseconds: 110
+      - action: send_packet
+        data: [0xF7, 0x20, 0x01, 0xE1, 0x81, 0x02, 0x00, 0x01, 0x00, 0x00, 0x04, 0x30, 0x38, 0xF2, 0xAA]
+        checksum: false
