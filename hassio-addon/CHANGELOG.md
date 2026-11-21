@@ -1,6 +1,10 @@
 ** ⚠️ 업데이트 전 백업 권장 **
 - 오류가 있으면 homeassistant [카페](https://cafe.naver.com/koreassistant), [깃헙](https://github.com/wooooooooooook/homenet2mqtt), [디스코드](https://discord.gg/kGwhUBMe5z) 등으로 알려주세요.
 
+v3.4.1
+- fix: CEL을 통해 x로 실수를 전달하지 못해 0.5도 단위 설정 등에서 발생하는 오류 수정.
+  
+
 v3.4.0
 - feat: AI 에이전트용 API 추가 — 애드온 구성의 `agent_api_enabled` 토글로 켜고, AI 에이전트가 토큰 인증으로 REST/MCP를 통해 브릿지 상태 조회와 제어를 할 수 있습니다. Bearer 토큰·패킷 전송 허용은 웹 UI(첫 접속 화면 또는 설정 → Agent API)에서 발급/관리하며 환경변수는 없습니다. UI 포트와 분리된 전용 포트(기본 3001)에서 동작하고, 포트가 사용 중이면 빈 포트로 자동 이동하며 토글이 꺼져 있으면 포트 자체가 열리지 않습니다. [문서보기](https://homenet2mqtt-docs.vercel.app/guide/agent-api.html)
 - feat: UI 비밀번호 인증 추가 — HA 애드온(ingress) 접속은 Home Assistant 로그인으로 인증되므로 기존과 동일하게 비밀번호 없이 이용합니다. Docker 등으로 3000 포트에 직접 접속할 때만 비밀번호 로그인이 필요합니다. [문서보기](https://homenet2mqtt-docs.vercel.app/guide/install-docker.html#ui-%EB%B9%84%EB%B0%80%EB%B2%88%ED%98%B8)
