@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-11T01:46:08.156Z",
+  "generated_at": "2026-11-21T04:28:17.495Z",
   "vendors": [
     {
       "id": "bestin",
@@ -565,7 +565,7 @@
           "name_en": "Heaters (5 Thermostats)",
           "description": "Ezville 난방 온도조절기 5개 설정입니다. 0.5°C 단위 조절, 외출 모드 지원.",
           "description_en": "Ezville 5 heating thermostats with 0.5°C step and away preset mode.",
-          "version": "1.0.3",
+          "version": "1.0.4",
           "author": "wooooooooooook",
           "tags": [
             "climate",
