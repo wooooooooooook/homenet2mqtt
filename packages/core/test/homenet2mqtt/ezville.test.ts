@@ -117,6 +117,15 @@ describe('HomeNet to MQTT - Ezville Protocol', () => {
     const expectedThermoTemp = Buffer.from([0xf7, 0x36, 0x11, 0x44, 0x01, 0x19, 0x8c, 0x28]);
     expect(ctx.mockSerialPort.write).toHaveBeenCalledWith(expectedThermoTemp);
 
+    // Command TEMPERATURE for thermostat_1 with 0.5 step (14.5 degrees)
+    // Data: [0x36, 0x11, 0x44, 0x01, 0x8E] (14 in hex with 0x80 flag is 0x8E)
+    // Checksum: XOR_ADD -> 1B 2C
+    // Header: F7
+    await executeCommand(ctx, 'thermostat_1', 'temperature', 14.5);
+    const expectedThermoTempHalf = Buffer.from([0xf7, 0x36, 0x11, 0x44, 0x01, 0x8e, 0x1b, 0x2c]);
+    expect(expectedThermoTempHalf[5]).toBe(0x8e);
+    expect(ctx.mockSerialPort.write).toHaveBeenCalledWith(expectedThermoTempHalf);
+
     // Command ON for elevator_call
     // Data: [0x33, 0x01, 0x81, 0x03, 0x00, 0x24, 0x00]
     // Checksum: XOR_ADD -> 63 36

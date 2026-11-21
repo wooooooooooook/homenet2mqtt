@@ -142,7 +142,7 @@ export class ReusableBufferView {
  * 5. **Automation (`guard`, `condition`)**: `states`, `trigger`
  *
  * **Variable Definitions:**
- * - `x` (int): The primary input value (e.g., a candidate byte or current state).
+ * - `x` (dyn): The primary input value (e.g., an int or double candidate value, or current state).
  * - `xstr` (string): The string representation of the input value (e.g. for custom modes).
  * - `data` (list<int>): The raw packet data buffer as a list of integers.
  * - `len` (int): The length of the data buffer (useful in checksum/length expressions).
@@ -187,10 +187,12 @@ export class CelExecutor {
   }
 
   constructor() {
-    this.env = new Environment();
+    this.env = new Environment({
+      homogeneousAggregateLiterals: false,
+    });
 
     // Register Types
-    this.env.registerVariable('x', 'int');
+    this.env.registerVariable('x', 'dyn');
     this.env.registerVariable('xstr', 'string'); // String input for custom modes
     this.env.registerVariable('data', 'list'); // list(int)
     this.env.registerVariable('state', 'map');
@@ -575,13 +577,21 @@ export class CelExecutor {
     // Only populate 'x' if provided or required by safe defaults
     if (contextData.x !== undefined && contextData.x !== null) {
       // If x is a string (e.g., custom mode name), set both x=0 and xstr=value
-      // If x is a number, convert to BigInt for CEL and set xstr=''
+      // If x is a number:
+      //   - integers are converted to BigInt (for full compatibility with int/bitwise operations)
+      //   - floats are preserved as number (double in CEL)
       if (typeof contextData.x === 'string') {
-        safeContext.x = 0n; // CEL needs x to be int
+        safeContext.x = 0n; // CEL default int when x is string
         safeContext.xstr = contextData.x; // String value accessible via xstr
       } else {
         const numValue = Number(contextData.x);
-        safeContext.x = Number.isNaN(numValue) ? 0n : BigInt(Math.floor(numValue));
+        if (Number.isNaN(numValue)) {
+          safeContext.x = 0n;
+        } else if (Number.isInteger(numValue)) {
+          safeContext.x = BigInt(numValue);
+        } else {
+          safeContext.x = numValue;
+        }
         safeContext.xstr = '';
       }
     } else {

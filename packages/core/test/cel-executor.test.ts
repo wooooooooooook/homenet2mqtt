@@ -87,4 +87,106 @@ describe('CelExecutor', () => {
     const result = executor.execute(script, { x: 'Sleep' });
     expect(result).toEqual([0x20, 0x11, 0x01]);
   });
+
+  describe('dyn x support for integer and floating-point inputs', () => {
+    it('should correctly handle various numeric inputs (14, 14.0, 14.1, 14.5, 14.9, -14.5, 0.5)', () => {
+      // 14 and 14.0 are integer inputs (Number.isInteger returns true) -> passed as BigInt
+      expect(executor.execute('x', { x: 14 })).toBe(14);
+      expect(executor.execute('x == 14', { x: 14 })).toBe(true);
+      expect(executor.execute('x', { x: 14.0 })).toBe(14);
+      expect(executor.execute('x == 14', { x: 14.0 })).toBe(true);
+
+      // Floats -> passed as double
+      expect(executor.execute('x', { x: 14.1 })).toBeCloseTo(14.1);
+      expect(executor.execute('x', { x: 14.5 })).toBe(14.5);
+      expect(executor.execute('x', { x: 14.9 })).toBeCloseTo(14.9);
+      expect(executor.execute('x', { x: -14.5 })).toBe(-14.5);
+      expect(executor.execute('x', { x: 0.5 })).toBe(0.5);
+
+      // Fractional part calculation via double(x) - double(int(x))
+      const fracScript = 'double(x) - double(int(x))';
+      expect(executor.execute(fracScript, { x: 14 })).toBe(0);
+      expect(executor.execute(fracScript, { x: 14.0 })).toBe(0);
+      expect(executor.execute(fracScript, { x: 14.1 })).toBeCloseTo(0.1);
+      expect(executor.execute(fracScript, { x: 14.5 })).toBeCloseTo(0.5);
+      expect(executor.execute(fracScript, { x: 14.9 })).toBeCloseTo(0.9);
+      expect(executor.execute(fracScript, { x: -14.5 })).toBeCloseTo(-0.5);
+      expect(executor.execute(fracScript, { x: 0.5 })).toBeCloseTo(0.5);
+    });
+
+    it('should preserve backward compatibility for integer CEL operations', () => {
+      // Bitwise operations with integer x
+      expect(executor.execute('bitAnd(x, 0x0F)', { x: 0x1f })).toBe(0x0f);
+      expect(executor.execute('bitOr(x, 0x80)', { x: 0x0e })).toBe(0x8e);
+      expect(executor.execute('bitXor(x, 0xFF)', { x: 0xaa })).toBe(0x55);
+      expect(executor.execute('bitNot(x)', { x: 0 })).toBe(-1);
+
+      // Bitwise shifts with integer x
+      expect(executor.execute('bitShiftLeft(x, 2)', { x: 3 })).toBe(12);
+      expect(executor.execute('bitShiftRight(x, 1)', { x: 16 })).toBe(8);
+
+      // Integer comparisons
+      expect(executor.execute('x == 14', { x: 14 })).toBe(true);
+      expect(executor.execute('x > 10 && x < 20', { x: 15 })).toBe(true);
+      expect(executor.execute('x <= 14', { x: 14 })).toBe(true);
+
+      // Explicit type conversions from int
+      expect(executor.execute('double(x) + 0.5', { x: 14 })).toBe(14.5);
+      expect(executor.execute('string(x)', { x: 14 })).toBe('14');
+    });
+
+    it('should correctly execute real-world vendor preset expressions with integer x', () => {
+      // Commax pattern
+      const commax =
+        '[[0x20, 0x01, 0x11, 0x01, 0x00, 0x00, x], [0x20, 0x01, 0x11, 0x81, 0x00, 0x00, x]]';
+      expect(executor.execute(commax, { x: 23 })).toEqual([
+        [0x20, 0x01, 0x11, 0x01, 0x00, 0x00, 23],
+        [0x20, 0x01, 0x11, 0x81, 0x00, 0x00, 23],
+      ]);
+
+      // Kocom pattern
+      const kocom =
+        '[[0x30, 0xbc, 0x00, 0x36, 0x03, 0x01, 0x00, 0x00, 0x11, 0x01, x, 0x00, 0x00, 0x00, 0x00, 0x00], [0x30, 0xdc]]';
+      expect(executor.execute(kocom, { x: 22 })).toEqual([
+        [
+          0x30, 0xbc, 0x00, 0x36, 0x03, 0x01, 0x00, 0x00, 0x11, 0x01, 22, 0x00, 0x00, 0x00, 0x00,
+          0x00,
+        ],
+        [0x30, 0xdc],
+      ]);
+
+      // Samsung HVAC pattern (arithmetic: x * 10)
+      const samsungHvac =
+        '[[0x55, 0xd0, 0x00, 0x20, 0x00, 0x02, 0x01, 0x80, x * 10], [0x55, 0xd0, 0x00, 0x20, 0x00, 0x02, 0x01, 0x00]]';
+      expect(executor.execute(samsungHvac, { x: 26 })).toEqual([
+        [0x55, 0xd0, 0x00, 0x20, 0x00, 0x02, 0x01, 0x80, 260],
+        [0x55, 0xd0, 0x00, 0x20, 0x00, 0x02, 0x01, 0x00],
+      ]);
+    });
+
+    it('should evaluate 0.5 step Ezville temperature command expression', () => {
+      const ezvilleScript =
+        '[[0x36, 0x11, 0x44, 0x01, bitOr(int(x), (double(x) - double(int(x)) >= 0.5 ? 0x80 : 0))], [0x36, 0x11, 0xc4]]';
+
+      // 14.5℃ -> 0x8E (142)
+      const resHalf = executor.execute(ezvilleScript, { x: 14.5 });
+      expect(resHalf).toEqual([
+        [0x36, 0x11, 0x44, 0x01, 0x8e],
+        [0x36, 0x11, 0xc4],
+      ]);
+
+      // 14.0℃ / 14℃ -> 0x0E (14)
+      const resInt = executor.execute(ezvilleScript, { x: 14 });
+      expect(resInt).toEqual([
+        [0x36, 0x11, 0x44, 0x01, 0x0e],
+        [0x36, 0x11, 0xc4],
+      ]);
+
+      const resFloatZero = executor.execute(ezvilleScript, { x: 14.0 });
+      expect(resFloatZero).toEqual([
+        [0x36, 0x11, 0x44, 0x01, 0x0e],
+        [0x36, 0x11, 0xc4],
+      ]);
+    });
+  });
 });
