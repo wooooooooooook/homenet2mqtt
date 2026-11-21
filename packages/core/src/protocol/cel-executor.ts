@@ -479,7 +479,7 @@ export class CelExecutor {
    *
    * Automatically handles type conversions required by the CEL engine:
    * - `Buffer` or `Uint8Array` in `contextData.data` are converted to `BigInt[]`.
-   * - `number` in `contextData.x` is converted to `BigInt`.
+   * - `number` in `contextData.x`: integers are converted to `BigInt` (for int/bitwise operations), while floating-point numbers are preserved as `number` (`double` in CEL). Non-finite numbers (NaN, Infinity, -Infinity) default to `0n`.
    *
    * @param script - The CEL expression string to evaluate.
    * @param contextData - A dictionary of variables to expose to the script.
@@ -585,7 +585,7 @@ export class CelExecutor {
         safeContext.xstr = contextData.x; // String value accessible via xstr
       } else {
         const numValue = Number(contextData.x);
-        if (Number.isNaN(numValue)) {
+        if (!Number.isFinite(numValue)) {
           safeContext.x = 0n;
         } else if (Number.isInteger(numValue)) {
           safeContext.x = BigInt(numValue);

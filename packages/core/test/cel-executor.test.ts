@@ -188,5 +188,37 @@ describe('CelExecutor', () => {
         [0x36, 0x11, 0xc4],
       ]);
     });
+
+    it('should safely handle non-finite numbers (NaN, Infinity, -Infinity) by defaulting to 0', () => {
+      expect(executor.execute('x', { x: NaN })).toBe(0);
+      expect(executor.execute('x == 0', { x: NaN })).toBe(true);
+
+      expect(executor.execute('x', { x: Infinity })).toBe(0);
+      expect(executor.execute('x == 0', { x: Infinity })).toBe(true);
+
+      expect(executor.execute('x', { x: -Infinity })).toBe(0);
+      expect(executor.execute('x == 0', { x: -Infinity })).toBe(true);
+    });
+
+    it('should evaluate mixed list literals when x is a float (homogeneousAggregateLiterals: false)', () => {
+      // In [0x01, 0x02, x], 0x01 is int and x is double (14.5).
+      // With homogeneousAggregateLiterals: false, CEL allows mixed list literals without throwing
+      // "List elements must have the same type, expected type 'int' but found 'dyn'".
+      const script = '[0x01, 0x02, x]';
+      const result = executor.execute(script, { x: 14.5 });
+      expect(result).toEqual([1, 2, 14.5]);
+    });
+
+    it('should safely convert mixed float list results to byte buffer without checksum corruption', () => {
+      // If a command script returns a list containing a float, Buffer.from converts floats to truncated uint8
+      const script = '[0x01, 0x02, x]';
+      const result: number[] = executor.execute(script, { x: 14.5 });
+      expect(result).toEqual([1, 2, 14.5]);
+
+      // Buffer.from truncates floats to integer byte values
+      const buf = Buffer.from(result);
+      expect(buf).toEqual(Buffer.from([0x01, 0x02, 14]));
+      expect(buf[2]).toBe(14);
+    });
   });
 });
